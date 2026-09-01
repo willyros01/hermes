@@ -1,4 +1,5 @@
 const app = document.querySelector("#app");
+const HERMES_VERSION = "0.3";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -46,7 +47,7 @@ let state = {
       {id:"f2",mine:true,text:"7 works for me.",time:"2:22 PM",state:"read"}
     ]
   },
-  settings:{previews:false,autoLock:true,largeText:false,wifiAttachments:true}
+  settings:{previews:false,autoLock:true,largeText:false,wifiAttachments:true,appearance:"auto"}
 };
 
 function esc(s=""){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -59,8 +60,17 @@ function shellTop(title,left=`<span class="topbar-spacer"></span>`,right=`<span 
   return `<header class="topbar">${left}<h1>${esc(title)}</h1>${right}</header>`;
 }
 
+function applyAppearance(){
+  const root=document.documentElement;
+  root.classList.toggle("large-text", !!state.settings.largeText);
+  const prefersDark=window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const effective=state.settings.appearance==="auto" ? (prefersDark?"dark":"light") : state.settings.appearance;
+  root.dataset.theme=effective;
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute("content", effective==="dark" ? "#182127" : "#ffffff");
+}
 function render(){
-  document.documentElement.style.fontSize=state.settings.largeText?"18px":"16px";
+  applyAppearance();
   if(!state.unlocked) return renderUnlock();
   const routes={
     messages:renderMessages, chat:renderChat, settings:renderSettings,
@@ -75,12 +85,12 @@ function renderUnlock(){
   app.innerHTML=`
     <main class="app-shell unlock">
       <section class="unlock-card">
-        <div class="lock-mark">🔒</div>
+        <div class="unlock-brand"><img class="brand-logo" src="hermes-logo.png" alt="Hermes logo"></div>
         <h1>Hermes</h1>
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">Hermes UX Prototype 0.2 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">Hermes UX Prototype 0.3 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -114,7 +124,14 @@ function renderMessages(){
         </button>`).join("");
     list.querySelectorAll(".conversation").forEach(btn=>btn.onclick=()=>{
       state.selectedId=Number(btn.dataset.id); state.route="chat";
-      state.conversations.find(x=>x.id===state.selectedId).unread=0; render();
+      state.conversations.find(x=>x.id===state.selectedId).unread=0; const appearanceMedia=window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+if(appearanceMedia){
+  appearanceMedia.addEventListener?.("change",()=>{
+    if(state.settings.appearance==="auto") render();
+  });
+}
+
+render();
     });
   };
   draw();
@@ -260,7 +277,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in Hermes UX Prototype 0.2.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in Hermes UX Prototype 0.3.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -360,7 +377,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in Hermes UX Prototype 0.2.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in Hermes UX Prototype 0.3.");
 }
 
 function openAddMemberModal(){
@@ -449,10 +466,9 @@ function renderModal(){
     host.querySelectorAll('input[name="history"]').forEach(r=>r.onchange=()=>state.modal.historyChoice=r.value);
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;render()};
     host.querySelector("#modalConfirm").onclick=()=>{
-      member.historyAccess=state.modal.historyChoice==="all"?"all":state.modal.historyChoice;
-      member.joinedAt=member.joinedAt;
+      const granted=state.modal.historyChoice;
+      member.historyAccess=granted==="all"?"all":granted;
       state.modal=null;
-      alert(`Prototype: ${member.name} was granted the selected historical access. In production this will require secure key/history sharing.`);
       render();
     };
   }
@@ -468,16 +484,54 @@ function renderSettings(){
           ${settingRow("Biometric / passkey unlock","autoLock")}
           ${settingRow("Notification message previews","previews")}
         </div>
-        <div class="card"><h2>Reading</h2>${settingRow("Large text mode","largeText")}</div>
+
+        <div class="card">
+          <h2>Reading</h2>
+          ${settingRow("Large Text","largeText")}
+          <p class="small-note">Large Text applies throughout Hermes, including conversations, message bubbles, controls, group screens, and Settings.</p>
+        </div>
+
+        <div class="card">
+          <h2>Appearance</h2>
+          <div class="row-main">
+            <strong>Day / Night display</strong>
+            <span>Auto follows the device or browser appearance and updates when it changes.</span>
+          </div>
+          <div class="appearance-options">
+            <button class="appearance-btn ${state.settings.appearance==="auto"?"active":""}" data-appearance="auto">Auto</button>
+            <button class="appearance-btn ${state.settings.appearance==="light"?"active":""}" data-appearance="light">Light</button>
+            <button class="appearance-btn ${state.settings.appearance==="dark"?"active":""}" data-appearance="dark">Dark</button>
+          </div>
+        </div>
+
         <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}</div>
-        <div class="card"><h2>Prototype connectivity</h2>
+
+        <div class="card">
+          <h2>Prototype connectivity</h2>
           <p class="small-note">Use browser/device airplane mode or network controls to test offline behavior. Outgoing messages show Queued while offline.</p>
         </div>
+
+        <div class="card">
+          <h2>About</h2>
+          <div class="about-box">
+            <div class="about-brand"><img class="brand-logo small" src="hermes-logo.png" alt="Hermes logo"></div>
+            <div class="brand">HERMES</div>
+            <div>Secure Messaging</div>
+            <div class="version">Version ${HERMES_VERSION}</div>
+            <div class="small-note">UX Prototype</div>
+          </div>
+        </div>
+
+        <div class="version-footer">Hermes v${HERMES_VERSION}</div>
       </section>
     </main>`;
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
   document.querySelectorAll(".toggle").forEach(btn=>btn.onclick=()=>{
     const key=btn.dataset.key;state.settings[key]=!state.settings[key];renderSettings();
+  });
+  document.querySelectorAll(".appearance-btn").forEach(btn=>btn.onclick=()=>{
+    state.settings.appearance=btn.dataset.appearance;
+    renderSettings();
   });
 }
 function settingRow(label,key){

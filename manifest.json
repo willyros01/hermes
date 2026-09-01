@@ -6,6 +6,19 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "Hermes UX Prototype 0.2 with individual and group conversation flows.",
-  "icons": []
+  "description": "Hermes UX Prototype 0.3 with groups, accessibility, adaptive appearance, and Hermes branding.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

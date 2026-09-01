@@ -1,6 +1,6 @@
-# Hermes UX Prototype 0.2
+# Hermes UX Prototype 0.3
 
-Prototype 0.2 is the first version intended for the initial GitHub upload.
+Prototype 0.3 is the first version intended for the initial GitHub upload.
 
 ## Added in 0.2
 - New Message screen
@@ -74,7 +74,7 @@ Examples:
 9. Disable network connectivity, send a message, and verify it shows Queued.
 10. Restore connectivity and verify the message progresses through delivery states.
 
-Prototype 0.2 remains intentionally Firebase-free so the UX can be reviewed before backend and cryptographic implementation.
+Prototype 0.3 remains intentionally Firebase-free so the UX can be reviewed before backend and cryptographic implementation.
 
 ## Initial GitHub upload
 
@@ -98,7 +98,7 @@ When creating the repository:
    - `app.js`
    - `manifest.json`
    - `README.md`
-9. Commit message: `Initial Hermes UX Prototype 0.2`
+9. Commit message: `Initial Hermes UX Prototype 0.3`
 
 ### GitHub Pages
 After the files are uploaded:
@@ -111,3 +111,40 @@ After the files are uploaded:
 7. Wait for GitHub Pages to publish the HTTPS site.
 
 Do not commit private keys, service-account JSON, passwords, encryption keys, server credentials, or other secrets to the repository.
+
+## Added / fixed in 0.3
+- Fixed History Access navigation so saving returns to Group Info
+- Improved Large Text support across Hermes
+- Added Appearance: Auto / Light / Dark
+- Auto appearance follows the device/browser color-scheme preference and reacts to changes
+- Added visible version information in Settings → About and at the bottom of Settings
+- Version number is synchronized with this package: `0.3`
+
+## 0.3 acceptance checks
+1. Open Settings and confirm `Version 0.3` is visible.
+2. Turn Large Text on and check Messages, Chat, Group Info, History, and Settings.
+3. In Appearance, test Light and Dark manually.
+4. Select Auto, then change the iPad/iPhone appearance between Light and Dark and confirm Hermes follows it.
+5. Open a group, go to Group Info → History, grant access, and confirm Hermes returns to Group Info.
+
+## Hermes branding included in this build
+- Approved flat 2D Hermes profile with winged helmet
+- Logo shown on the Hermes unlock screen
+- Logo shown in Settings → About
+- `apple-touch-icon` included for iPhone/iPad Add to Home Screen
+- 192×192 and 512×512 PWA icons included in `manifest.json`
+- Browser favicon included
+
+### Files added
+- `hermes-logo.png`
+- `icon-180.png`
+- `icon-192.png`
+- `icon-512.png`
+- `favicon.png`
+
+When updating GitHub, upload all files from this package directly into the repository root.
+
+## Flat GitHub layout for iPad
+This build intentionally keeps every file in the repository root. There is no `assets` subfolder.
+
+Upload all files directly to the main `hermes` repository directory. The image and icon references in the code already point to the root directory.
