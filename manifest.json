@@ -1,0 +1,11 @@
+{
+  "name": "Hermes",
+  "short_name": "Hermes",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#ffffff",
+  "description": "Hermes UX Prototype 0.2 with individual and group conversation flows.",
+  "icons": []
+}
