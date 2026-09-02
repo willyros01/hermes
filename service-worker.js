@@ -1,5 +1,5 @@
 /*
- * FIDUNIO 0.6.5 service worker
+ * FIDUNIO service worker
  *
  * Offline strategy adapted from the proven Scorecard pattern:
  * - FIDUNIO's own files are network-first so deployments are not trapped
@@ -9,13 +9,16 @@
  * - Firestore/Auth data transport is NEVER service-worker cached.
  */
 
-const CACHE="fidunio-shell-v3";
+importScripts("./version.js");
+const SW_VERSION=globalThis.FIDUNIO_RELEASE?.version || "unknown";
+const CACHE=`fidunio-shell-${SW_VERSION}`;
 
 const SHELL=[
   "./",
   "./index.html",
-  "./styles.css?v=0.7.0",
-  "./app.js?v=0.7.0",
+  "./version.js",
+  "./styles.css",
+  "./app.js",
   "./firebase.js",
   "./firebase-config.js",
   "./manifest.json",

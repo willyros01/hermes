@@ -1,0 +1,41 @@
+HERMES 0.7.1 / FIDUNIO 0.7.1 — CLEAN E2EE BASELINE TEST
+
+1. Upload all files in this ZIP to the ROOT of the existing hermes repo.
+2. Do NOT delete/overwrite firebase-config.js or config-firestore.js. They are intentionally not in this ZIP.
+3. Commit and wait for GitHub Pages deployment.
+4. Open `version.js` in GitHub and verify:
+   version: "0.7.1"
+
+FIRESTORE RULES
+- If you already published the included 0.7.0 E2EE firestore.rules, leave them in place.
+- 0.7.1 does not require you to undo or recreate those rules.
+- The included 0.7.1 firestore.rules are the same E2EE rule design.
+
+FIRST LAUNCH
+1. Keep iPad and iPhone online.
+2. Open/reload FIDUNIO on both.
+3. Confirm startup/login and Settings -> About both show 0.7.1.
+4. Leave each open for several seconds.
+
+DIRECT E2EE TEST
+1. iPad: Encrypted 0.7.1 from iPad
+2. Confirm readable on iPhone.
+3. iPhone: Encrypted 0.7.1 from iPhone
+4. Confirm readable on iPad.
+5. If "[Encrypted message — key unavailable]" appears, STOP and report which device.
+
+OFFLINE REGRESSION
+1. Leave encrypted messages visible on iPad ~5 seconds.
+2. Airplane Mode ON.
+3. Kill/reopen FIDUNIO offline.
+4. Open same conversation.
+PASS: messages remain readable.
+
+OUTBOX
+1. Still offline send: Encrypted queued 0.7.1
+2. Confirm Queued.
+3. Kill/reopen offline; confirm it remains.
+4. Restore communications.
+PASS: queued message reaches iPhone and is readable.
+
+This remains an E2EE foundation. Do not use sensitive/private content yet.

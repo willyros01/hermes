@@ -15,7 +15,7 @@ import {
 } from "./firebase.js";
 
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.7.0";
+const FIDUNIO_VERSION = globalThis.FIDUNIO_RELEASE?.version || "unknown";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -368,7 +368,7 @@ function ensureActiveCloudMessageSubscription(){
   if(c?.cloud) beginCloudMessageSubscription(c.id);
 }
 
-/* FIDUNIO 0.7.0 direct-message E2EE foundation */
+/* FIDUNIO direct-message E2EE foundation */
 const E2EE_VERSION=1;
 let deviceKeyPair=null;
 const peerKeyCache=new Map();
@@ -598,7 +598,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO Functional Prototype 0.6.5 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} — biometric/PIN validation remains a prototype feature.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -658,13 +658,13 @@ function renderNewConversation(){
         </div>
 
         <div class="card">
-          <h2>FIDUNIO ID — 0.6 test</h2>
+          <h2>FIDUNIO ID — ${esc(FIDUNIO_VERSION)} test</h2>
           ${cloudEnabled ? `
             <p class="small-note">Enter the other test account's Firebase UID. This creates a real Firestore one-to-one conversation.</p>
             <label class="form-label" for="peerUid">Recipient FIDUNIO ID</label>
             <input class="text-input" id="peerUid" autocomplete="off" placeholder="Paste recipient UID" />
             <button class="primary" id="cloudDirectBtn">Start Cloud Conversation</button>
-            <p class="warning-note">0.6.5 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
+            <p class="warning-note">New cloud direct messages use the ${esc(FIDUNIO_VERSION)} E2EE foundation. Use test messages only until identity verification and multi-device key handling are complete.</p>
           ` : `
             <p class="small-note">To start real two-device messaging, configure Firebase and sign in under Settings → Firebase Account.</p>
           `}
@@ -704,7 +704,7 @@ function renderNewConversation(){
       cloudBtn.disabled=false;cloudBtn.textContent="Start Cloud Conversation";
     }
   };
-  document.querySelectorAll(".direct-contact").forEach(btn=>btn.onclick=()=>alert("These sample contacts remain local prototype data. Use FIDUNIO ID above for the real 0.6 two-device test."));
+  document.querySelectorAll(".direct-contact").forEach(btn=>btn.onclick=()=>alert(`These sample contacts remain local prototype data. Use FIDUNIO ID above for the ${FIDUNIO_VERSION} two-device test.`));
 }
 function renderNewGroup(){
   app.innerHTML=`
@@ -793,7 +793,7 @@ function renderChat(){
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?'<div class="warning-banner">0.6.5 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
+      ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE foundation — test messages only until identity verification and multi-device key handling are complete.</div>`:""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -817,7 +817,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.5.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO ${FIDUNIO_VERSION}.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -1026,7 +1026,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.5.");
+  document.querySelector("#leaveBtn").onclick=()=>alert(`Leave Group is a UX placeholder in FIDUNIO ${FIDUNIO_VERSION}.`);
 }
 
 function openAddMemberModal(){
@@ -1167,7 +1167,7 @@ function renderSettings(){
         <div class="card">
           <h2>Firebase Account</h2>
           ${!isFirebaseConfigured() ? `
-            <p class="small-note"><strong>Not configured.</strong> Complete the Firebase setup instructions in <code>hermes-ux-0.6-setup.txt</code>, then replace the placeholders in <code>firebase-config.js</code>.</p>
+            <p class="small-note"><strong>Not configured.</strong> Complete the current Firebase setup instructions, then verify the existing configured <code>firebase-config.js</code>.</p>
           ` : firebaseUser ? `
             <p class="small-note"><strong>Signed in:</strong> ${esc(firebaseUser.email||"Firebase user")}</p>
             <label class="form-label">Your FIDUNIO ID</label>
@@ -1189,7 +1189,7 @@ function renderSettings(){
             </div>
           `}
           ${firebaseError?`<p class="warning-note">${esc(firebaseError)}</p>`:""}
-          <p class="warning-note">0.6.1 establishes real Firebase transport, but E2EE is not implemented yet. Do not use private or sensitive message content for this test.</p>
+          <p class="warning-note">FIDUNIO ${esc(FIDUNIO_VERSION)} uses the direct-message E2EE foundation for new cloud direct messages. This is still a test build; do not use sensitive content yet.</p>
         </div>
 
         <div class="card">

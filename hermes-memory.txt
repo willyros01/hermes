@@ -1,0 +1,113 @@
+HERMES PROJECT — FIDUNIO PRODUCT
+CUMULATIVE PROJECT MEMORY
+
+CURRENT RELEASE
+- Current release: 0.7.1.
+- `version.js` is the single authoritative runtime version file.
+- Historical release numbers remain only in documentation/history where appropriate.
+
+NAMING / PACKAGING
+- Hermes = internal project/repository/ZIP naming.
+- FIDUNIO = public product; UI says "FIDUNIO — Private Messaging".
+- GitHub repo remains `hermes`.
+- Release ZIP format remains `hermes-ux-<version>.zip`.
+- Files stay flat in the repository root.
+- `firebase-config.js` and `config-firestore.js` are protected configured files and must not be overwritten or included in release ZIPs.
+- Maintain one cumulative memory file named `hermes-memory.txt`; future releases reuse/update this same filename.
+
+VERSIONING
+- Starting 0.7.1, all current runtime version display should derive from `version.js`.
+- `app.js` reads `globalThis.FIDUNIO_RELEASE.version`.
+- `service-worker.js` imports `version.js`.
+- Avoid hard-coded current release numbers in other runtime JavaScript/UI.
+
+UX / TEST PLATFORMS
+- Palette navy/teal/gray; no gold.
+- A / A+ / A++ approved.
+- Auto / Light / Dark approved.
+- History Access buttons approved.
+- Group overflow fix passed on iPad/iPhone.
+- Primary test devices: iPad and iPhone; Fire HD 8 and Mac also available.
+- Responsive roadmap: compact iPhone/narrow Fire layout; adaptive iPad; persistent-sidebar/workspace Mac layout.
+
+FIREBASE
+- Firebase project: fidunio-fef13.
+- Email/Password authentication enabled.
+- Firestore Standard, default DB, nam5.
+- GitHub Pages authorized domain configured.
+- Existing iPad/iPhone accounts and direct cloud conversation should persist.
+- GitHub secret-scanning alert for the Firebase Web API key is a low-priority hardening item. Later verify it is only the intended public Web API key, review Google Cloud API restrictions, and resolve the alert. Do not interrupt E2EE/functionality work.
+
+RELIABILITY BASELINE — 0.6.5
+- Live two-way iPad/iPhone cloud messaging passed.
+- Offline cold-start history passed.
+- Repeated offline/online cycles preserved messages.
+- Offline queued messages survived kill/reopen.
+- Queued messages automatically sent when communications returned.
+- Preserve local-first design: encrypted durable local state/history/Outbox first, Firebase sync second.
+- Firestore cache snapshots must not erase restored local history.
+- Service worker follows Scorecard-style own-app network-first behavior and does not cache Firebase API/data traffic.
+
+E2EE FOUNDATION — 0.7.0 / 0.7.1
+- Per-installation non-exportable ECDH P-256 private key stored locally in IndexedDB.
+- Public JWK is published to the signed-in user's Firestore profile.
+- ECDH shared secret -> HKDF-SHA-256 -> AES-256-GCM.
+- Fresh 12-byte IV for each message.
+- Conversation ID used as AES-GCM additional authenticated data.
+- New encrypted direct messages store e2ee=1, ciphertext, iv, and text="" in Firestore.
+- Recipient decrypts locally.
+- 0.7.1 keeps this E2EE design; it fixes version consistency rather than changing cryptography/rules.
+
+CURRENT E2EE LIMITATIONS
+- One active installation/device-key assumption per account.
+- No multi-device key fan-out yet.
+- Clearing site data/reinstall can generate a new device key.
+- No QR/safety-number verification yet.
+- No key-change warning yet.
+- No Double Ratchet/forward secrecy yet.
+- Group E2EE not yet implemented.
+- Firebase can still see metadata.
+- Legacy pre-0.7.0 cloud messages remain legacy plaintext.
+- Do not use sensitive/private content yet.
+
+SECURITY ROADMAP
+- Multi-device/device identity and identity verification.
+- Forward secrecy / ratcheting.
+- Group E2EE/key rotation/history enforcement.
+- Firebase App Check.
+- Abuse/billing safeguards.
+- Hostile-client Firestore-rules audit.
+- API-key restriction/secret-scanning cleanup after core functionality is stable.
+
+0.7.1 TEST PLAN
+- Upload 0.7.1 root files while preserving protected Firebase config files.
+- If 0.7.0 E2EE Firestore rules were already published, they may remain; 0.7.1 does not introduce a substantive rule change.
+- Verify GitHub `version.js` says 0.7.1.
+- Verify startup/login and Settings/About both show 0.7.1.
+- Test encrypted direct message each direction.
+- Repeat offline cold-start history.
+- Repeat offline Outbox survival and reconnect.
+- If "[Encrypted message — key unavailable]" appears, stop and diagnose key publication/retrieval.
+
+--- PRESERVED 0.7.0 MEMORY ---
+
+HERMES / FIDUNIO MEMORY — 0.7.0
+
+0.6.5 passed full reliability: live messaging, offline cold-start history, repeated offline/online,
+Outbox survival, automatic reconnect delivery. Preserve its local-first architecture.
+
+0.7.0 begins direct-message E2EE:
+- non-exportable per-installation ECDH P-256 private key in IndexedDB
+- public JWK published to own Firestore user profile
+- ECDH shared secret -> HKDF-SHA-256 -> AES-256-GCM
+- fresh 12-byte IV/message; conversation ID is AES-GCM AAD
+- Firestore new direct message text="" and contains ciphertext/iv/e2ee=1
+- recipient decrypts locally
+- encrypted local history/Outbox retained
+
+Limitations: one-installation-per-account assumption; no multi-device fan-out, safety-number/QR,
+key-change warning, Double Ratchet/forward secrecy, or group E2EE. Metadata remains visible.
+Old messages remain legacy plaintext.
+
+Included firestore.rules MUST be published.
+firebase-config.js and config-firestore.js remain protected/excluded.

@@ -329,3 +329,17 @@ Protected configuration:
 ## Hermes 0.7.0 / FIDUNIO 0.7.0
 
 First direct-message E2EE foundation. New 0.7.0 direct messages use a per-installation non-exportable ECDH P-256 private key, HKDF-SHA-256 and AES-256-GCM. Firestore receives ciphertext/IV and an empty legacy text field. This build does not yet implement multi-device key fan-out, safety-number verification, forward secrecy/Double Ratchet, or group E2EE. The proven 0.6.5 local-first/offline architecture remains. Protected Firebase config files are excluded.
+
+
+## Hermes 0.7.1 / FIDUNIO 0.7.1
+
+0.7.1 corrects the mixed-version labels in the 0.7.0 test build and centralizes the runtime release number.
+
+- `version.js` is now the single authoritative current-version source.
+- `app.js` reads the version from `globalThis.FIDUNIO_RELEASE.version`.
+- `service-worker.js` imports the same version file and derives its cache name from it.
+- Startup/login, Settings/About, warnings, and prototype notices no longer carry stale hard-coded release numbers.
+- The 0.7.0 direct-message E2EE implementation and Firestore rule design are retained.
+- The proven 0.6.5 local-first/offline architecture is retained.
+- `firebase-config.js` and `config-firestore.js` remain protected and excluded.
+- One cumulative `hermes-memory.txt` replaces version-specific memory files.
