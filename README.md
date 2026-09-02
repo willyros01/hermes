@@ -391,3 +391,16 @@ First direct-message E2EE foundation. New 0.7.0 direct messages use a per-instal
 - The contact device registry count is shown, and FIDUNIO reports when the current compatibility key matches a registered device.
 - No Firestore rules change from 0.8.0.
 - No change to the stable message ciphertext format, Outbox, offline history, or reconnect architecture.
+
+
+## Hermes 0.8.1.1 / FIDUNIO 0.8.1.1
+
+UI-only refinement built from the fully passed 0.8.1 security baseline.
+
+- Replaces simple text/emoji-style action graphics with cleaner two-dimensional SVG pictograms.
+- Updates Settings, Info, Add/New, Back, Send, and composer tool icons.
+- Composer tools now use consistent 2D pictograms for Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved.
+- Retains the existing navy/teal/gray visual language and does not introduce gold.
+- No Firebase, Firestore rules, E2EE, device-identity, peer-verification, Outbox, local-history, or reconnect logic changes.
+- `version.js` remains the single runtime version source.
+- Stable root-level TXT files are `hermes-memory.txt` and `hermes-setup.txt`.

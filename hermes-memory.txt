@@ -168,3 +168,20 @@ firebase-config.js and config-firestore.js remain protected/excluded.
 - Firestore rules unchanged from 0.8.0.
 - Protected firebase-config.js and config-firestore.js remain excluded.
 - Do not deliberately clear site data to test key-change detection on the main test accounts; use a disposable controlled scenario later if needed.
+
+
+0.8.1 TEST RESULT — FULL PASS
+- iPad Conversation Security fingerprint matched the iPhone Device Identity fingerprint.
+- iPhone Conversation Security fingerprint matched the iPad Device Identity fingerprint.
+- User explicitly verified the current key in both directions.
+- Messaging remained functional both ways after verification.
+- 0.8.1 is the stable contact-key-verification baseline.
+
+0.8.1.1 — 2D ICON UI REFINEMENT
+- UI-only release built from stable 0.8.1.
+- User requested richer two-dimensional graphics for the action/bottom/composer icons.
+- Replaced simple text/emoji-like graphics with inline SVG pictograms.
+- Updated Settings, New/Add, Back, Info, Send, Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved icons.
+- Preserved navy/teal/gray palette and no-gold rule.
+- No Firebase, Firestore rules, encryption, device identity, peer verification, Outbox, local-first history, or reconnect logic changes.
+- Packaging convention corrected permanently: use only root-level hermes-memory.txt and hermes-setup.txt; do not create version-numbered TXT filenames.

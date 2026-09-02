@@ -727,6 +727,30 @@ async function initApp(){
 
 function esc(s=""){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function initials(name){ return name.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase(); }
+
+function icon2d(name,size=22){
+  const common=`width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"`;
+  const icons={
+    settings:`<svg ${common}><rect x="3" y="3" width="18" height="18" rx="5" fill="currentColor" opacity=".12"/><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Zm0 2.1a1.7 1.7 0 1 1 0 3.4 1.7 1.7 0 0 1 0-3.4Z" fill="currentColor"/><path d="M12 4.6v2M12 17.4v2M4.6 12h2M17.4 12h2M6.7 6.7l1.4 1.4M15.9 15.9l1.4 1.4M17.3 6.7l-1.4 1.4M8.1 15.9l-1.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+    info:`<svg ${common}><rect x="3" y="3" width="18" height="18" rx="6" fill="currentColor" opacity=".12"/><circle cx="12" cy="8" r="1.2" fill="currentColor"/><path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    plus:`<svg ${common}><rect x="3" y="3" width="18" height="18" rx="6" fill="currentColor" opacity=".12"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    photo:`<svg ${common}><rect x="3" y="4" width="18" height="16" rx="4" fill="currentColor" opacity=".12"/><circle cx="9" cy="9" r="2" fill="currentColor"/><path d="m5.5 17 4.2-4.4 2.7 2.7 2.1-2.1 4 3.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    file:`<svg ${common}><path d="M7 3h7l4 4v14H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" fill="currentColor" opacity=".12"/><path d="M14 3v5h5M8 12h8M8 16h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    voice:`<svg ${common}><rect x="8" y="3" width="8" height="12" rx="4" fill="currentColor" opacity=".16"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    location:`<svg ${common}><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z" fill="currentColor" opacity=".14"/><circle cx="12" cy="10" r="2.5" fill="currentColor"/></svg>`,
+    contact:`<svg ${common}><rect x="4" y="3" width="16" height="18" rx="4" fill="currentColor" opacity=".12"/><circle cx="12" cy="9" r="3" fill="currentColor"/><path d="M7.5 17c.8-2.3 2.4-3.5 4.5-3.5s3.7 1.2 4.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    checklist:`<svg ${common}><rect x="4" y="4" width="16" height="16" rx="4" fill="currentColor" opacity=".12"/><path d="m7.5 9.5 1.5 1.5 2.5-3M13.5 10h3M7.5 15.5 9 17l2.5-3M13.5 16h3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    schedule:`<svg ${common}><rect x="4" y="5" width="16" height="15" rx="4" fill="currentColor" opacity=".12"/><path d="M8 3v4M16 3v4M4 9h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="14" r="2.4" fill="currentColor"/></svg>`,
+    saved:`<svg ${common}><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-4-7 4V5a2 2 0 0 1 2-2Z" fill="currentColor" opacity=".14"/><path d="m12 7 1.2 2.4 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4L12 7Z" fill="currentColor"/></svg>`,
+    back:`<svg ${common}><rect x="3" y="3" width="18" height="18" rx="6" fill="currentColor" opacity=".1"/><path d="m13.5 7-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    send:`<svg ${common}><path d="M4 5.5 20 12 4 18.5l2.4-5.2L14 12l-7.6-1.3L4 5.5Z" fill="currentColor" opacity=".18"/><path d="M5 6.5 19 12 5 17.5l1.9-4.2L14 12l-7.1-1.3L5 6.5Z" fill="currentColor"/></svg>`
+  };
+  return icons[name]||"";
+}
+function toolButton(icon,label){
+  return `<button class="tool"><span class="tool-icon">${icon2d(icon,24)}</span><span>${esc(label)}</span></button>`;
+}
+
 function nowTime(){ return new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}); }
 function currentConversation(){ return state.conversations.find(x=>x.id===state.selectedId); }
 function isGroup(c=currentConversation()){ return c?.type==="group"; }
@@ -779,12 +803,12 @@ function renderUnlock(){
 function renderMessages(){
   app.innerHTML=`
     <main class="app-shell">
-      ${shellTop("Messages",undefined,'<button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙︎</button>')}
+      ${shellTop("Messages",undefined,'<button class="icon-btn icon-2d" id="settingsBtn" aria-label="Settings">${icon2d("settings",23)}</button>')}
       <section class="content">
         <input class="search" id="searchBox" placeholder="Search conversations" />
         <div class="conversation-list" id="conversationList"></div>
       </section>
-      <button class="fab" id="newBtn" aria-label="New conversation">＋</button>
+      <button class="fab icon-2d" id="newBtn" aria-label="New conversation">${icon2d("plus",26)}</button>
     </main>`;
   document.querySelector("#settingsBtn").onclick=()=>{state.route="settings";render()};
   document.querySelector("#newBtn").onclick=()=>{state.route="newConversation";render()};
@@ -956,12 +980,12 @@ function renderChat(){
   app.innerHTML=`
     <main class="app-shell">
       <header class="topbar">
-        <button class="back-btn" id="backBtn" aria-label="Back">‹</button>
+        <button class="back-btn icon-2d" id="backBtn" aria-label="Back">${icon2d("back",23)}</button>
         <div class="chat-header-title">
           <strong>${esc(c.name)}</strong>
           <span class="secure">● ${c.cloud?"Cloud":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}</span>
         </div>
-        <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
+        <button class="icon-btn icon-2d" id="infoBtn" aria-label="Info">${icon2d("info",23)}</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
       ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE + key verification foundation — test messages only until verified per-device fan-out and forward secrecy are complete.</div>`:""}
@@ -977,15 +1001,15 @@ function renderChat(){
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
         <div class="compose-line">
-          <button class="more-btn" id="moreBtn" aria-label="More tools">＋</button>
+          <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
           <textarea id="messageBox" rows="1" placeholder="Type a message…"></textarea>
-          <button class="send-btn" id="sendBtn" aria-label="Send">➤</button>
+          <button class="send-btn icon-2d" id="sendBtn" aria-label="Send">${icon2d("send",24)}</button>
         </div>
         <div class="tool-panel ${state.toolsOpen?"open":""}" id="toolPanel">
-          <button class="tool">📷 Photo</button><button class="tool">📎 File</button>
-          <button class="tool">🎤 Voice</button><button class="tool">📍 Location</button>
-          <button class="tool">👤 Contact</button><button class="tool">✓ Checklist</button>
-          <button class="tool">⏰ Schedule</button><button class="tool">★ Saved</button>
+          ${toolButton("photo","Photo")}${toolButton("file","File")}
+          ${toolButton("voice","Voice")}${toolButton("location","Location")}
+          ${toolButton("contact","Contact")}${toolButton("checklist","Checklist")}
+          ${toolButton("schedule","Schedule")}${toolButton("saved","Saved")}
         </div>
       </section>
     </main>`;

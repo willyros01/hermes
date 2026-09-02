@@ -566,3 +566,37 @@ html.text-aplusplus .member-card > :last-child{
 @media(max-width:430px), (min-resolution:2dppx){
   .auth-actions{grid-template-columns:1fr}
 }
+
+
+/* 0.8.1.1 — polished two-dimensional icon treatment */
+.icon-2d{
+  display:inline-grid;
+  place-items:center;
+  line-height:0;
+}
+.icon-2d svg,
+.tool-icon svg{
+  display:block;
+}
+.tool{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.tool-icon{
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 auto;
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  background:color-mix(in srgb, currentColor 10%, transparent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb, #fff 55%, transparent), 0 1px 2px rgba(0,0,0,.10);
+}
+.icon-btn.icon-2d,
+.back-btn.icon-2d,
+.more-btn.icon-2d,
+.send-btn.icon-2d,
+.fab.icon-2d{
+  text-shadow:none;
+}
