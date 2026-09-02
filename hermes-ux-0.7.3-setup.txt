@@ -1,0 +1,45 @@
+HERMES 0.7.3 / FIDUNIO 0.7.3 — LIVE RECEIVE / RECONNECT TEST
+
+PURPOSE
+0.7.3 keeps the working 0.7.2 E2EE and offline architecture and focuses only on reconnect speed and an occasionally stale foreground message listener.
+
+GITHUB
+1. Upload the ZIP files to the ROOT of the existing hermes repository.
+2. Do NOT delete or overwrite firebase-config.js or config-firestore.js. They are intentionally excluded.
+3. Commit and wait for GitHub Pages deployment.
+4. Open version.js in GitHub and verify:
+   version: "0.7.3"
+
+FIRESTORE RULES
+- Do NOT change your currently published 0.7.x E2EE rules.
+- The firestore.rules in this release are unchanged from 0.7.2.
+
+FIRST CHECK
+1. Open/reload FIDUNIO on iPad and iPhone while online.
+2. Confirm both show 0.7.3.
+3. Confirm both devices are signed into their existing Firebase test accounts.
+4. Confirm the existing direct conversation appears on both.
+
+LIVE RECEIVE TEST
+1. Keep the same conversation OPEN on the iPhone.
+2. From the iPad send: Live 0.7.3 from iPad
+PASS: message appears readable on the already-open iPhone conversation without leaving/re-entering it.
+3. Keep the conversation OPEN on the iPad.
+4. From the iPhone send: Live 0.7.3 from iPhone
+PASS: message appears readable on the already-open iPad conversation.
+
+RECONNECT / OUTBOX TEST
+1. On iPad, turn Airplane Mode ON.
+2. Send: Queued reconnect 0.7.3
+3. Confirm it remains Queued through a close/reopen if desired.
+4. Keep the conversation open on iPhone.
+5. Restore communications on iPad.
+PASS:
+- iPad automatically sends the queued message without navigating away.
+- It should begin retrying immediately; 0.7.3 also retries at ~1.5s and ~4s if Firebase is not ready at the first online event.
+- The message appears automatically in the already-open iPhone conversation without leaving/re-entering.
+
+If either device shows "[Encrypted message — key unavailable]" or the message remains Failed/Queued after connectivity is clearly restored, stop and report exactly what is displayed.
+
+SECURITY
+0.7.3 is still the E2EE foundation, not the final production secure-messaging protocol. Do not use sensitive/private content yet.

@@ -347,3 +347,16 @@ First direct-message E2EE foundation. New 0.7.0 direct messages use a per-instal
 ## Hermes 0.7.2 / FIDUNIO 0.7.2
 
 0.7.2 repairs the direct-E2EE conversation identity problem found during the first 0.7.1 test. Firestore conversation discovery already returned `peerUid`, but the local merge dropped it. Since E2EE needs the recipient UID to retrieve the recipient public key, an older/restored conversation could fail before encryption/send. 0.7.2 preserves `peerUid`, repairs missing peer identity from the authoritative Firestore conversation document, preserves it in Outbox recovery data, and retries queued/failed cloud work after conversation reconciliation. It does not change the 0.7.x cryptographic design or Firestore rule design, and it preserves the proven 0.6.5 local-first/offline architecture.
+
+
+## Hermes 0.7.3 / FIDUNIO 0.7.3
+
+0.7.3 is a focused live-receive/reconnect reliability correction built on the successful 0.7.2 E2EE/offline baseline.
+
+- Keeps `version.js` as the only authoritative current release number.
+- Prevents the conversation-list Firestore listener from unnecessarily tearing down and recreating the active message listener whenever `conversation.updatedAt` changes.
+- Tracks the currently subscribed cloud conversation so repeated reconciliation is idempotent.
+- Explicit chat navigation, authentication restoration, reconnect, `pageshow`, and visible `visibilitychange` can still force one clean listener reattach.
+- On reconnect, the Outbox flushes immediately and retries after 1.5 seconds and 4 seconds to tolerate iOS/Safari reporting connectivity before Firebase is fully usable.
+- Keeps the 0.7.2 E2EE design, peerUid repair, encrypted local history, authoritative Outbox, and Firestore rules unchanged.
+- Protected Firebase configuration files remain excluded.

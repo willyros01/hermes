@@ -121,3 +121,16 @@ firebase-config.js and config-firestore.js remain protected/excluded.
 - Do not ask user to recreate accounts, create a replacement conversation, or copy/paste FIDUNIO IDs again for this repair.
 - Firestore rules are unchanged in substance from 0.7.0/0.7.1; user should leave already-published E2EE rules in place.
 - version.js remains the single authoritative version file; current release 0.7.2.
+
+
+0.7.3 — LIVE RECEIVE / RECONNECT RELIABILITY
+- 0.7.2 direct E2EE passed both directions on iPad/iPhone.
+- Existing conversation restoration after iPhone authentication passed.
+- A previously failed iPad message automatically retried and arrived after the iPhone signed in and its E2EE key was available.
+- Offline encrypted Outbox survived repeated close/reopen while offline.
+- After communications returned, the queued message eventually sent and arrived readable, but delivery was slow and the iPhone needed to leave/re-enter the conversation to display it.
+- 0.7.3 addresses that reliability issue without changing cryptography or Firestore rules.
+- Root cause/race addressed: conversation discovery snapshots can update when a message touches conversation.updatedAt. Earlier code re-ran ensureActiveCloudMessageSubscription(), which always stopped/restarted the active message listener. 0.7.3 makes same-conversation subscription idempotent.
+- Explicit navigation/auth/reconnect/foreground events may force one clean reattach.
+- Reconnect Outbox recovery now flushes immediately, then retries after 1.5s and 4s because iOS can report online before Firebase requests are actually ready.
+- Test 0.7.3 for prompt automatic queued-send after reconnect and live display on the already-open receiving conversation without navigating out/in.

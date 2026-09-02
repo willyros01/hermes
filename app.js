@@ -80,6 +80,7 @@ let firebaseError = "";
 let firebaseUser = null;
 let cloudConversationUnsub = null;
 let cloudMessageUnsub = null;
+let cloudMessageConversationId = null;
 
 
 function openDb(){
@@ -356,6 +357,7 @@ function mergeCloudConversation(remote){
 }
 function stopCloudMessageSubscription(){
   if(cloudMessageUnsub){ cloudMessageUnsub(); cloudMessageUnsub=null; }
+  cloudMessageConversationId=null;
 }
 function beginCloudConversationSubscription(){
   if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
@@ -372,10 +374,10 @@ function beginCloudConversationSubscription(){
     if(state.route==="settings") renderSettings();
   });
 }
-function ensureActiveCloudMessageSubscription(){
+function ensureActiveCloudMessageSubscription(force=false){
   if(!firebaseUser || state.route!=="chat") return;
   const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));
-  if(c?.cloud) beginCloudMessageSubscription(c.id);
+  if(c?.cloud) beginCloudMessageSubscription(c.id,{force});
 }
 
 /* FIDUNIO direct-message E2EE foundation */
@@ -446,11 +448,19 @@ async function peerPublicKeyForConversation(conversationId){
 }
 async function publishMyE2EEKey(){ if(!firebaseUser)return; const kp=await getOrCreateDeviceKeyPair(); await publishCloudE2EEPublicKey(firebaseUser.uid,kp.publicJwk); }
 
-function beginCloudMessageSubscription(conversationId){
+function beginCloudMessageSubscription(conversationId,{force=false}={}){
+  const wanted=String(conversationId);
+  if(
+    !force &&
+    cloudMessageUnsub &&
+    String(cloudMessageConversationId)===wanted
+  ) return;
+
   stopCloudMessageSubscription();
-  const c=state.conversations.find(x=>String(x.id)===String(conversationId));
+  const c=state.conversations.find(x=>String(x.id)===wanted);
   if(!c?.cloud || !firebaseUser) return;
 
+  cloudMessageConversationId=wanted;
   cloudMessageUnsub=subscribeConversationMessages(
     conversationId,
     firebaseUser.uid,
@@ -546,8 +556,8 @@ async function initializeFirebaseLayer(){
       if(user){
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
-        ensureActiveCloudMessageSubscription();
-        if(state.online) flushQueued();
+        ensureActiveCloudMessageSubscription(true);
+        if(state.online) scheduleReconnectRecovery();
       }else{
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
         stopCloudMessageSubscription();
@@ -557,8 +567,8 @@ async function initializeFirebaseLayer(){
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
     if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
-    ensureActiveCloudMessageSubscription();
-    if(firebaseUser && state.online) flushQueued();
+    ensureActiveCloudMessageSubscription(true);
+    if(firebaseUser && state.online) scheduleReconnectRecovery();
   }catch(err){
     firebaseError=err?.message || String(err);
   }
@@ -670,7 +680,7 @@ function renderMessages(){
       state.route="chat";
       const chosen=state.conversations.find(x=>String(x.id)===String(state.selectedId));
       if(chosen) chosen.unread=0;
-      if(chosen?.cloud) beginCloudMessageSubscription(chosen.id); else stopCloudMessageSubscription();
+      if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true}); else stopCloudMessageSubscription();
       render();
     });
   };
@@ -730,7 +740,7 @@ function renderNewConversation(){
       mergeCloudConversation(remote);
       state.selectedId=remote.id;
       state.route="chat";
-      beginCloudMessageSubscription(remote.id);
+      beginCloudMessageSubscription(remote.id,{force:true});
       persistSoon();
       render();
     }catch(err){
@@ -991,26 +1001,49 @@ async function flushQueued(){
 
   render();
 }
+let reconnectRecoveryTimer1=null;
+let reconnectRecoveryTimer2=null;
+function scheduleReconnectRecovery(){
+  if(reconnectRecoveryTimer1) clearTimeout(reconnectRecoveryTimer1);
+  if(reconnectRecoveryTimer2) clearTimeout(reconnectRecoveryTimer2);
+
+  // iOS/Safari may fire "online" slightly before Firebase can complete a
+  // request. Flush now, then make two conservative retries. Outbox
+  // idempotency keeps this safe; successful records are removed only after
+  // Firestore confirms the write.
+  flushQueued();
+  reconnectRecoveryTimer1=setTimeout(()=>{
+    if(state.online && firebaseUser) flushQueued();
+  },1500);
+  reconnectRecoveryTimer2=setTimeout(()=>{
+    if(state.online && firebaseUser) flushQueued();
+  },4000);
+}
+function recoverForegroundCloudSession(){
+  state.online=navigator.onLine;
+  // Lifecycle recovery is one of the few times we deliberately replace the
+  // listener. Normal conversation metadata snapshots no longer restart it.
+  ensureActiveCloudMessageSubscription(true);
+  if(state.online) scheduleReconnectRecovery();
+  render();
+}
 window.addEventListener("online",()=>{
   state.online=true;
-  ensureActiveCloudMessageSubscription();
+  ensureActiveCloudMessageSubscription(true);
   render();
-  flushQueued();
+  scheduleReconnectRecovery();
 });
-window.addEventListener("offline",()=>{state.online=false;persistSoon();render()});
+window.addEventListener("offline",()=>{
+  state.online=false;
+  if(reconnectRecoveryTimer1) clearTimeout(reconnectRecoveryTimer1);
+  if(reconnectRecoveryTimer2) clearTimeout(reconnectRecoveryTimer2);
+  persistSoon();
+  render();
+});
 document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible"){
-    state.online=navigator.onLine;
-    ensureActiveCloudMessageSubscription();
-    if(state.online) flushQueued();
-    render();
-  }
+  if(document.visibilityState==="visible") recoverForegroundCloudSession();
 });
-window.addEventListener("pageshow",()=>{
-  state.online=navigator.onLine;
-  ensureActiveCloudMessageSubscription();
-  if(state.online) flushQueued();
-});
+window.addEventListener("pageshow",recoverForegroundCloudSession);
 
 function renderGroupInfo(){
   const c=currentConversation();
