@@ -9,11 +9,13 @@ import {
   subscribeMyConversations,
   subscribeConversationMessages,
   sendCloudMessage,
-  updateCloudMessageState
+  updateCloudMessageState,
+  getCloudUserProfile,
+  publishCloudE2EEPublicKey
 } from "./firebase.js";
 
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.6.5";
+const FIDUNIO_VERSION = "0.7.0";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -365,6 +367,51 @@ function ensureActiveCloudMessageSubscription(){
   const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));
   if(c?.cloud) beginCloudMessageSubscription(c.id);
 }
+
+/* FIDUNIO 0.7.0 direct-message E2EE foundation */
+const E2EE_VERSION=1;
+let deviceKeyPair=null;
+const peerKeyCache=new Map();
+function b64(bytes){ let s=""; const u8=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes); for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode(...u8.subarray(i,i+0x8000)); return btoa(s); }
+function unb64(s){ const bin=atob(s),out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i); return out; }
+async function getOrCreateDeviceKeyPair(){
+  if(deviceKeyPair)return deviceKeyPair;
+  const db=await openDb();
+  const existing=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get("e2ee-device-keypair-v1"));
+  if(existing?.privateKey&&existing?.publicKey){deviceKeyPair=existing;return existing;}
+  const kp=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]);
+  const publicJwk=await crypto.subtle.exportKey("jwk",kp.publicKey);
+  const stored={privateKey:kp.privateKey,publicKey:kp.publicKey,publicJwk,createdAt:Date.now()};
+  const tx=db.transaction("meta","readwrite"); tx.objectStore("meta").put(stored,"e2ee-device-keypair-v1"); await txDone(tx);
+  deviceKeyPair=stored; return stored;
+}
+async function deriveDirectKey(peerPublicJwk,conversationId){
+  const mine=await getOrCreateDeviceKeyPair();
+  const peer=await crypto.subtle.importKey("jwk",peerPublicJwk,{name:"ECDH",namedCurve:"P-256"},false,[]);
+  const bits=await crypto.subtle.deriveBits({name:"ECDH",public:peer},mine.privateKey,256);
+  const base=await crypto.subtle.importKey("raw",bits,"HKDF",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"HKDF",hash:"SHA-256",salt:new TextEncoder().encode("FIDUNIO-E2EE-v1"),info:new TextEncoder().encode(String(conversationId))},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptCloudText(text,peerPublicJwk,conversationId){
+  const key=await deriveDirectKey(peerPublicJwk,conversationId),iv=crypto.getRandomValues(new Uint8Array(12));
+  const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:new TextEncoder().encode(String(conversationId))},key,new TextEncoder().encode(text));
+  return {e2ee:E2EE_VERSION,ciphertext:b64(cipher),iv:b64(iv)};
+}
+async function decryptCloudText(row,peerPublicJwk,conversationId){
+  if(!row?.e2ee||!row?.ciphertext||!row?.iv)return row?.text||"";
+  const key=await deriveDirectKey(peerPublicJwk,conversationId);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(row.iv),additionalData:new TextEncoder().encode(String(conversationId))},key,unb64(row.ciphertext));
+  return new TextDecoder().decode(plain);
+}
+async function peerPublicKeyForConversation(conversationId){
+  const c=state.conversations.find(x=>String(x.id)===String(conversationId));
+  const peerUid=c?.peerUid||c?.uid||c?.otherUid;
+  if(!peerUid)return null;
+  if(peerKeyCache.has(peerUid))return peerKeyCache.get(peerUid);
+  try{const profile=await getCloudUserProfile(peerUid);const jwk=profile?.e2eePublicJwk||null;if(jwk)peerKeyCache.set(peerUid,jwk);return jwk;}catch{return null;}
+}
+async function publishMyE2EEKey(){ if(!firebaseUser)return; const kp=await getOrCreateDeviceKeyPair(); await publishCloudE2EEPublicKey(firebaseUser.uid,kp.publicJwk); }
+
 function beginCloudMessageSubscription(conversationId){
   stopCloudMessageSubscription();
   const c=state.conversations.find(x=>String(x.id)===String(conversationId));
@@ -375,15 +422,16 @@ function beginCloudMessageSubscription(conversationId){
     firebaseUser.uid,
     async (rows,meta={})=>{
       const existing=state.messages[conversationId] || [];
-      const remote=rows.map(m=>({
-        id:m.id,
-        mine:m.senderUid===firebaseUser.uid,
-        sender:m.senderName || "",
-        text:m.text || "",
-        time:m.timeLabel || "",
-        state:m.state || "sent",
-        cloud:true
-      }));
+      const peerKey=await peerPublicKeyForConversation(conversationId);
+      const remote=[];
+      for(const m of rows){
+        let text=m.text||"";
+        if(m.e2ee){
+          if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
+          else text="[Encrypted message — key unavailable]";
+        }
+        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee});
+      }
 
       let merged;
 
@@ -462,6 +510,7 @@ async function initializeFirebaseLayer(){
       firebaseUser=user;
       firebaseReady=true;
       if(user){
+        publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
         ensureActiveCloudMessageSubscription();
         if(state.online) flushQueued();
@@ -473,6 +522,7 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
+    if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
     ensureActiveCloudMessageSubscription();
     if(firebaseUser && state.online) flushQueued();
   }catch(err){
@@ -876,11 +926,12 @@ async function flushQueued(){
         await persistState();
         if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render();
 
+        const peerKey=await peerPublicKeyForConversation(payload.conversationId);
+        if(!peerKey) throw new Error("Recipient encryption key is not available yet");
+        const encrypted=await encryptCloudText(payload.text,peerKey,payload.conversationId);
         await sendCloudMessage(payload.conversationId,{
-          id:payload.messageId,
-          text:payload.text,
-          timeLabel:payload.time,
-          state:"sent"
+          id:payload.messageId,text:"",ciphertext:encrypted.ciphertext,iv:encrypted.iv,e2ee:encrypted.e2ee,
+          timeLabel:payload.time,state:"sent"
         });
 
         m.state="sent";

@@ -324,3 +324,8 @@ Protected configuration:
 - Keep the configured repository copies untouched.
 
 0.6.5 is still a transport prototype; Firestore cloud message text is not yet end-to-end encrypted.
+
+
+## Hermes 0.7.0 / FIDUNIO 0.7.0
+
+First direct-message E2EE foundation. New 0.7.0 direct messages use a per-installation non-exportable ECDH P-256 private key, HKDF-SHA-256 and AES-256-GCM. Firestore receives ciphertext/IV and an empty legacy text field. This build does not yet implement multi-device key fan-out, safety-number verification, forward secrecy/Double Ratchet, or group E2EE. The proven 0.6.5 local-first/offline architecture remains. Protected Firebase config files are excluded.

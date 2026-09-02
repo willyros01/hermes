@@ -87,21 +87,27 @@ export async function startDirectConversation(peerUid){
     updatedAt:s.fsSdk.serverTimestamp(),
     createdAt:s.fsSdk.serverTimestamp()
   },{merge:true});
-  return {id,cloud:true,name:peer.displayName||"FIDUNIO contact",preview:"Cloud conversation",time:""};
+  return {id,cloud:true,peerUid,name:peer.displayName||"FIDUNIO contact",preview:"Cloud conversation",time:""};
 }
 
+export async function getCloudUserProfile(uid){
+  const s=await ensureServices();
+  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",uid));
+  return snap.exists()?{uid,...snap.data()}:null;
+}
+export async function publishCloudE2EEPublicKey(uid,publicJwk){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Cannot publish another user's encryption key.");
+  await s.fsSdk.setDoc(s.fsSdk.doc(s.db,"users",uid),{e2eePublicJwk:publicJwk,e2eeVersion:1,e2eeUpdatedAt:s.fsSdk.serverTimestamp()},{merge:true});
+}
 export async function sendCloudMessage(conversationId,message){
   const s=await ensureServices();
   if(!authUser) throw new Error("Sign in first.");
   const ref=s.fsSdk.doc(s.db,"conversations",conversationId,"messages",message.id);
-  await s.fsSdk.setDoc(ref,{
-    senderUid:authUser.uid,
-    senderName:authUser.displayName||authUser.email||"User",
-    text:message.text,
-    timeLabel:message.timeLabel,
-    state:message.state||"sent",
-    createdAt:s.fsSdk.serverTimestamp()
-  });
+  const row={senderUid:authUser.uid,senderName:authUser.displayName||authUser.email||"User",timeLabel:message.timeLabel,state:message.state||"sent",createdAt:s.fsSdk.serverTimestamp()};
+  if(message.e2ee){row.e2ee=message.e2ee;row.ciphertext=message.ciphertext;row.iv=message.iv;row.text="";}
+  else row.text=message.text||"";
+  await s.fsSdk.setDoc(ref,row);
   await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"conversations",conversationId),{
     updatedAt:s.fsSdk.serverTimestamp()
   });
@@ -124,7 +130,7 @@ export function subscribeMyConversations(uid,onRows,onError){
         const x=d.data();
         const other=(x.members||[]).find(m=>m!==uid);
         return {
-          id:d.id,cloud:true,type:"direct",
+          id:d.id,cloud:true,type:"direct",peerUid:other,
           name:x.memberNames?.[other]||"FIDUNIO contact",
           preview:"Cloud conversation",
           time:""

@@ -9,13 +9,13 @@
  * - Firestore/Auth data transport is NEVER service-worker cached.
  */
 
-const CACHE="fidunio-shell-v2";
+const CACHE="fidunio-shell-v3";
 
 const SHELL=[
   "./",
   "./index.html",
-  "./styles.css?v=0.6.5",
-  "./app.js?v=0.6.5",
+  "./styles.css?v=0.7.0",
+  "./app.js?v=0.7.0",
   "./firebase.js",
   "./firebase-config.js",
   "./manifest.json",

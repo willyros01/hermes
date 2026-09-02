@@ -43,16 +43,26 @@ service cloud.firestore {
 
         allow create: if isConversationMember(conversationId)
           && request.resource.data.senderUid == request.auth.uid
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 10000
-          && request.resource.data.state in ["sent"];
+          && request.resource.data.state in ["sent"]
+          && (
+            (request.resource.data.text is string
+             && request.resource.data.text.size() > 0
+             && request.resource.data.text.size() <= 10000)
+            ||
+            (request.resource.data.e2ee == 1
+             && request.resource.data.ciphertext is string
+             && request.resource.data.ciphertext.size() > 0
+             && request.resource.data.ciphertext.size() <= 20000
+             && request.resource.data.iv is string
+             && request.resource.data.iv.size() > 0
+             && request.resource.data.iv.size() <= 128
+             && request.resource.data.text == "")
+          );
 
         // Any conversation member may advance receipt state in this transport prototype.
         // Message text, sender and creation fields cannot be changed.
         allow update: if isConversationMember(conversationId)
           && request.resource.data.senderUid == resource.data.senderUid
-          && request.resource.data.text == resource.data.text
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state"])
           && request.resource.data.state in ["delivered", "read"];

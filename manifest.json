@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "FIDUNIO Functional Prototype 0.6.5 \u2014 local-first offline history protection, Firestore snapshot-metadata handling, and Scorecard-style service-worker caching.",
+  "description": "FIDUNIO 0.7.0 \u2014 direct-message E2EE foundation using ECDH P-256, HKDF-SHA-256 and AES-256-GCM.",
   "icons": [
     {
       "src": "icon-192.png",
