@@ -360,3 +360,19 @@ First direct-message E2EE foundation. New 0.7.0 direct messages use a per-instal
 - On reconnect, the Outbox flushes immediately and retries after 1.5 seconds and 4 seconds to tolerate iOS/Safari reporting connectivity before Firebase is fully usable.
 - Keeps the 0.7.2 E2EE design, peerUid repair, encrypted local history, authoritative Outbox, and Firestore rules unchanged.
 - Protected Firebase configuration files remain excluded.
+
+
+## Hermes 0.8.0 / FIDUNIO 0.8.0
+
+0.8.0 starts the multi-device identity layer while deliberately preserving the stable 0.7.3 transport and E2EE ciphertext path.
+
+- Each installation receives a stable random Device ID stored locally in IndexedDB.
+- The existing non-exportable ECDH P-256 keypair is reused during migration, avoiding an unnecessary key rotation.
+- Settings shows the SHA-256 fingerprint of this installation's public key.
+- The signed-in installation publishes a public device record under `users/{uid}/devices/{deviceId}`.
+- New encrypted message metadata includes `senderDeviceId`.
+- The existing account-level `e2eePublicJwk` remains the encryption compatibility bridge in 0.8.0.
+- Firestore rules add explicit owner-write/authenticated-read access to public device records.
+- Protected Firebase configuration files remain excluded.
+
+0.8.0 is a foundation only: it does not yet encrypt one message separately to every recipient device. Per-device recipient envelopes, verified device linking/key-change approval, forward secrecy, and group E2EE remain future milestones.

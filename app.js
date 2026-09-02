@@ -12,7 +12,9 @@ import {
   updateCloudMessageState,
   getCloudUserProfile,
   getCloudConversation,
-  publishCloudE2EEPublicKey
+  publishCloudE2EEPublicKey,
+  publishCloudE2EEDevice,
+  getCloudUserDevices
 } from "./firebase.js";
 
 const app = document.querySelector("#app");
@@ -81,6 +83,9 @@ let firebaseUser = null;
 let cloudConversationUnsub = null;
 let cloudMessageUnsub = null;
 let cloudMessageConversationId = null;
+let deviceSecurityInfo = null;
+let deviceRegistryStatus = "";
+let myRegisteredDevices = [];
 
 
 function openDb(){
@@ -397,6 +402,43 @@ async function getOrCreateDeviceKeyPair(){
   const tx=db.transaction("meta","readwrite"); tx.objectStore("meta").put(stored,"e2ee-device-keypair-v1"); await txDone(tx);
   deviceKeyPair=stored; return stored;
 }
+function canonicalPublicJwk(jwk){
+  return JSON.stringify({kty:jwk?.kty||"",crv:jwk?.crv||"",x:jwk?.x||"",y:jwk?.y||""});
+}
+async function publicKeyFingerprint(jwk){
+  const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(canonicalPublicJwk(jwk)));
+  return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+}
+function formatFingerprint(fp){
+  return String(fp||"").match(/.{1,4}/g)?.join(" ")||"";
+}
+function shortDeviceId(id){
+  const s=String(id||"");
+  return s.length>12 ? `${s.slice(0,8)}…${s.slice(-4)}` : s;
+}
+async function getOrCreateDeviceIdentity(){
+  const kp=await getOrCreateDeviceKeyPair();
+  const db=await openDb();
+  const store=db.transaction("meta","readonly").objectStore("meta");
+  let identity=await idbRequest(store.get("e2ee-device-identity-v1"));
+  if(!identity?.deviceId){
+    identity={
+      deviceId:crypto.randomUUID ? crypto.randomUUID() : `dev-${Date.now()}-${b64(crypto.getRandomValues(new Uint8Array(12))).replace(/[^a-zA-Z0-9]/g,"")}`,
+      createdAt:Date.now()
+    };
+    const tx=db.transaction("meta","readwrite");
+    tx.objectStore("meta").put(identity,"e2ee-device-identity-v1");
+    await txDone(tx);
+  }
+  const fingerprint=await publicKeyFingerprint(kp.publicJwk);
+  deviceSecurityInfo={
+    ...identity,
+    publicJwk:kp.publicJwk,
+    fingerprint,
+    label:"FIDUNIO Web device"
+  };
+  return deviceSecurityInfo;
+}
 async function deriveDirectKey(peerPublicJwk,conversationId){
   const mine=await getOrCreateDeviceKeyPair();
   const peer=await crypto.subtle.importKey("jwk",peerPublicJwk,{name:"ECDH",namedCurve:"P-256"},false,[]);
@@ -446,7 +488,29 @@ async function peerPublicKeyForConversation(conversationId){
     return jwk;
   }catch{return null;}
 }
-async function publishMyE2EEKey(){ if(!firebaseUser)return; const kp=await getOrCreateDeviceKeyPair(); await publishCloudE2EEPublicKey(firebaseUser.uid,kp.publicJwk); }
+async function publishMyE2EEKey(){
+  if(!firebaseUser)return;
+  const identity=await getOrCreateDeviceIdentity();
+
+  // Keep the 0.7.x account-level public key current as a compatibility
+  // bridge. Existing direct-message E2EE continues to use this key, so the
+  // stable 0.7.3 transport and ciphertext format are not disturbed.
+  await publishCloudE2EEPublicKey(firebaseUser.uid,identity.publicJwk);
+
+  // 0.8.0 additionally registers this installation as its own device.
+  // If the new device collection is not available yet, messaging still works
+  // through the compatibility key above; Settings will report the registry
+  // error instead of breaking E2EE transport.
+  try{
+    await publishCloudE2EEDevice(firebaseUser.uid,identity);
+    myRegisteredDevices=await getCloudUserDevices(firebaseUser.uid);
+    deviceRegistryStatus="registered";
+  }catch(err){
+    deviceRegistryStatus=err?.message||String(err);
+    console.warn("Device registry publication failed",err);
+  }
+  if(state.route==="settings") renderSettings();
+}
 
 function beginCloudMessageSubscription(conversationId,{force=false}={}){
   const wanted=String(conversationId);
@@ -837,7 +901,7 @@ function renderChat(){
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE foundation — test messages only until identity verification and multi-device key handling are complete.</div>`:""}
+      ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE + device identity foundation — test messages only until verified per-device fan-out and forward secrecy are complete.</div>`:""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -973,8 +1037,10 @@ async function flushQueued(){
         const peerKey=await peerPublicKeyForConversation(payload.conversationId);
         if(!peerKey) throw new Error("Recipient encryption key is not available yet");
         const encrypted=await encryptCloudText(payload.text,peerKey,payload.conversationId);
+        const identity=await getOrCreateDeviceIdentity();
         await sendCloudMessage(payload.conversationId,{
           id:payload.messageId,text:"",ciphertext:encrypted.ciphertext,iv:encrypted.iv,e2ee:encrypted.e2ee,
+          senderDeviceId:identity.deviceId,
           timeLabel:payload.time,state:"sent"
         });
 
@@ -1256,8 +1322,27 @@ function renderSettings(){
             </div>
           `}
           ${firebaseError?`<p class="warning-note">${esc(firebaseError)}</p>`:""}
-          <p class="warning-note">FIDUNIO ${esc(FIDUNIO_VERSION)} uses the direct-message E2EE foundation for new cloud direct messages. This is still a test build; do not use sensitive content yet.</p>
+          <p class="warning-note">FIDUNIO ${esc(FIDUNIO_VERSION)} adds device identity registration to the direct-message E2EE foundation. This is still a test build; do not use sensitive content yet.</p>
         </div>
+
+        ${firebaseUser ? `
+        <div class="card">
+          <h2>Device Identity</h2>
+          ${deviceSecurityInfo ? `
+            <div class="row-main">
+              <strong>This installation</strong>
+              <span>Device ID: ${esc(shortDeviceId(deviceSecurityInfo.deviceId))}</span>
+            </div>
+            <label class="form-label">Public-key fingerprint</label>
+            <div class="uid-box">${esc(formatFingerprint(deviceSecurityInfo.fingerprint))}</div>
+            <p class="small-note">The private E2EE key remains local and non-exportable. This fingerprint identifies this installation's public key.</p>
+            <p class="small-note">${deviceRegistryStatus==="registered"
+              ? `Registered devices for this account: ${myRegisteredDevices.length}`
+              : `Device registry: ${esc(deviceRegistryStatus||"initializing…")}`}</p>
+          ` : `<p class="small-note">Device identity is initializing…</p>`}
+          <p class="warning-note">0.8.0 creates the multi-device identity foundation. Direct-message encryption still uses the compatible 0.7.x account key until per-device recipient fan-out is implemented and tested.</p>
+        </div>
+        ` : ""}
 
         <div class="card">
           <h2>Prototype connectivity</h2>

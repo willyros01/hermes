@@ -115,11 +115,35 @@ export async function publishCloudE2EEPublicKey(uid,publicJwk){
   if(!authUser||authUser.uid!==uid)throw new Error("Cannot publish another user's encryption key.");
   await s.fsSdk.setDoc(s.fsSdk.doc(s.db,"users",uid),{e2eePublicJwk:publicJwk,e2eeVersion:1,e2eeUpdatedAt:s.fsSdk.serverTimestamp()},{merge:true});
 }
+export async function publishCloudE2EEDevice(uid,device){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Cannot publish another user's device key.");
+  if(!device?.deviceId||!device?.publicJwk)throw new Error("Device identity is incomplete.");
+  const ref=s.fsSdk.doc(s.db,"users",uid,"devices",device.deviceId);
+  await s.fsSdk.setDoc(ref,{
+    uid,
+    deviceId:device.deviceId,
+    label:device.label||"FIDUNIO Web device",
+    e2eeVersion:1,
+    publicJwk:device.publicJwk,
+    fingerprint:device.fingerprint||"",
+    createdAt:device.createdAt||Date.now(),
+    lastSeenAt:s.fsSdk.serverTimestamp(),
+    active:true
+  },{merge:true});
+}
+export async function getCloudUserDevices(uid){
+  const s=await ensureServices();
+  if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users",uid,"devices"));
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
 export async function sendCloudMessage(conversationId,message){
   const s=await ensureServices();
   if(!authUser) throw new Error("Sign in first.");
   const ref=s.fsSdk.doc(s.db,"conversations",conversationId,"messages",message.id);
   const row={senderUid:authUser.uid,senderName:authUser.displayName||authUser.email||"User",timeLabel:message.timeLabel,state:message.state||"sent",createdAt:s.fsSdk.serverTimestamp()};
+  if(message.senderDeviceId) row.senderDeviceId=message.senderDeviceId;
   if(message.e2ee){row.e2ee=message.e2ee;row.ciphertext=message.ciphertext;row.iv=message.iv;row.text="";}
   else row.text=message.text||"";
   await s.fsSdk.setDoc(ref,row);

@@ -134,3 +134,20 @@ firebase-config.js and config-firestore.js remain protected/excluded.
 - Explicit navigation/auth/reconnect/foreground events may force one clean reattach.
 - Reconnect Outbox recovery now flushes immediately, then retries after 1.5s and 4s because iOS can report online before Firebase requests are actually ready.
 - Test 0.7.3 for prompt automatic queued-send after reconnect and live display on the already-open receiving conversation without navigating out/in.
+
+
+0.8.0 — DEVICE IDENTITY / MULTI-DEVICE FOUNDATION
+- Built from the stable 0.7.3 direct-E2EE + offline/reconnect baseline.
+- 0.7.3 passed instant two-way live receipt and queued reconnect delivery without leaving/re-entering the conversation.
+- Preserve the 0.7.3 listener/reconnect/local-first/Outbox architecture as rollback/reference baseline.
+- 0.8.0 gives every installation a stable random local Device ID.
+- It REUSES the existing 0.7.x non-exportable ECDH P-256 keypair rather than rotating the working key during upgrade.
+- It computes a SHA-256 public-key fingerprint and displays it under Settings → Device Identity.
+- It publishes public device records at users/{uid}/devices/{deviceId}.
+- New encrypted message rows carry senderDeviceId metadata.
+- The account-level e2eePublicJwk remains the active compatibility encryption key in 0.8.0 so existing direct E2EE behavior is preserved.
+- Full recipient per-device ciphertext/envelope fan-out is NOT implemented yet; 0.8.0 is only the identity/registry foundation.
+- Firestore rules now include explicit device-subcollection access: authenticated read of public device records, owner-only create/update, no delete.
+- 0.8.0 therefore DOES require publishing the included Firestore rules before device-registry testing.
+- Protected firebase-config.js and config-firestore.js remain excluded.
+- Required regression: instant two-way existing conversation, offline queued survival, reconnect automatic send/live receipt.

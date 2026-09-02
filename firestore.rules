@@ -15,10 +15,29 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow create, update: if signedIn() && request.auth.uid == uid;
-      // 0.6 permits authenticated users to read a profile only when they know its UID.
-      // This supports the temporary "FIDUNIO ID" two-device test.
+      // Authenticated profile reads remain required by the current direct
+      // E2EE compatibility-key lookup. Narrow this when contact/invite
+      // authorization is introduced.
       allow read: if signedIn();
       allow delete: if false;
+
+      // 0.8.0 multi-device identity foundation.
+      // Public device keys are readable by authenticated FIDUNIO users so a
+      // future per-device envelope layer can encrypt separately to each
+      // recipient installation. Only the account owner can create/update
+      // their own device records.
+      match /devices/{deviceId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.deviceId == deviceId
+          && request.resource.data.e2eeVersion == 1
+          && request.resource.data.publicJwk is map
+          && request.resource.data.fingerprint is string
+          && request.resource.data.fingerprint.size() <= 128;
+        allow delete: if false;
+      }
     }
 
     match /conversations/{conversationId} {
