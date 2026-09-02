@@ -253,3 +253,24 @@ Configuration protection:
 0.6.2 fixes the foreground receive bug found during the first 0.6.1 online retest. A cloud chat could be opened before Firebase Authentication finished restoring; the message subscription then did not attach. 0.6.2 attaches/re-attaches the active cloud message listener after auth restoration, after Firebase initialization, on reconnect, and when iOS/PWA returns to the foreground. All 0.6.1 encrypted Outbox and offline-cache fixes are retained.
 
 `firebase-config.js` and `config-firestore.js` are intentionally excluded from this ZIP. Preserve the existing configured copies in GitHub.
+
+
+## Hermes 0.6.3 / FIDUNIO 0.6.3
+
+0.6.3 addresses the failed iPad offline cold-start history test after 0.6.2 passed live two-way foreground messaging.
+
+Observed:
+- 0.6.2 online live receive passed.
+- After Airplane Mode + kill/reopen on iPad, previously downloaded iPhone/cloud messages were absent.
+- The cloud-chat header still displayed Connected because that label represented cloud-conversation type, not verified network reachability. This was misleading.
+
+0.6.3 corrections:
+- IndexedDB schema v2 adds a dedicated `history` store.
+- Each Firestore snapshot is encrypted and durably saved per conversation in that store.
+- Offline startup restores the dedicated cloud-history cache before Outbox reconstruction and first render.
+- Existing queued/sending/failed local messages are merged with restored history.
+- Safari/iOS CryptoKey creation no longer keeps an IndexedDB transaction open across asynchronous Web Crypto key generation; key read and key write use separate transactions and the write is awaited.
+- Cloud-chat header now says `Cloud` rather than `Connected`, because a static conversation label must not imply verified Internet reachability.
+- All 0.6.1 Outbox safeguards and 0.6.2 live-listener fixes remain.
+
+Protected firebase-config.js and config-firestore.js remain excluded.

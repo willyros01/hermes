@@ -1,0 +1,40 @@
+HERMES 0.6.3 / FIDUNIO 0.6.3 — RETEST
+
+Upload all files from this ZIP to the ROOT of the existing hermes repo.
+Do NOT delete/overwrite the existing firebase-config.js.
+Preserve config-firestore.js if present.
+No Firebase Console changes are needed.
+
+Confirm Version 0.6.3 on both devices.
+
+TEST 1 — ONLINE BASELINE
+1. Both devices online; open the existing cloud conversation.
+2. iPad sends: Live 0.6.3 from iPad
+3. Confirm it arrives live on iPhone.
+4. iPhone replies: Live 0.6.3 from iPhone
+5. Confirm it arrives live on iPad.
+
+TEST 2 — OFFLINE HISTORY COLD START
+1. While iPad is online, leave both new messages visible for a few seconds.
+2. Turn Airplane Mode ON.
+3. Kill FIDUNIO.
+4. Reopen FIDUNIO while still offline.
+5. Open the same cloud conversation.
+PASS: the previously downloaded 0.6.3 messages are still visible.
+The header should say Cloud, not Connected. `Cloud` identifies the conversation type; it is not a network-status claim.
+
+If Test 2 fails, STOP and report it. Do not proceed to queued-message testing.
+
+TEST 3 — OUTBOX SURVIVAL
+Only if Test 2 passes:
+1. Still offline send: Offline queued 0.6.3
+2. Confirm Queued.
+3. Kill/reopen while still offline.
+PASS: queued message remains visible.
+
+TEST 4 — RECONNECT
+1. Turn communications back on.
+2. Foreground FIDUNIO.
+PASS: queued message reaches iPhone and remains on iPad.
+
+Use harmless test messages only. 0.6.3 is not yet E2EE.

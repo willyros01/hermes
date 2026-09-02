@@ -13,7 +13,7 @@ import {
 } from "./firebase.js";
 
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.6.2";
+const FIDUNIO_VERSION = "0.6.3";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -66,7 +66,7 @@ let state = {
 };
 
 const DB_NAME = "fidunio-local";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STATE_KEY = "app-state";
 let dbPromise = null;
 let localKeyPromise = null;
@@ -87,6 +87,7 @@ function openDb(){
       const db=req.result;
       if(!db.objectStoreNames.contains("meta")) db.createObjectStore("meta");
       if(!db.objectStoreNames.contains("outbox")) db.createObjectStore("outbox",{keyPath:"id"});
+      if(!db.objectStoreNames.contains("history")) db.createObjectStore("history");
     };
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>reject(req.error);
@@ -103,15 +104,22 @@ async function getLocalKey(){
   if(localKeyPromise) return localKeyPromise;
   localKeyPromise=(async()=>{
     const db=await openDb();
+
+    // Read in its own transaction. Safari/iOS can auto-close an IndexedDB
+    // transaction across an await, so never reuse that transaction after
+    // asynchronous key generation.
+    let key=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get("local-key"));
+    if(key) return key;
+
+    key=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
     const tx=db.transaction("meta","readwrite");
-    const store=tx.objectStore("meta");
-    let key=await idbRequest(store.get("local-key"));
-    if(!key){
-      key=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
-      store.put(key,"local-key");
-    }
+    tx.objectStore("meta").put(key,"local-key");
+    await txDone(tx);
     return key;
-  })();
+  })().catch(err=>{
+    localKeyPromise=null;
+    throw err;
+  });
   return localKeyPromise;
 }
 function bytesToB64(bytes){
@@ -272,6 +280,49 @@ async function restoreOutboxIntoState(){
   }
 }
 
+async function cacheCloudHistory(conversationId,messages){
+  try{
+    const db=await openDb();
+    const encrypted=await encryptLocal({
+      conversationId,
+      messages,
+      savedAt:Date.now()
+    });
+    const tx=db.transaction("history","readwrite");
+    tx.objectStore("history").put(encrypted,String(conversationId));
+    await txDone(tx);
+  }catch(err){
+    console.warn("Cloud history cache failed",conversationId,err);
+  }
+}
+async function loadCloudHistory(){
+  try{
+    const db=await openDb();
+    const tx=db.transaction("history","readonly");
+    const store=tx.objectStore("history");
+    const keys=await idbRequest(store.getAllKeys());
+    const values=await idbRequest(store.getAll());
+    for(let i=0;i<values.length;i++){
+      try{
+        const saved=await decryptLocal(values[i]);
+        if(!saved?.conversationId || !Array.isArray(saved.messages)) continue;
+        const id=saved.conversationId;
+        const current=state.messages[id] || [];
+        const pending=current.filter(m=>m.cloud && m.mine && ["queued","sending","failed"].includes(m.state));
+        const savedIds=new Set(saved.messages.map(m=>m.id));
+        state.messages[id]=[
+          ...saved.messages,
+          ...pending.filter(m=>!savedIds.has(m.id))
+        ];
+      }catch(err){
+        console.warn("Could not restore cached cloud history",keys?.[i],err);
+      }
+    }
+  }catch(err){
+    console.warn("Could not load cloud history cache",err);
+  }
+}
+
 function cloudDisplayName(c){
   if(!c?.cloud || !firebaseUser) return c?.name || "Conversation";
   return c.name || "FIDUNIO contact";
@@ -338,9 +389,10 @@ function beginCloudMessageSubscription(conversationId){
       c.time=last.time;
     }
 
-    // Incoming Firestore data is a critical local-cache update. Wait until
-    // the encrypted IndexedDB write completes so an offline relaunch can
-    // still display messages that were already downloaded.
+    // Keep a dedicated encrypted per-conversation history cache in addition
+    // to the general app-state snapshot. This gives offline cold start an
+    // independent source of truth for already-downloaded cloud messages.
+    await cacheCloudHistory(conversationId,state.messages[conversationId]);
     await persistState();
 
     const unreadIncoming=state.messages[conversationId].filter(m=>!m.mine && m.state!=="read");
@@ -383,6 +435,7 @@ async function initializeFirebaseLayer(){
 
 async function initApp(){
   await loadPersistedState();
+  await loadCloudHistory();
   await restoreOutboxIntoState();
   hydrated=true;
   state.online=navigator.onLine;
@@ -436,7 +489,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO Functional Prototype 0.6.2 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO Functional Prototype 0.6.3 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -502,7 +555,7 @@ function renderNewConversation(){
             <label class="form-label" for="peerUid">Recipient FIDUNIO ID</label>
             <input class="text-input" id="peerUid" autocomplete="off" placeholder="Paste recipient UID" />
             <button class="primary" id="cloudDirectBtn">Start Cloud Conversation</button>
-            <p class="warning-note">0.6.2 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
+            <p class="warning-note">0.6.3 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
           ` : `
             <p class="small-note">To start real two-device messaging, configure Firebase and sign in under Settings → Firebase Account.</p>
           `}
@@ -626,12 +679,12 @@ function renderChat(){
         <button class="back-btn" id="backBtn" aria-label="Back">‹</button>
         <div class="chat-header-title">
           <strong>${esc(c.name)}</strong>
-          <span class="secure">● ${c.cloud?"Connected":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}</span>
+          <span class="secure">● ${c.cloud?"Cloud":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}</span>
         </div>
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?'<div class="warning-banner">0.6.2 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
+      ${c.cloud?'<div class="warning-banner">0.6.3 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -655,7 +708,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.2.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.3.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -863,7 +916,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.2.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.3.");
 }
 
 function openAddMemberModal(){
