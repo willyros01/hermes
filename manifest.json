@@ -1,12 +1,12 @@
 {
-  "name": "Hermes",
-  "short_name": "Hermes",
+  "name": "FIDUNIO",
+  "short_name": "FIDUNIO",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "Hermes UX Prototype 0.3.3 with improved dark-mode text contrast, A/A+/A++ text sizing, group history controls, adaptive appearance, and Hermes branding.",
+  "description": "FIDUNIO UX Prototype 0.4 \u2014 Private Messaging with A/A+/A++ text sizing, group history controls, adaptive appearance, and approved winged-messenger graphics.",
   "icons": [
     {
       "src": "icon-192.png",

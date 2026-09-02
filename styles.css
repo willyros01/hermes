@@ -43,7 +43,7 @@ html[data-theme="dark"]{
   --overlay:rgba(24,33,39,.96);
   --shadow:0 8px 24px rgba(0,0,0,.28);
 }
-/* Hermes text-size system: A / A+ / A++ */
+/* Fidunio text-size system: A / A+ / A++ */
 html.text-a{font-size:16px}
 
 html.text-aplus{font-size:18px}
@@ -426,7 +426,7 @@ html.text-aplusplus .modal{max-height:88vh}
 html.text-aplusplus .modal-actions button{min-height:52px;font-size:20px}
 
 
-/* Hermes 0.3.3 — targeted dark-mode contrast correction.
+/* Fidunio 0.4 — targeted dark-mode contrast correction.
    Preserve the existing palette; only lighten text that was too dark on dark backgrounds. */
 html.dark,
 html[data-theme="dark"]{

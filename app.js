@@ -1,5 +1,5 @@
 const app = document.querySelector("#app");
-const HERMES_VERSION = "0.3.3";
+const FIDUNIO_VERSION = "0.4";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -88,12 +88,12 @@ function renderUnlock(){
   app.innerHTML=`
     <main class="app-shell unlock">
       <section class="unlock-card">
-        <div class="unlock-brand"><img class="brand-logo" src="hermes-logo.png" alt="Hermes logo"></div>
-        <h1>Hermes</h1>
+        <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
+        <h1>Fidunio</h1>
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">Hermes UX Prototype 0.3.3 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO UX Prototype 0.4 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -280,7 +280,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in Hermes UX Prototype 0.3.3.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO UX Prototype 0.4.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -380,7 +380,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in Hermes UX Prototype 0.3.3.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO UX Prototype 0.4.");
 }
 
 function openAddMemberModal(){
@@ -493,14 +493,14 @@ function renderSettings(){
           <h2>Text Size</h2>
           <div class="row-main">
             <strong>Reading size</strong>
-            <span>Choose the text size used throughout Hermes.</span>
+            <span>Choose the text size used throughout Fidunio.</span>
           </div>
           <div class="text-size-options" role="group" aria-label="Text size">
             <button class="text-size-btn ${state.settings.textSize==="normal"?"active":""}" data-text-size="normal">A</button>
             <button class="text-size-btn ${state.settings.textSize==="large"?"active":""}" data-text-size="large">A+</button>
             <button class="text-size-btn ${state.settings.textSize==="xlarge"?"active":""}" data-text-size="xlarge">A++</button>
           </div>
-          <p class="small-note">A is standard, A+ is large, and A++ is extra large. The setting applies throughout Hermes.</p>
+          <p class="small-note">A is standard, A+ is large, and A++ is extra large. The setting applies throughout Fidunio.</p>
         </div>
 
         <div class="card">
@@ -526,15 +526,15 @@ function renderSettings(){
         <div class="card">
           <h2>About</h2>
           <div class="about-box">
-            <div class="about-brand"><img class="brand-logo small" src="hermes-logo.png" alt="Hermes logo"></div>
-            <div class="brand">HERMES</div>
-            <div>Secure Messaging</div>
-            <div class="version">Version ${HERMES_VERSION}</div>
+            <div class="about-brand"><img class="brand-logo small" src="fidunio-logo.png" alt="Fidunio logo"></div>
+            <div class="brand">FIDUNIO</div>
+            <div>Private Messaging</div>
+            <div class="version">Version ${FIDUNIO_VERSION}</div>
             <div class="small-note">UX Prototype</div>
           </div>
         </div>
 
-        <div class="version-footer">Hermes v${HERMES_VERSION}</div>
+        <div class="version-footer">Fidunio v${FIDUNIO_VERSION}</div>
       </section>
     </main>`;
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
