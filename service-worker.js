@@ -1,6 +1,6 @@
-const CACHE_NAME="fidunio-shell-0.6.1";
+const CACHE_NAME="fidunio-shell-0.6.2";
 const APP_SHELL=[
-  "./","./index.html","./styles.css?v=0.6.1","./app.js?v=0.6.1","./firebase.js","./firebase-config.js","./manifest.json",
+  "./","./index.html","./styles.css?v=0.6.2","./app.js?v=0.6.2","./firebase.js","./firebase-config.js","./manifest.json",
   "./favicon.png","./fidunio-logo.png","./icon-180.png","./icon-192.png","./icon-512.png"
 ];
 self.addEventListener("install",event=>{

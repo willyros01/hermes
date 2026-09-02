@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "FIDUNIO Functional Prototype 0.6.1 \u2014 Firebase messaging reliability fix: authoritative encrypted Outbox recovery, durable local cloud-message cache, and reconnect retry hardening.",
+  "description": "FIDUNIO Functional Prototype 0.6.2 \u2014 foreground realtime listener fix plus 0.6.1 offline reliability corrections.",
   "icons": [
     {
       "src": "icon-192.png",

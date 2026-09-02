@@ -13,7 +13,7 @@ import {
 } from "./firebase.js";
 
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.6.1";
+const FIDUNIO_VERSION = "0.6.2";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -304,6 +304,11 @@ function beginCloudConversationSubscription(){
     if(state.route==="settings") renderSettings();
   });
 }
+function ensureActiveCloudMessageSubscription(){
+  if(!firebaseUser || state.route!=="chat") return;
+  const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));
+  if(c?.cloud) beginCloudMessageSubscription(c.id);
+}
 function beginCloudMessageSubscription(conversationId){
   stopCloudMessageSubscription();
   const c=state.conversations.find(x=>String(x.id)===String(conversationId));
@@ -359,6 +364,7 @@ async function initializeFirebaseLayer(){
       firebaseReady=true;
       if(user){
         beginCloudConversationSubscription();
+        ensureActiveCloudMessageSubscription();
         if(state.online) flushQueued();
       }else{
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
@@ -368,6 +374,8 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
+    ensureActiveCloudMessageSubscription();
+    if(firebaseUser && state.online) flushQueued();
   }catch(err){
     firebaseError=err?.message || String(err);
   }
@@ -428,7 +436,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO Functional Prototype 0.6.1 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO Functional Prototype 0.6.2 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -494,7 +502,7 @@ function renderNewConversation(){
             <label class="form-label" for="peerUid">Recipient FIDUNIO ID</label>
             <input class="text-input" id="peerUid" autocomplete="off" placeholder="Paste recipient UID" />
             <button class="primary" id="cloudDirectBtn">Start Cloud Conversation</button>
-            <p class="warning-note">0.6.1 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
+            <p class="warning-note">0.6.2 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
           ` : `
             <p class="small-note">To start real two-device messaging, configure Firebase and sign in under Settings → Firebase Account.</p>
           `}
@@ -623,7 +631,7 @@ function renderChat(){
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?'<div class="warning-banner">0.6.1 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
+      ${c.cloud?'<div class="warning-banner">0.6.2 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -647,7 +655,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.1.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.2.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -786,8 +794,26 @@ async function flushQueued(){
 
   render();
 }
-window.addEventListener("online",()=>{state.online=true;render();flushQueued()});
+window.addEventListener("online",()=>{
+  state.online=true;
+  ensureActiveCloudMessageSubscription();
+  render();
+  flushQueued();
+});
 window.addEventListener("offline",()=>{state.online=false;persistSoon();render()});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){
+    state.online=navigator.onLine;
+    ensureActiveCloudMessageSubscription();
+    if(state.online) flushQueued();
+    render();
+  }
+});
+window.addEventListener("pageshow",()=>{
+  state.online=navigator.onLine;
+  ensureActiveCloudMessageSubscription();
+  if(state.online) flushQueued();
+});
 
 function renderGroupInfo(){
   const c=currentConversation();
@@ -837,7 +863,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.1.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.2.");
 }
 
 function openAddMemberModal(){

@@ -246,3 +246,10 @@ Configuration protection:
 - `config-firestore.js`, if present in the user's repository/workflow, is also protected and must not be overwritten or included in version ZIPs.
 
 0.6.1 remains a transport prototype. Cloud message content is not yet end-to-end encrypted.
+
+
+## Hermes 0.6.2 / FIDUNIO 0.6.2
+
+0.6.2 fixes the foreground receive bug found during the first 0.6.1 online retest. A cloud chat could be opened before Firebase Authentication finished restoring; the message subscription then did not attach. 0.6.2 attaches/re-attaches the active cloud message listener after auth restoration, after Firebase initialization, on reconnect, and when iOS/PWA returns to the foreground. All 0.6.1 encrypted Outbox and offline-cache fixes are retained.
+
+`firebase-config.js` and `config-firestore.js` are intentionally excluded from this ZIP. Preserve the existing configured copies in GitHub.
