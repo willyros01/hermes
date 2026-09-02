@@ -505,3 +505,45 @@ html.dark .tool,
 html[data-theme="dark"] .tool{
   opacity:1;
 }
+
+
+/* 0.5 responsive group-layout fix: no horizontal page scrolling on iPhone/iPad. */
+html,body{max-width:100%;overflow-x:hidden}
+.content,.card,.row,.member-card,.row-main,.choice-list,.member-option{min-width:0;max-width:100%}
+.row-main strong,.row-main span,.member-card strong,.member-card span{
+  overflow-wrap:anywhere;word-break:normal
+}
+.card .row{flex-wrap:wrap}
+.card .row > .row-main{flex:1 1 210px}
+.card .row > button,.card .row > .toggle{flex:0 0 auto;max-width:100%}
+.member-card{
+  grid-template-columns:44px minmax(0,1fr) auto;
+}
+.member-card > :last-child{min-width:0;max-width:100%}
+@media (max-width:430px){
+  .member-card{
+    grid-template-columns:44px minmax(0,1fr);
+  }
+  .member-card > :last-child{
+    grid-column:2;
+    justify-self:start;
+    margin-top:2px;
+  }
+  .card .row{
+    align-items:flex-start;
+  }
+  .card .row > .row-main{
+    flex-basis:100%;
+  }
+  .card .row > .row-action,
+  .card .row > .toggle{
+    margin-left:auto;
+  }
+}
+html.text-aplusplus .card .row > .row-main{flex-basis:100%}
+html.text-aplusplus .member-card{
+  grid-template-columns:44px minmax(0,1fr);
+}
+html.text-aplusplus .member-card > :last-child{
+  grid-column:2;justify-self:start
+}

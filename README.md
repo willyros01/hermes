@@ -174,7 +174,7 @@ Changes:
 - A / A+ / A++ text-size controls are retained.
 - Flat, single-directory GitHub layout remains unchanged.
 
-## FIDUNIO 0.4
+## FIDUNIO 0.5
 - Rebrands the project from Hermes to **FIDUNIO**.
 - Uses the descriptor **Private Messaging**.
 - Keeps the approved winged-messenger artwork unchanged.
@@ -182,3 +182,18 @@ Changes:
 - Keeps A / A+ / A++ text sizing.
 - Keeps the working Group History Access Save/Cancel controls.
 - Keeps the flat, single-directory GitHub layout.
+
+## Hermes 0.5 / FIDUNIO 0.5
+
+This is the first functional local build.
+
+- Fixes Group Info/control overflow so the page no longer requires horizontal scrolling on iPhone/iPad.
+- Adds `service-worker.js` and app-shell caching for the PWA foundation.
+- Adds IndexedDB persistence so conversations, messages, settings, and selected conversation survive reload/relaunch.
+- Local persisted app state is encrypted with AES-GCM using the Web Crypto API.
+- Adds a persistent IndexedDB Outbox. Messages sent while offline remain queued across reloads and are processed after connectivity returns and the PWA gets execution time.
+- Keeps client-generated UUID message IDs.
+- Keeps the approved FIDUNIO graphics, UI palette, A/A+/A++ sizing, group-history controls, and flat repository layout.
+- Firebase/network transport is intentionally not included yet; this release proves the local persistence/offline engine first.
+
+Important: local AES-GCM storage in 0.5 is a functional prototype foundation, not the final end-to-end encryption/key-management design. Firebase transport, device identity, production key wrapping/recovery, and multi-device E2EE remain later milestones.

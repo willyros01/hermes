@@ -1,5 +1,5 @@
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.4";
+const FIDUNIO_VERSION = "0.5";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -47,8 +47,130 @@ let state = {
       {id:"f2",mine:true,text:"7 works for me.",time:"2:22 PM",state:"read"}
     ]
   },
+
   settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto"}
 };
+
+const DB_NAME = "fidunio-local";
+const DB_VERSION = 1;
+const STATE_KEY = "app-state";
+let dbPromise = null;
+let localKeyPromise = null;
+let hydrated = false;
+let persistTimer = null;
+
+function openDb(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains("meta")) db.createObjectStore("meta");
+      if(!db.objectStoreNames.contains("outbox")) db.createObjectStore("outbox",{keyPath:"id"});
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+  return dbPromise;
+}
+function idbRequest(req){
+  return new Promise((resolve,reject)=>{
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function getLocalKey(){
+  if(localKeyPromise) return localKeyPromise;
+  localKeyPromise=(async()=>{
+    const db=await openDb();
+    const tx=db.transaction("meta","readwrite");
+    const store=tx.objectStore("meta");
+    let key=await idbRequest(store.get("local-key"));
+    if(!key){
+      key=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+      store.put(key,"local-key");
+    }
+    return key;
+  })();
+  return localKeyPromise;
+}
+function bytesToB64(bytes){
+  let s=""; bytes.forEach(b=>s+=String.fromCharCode(b)); return btoa(s);
+}
+function b64ToBytes(s){
+  const raw=atob(s); return Uint8Array.from(raw,c=>c.charCodeAt(0));
+}
+async function encryptLocal(value){
+  const key=await getLocalKey();
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const data=new TextEncoder().encode(JSON.stringify(value));
+  const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,data);
+  return {iv:bytesToB64(iv),ciphertext:bytesToB64(new Uint8Array(cipher))};
+}
+async function decryptLocal(record){
+  const key=await getLocalKey();
+  const plain=await crypto.subtle.decrypt(
+    {name:"AES-GCM",iv:b64ToBytes(record.iv)},key,b64ToBytes(record.ciphertext)
+  );
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+function serializableState(){
+  return {
+    conversations:state.conversations,
+    messages:state.messages,
+    settings:state.settings,
+    quickPhrases:state.quickPhrases,
+    selectedId:state.selectedId
+  };
+}
+async function persistState(){
+  if(!hydrated) return;
+  try{
+    const db=await openDb();
+    const encrypted=await encryptLocal(serializableState());
+    db.transaction("meta","readwrite").objectStore("meta").put(encrypted,STATE_KEY);
+  }catch(err){ console.warn("Local state persistence failed",err); }
+}
+function persistSoon(){
+  if(!hydrated) return;
+  clearTimeout(persistTimer);
+  persistTimer=setTimeout(persistState,80);
+}
+async function loadPersistedState(){
+  try{
+    const db=await openDb();
+    const encrypted=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(STATE_KEY));
+    if(!encrypted) return;
+    const saved=await decryptLocal(encrypted);
+    if(saved.conversations) state.conversations=saved.conversations;
+    if(saved.messages) state.messages=saved.messages;
+    if(saved.settings) state.settings={...state.settings,...saved.settings};
+    if(saved.quickPhrases) state.quickPhrases=saved.quickPhrases;
+    if(saved.selectedId && state.conversations.some(c=>c.id===saved.selectedId)) state.selectedId=saved.selectedId;
+  }catch(err){ console.warn("Could not restore local Fidunio state",err); }
+}
+async function queueOutboxMessage(conversationId,message){
+  const db=await openDb();
+  const encrypted=await encryptLocal({conversationId,messageId:message.id,text:message.text,time:message.time});
+  db.transaction("outbox","readwrite").objectStore("outbox").put({
+    id:message.id,conversationId,createdAt:Date.now(),payload:encrypted
+  });
+}
+async function getOutboxRecords(){
+  const db=await openDb();
+  return idbRequest(db.transaction("outbox","readonly").objectStore("outbox").getAll());
+}
+async function removeOutboxMessage(id){
+  const db=await openDb();
+  db.transaction("outbox","readwrite").objectStore("outbox").delete(id);
+}
+async function initApp(){
+  await loadPersistedState();
+  hydrated=true;
+  state.online=navigator.onLine;
+  render();
+  if(state.online) flushQueued();
+}
 
 function esc(s=""){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function initials(name){ return name.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase(); }
@@ -72,6 +194,7 @@ function applyAppearance(){
   if(meta) meta.setAttribute("content", effective==="dark" ? "#182127" : "#ffffff");
 }
 function render(){
+  persistSoon();
   document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
   applyAppearance();
   if(!state.unlocked) return renderUnlock();
@@ -93,7 +216,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO UX Prototype 0.4 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO Functional Prototype 0.5 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -127,14 +250,7 @@ function renderMessages(){
         </button>`).join("");
     list.querySelectorAll(".conversation").forEach(btn=>btn.onclick=()=>{
       state.selectedId=Number(btn.dataset.id); state.route="chat";
-      state.conversations.find(x=>x.id===state.selectedId).unread=0; const appearanceMedia=window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-if(appearanceMedia){
-  appearanceMedia.addEventListener?.("change",()=>{
-    if(state.settings.appearance==="auto") render();
-  });
-}
-
-render();
+      state.conversations.find(x=>x.id===state.selectedId).unread=0; render();
     });
   };
   draw();
@@ -280,7 +396,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO UX Prototype 0.4.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.5.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -302,12 +418,15 @@ function renderBubble(m,c){
   </div>`;
 }
 
-function sendCurrent(){
+async function sendCurrent(){
   const box=document.querySelector("#messageBox");const text=box.value.trim();if(!text)return;
+  const conversationId=state.selectedId;
   const m={id:crypto.randomUUID(),mine:true,text,time:nowTime(),state:state.online?"sending":"queued"};
-  state.messages[state.selectedId].push(m);
-  const c=currentConversation();c.preview=text;c.time=m.time;render();
-  if(state.online)simulateDelivery(state.selectedId,m.id);
+  state.messages[conversationId].push(m);
+  const c=currentConversation();c.preview=text;c.time=m.time;
+  if(!state.online) await queueOutboxMessage(conversationId,m);
+  render();
+  if(state.online) simulateDelivery(conversationId,m.id);
 }
 
 function simulateDelivery(conversationId,id){
@@ -317,20 +436,28 @@ function simulateDelivery(conversationId,id){
 }
 function updateMessageState(conversationId,id,newState){
   const arr=state.messages[conversationId]||[];const m=arr.find(x=>x.id===id);if(!m)return;
-  m.state=newState;if(state.route==="chat"&&state.selectedId===conversationId)render();
+  m.state=newState;
+  persistSoon();
+  if(state.route==="chat"&&state.selectedId===conversationId)render();
 }
-function flushQueued(){
-  Object.entries(state.messages).forEach(([conversationId,arr])=>{
-    arr.filter(m=>m.mine&&m.state==="queued").forEach((m,i)=>{
-      m.state="sending";
-      setTimeout(()=>updateMessageState(Number(conversationId),m.id,"sent"),500+i*150);
-      setTimeout(()=>updateMessageState(Number(conversationId),m.id,"delivered"),1200+i*150);
-    });
-  });
+async function flushQueued(){
+  if(!state.online) return;
+  let records=[];
+  try{ records=await getOutboxRecords(); }catch(err){ console.warn("Outbox read failed",err); }
+  for(const [i,record] of records.entries()){
+    const arr=state.messages[record.conversationId]||[];
+    const m=arr.find(x=>x.id===record.id);
+    if(!m){ await removeOutboxMessage(record.id); continue; }
+    if(m.state==="queued") m.state="sending";
+    setTimeout(()=>updateMessageState(record.conversationId,m.id,"sent"),500+i*150);
+    setTimeout(()=>updateMessageState(record.conversationId,m.id,"delivered"),1200+i*150);
+    setTimeout(async()=>{updateMessageState(record.conversationId,m.id,"read");await removeOutboxMessage(m.id);},2200+i*150);
+  }
+  persistSoon();
   render();
 }
 window.addEventListener("online",()=>{state.online=true;flushQueued()});
-window.addEventListener("offline",()=>{state.online=false;render()});
+window.addEventListener("offline",()=>{state.online=false;persistSoon();render()});
 
 function renderGroupInfo(){
   const c=currentConversation();
@@ -380,7 +507,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO UX Prototype 0.4.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.5.");
 }
 
 function openAddMemberModal(){
@@ -530,7 +657,7 @@ function renderSettings(){
             <div class="brand">FIDUNIO</div>
             <div>Private Messaging</div>
             <div class="version">Version ${FIDUNIO_VERSION}</div>
-            <div class="small-note">UX Prototype</div>
+            <div class="small-note">Functional Prototype</div>
           </div>
         </div>
 
@@ -539,7 +666,7 @@ function renderSettings(){
     </main>`;
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
   document.querySelectorAll(".toggle").forEach(btn=>btn.onclick=()=>{
-    const key=btn.dataset.key;state.settings[key]=!state.settings[key];renderSettings();
+    const key=btn.dataset.key;state.settings[key]=!state.settings[key];persistSoon();renderSettings();
   });
   document.querySelectorAll(".appearance-btn").forEach(btn=>btn.onclick=()=>{
     state.settings.appearance=btn.dataset.appearance;
@@ -554,4 +681,16 @@ function settingRow(label,key){
   return `<div class="row"><span>${esc(label)}</span><button class="toggle ${state.settings[key]?"on":""}" data-key="${key}" aria-label="${esc(label)}"></button></div>`;
 }
 
-render();
+
+const appearanceMedia=window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+if(appearanceMedia){
+  appearanceMedia.addEventListener?.("change",()=>{
+    if(state.settings.appearance==="auto") render();
+  });
+}
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js")
+    .catch(err=>console.warn("Service worker registration failed",err)));
+}
+initApp();
+

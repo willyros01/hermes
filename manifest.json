@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "FIDUNIO UX Prototype 0.4 \u2014 Private Messaging with A/A+/A++ text sizing, group history controls, adaptive appearance, and approved winged-messenger graphics.",
+  "description": "FIDUNIO Functional Prototype 0.5 \u2014 installable PWA foundation with encrypted IndexedDB persistence, persistent offline Outbox, adaptive appearance, and responsive group controls.",
   "icons": [
     {
       "src": "icon-192.png",
@@ -20,5 +20,6 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "id": "./"
 }
