@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "Hermes UX Prototype 0.3 with groups, accessibility, adaptive appearance, and Hermes branding.",
+  "description": "Hermes UX Prototype 0.3.1 with improved Large Text, iPad composer alignment, adaptive appearance, groups, and Hermes branding.",
   "icons": [
     {
       "src": "icon-192.png",

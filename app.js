@@ -1,5 +1,5 @@
 const app = document.querySelector("#app");
-const HERMES_VERSION = "0.3";
+const HERMES_VERSION = "0.3.1";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -90,7 +90,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">Hermes UX Prototype 0.3 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">Hermes UX Prototype 0.3.1.1.1 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -277,7 +277,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in Hermes UX Prototype 0.3.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in Hermes UX Prototype 0.3.1.1.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -377,7 +377,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in Hermes UX Prototype 0.3.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in Hermes UX Prototype 0.3.1.1.");
 }
 
 function openAddMemberModal(){
