@@ -144,7 +144,13 @@ export function subscribeConversationMessages(conversationId,myUid,onRows,onErro
       s.fsSdk.orderBy("createdAt","asc")
     );
     unsub=s.fsSdk.onSnapshot(q,snap=>{
-      onRows(snap.docs.map(d=>({id:d.id,...d.data()})));
+      onRows(
+        snap.docs.map(d=>({id:d.id,...d.data()})),
+        {
+          fromCache:!!snap.metadata?.fromCache,
+          hasPendingWrites:!!snap.metadata?.hasPendingWrites
+        }
+      );
     },onError);
   }).catch(onError);
   return ()=>{active=false;unsub();};

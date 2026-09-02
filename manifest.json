@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "FIDUNIO Functional Prototype 0.6.3 \u2014 dedicated encrypted cloud-history cache and Safari/iOS IndexedDB key transaction hardening.",
+  "description": "FIDUNIO Functional Prototype 0.6.5 \u2014 local-first offline history protection, Firestore snapshot-metadata handling, and Scorecard-style service-worker caching.",
   "icons": [
     {
       "src": "icon-192.png",

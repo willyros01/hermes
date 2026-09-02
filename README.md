@@ -274,3 +274,53 @@ Observed:
 - All 0.6.1 Outbox safeguards and 0.6.2 live-listener fixes remain.
 
 Protected firebase-config.js and config-firestore.js remain excluded.
+
+
+## Hermes 0.6.4 / FIDUNIO 0.6.4
+
+0.6.4 corrects a specific Safari/iOS IndexedDB bug in the 0.6.3 offline-history restore path.
+
+The 0.6.3 loader opened one read transaction, awaited `getAllKeys()`, and then tried `getAll()` on that same transaction. Safari/iOS is aggressive about auto-closing IndexedDB transactions when JavaScript yields across an `await`, so the second request can fail with an inactive transaction. That prevents the dedicated encrypted history cache from being restored on cold offline startup.
+
+0.6.4 performs one `getAll()` request in one transaction and then decrypts the returned records after that transaction is finished. The records already contain their conversation IDs, so the separate key request was unnecessary.
+
+All 0.6.1 Outbox safeguards, 0.6.2 live-listener fixes, and 0.6.3 dedicated encrypted history storage remain intact.
+
+Protected `firebase-config.js` and `config-firestore.js` remain excluded from the release ZIP.
+
+
+## Hermes 0.6.5 / FIDUNIO 0.6.5
+
+0.6.5 changes the offline architecture after comparing FIDUNIO with the user's proven JavaScript Scorecard application.
+
+The critical finding was not simply "use localStorage." The important Scorecard discipline is:
+
+1. durable local state is independent from Firebase availability;
+2. Firebase is a synchronization layer, not the sole source of what the user should see;
+3. a failed/unavailable remote read must never erase locally durable information;
+4. Firebase SDK JavaScript may be cached, but Firebase data transport must not be service-worker cached.
+
+A concrete FIDUNIO issue was also identified:
+Firestore can emit an offline/cache snapshot on cold start. In 0.6.4, the message listener replaced the locally restored message array with whatever Firestore returned. If that cache snapshot was empty, FIDUNIO erased the locally restored conversation in memory and then saved the empty result. When connectivity returned, the server snapshot populated the messages again. That matches the observed iPad behavior.
+
+0.6.5 fixes:
+- `firebase.js` now passes Firestore snapshot metadata (`fromCache`, `hasPendingWrites`) to the app.
+- Cached/offline Firestore snapshots MERGE into locally restored history and can never delete locally stored rows.
+- Only a server-backed snapshot is treated as authoritative for server messages.
+- Local queued/sending/failed outbound messages remain preserved until Firestore confirms them.
+- Read receipts are not attempted from an offline/cache-only snapshot.
+- Startup is explicitly local-first: local state -> encrypted cloud history -> Outbox reconstruction -> render -> Firebase synchronization.
+- The service worker uses the Scorecard-style split:
+  * own FIDUNIO files: network-first with offline cache fallback;
+  * versioned `www.gstatic.com` Firebase SDK modules: cache-first/background refresh;
+  * `googleapis.com` / `firebaseio.com` data transport: never service-worker cached.
+- Firebase SDK top-level modules are pre-cached opportunistically during service-worker install.
+- Service-worker installation uses `Promise.allSettled`, so one unavailable optional/remote file does not abort the worker installation.
+- Existing 0.6.1 authoritative encrypted Outbox, 0.6.2 live listener, and 0.6.3/0.6.4 encrypted history work remain.
+
+Protected configuration:
+- `firebase-config.js` is NOT included in this ZIP.
+- `config-firestore.js` is NOT included in this ZIP.
+- Keep the configured repository copies untouched.
+
+0.6.5 is still a transport prototype; Firestore cloud message text is not yet end-to-end encrypted.

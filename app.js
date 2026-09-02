@@ -13,7 +13,7 @@ import {
 } from "./firebase.js";
 
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.6.3";
+const FIDUNIO_VERSION = "0.6.5";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -298,13 +298,18 @@ async function cacheCloudHistory(conversationId,messages){
 async function loadCloudHistory(){
   try{
     const db=await openDb();
-    const tx=db.transaction("history","readonly");
-    const store=tx.objectStore("history");
-    const keys=await idbRequest(store.getAllKeys());
-    const values=await idbRequest(store.getAll());
-    for(let i=0;i<values.length;i++){
+
+    // Safari/iOS may auto-close an IndexedDB transaction as soon as control
+    // returns to the event loop. Do not await one request and then issue
+    // another request on the same transaction. A single getAll() request is
+    // sufficient because each encrypted record contains its conversationId.
+    const values=await idbRequest(
+      db.transaction("history","readonly").objectStore("history").getAll()
+    );
+
+    for(const value of values){
       try{
-        const saved=await decryptLocal(values[i]);
+        const saved=await decryptLocal(value);
         if(!saved?.conversationId || !Array.isArray(saved.messages)) continue;
         const id=saved.conversationId;
         const current=state.messages[id] || [];
@@ -315,7 +320,7 @@ async function loadCloudHistory(){
           ...pending.filter(m=>!savedIds.has(m.id))
         ];
       }catch(err){
-        console.warn("Could not restore cached cloud history",keys?.[i],err);
+        console.warn("Could not restore cached cloud history",err);
       }
     }
   }catch(err){
@@ -364,49 +369,91 @@ function beginCloudMessageSubscription(conversationId){
   stopCloudMessageSubscription();
   const c=state.conversations.find(x=>String(x.id)===String(conversationId));
   if(!c?.cloud || !firebaseUser) return;
-  cloudMessageUnsub=subscribeConversationMessages(conversationId, firebaseUser.uid, async rows=>{
-    const existing=state.messages[conversationId] || [];
-    const remote=rows.map(m=>({
-      id:m.id,
-      mine:m.senderUid===firebaseUser.uid,
-      sender:m.senderName || "",
-      text:m.text || "",
-      time:m.timeLabel || "",
-      state:m.state || "sent",
-      cloud:true
-    }));
-    const remoteIds=new Set(remote.map(m=>m.id));
-    const localPending=existing.filter(m=>
-      m.cloud && m.mine &&
-      ["queued","sending","failed"].includes(m.state) &&
-      !remoteIds.has(m.id)
-    );
-    state.messages[conversationId]=[...remote,...localPending];
 
-    const last=state.messages[conversationId].at(-1);
-    if(last){
-      c.preview=last.text;
-      c.time=last.time;
-    }
+  cloudMessageUnsub=subscribeConversationMessages(
+    conversationId,
+    firebaseUser.uid,
+    async (rows,meta={})=>{
+      const existing=state.messages[conversationId] || [];
+      const remote=rows.map(m=>({
+        id:m.id,
+        mine:m.senderUid===firebaseUser.uid,
+        sender:m.senderName || "",
+        text:m.text || "",
+        time:m.timeLabel || "",
+        state:m.state || "sent",
+        cloud:true
+      }));
 
-    // Keep a dedicated encrypted per-conversation history cache in addition
-    // to the general app-state snapshot. This gives offline cold start an
-    // independent source of truth for already-downloaded cloud messages.
-    await cacheCloudHistory(conversationId,state.messages[conversationId]);
-    await persistState();
+      let merged;
 
-    const unreadIncoming=state.messages[conversationId].filter(m=>!m.mine && m.state!=="read");
-    if(state.route==="chat" && String(state.selectedId)===String(conversationId)){
-      for(const m of unreadIncoming){
-        try{ await updateCloudMessageState(conversationId,m.id,"read"); }catch{}
+      if(meta.fromCache){
+        /*
+         * IMPORTANT OFFLINE RULE
+         * ----------------------
+         * Firestore may emit an empty or incomplete cache snapshot on an
+         * offline cold start. That is NOT proof that the conversation has no
+         * messages. Never let such a snapshot erase the encrypted local copy.
+         *
+         * Merge anything Firestore does know into the locally restored
+         * history, but preserve every existing row that Firestore's cache
+         * doesn't currently contain.
+         */
+        const byId=new Map(existing.map(m=>[m.id,m]));
+        for(const m of remote){
+          const prior=byId.get(m.id);
+          byId.set(m.id, prior ? {...prior,...m} : m);
+        }
+        merged=[...byId.values()];
+      }else{
+        /*
+         * A server-backed snapshot is authoritative for messages already
+         * stored in Firestore. Preserve only local outbound work that has not
+         * yet reached the server.
+         */
+        const remoteIds=new Set(remote.map(m=>m.id));
+        const localPending=existing.filter(m=>
+          m.cloud && m.mine &&
+          ["queued","sending","failed"].includes(m.state) &&
+          !remoteIds.has(m.id)
+        );
+        merged=[...remote,...localPending];
       }
-    }
 
-    if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
-  }, err=>{
-    firebaseError=err?.message || String(err);
-    if(state.route==="settings") renderSettings();
-  });
+      state.messages[conversationId]=merged;
+
+      const last=merged.at(-1);
+      if(last){
+        c.preview=last.text;
+        c.time=last.time;
+      }
+
+      /*
+       * Local-first durability:
+       * persist the merged result before any read-receipt network work.
+       * A network/cache callback must never make local history less durable.
+       */
+      await cacheCloudHistory(conversationId,merged);
+      await persistState();
+
+      const unreadIncoming=merged.filter(m=>!m.mine && m.state!=="read");
+      if(
+        !meta.fromCache &&
+        state.route==="chat" &&
+        String(state.selectedId)===String(conversationId)
+      ){
+        for(const m of unreadIncoming){
+          try{ await updateCloudMessageState(conversationId,m.id,"read"); }catch{}
+        }
+      }
+
+      if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
+    },
+    err=>{
+      firebaseError=err?.message || String(err);
+      if(state.route==="settings") renderSettings();
+    }
+  );
 }
 async function initializeFirebaseLayer(){
   if(!isFirebaseConfigured()) return;
@@ -434,13 +481,25 @@ async function initializeFirebaseLayer(){
 }
 
 async function initApp(){
+  /*
+   * Local-first boot:
+   * 1) restore durable app state
+   * 2) restore encrypted cloud history
+   * 3) reconstruct any queued outbound messages
+   * 4) render immediately
+   * 5) only then initialize Firebase as a synchronization layer
+   *
+   * Firebase being offline, slow, uncached, or temporarily empty must never
+   * prevent already-downloaded local messages from being shown.
+   */
   await loadPersistedState();
   await loadCloudHistory();
   await restoreOutboxIntoState();
+
   hydrated=true;
   state.online=navigator.onLine;
-  await persistState();
   render();
+
   initializeFirebaseLayer();
   if(state.online) flushQueued();
 }
@@ -489,7 +548,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO Functional Prototype 0.6.3 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO Functional Prototype 0.6.5 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -555,7 +614,7 @@ function renderNewConversation(){
             <label class="form-label" for="peerUid">Recipient FIDUNIO ID</label>
             <input class="text-input" id="peerUid" autocomplete="off" placeholder="Paste recipient UID" />
             <button class="primary" id="cloudDirectBtn">Start Cloud Conversation</button>
-            <p class="warning-note">0.6.3 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
+            <p class="warning-note">0.6.5 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
           ` : `
             <p class="small-note">To start real two-device messaging, configure Firebase and sign in under Settings → Firebase Account.</p>
           `}
@@ -684,7 +743,7 @@ function renderChat(){
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?'<div class="warning-banner">0.6.3 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
+      ${c.cloud?'<div class="warning-banner">0.6.5 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -708,7 +767,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.3.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.5.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -916,7 +975,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.3.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.5.");
 }
 
 function openAddMemberModal(){
