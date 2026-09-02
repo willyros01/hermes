@@ -78,7 +78,7 @@ Prototype 0.4 remains intentionally Firebase-free so the UX can be reviewed befo
 
 ## Initial GitHub upload
 
-Recommended repository name: `fidunio`
+Repository name: `hermes`
 
 Recommended description: `Fidunio private messaging PWA`
 
@@ -86,7 +86,7 @@ For the simplest GitHub Pages workflow on GitHub Free, use a **Public** reposito
 
 When creating the repository:
 1. Choose **New repository**.
-2. Repository name: `fidunio`
+2. Repository name: `hermes`
 3. Description: `Fidunio private messaging PWA`
 4. Visibility: **Public**
 5. Do **not** pre-create a README, `.gitignore`, or license for this first upload, because this package already includes `README.md`.
@@ -215,3 +215,34 @@ Added:
 
 Security warning:
 0.6 is a transport prototype and does NOT yet provide end-to-end encryption for Firestore message text. Use only harmless test messages. E2EE/device-key work is the next major security milestone.
+
+
+## Hermes 0.6.1 / FIDUNIO 0.6.1
+
+0.6.1 is a reliability correction based on real iPad/iPhone testing.
+
+Confirmed before this fix:
+- Firebase Email/Password authentication worked on iPad and iPhone.
+- iPad -> iPhone Firestore messaging worked.
+- iPhone -> iPad reply worked.
+- Sender status advanced to Read.
+- When the iPad PWA was killed while offline, previously received cloud messages were not visible until connectivity returned.
+- A queued cloud message could disappear after kill/reopen and never reach the other device.
+
+0.6.1 fixes:
+- Encrypted IndexedDB Outbox is now authoritative for unsent messages.
+- IndexedDB writes for critical state and Outbox records wait for transaction completion.
+- Startup reconstructs any missing queued message from the encrypted Outbox.
+- Firestore snapshots preserve local queued/sending/failed messages instead of overwriting them.
+- Downloaded cloud messages are committed immediately to encrypted local storage so they remain readable after an offline relaunch.
+- Firebase authentication completion triggers an Outbox retry, avoiding dependence on a new online event.
+- Outbox records are removed only after Firestore confirms the message write.
+- Missing normal message-cache state can no longer cause an Outbox record to be deleted.
+- Cloud direct conversations display "Connected" instead of the misleading "Secure" status until E2EE exists.
+
+Configuration protection:
+- This update ZIP intentionally does NOT include `firebase-config.js`.
+- Keep the already configured `firebase-config.js` in the GitHub repository.
+- `config-firestore.js`, if present in the user's repository/workflow, is also protected and must not be overwritten or included in version ZIPs.
+
+0.6.1 remains a transport prototype. Cloud message content is not yet end-to-end encrypted.

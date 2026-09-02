@@ -1,0 +1,113 @@
+HERMES 0.6.1 / FIDUNIO 0.6.1 — UPDATE AND RETEST
+=======================================================
+
+PURPOSE
+0.6.1 fixes the offline/relaunch reliability bug found during real iPad/iPhone Firebase testing.
+
+IMPORTANT CONFIGURATION RULE
+DO NOT delete, overwrite, rename, or re-upload your existing configured Firebase configuration file.
+This 0.6.1 ZIP intentionally omits firebase-config.js.
+Your existing GitHub firebase-config.js must remain exactly where it is.
+
+Also preserve config-firestore.js if it exists in your repository/workflow. It is a protected configuration file and is not part of version ZIPs.
+
+UPLOAD FROM IPAD
+1. Download hermes-ux-0.6.1.zip.
+2. Expand it in the iPad Files app.
+3. Open the GitHub repository: hermes.
+4. Add file -> Upload files.
+5. Select ALL files in the expanded 0.6.1 folder.
+6. Upload them to the repository ROOT.
+7. Commit to main, for example:
+   FIDUNIO 0.6.1 offline reliability fix
+8. Do not delete firebase-config.js from GitHub just because it is absent from this ZIP.
+9. Wait for GitHub Pages deployment.
+10. Open/refresh FIDUNIO while online until Settings -> About shows Version 0.6.1.
+
+NO FIREBASE CONSOLE CHANGES ARE REQUIRED
+- Keep Email/Password enabled.
+- Keep the existing Firestore database.
+- Keep the existing published firestore.rules.
+- Keep the existing Authorized Domain.
+- Existing Firebase accounts and conversations can be reused.
+
+WHAT 0.6.1 FIXES
+A. Received cloud-message offline cache:
+   Previously downloaded Firestore messages are now committed immediately to encrypted IndexedDB storage.
+   They should remain visible after killing/reopening the PWA while offline.
+
+B. Authoritative Outbox:
+   The encrypted Outbox itself can reconstruct a queued message even if normal app-state persistence did not finish.
+
+C. Durable critical writes:
+   FIDUNIO now waits for IndexedDB transaction completion for critical Outbox/state operations.
+
+D. Snapshot merge:
+   A Firestore live snapshot no longer wipes local queued/sending/failed messages that are not yet present on the server.
+
+E. Reconnect/auth retry:
+   When Firebase authentication restores after launch, FIDUNIO retries the Outbox if the device is online.
+
+F. Safe deletion:
+   An Outbox item is removed only after Firestore confirms the remote message write.
+
+G. Status wording:
+   Cloud direct chats now show Connected rather than Secure until E2EE exists.
+
+RETEST SEQUENCE
+Use harmless test messages only because 0.6.1 is still not end-to-end encrypted.
+
+ONLINE BASELINE
+1. iPad and iPhone online.
+2. Both signed into their existing Firebase test accounts.
+3. Open the existing cloud conversation.
+4. Send:
+   Baseline 0.6.1 from iPad
+5. Confirm it appears on iPhone.
+6. Reply:
+   Baseline 0.6.1 from iPhone
+7. Confirm it appears on iPad.
+
+OFFLINE CACHE TEST
+1. On iPad, while online, make sure both baseline messages are visible.
+2. Turn Airplane Mode ON.
+3. Kill/close the FIDUNIO PWA.
+4. Reopen FIDUNIO while still in Airplane Mode.
+5. Open the cloud conversation.
+PASS: the previously downloaded iPad/iPhone baseline messages are still visible locally.
+
+AUTHORITATIVE OUTBOX TEST
+1. Keep Airplane Mode ON.
+2. Send:
+   Offline queued 0.6.1
+3. Confirm it shows Queued.
+4. Kill/close FIDUNIO while still offline.
+5. Reopen FIDUNIO while still offline.
+6. Open the conversation.
+PASS: Offline queued 0.6.1 is still present and still Queued.
+
+RECONNECT DELIVERY TEST
+Because the iPad needs internet to report results to ChatGPT, finish all offline steps first.
+1. Turn Airplane Mode OFF.
+2. Foreground/reopen FIDUNIO if necessary.
+3. Keep the iPhone online.
+PASS: Offline queued 0.6.1 reaches the iPhone.
+PASS: the iPad copy is not lost.
+PASS: status can advance after Firestore/recipient processing.
+
+IF A MESSAGE SHOWS FAILED
+Do not delete it. The encrypted Outbox record is intentionally retained.
+Foregrounding the app or another online/auth event should allow another retry.
+Report the exact screen/error before changing Firebase settings.
+
+PASS CRITERIA FOR 0.6.1
+- Version 0.6.1 visible.
+- Existing Firebase accounts still sign in.
+- Existing online two-way messaging still works.
+- Previously downloaded cloud messages remain visible after offline kill/reopen.
+- Offline queued cloud message remains visible after offline kill/reopen.
+- Reconnection delivers the queued message to the other device.
+- No configuration file was overwritten.
+
+NEXT
+After 0.6.1 passes, proceed to the encryption/device-identity milestone rather than adding more transport features.

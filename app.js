@@ -13,7 +13,7 @@ import {
 } from "./firebase.js";
 
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.6";
+const FIDUNIO_VERSION = "0.6.1";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -143,18 +143,27 @@ function serializableState(){
     selectedId:state.selectedId
   };
 }
+function txDone(tx){
+  return new Promise((resolve,reject)=>{
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error || new Error("IndexedDB transaction failed"));
+    tx.onabort=()=>reject(tx.error || new Error("IndexedDB transaction aborted"));
+  });
+}
 async function persistState(){
   if(!hydrated) return;
   try{
     const db=await openDb();
     const encrypted=await encryptLocal(serializableState());
-    db.transaction("meta","readwrite").objectStore("meta").put(encrypted,STATE_KEY);
+    const tx=db.transaction("meta","readwrite");
+    tx.objectStore("meta").put(encrypted,STATE_KEY);
+    await txDone(tx);
   }catch(err){ console.warn("Local state persistence failed",err); }
 }
 function persistSoon(){
   if(!hydrated) return;
   clearTimeout(persistTimer);
-  persistTimer=setTimeout(persistState,80);
+  persistTimer=setTimeout(()=>{ persistState(); },80);
 }
 async function loadPersistedState(){
   try{
@@ -166,15 +175,36 @@ async function loadPersistedState(){
     if(saved.messages) state.messages=saved.messages;
     if(saved.settings) state.settings={...state.settings,...saved.settings};
     if(saved.quickPhrases) state.quickPhrases=saved.quickPhrases;
-    if(saved.selectedId && state.conversations.some(c=>c.id===saved.selectedId)) state.selectedId=saved.selectedId;
+    if(saved.selectedId && state.conversations.some(c=>String(c.id)===String(saved.selectedId))) state.selectedId=saved.selectedId;
   }catch(err){ console.warn("Could not restore local Fidunio state",err); }
 }
 async function queueOutboxMessage(conversationId,message){
   const db=await openDb();
-  const encrypted=await encryptLocal({conversationId,messageId:message.id,text:message.text,time:message.time,cloud:!!message.cloud});
-  db.transaction("outbox","readwrite").objectStore("outbox").put({
-    id:message.id,conversationId,createdAt:Date.now(),payload:encrypted
+  const c=state.conversations.find(x=>String(x.id)===String(conversationId));
+  const encrypted=await encryptLocal({
+    conversationId,
+    messageId:message.id,
+    text:message.text,
+    time:message.time,
+    cloud:!!message.cloud,
+    conversation:c ? {
+      id:c.id,
+      name:c.name,
+      type:c.type,
+      cloud:!!c.cloud,
+      preview:message.text,
+      time:message.time,
+      unread:0
+    } : null
   });
+  const tx=db.transaction("outbox","readwrite");
+  tx.objectStore("outbox").put({
+    id:message.id,
+    conversationId,
+    createdAt:Date.now(),
+    payload:encrypted
+  });
+  await txDone(tx);
 }
 async function getOutboxRecords(){
   const db=await openDb();
@@ -182,7 +212,64 @@ async function getOutboxRecords(){
 }
 async function removeOutboxMessage(id){
   const db=await openDb();
-  db.transaction("outbox","readwrite").objectStore("outbox").delete(id);
+  const tx=db.transaction("outbox","readwrite");
+  tx.objectStore("outbox").delete(id);
+  await txDone(tx);
+}
+async function decryptOutboxRecord(record){
+  const payload=await decryptLocal(record.payload);
+  return {
+    conversationId:payload.conversationId ?? record.conversationId,
+    messageId:payload.messageId ?? record.id,
+    text:payload.text ?? "",
+    time:payload.time ?? "",
+    cloud:!!payload.cloud,
+    conversation:payload.conversation || null
+  };
+}
+function ensureQueuedMessageFromPayload(payload){
+  const conversationId=payload.conversationId;
+  let c=state.conversations.find(x=>String(x.id)===String(conversationId));
+  if(!c && payload.conversation){
+    c={...payload.conversation,id:conversationId};
+    state.conversations.unshift(c);
+  }
+  if(!state.messages[conversationId]) state.messages[conversationId]=[];
+  let m=state.messages[conversationId].find(x=>x.id===payload.messageId);
+  if(!m){
+    m={
+      id:payload.messageId,
+      mine:true,
+      text:payload.text,
+      time:payload.time,
+      state:"queued",
+      cloud:payload.cloud
+    };
+    state.messages[conversationId].push(m);
+  }else if(!["sent","delivered","read"].includes(m.state)){
+    m.state="queued";
+    m.cloud=payload.cloud;
+  }
+  if(c){
+    c.preview=payload.text || c.preview;
+    c.time=payload.time || c.time;
+  }
+  return {c,m};
+}
+async function restoreOutboxIntoState(){
+  try{
+    const records=await getOutboxRecords();
+    for(const record of records){
+      try{
+        const payload=await decryptOutboxRecord(record);
+        ensureQueuedMessageFromPayload(payload);
+      }catch(err){
+        console.warn("Could not restore queued message",record?.id,err);
+      }
+    }
+  }catch(err){
+    console.warn("Could not restore Outbox",err);
+  }
 }
 
 function cloudDisplayName(c){
@@ -222,7 +309,8 @@ function beginCloudMessageSubscription(conversationId){
   const c=state.conversations.find(x=>String(x.id)===String(conversationId));
   if(!c?.cloud || !firebaseUser) return;
   cloudMessageUnsub=subscribeConversationMessages(conversationId, firebaseUser.uid, async rows=>{
-    state.messages[conversationId]=rows.map(m=>({
+    const existing=state.messages[conversationId] || [];
+    const remote=rows.map(m=>({
       id:m.id,
       mine:m.senderUid===firebaseUser.uid,
       sender:m.senderName || "",
@@ -231,17 +319,32 @@ function beginCloudMessageSubscription(conversationId){
       state:m.state || "sent",
       cloud:true
     }));
+    const remoteIds=new Set(remote.map(m=>m.id));
+    const localPending=existing.filter(m=>
+      m.cloud && m.mine &&
+      ["queued","sending","failed"].includes(m.state) &&
+      !remoteIds.has(m.id)
+    );
+    state.messages[conversationId]=[...remote,...localPending];
+
     const last=state.messages[conversationId].at(-1);
     if(last){
-      c.preview=last.text;c.time=last.time;
+      c.preview=last.text;
+      c.time=last.time;
     }
+
+    // Incoming Firestore data is a critical local-cache update. Wait until
+    // the encrypted IndexedDB write completes so an offline relaunch can
+    // still display messages that were already downloaded.
+    await persistState();
+
     const unreadIncoming=state.messages[conversationId].filter(m=>!m.mine && m.state!=="read");
     if(state.route==="chat" && String(state.selectedId)===String(conversationId)){
       for(const m of unreadIncoming){
         try{ await updateCloudMessageState(conversationId,m.id,"read"); }catch{}
       }
     }
-    persistSoon();
+
     if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
   }, err=>{
     firebaseError=err?.message || String(err);
@@ -254,8 +357,10 @@ async function initializeFirebaseLayer(){
     await initFirebase(user=>{
       firebaseUser=user;
       firebaseReady=true;
-      if(user) beginCloudConversationSubscription();
-      else{
+      if(user){
+        beginCloudConversationSubscription();
+        if(state.online) flushQueued();
+      }else{
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
         stopCloudMessageSubscription();
       }
@@ -270,8 +375,10 @@ async function initializeFirebaseLayer(){
 
 async function initApp(){
   await loadPersistedState();
+  await restoreOutboxIntoState();
   hydrated=true;
   state.online=navigator.onLine;
+  await persistState();
   render();
   initializeFirebaseLayer();
   if(state.online) flushQueued();
@@ -321,7 +428,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO Functional Prototype 0.6 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO Functional Prototype 0.6.1 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -387,7 +494,7 @@ function renderNewConversation(){
             <label class="form-label" for="peerUid">Recipient FIDUNIO ID</label>
             <input class="text-input" id="peerUid" autocomplete="off" placeholder="Paste recipient UID" />
             <button class="primary" id="cloudDirectBtn">Start Cloud Conversation</button>
-            <p class="warning-note">0.6 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
+            <p class="warning-note">0.6.1 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
           ` : `
             <p class="small-note">To start real two-device messaging, configure Firebase and sign in under Settings → Firebase Account.</p>
           `}
@@ -511,12 +618,12 @@ function renderChat(){
         <button class="back-btn" id="backBtn" aria-label="Back">‹</button>
         <div class="chat-header-title">
           <strong>${esc(c.name)}</strong>
-          <span class="secure">● ${isGroup(c)?`${c.members.length} members • `:""}Secure</span>
+          <span class="secure">● ${c.cloud?"Connected":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}</span>
         </div>
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?'<div class="warning-banner">0.6 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
+      ${c.cloud?'<div class="warning-banner">0.6.1 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -540,7 +647,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.1.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -563,19 +670,31 @@ function renderBubble(m,c){
 }
 
 async function sendCurrent(){
-  const box=document.querySelector("#messageBox");const text=box.value.trim();if(!text)return;
+  const box=document.querySelector("#messageBox");
+  const text=box.value.trim();
+  if(!text) return;
+
   const conversationId=state.selectedId;
   const c=currentConversation();
   const cloud=!!c?.cloud;
   const m={
-    id:crypto.randomUUID(),mine:true,text,time:nowTime(),
+    id:crypto.randomUUID(),
+    mine:true,
+    text,
+    time:nowTime(),
     state:(state.online && (!cloud || firebaseUser))?"sending":"queued",
     cloud
   };
+
   if(!state.messages[conversationId]) state.messages[conversationId]=[];
   state.messages[conversationId].push(m);
-  c.preview=text;c.time=m.time;
-  await queueOutboxMessage(conversationId,{...m,cloud});
+  c.preview=text;
+  c.time=m.time;
+
+  // The Outbox is authoritative. Do not return from Send until the
+  // encrypted queued record is durably committed to IndexedDB.
+  await queueOutboxMessage(conversationId,m);
+  await persistState();
   render();
 
   if(state.online){
@@ -594,46 +713,80 @@ function simulateDelivery(conversationId,id){
   setTimeout(()=>updateMessageState(conversationId,id,"read"),2600);
 }
 function updateMessageState(conversationId,id,newState){
-  const arr=state.messages[conversationId]||[];const m=arr.find(x=>x.id===id);if(!m)return;
+  const arr=state.messages[conversationId]||[];
+  const m=arr.find(x=>x.id===id);
+  if(!m) return;
   m.state=newState;
   persistSoon();
-  if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
+  if(state.route==="chat"&&String(state.selectedId)===String(conversationId)) render();
 }
 async function flushQueued(){
   if(!state.online) return;
+
   let records=[];
-  try{ records=await getOutboxRecords(); }catch(err){ console.warn("Outbox read failed",err); }
+  try{
+    records=await getOutboxRecords();
+  }catch(err){
+    console.warn("Outbox read failed",err);
+    return;
+  }
+
   for(const [i,record] of records.entries()){
-    const arr=state.messages[record.conversationId]||[];
-    const m=arr.find(x=>x.id===record.id);
-    if(!m){ await removeOutboxMessage(record.id); continue; }
-    const c=state.conversations.find(x=>String(x.id)===String(record.conversationId));
-    if(c?.cloud){
-      if(!firebaseUser){ m.state="queued"; continue; }
+    let payload;
+    try{
+      payload=await decryptOutboxRecord(record);
+    }catch(err){
+      console.warn("Outbox decrypt failed; record preserved for recovery",record?.id,err);
+      continue;
+    }
+
+    // Never delete an Outbox record merely because the normal message cache
+    // is missing. Rebuild the visible message from the encrypted Outbox.
+    const {c,m}=ensureQueuedMessageFromPayload(payload);
+    const isCloud=payload.cloud || !!c?.cloud;
+
+    if(isCloud){
+      if(!firebaseUser){
+        m.state="queued";
+        await persistState();
+        continue;
+      }
       try{
-        m.state="sending"; render();
-        await sendCloudMessage(record.conversationId,{
-          id:m.id,text:m.text,timeLabel:m.time,state:"sent"
+        m.state="sending";
+        await persistState();
+        if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render();
+
+        await sendCloudMessage(payload.conversationId,{
+          id:payload.messageId,
+          text:payload.text,
+          timeLabel:payload.time,
+          state:"sent"
         });
+
         m.state="sent";
-        await removeOutboxMessage(m.id);
-        persistSoon();
+        // Remove the Outbox item only after Firestore confirms the write.
+        await removeOutboxMessage(payload.messageId);
+        await persistState();
       }catch(err){
+        // Preserve the Outbox record. A later foreground/online/auth event
+        // can retry it without losing the message.
         m.state="failed";
         firebaseError=err?.message || String(err);
-        persistSoon();
+        await persistState();
       }
     }else{
       m.state="sending";
-      await removeOutboxMessage(m.id);
-      setTimeout(()=>updateMessageState(record.conversationId,m.id,"sent"),500+i*150);
-      setTimeout(()=>updateMessageState(record.conversationId,m.id,"delivered"),1200+i*150);
-      setTimeout(()=>updateMessageState(record.conversationId,m.id,"read"),2200+i*150);
+      await persistState();
+      await removeOutboxMessage(payload.messageId);
+      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"sent"),500+i*150);
+      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"delivered"),1200+i*150);
+      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"read"),2200+i*150);
     }
   }
+
   render();
 }
-window.addEventListener("online",()=>{state.online=true;flushQueued()});
+window.addEventListener("online",()=>{state.online=true;render();flushQueued()});
 window.addEventListener("offline",()=>{state.online=false;persistSoon();render()});
 
 function renderGroupInfo(){
@@ -684,7 +837,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.1.");
 }
 
 function openAddMemberModal(){
@@ -847,7 +1000,7 @@ function renderSettings(){
             </div>
           `}
           ${firebaseError?`<p class="warning-note">${esc(firebaseError)}</p>`:""}
-          <p class="warning-note">0.6 establishes real Firebase transport, but E2EE is not implemented yet. Do not use private or sensitive message content for this test.</p>
+          <p class="warning-note">0.6.1 establishes real Firebase transport, but E2EE is not implemented yet. Do not use private or sensitive message content for this test.</p>
         </div>
 
         <div class="card">

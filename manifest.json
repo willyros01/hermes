@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "FIDUNIO Functional Prototype 0.6 \u2014 Firebase Authentication and first two-account Firestore messaging transport with persistent encrypted local Outbox.",
+  "description": "FIDUNIO Functional Prototype 0.6.1 \u2014 Firebase messaging reliability fix: authoritative encrypted Outbox recovery, durable local cloud-message cache, and reconnect retry hardening.",
   "icons": [
     {
       "src": "icon-192.png",
