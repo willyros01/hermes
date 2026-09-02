@@ -1,6 +1,6 @@
-# Hermes UX Prototype 0.3.1
+# Hermes UX Prototype 0.3.2
 
-Prototype 0.3.1 is the first version intended for the initial GitHub upload.
+Prototype 0.3.2 is the first version intended for the initial GitHub upload.
 
 ## Added in 0.2
 - New Message screen
@@ -74,7 +74,7 @@ Examples:
 9. Disable network connectivity, send a message, and verify it shows Queued.
 10. Restore connectivity and verify the message progresses through delivery states.
 
-Prototype 0.3.1 remains intentionally Firebase-free so the UX can be reviewed before backend and cryptographic implementation.
+Prototype 0.3.2 remains intentionally Firebase-free so the UX can be reviewed before backend and cryptographic implementation.
 
 ## Initial GitHub upload
 
@@ -98,7 +98,7 @@ When creating the repository:
    - `app.js`
    - `manifest.json`
    - `README.md`
-9. Commit message: `Initial Hermes UX Prototype 0.3.1`
+9. Commit message: `Initial Hermes UX Prototype 0.3.2`
 
 ### GitHub Pages
 After the files are uploaded:
@@ -121,7 +121,7 @@ Do not commit private keys, service-account JSON, passwords, encryption keys, se
 - Version number is synchronized with this package: `0.3`
 
 ## 0.3 acceptance checks
-1. Open Settings and confirm `Version 0.3.1` is visible.
+1. Open Settings and confirm `Version 0.3.2` is visible.
 2. Turn Large Text on and check Messages, Chat, Group Info, History, and Settings.
 3. In Appearance, test Light and Dark manually.
 4. Select Auto, then change the iPad/iPhone appearance between Light and Dark and confirm Hermes follows it.
@@ -149,12 +149,19 @@ This build intentionally keeps every file in the repository root. There is no `a
 
 Upload all files directly to the main `hermes` repository directory. The image and icon references in the code already point to the root directory.
 
-## Hermes UX Prototype 0.3.1
+## Hermes UX Prototype 0.3.2
 This maintenance build keeps the approved Hermes graphics and flat single-directory GitHub layout.
 
 Changes:
 - Large Text now scales the major interface text, message text, controls, settings, group screens, labels, and supporting text much more visibly.
 - The fixed chat composer now uses the exact same centered width boundaries as the Hermes app shell, correcting the iPad/tablet alignment issue.
 - Phone widths continue to use the full available app width.
-- Version display is updated to 0.3.1.
+- Version display is updated to 0.3.2.
 
+
+## Hermes 0.3.2
+- Fixed History Access Cancel and Grant Access so the modal closes correctly.
+- Replaced the single Large Text toggle with A / A+ / A++.
+- A++ is intentionally much larger for easier reading.
+- History modal buttons stay reachable when larger text is selected.
+- The flat, single-directory GitHub layout is unchanged.

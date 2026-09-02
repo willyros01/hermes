@@ -43,50 +43,99 @@ html[data-theme="dark"]{
   --overlay:rgba(24,33,39,.96);
   --shadow:0 8px 24px rgba(0,0,0,.28);
 }
-html.large-text{font-size:20px}
-html.large-text .topbar h1{font-size:28px}
-html.large-text .chat-header-title strong{font-size:20px}
-html.large-text .name{font-size:20px}
-html.large-text .preview{font-size:17px}
-html.large-text .meta{font-size:15px}
-html.large-text .badge{font-size:14px}
-html.large-text .secure,
-html.large-text .sender-label,
-html.large-text .day-divider,
-html.large-text .msg-meta,
-html.large-text .history-lock,
-html.large-text .role-tag,
-html.large-text .version-footer{font-size:14px}
-html.large-text .status-banner,
-html.large-text .info-banner,
-html.large-text .quick-chip,
-html.large-text .tool,
-html.large-text .row-main span,
-html.large-text .big-choice span,
-html.large-text .person-chip,
-html.large-text .form-label,
-html.large-text .small-note{font-size:16px}
-html.large-text .msg-text,
-html.large-text textarea,
-html.large-text .search,
-html.large-text .text-input,
-html.large-text .card h2,
-html.large-text .big-choice strong,
-html.large-text .primary,
-html.large-text .secondary,
-html.large-text .danger-btn{font-size:20px}
-html.large-text .row-main strong,
-html.large-text .row-action,
-html.large-text .appearance-btn,
-html.large-text .text-btn{font-size:18px}
-html.large-text .section-title{font-size:15px}
-html.large-text .about-box .brand{font-size:26px}
-html.large-text .quick-chip{padding:10px 14px}
-html.large-text .row{padding:14px 0}
-html.large-text .conversation{padding:16px}
-html.large-text .more-btn,
-html.large-text .send-btn{height:52px}
-html.large-text textarea{min-height:52px}
+/* Hermes text-size system: A / A+ / A++ */
+html.text-a{font-size:16px}
+
+html.text-aplus{font-size:18px}
+html.text-aplus .topbar h1{font-size:27px}
+html.text-aplus .chat-header-title strong,
+html.text-aplus .name{font-size:20px}
+html.text-aplus .preview{font-size:16px}
+html.text-aplus .meta{font-size:14px}
+html.text-aplus .badge{font-size:13px}
+html.text-aplus .msg-text,
+html.text-aplus textarea,
+html.text-aplus .search,
+html.text-aplus .text-input{font-size:19px}
+html.text-aplus .card h2,
+html.text-aplus .big-choice strong,
+html.text-aplus .primary,
+html.text-aplus .secondary,
+html.text-aplus .danger-btn{font-size:19px}
+html.text-aplus .row-main strong,
+html.text-aplus .row-action,
+html.text-aplus .appearance-btn,
+html.text-aplus .text-size-btn,
+html.text-aplus .text-btn{font-size:17px}
+html.text-aplus .status-banner,
+html.text-aplus .info-banner,
+html.text-aplus .quick-chip,
+html.text-aplus .tool,
+html.text-aplus .row-main span,
+html.text-aplus .big-choice span,
+html.text-aplus .person-chip,
+html.text-aplus .form-label,
+html.text-aplus .small-note{font-size:15px}
+html.text-aplus .secure,
+html.text-aplus .sender-label,
+html.text-aplus .day-divider,
+html.text-aplus .msg-meta,
+html.text-aplus .history-lock,
+html.text-aplus .role-tag,
+html.text-aplus .version-footer{font-size:13px}
+html.text-aplus .quick-chip{padding:10px 14px}
+html.text-aplus .row{padding:14px 0}
+html.text-aplus .conversation{padding:16px}
+html.text-aplus .more-btn,
+html.text-aplus .send-btn{height:52px}
+html.text-aplus textarea{min-height:52px}
+
+html.text-aplusplus{font-size:21px}
+html.text-aplusplus .topbar h1{font-size:31px}
+html.text-aplusplus .chat-header-title strong,
+html.text-aplusplus .name{font-size:23px}
+html.text-aplusplus .preview{font-size:19px}
+html.text-aplusplus .meta{font-size:17px}
+html.text-aplusplus .badge{font-size:16px}
+html.text-aplusplus .msg-text,
+html.text-aplusplus textarea,
+html.text-aplusplus .search,
+html.text-aplusplus .text-input{font-size:23px;line-height:1.42}
+html.text-aplusplus .card h2,
+html.text-aplusplus .big-choice strong,
+html.text-aplusplus .primary,
+html.text-aplusplus .secondary,
+html.text-aplusplus .danger-btn{font-size:22px}
+html.text-aplusplus .row-main strong,
+html.text-aplusplus .row-action,
+html.text-aplusplus .appearance-btn,
+html.text-aplusplus .text-size-btn,
+html.text-aplusplus .text-btn{font-size:20px}
+html.text-aplusplus .status-banner,
+html.text-aplusplus .info-banner,
+html.text-aplusplus .quick-chip,
+html.text-aplusplus .tool,
+html.text-aplusplus .row-main span,
+html.text-aplusplus .big-choice span,
+html.text-aplusplus .person-chip,
+html.text-aplusplus .form-label,
+html.text-aplusplus .small-note{font-size:18px;line-height:1.45}
+html.text-aplusplus .secure,
+html.text-aplusplus .sender-label,
+html.text-aplusplus .day-divider,
+html.text-aplusplus .msg-meta,
+html.text-aplusplus .history-lock,
+html.text-aplusplus .role-tag,
+html.text-aplusplus .version-footer{font-size:16px}
+html.text-aplusplus .section-title{font-size:17px}
+html.text-aplusplus .about-box .brand{font-size:29px}
+html.text-aplusplus .quick-chip{padding:12px 16px}
+html.text-aplusplus .row{padding:17px 0}
+html.text-aplusplus .conversation{padding:18px}
+html.text-aplusplus .more-btn,
+html.text-aplusplus .send-btn{height:58px}
+html.text-aplusplus textarea{min-height:58px}
+
 
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--page);color:var(--ink)}
@@ -283,6 +332,28 @@ textarea{
   background:var(--accent-soft);
   color:var(--accent);
 }
+.text-size-options{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+.text-size-btn{
+  min-height:48px;
+  border:1px solid var(--line);
+  background:var(--panel);
+  color:var(--ink);
+  border-radius:12px;
+  font-weight:900;
+}
+.text-size-btn:nth-child(1){font-size:18px}
+.text-size-btn:nth-child(2){font-size:21px}
+.text-size-btn:nth-child(3){font-size:24px}
+.text-size-btn.active{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  color:var(--accent);
+}
 .about-box{
   text-align:center;
   padding:8px 0;
@@ -342,3 +413,14 @@ textarea{
 @supports (width:100dvw){
   .composer-wrap{max-width:100dvw}
 }
+
+/* Keep History Access actions visible with large text and short screens. */
+.modal-actions{
+  position:sticky;
+  bottom:calc(-16px - env(safe-area-inset-bottom));
+  background:var(--panel);
+  padding:10px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index:2;
+}
+html.text-aplusplus .modal{max-height:88vh}
+html.text-aplusplus .modal-actions button{min-height:52px;font-size:20px}

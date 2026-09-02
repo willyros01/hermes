@@ -1,5 +1,5 @@
 const app = document.querySelector("#app");
-const HERMES_VERSION = "0.3.1";
+const HERMES_VERSION = "0.3.2";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -47,7 +47,7 @@ let state = {
       {id:"f2",mine:true,text:"7 works for me.",time:"2:22 PM",state:"read"}
     ]
   },
-  settings:{previews:false,autoLock:true,largeText:false,wifiAttachments:true,appearance:"auto"}
+  settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto"}
 };
 
 function esc(s=""){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -62,7 +62,9 @@ function shellTop(title,left=`<span class="topbar-spacer"></span>`,right=`<span 
 
 function applyAppearance(){
   const root=document.documentElement;
-  root.classList.toggle("large-text", !!state.settings.largeText);
+  root.classList.remove("text-a","text-aplus","text-aplusplus");
+  const textSize=state.settings.textSize || "normal";
+  root.classList.add(textSize==="large" ? "text-aplus" : textSize==="xlarge" ? "text-aplusplus" : "text-a");
   const prefersDark=window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const effective=state.settings.appearance==="auto" ? (prefersDark?"dark":"light") : state.settings.appearance;
   root.dataset.theme=effective;
@@ -70,6 +72,7 @@ function applyAppearance(){
   if(meta) meta.setAttribute("content", effective==="dark" ? "#182127" : "#ffffff");
 }
 function render(){
+  document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
   applyAppearance();
   if(!state.unlocked) return renderUnlock();
   const routes={
@@ -90,7 +93,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">Hermes UX Prototype 0.3.1.1.1 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">Hermes UX Prototype 0.3.2 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -277,7 +280,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in Hermes UX Prototype 0.3.1.1.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in Hermes UX Prototype 0.3.2.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -377,7 +380,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in Hermes UX Prototype 0.3.1.1.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in Hermes UX Prototype 0.3.2.");
 }
 
 function openAddMemberModal(){
@@ -426,7 +429,7 @@ function renderModal(){
       </div>`;
     document.body.appendChild(host);
     host.querySelectorAll('input[name="newMember"]').forEach(r=>r.onchange=()=>state.modal.selected=r.value);
-    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;render()};
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
     const confirm=host.querySelector("#modalConfirm");
     if(confirm) confirm.onclick=()=>{
       const p=contacts.find(x=>x.id===state.modal.selected);
@@ -464,15 +467,16 @@ function renderModal(){
       </div>`;
     document.body.appendChild(host);
     host.querySelectorAll('input[name="history"]').forEach(r=>r.onchange=()=>state.modal.historyChoice=r.value);
-    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;render()};
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
     host.querySelector("#modalConfirm").onclick=()=>{
       const granted=state.modal.historyChoice;
       member.historyAccess=granted==="all"?"all":granted;
       state.modal=null;
+      host.remove();
       render();
     };
   }
-  host.onclick=e=>{if(e.target===host){state.modal=null;render()}};
+  host.onclick=e=>{if(e.target===host){state.modal=null;host.remove();render()}};
 }
 
 function renderSettings(){
@@ -486,9 +490,17 @@ function renderSettings(){
         </div>
 
         <div class="card">
-          <h2>Reading</h2>
-          ${settingRow("Large Text","largeText")}
-          <p class="small-note">Large Text applies throughout Hermes, including conversations, message bubbles, controls, group screens, and Settings.</p>
+          <h2>Text Size</h2>
+          <div class="row-main">
+            <strong>Reading size</strong>
+            <span>Choose the text size used throughout Hermes.</span>
+          </div>
+          <div class="text-size-options" role="group" aria-label="Text size">
+            <button class="text-size-btn ${state.settings.textSize==="normal"?"active":""}" data-text-size="normal">A</button>
+            <button class="text-size-btn ${state.settings.textSize==="large"?"active":""}" data-text-size="large">A+</button>
+            <button class="text-size-btn ${state.settings.textSize==="xlarge"?"active":""}" data-text-size="xlarge">A++</button>
+          </div>
+          <p class="small-note">A is standard, A+ is large, and A++ is extra large. The setting applies throughout Hermes.</p>
         </div>
 
         <div class="card">
@@ -531,7 +543,11 @@ function renderSettings(){
   });
   document.querySelectorAll(".appearance-btn").forEach(btn=>btn.onclick=()=>{
     state.settings.appearance=btn.dataset.appearance;
-    renderSettings();
+    render();
+  });
+  document.querySelectorAll(".text-size-btn").forEach(btn=>btn.onclick=()=>{
+    state.settings.textSize=btn.dataset.textSize;
+    render();
   });
 }
 function settingRow(label,key){
