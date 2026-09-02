@@ -1,0 +1,52 @@
+HERMES 0.8.1 / FIDUNIO 0.8.1 — KEY VERIFICATION + KEY-CHANGE DETECTION
+
+PURPOSE
+0.8.1 builds on the fully passed 0.8.0 device-identity foundation without changing the stable 0.7.3 transport, local-first history, Outbox, reconnect behavior, or direct-message ciphertext format.
+
+WHAT IS NEW
+- FIDUNIO records the first observed contact encryption-key fingerprint locally inside encrypted app state.
+- Conversation Info (ⓘ) for a cloud direct chat now opens Conversation Security.
+- Conversation Security shows the contact's current public-key fingerprint and registered-device count.
+- "Verify Current Key" lets you mark the fingerprint verified on that installation after comparing it with your contact using a trusted separate channel.
+- If a previously verified key later changes, FIDUNIO displays a security warning and pauses NEW outgoing messages to that contact until the new fingerprint is reviewed and explicitly verified.
+- If an unverified key changes, FIDUNIO warns but does not claim it was previously trusted.
+- The peer key is refreshed during live receive/send, rather than being trusted indefinitely from an in-memory cache.
+
+IMPORTANT
+Verification in 0.8.1 is LOCAL TO EACH INSTALLATION. It is not yet QR linking, automatic device approval, or full multi-device recipient encryption.
+
+GITHUB
+1. Upload the ZIP files to the ROOT of the existing hermes repository.
+2. Do NOT overwrite/delete firebase-config.js or config-firestore.js; they are intentionally excluded.
+3. Commit and wait for GitHub Pages.
+4. Verify version.js says version: "0.8.1".
+
+FIRESTORE RULES
+- No Firestore rule change is required from 0.8.0.
+- firestore.rules is carried forward unchanged.
+
+TEST 1 — REGRESSION
+1. Confirm both devices show 0.8.1 and remain signed into their existing accounts.
+2. Existing conversation should remain present.
+3. Send iPad → iPhone and iPhone → iPad.
+PASS: instant, readable delivery both ways.
+4. Repeat one offline queued/reconnect send.
+PASS: queued survives and auto-sends after reconnect.
+
+TEST 2 — CONVERSATION SECURITY
+1. On iPad, open the existing direct conversation.
+2. Tap the ⓘ button.
+3. Confirm Conversation Security shows the iPhone account's current public-key fingerprint.
+4. It should also show the registered-device count for that contact.
+5. Do NOT press Verify until you have compared the fingerprint with the iPhone's own Device Identity fingerprint.
+6. On the iPhone, Settings → Device Identity, compare its Public-key fingerprint with what the iPad shows for the contact.
+PASS: fingerprints match.
+7. If they match, on iPad press Verify Current Key.
+8. Repeat the reverse direction on iPhone: open Conversation Security for the iPad contact and compare it with the iPad Settings fingerprint, then verify.
+PASS: each side says Verified on this device.
+
+KEY-CHANGE TEST
+Do NOT clear site data or force a key change just to test this. A real key change can be tested later in a controlled disposable-account scenario. 0.8.1 is designed to warn and pause new sends after a previously verified fingerprint changes.
+
+SECURITY STATUS
+Still not production-grade Signal-equivalent messaging. Missing: automatic verified device linking/QR approval, true per-device recipient envelopes, forward secrecy/Double Ratchet, group E2EE, and stronger contact authorization.

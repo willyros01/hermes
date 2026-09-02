@@ -67,7 +67,8 @@ let state = {
     ]
   },
 
-  settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto"}
+  settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto"},
+  peerTrust:{}
 };
 
 const DB_NAME = "fidunio-local";
@@ -156,6 +157,7 @@ function serializableState(){
     conversations:state.conversations,
     messages:state.messages,
     settings:state.settings,
+    peerTrust:state.peerTrust,
     quickPhrases:state.quickPhrases,
     selectedId:state.selectedId
   };
@@ -191,6 +193,7 @@ async function loadPersistedState(){
     if(saved.conversations) state.conversations=saved.conversations;
     if(saved.messages) state.messages=saved.messages;
     if(saved.settings) state.settings={...state.settings,...saved.settings};
+    if(saved.peerTrust && typeof saved.peerTrust==="object") state.peerTrust=saved.peerTrust;
     if(saved.quickPhrases) state.quickPhrases=saved.quickPhrases;
     if(saved.selectedId && state.conversations.some(c=>String(c.id)===String(saved.selectedId))) state.selectedId=saved.selectedId;
   }catch(err){ console.warn("Could not restore local Fidunio state",err); }
@@ -416,6 +419,63 @@ function shortDeviceId(id){
   const s=String(id||"");
   return s.length>12 ? `${s.slice(0,8)}…${s.slice(-4)}` : s;
 }
+function peerTrustRecord(peerUid){
+  if(!peerUid) return null;
+  return state.peerTrust?.[peerUid] || null;
+}
+function peerTrustStatus(peerUid){
+  const t=peerTrustRecord(peerUid);
+  if(!t?.observedFingerprint) return "unknown";
+  if(t.verifiedFingerprint && t.verifiedFingerprint===t.observedFingerprint) return "verified";
+  if(t.verifiedFingerprint && t.verifiedFingerprint!==t.observedFingerprint) return "changed";
+  return t.previousFingerprint && t.previousFingerprint!==t.observedFingerprint ? "changed-unverified" : "unverified";
+}
+async function observePeerPublicKey(peerUid,jwk){
+  if(!peerUid||!jwk) return null;
+  if(!state.peerTrust || typeof state.peerTrust!=="object") state.peerTrust={};
+  const fp=await publicKeyFingerprint(jwk);
+  const prior=state.peerTrust[peerUid];
+  if(!prior){
+    state.peerTrust[peerUid]={
+      observedFingerprint:fp,
+      firstSeenAt:Date.now(),
+      lastSeenAt:Date.now(),
+      verifiedFingerprint:null,
+      verifiedAt:null
+    };
+    await persistState();
+    return state.peerTrust[peerUid];
+  }
+  if(prior.observedFingerprint!==fp){
+    state.peerTrust[peerUid]={
+      ...prior,
+      previousFingerprint:prior.observedFingerprint||null,
+      observedFingerprint:fp,
+      changedAt:Date.now(),
+      lastSeenAt:Date.now()
+    };
+    await persistState();
+  }else{
+    prior.lastSeenAt=Date.now();
+  }
+  return state.peerTrust[peerUid];
+}
+async function verifyCurrentPeerKey(peerUid){
+  const t=peerTrustRecord(peerUid);
+  if(!t?.observedFingerprint) throw new Error("No current contact key is available to verify.");
+  state.peerTrust[peerUid]={
+    ...t,
+    verifiedFingerprint:t.observedFingerprint,
+    verifiedAt:Date.now(),
+    previousFingerprint:null,
+    changedAt:null
+  };
+  await persistState();
+}
+function currentConversationSecurityStatus(c=currentConversation()){
+  if(!c?.cloud || !c?.peerUid) return "not-applicable";
+  return peerTrustStatus(c.peerUid);
+}
 async function getOrCreateDeviceIdentity(){
   const kp=await getOrCreateDeviceKeyPair();
   const db=await openDb();
@@ -477,14 +537,17 @@ async function resolvePeerUidForConversation(conversationId){
   }
   return peerUid;
 }
-async function peerPublicKeyForConversation(conversationId){
+async function peerPublicKeyForConversation(conversationId,{refresh=false}={}){
   const peerUid=await resolvePeerUidForConversation(conversationId);
   if(!peerUid)return null;
-  if(peerKeyCache.has(peerUid))return peerKeyCache.get(peerUid);
+  if(!refresh && peerKeyCache.has(peerUid))return peerKeyCache.get(peerUid);
   try{
     const profile=await getCloudUserProfile(peerUid);
     const jwk=profile?.e2eePublicJwk||null;
-    if(jwk) peerKeyCache.set(peerUid,jwk);
+    if(jwk){
+      await observePeerPublicKey(peerUid,jwk);
+      peerKeyCache.set(peerUid,jwk);
+    }
     return jwk;
   }catch{return null;}
 }
@@ -530,7 +593,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
     firebaseUser.uid,
     async (rows,meta={})=>{
       const existing=state.messages[conversationId] || [];
-      const peerKey=await peerPublicKeyForConversation(conversationId);
+      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});
       const remote=[];
       for(const m of rows){
         let text=m.text||"";
@@ -538,7 +601,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
           else text="[Encrypted message — key unavailable]";
         }
-        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee});
+        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null});
       }
 
       let merged;
@@ -901,7 +964,14 @@ function renderChat(){
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE + device identity foundation — test messages only until verified per-device fan-out and forward secrecy are complete.</div>`:""}
+      ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE + key verification foundation — test messages only until verified per-device fan-out and forward secrecy are complete.</div>`:""}
+      ${c.cloud && currentConversationSecurityStatus(c)==="changed"
+        ? '<div class="status-banner">Security warning — this contact\'s previously verified encryption key changed. Verify the new fingerprint before sending.</div>'
+        : c.cloud && currentConversationSecurityStatus(c)==="changed-unverified"
+          ? '<div class="info-banner">Encryption key changed since first seen. Open Conversation Security to review the current fingerprint.</div>'
+          : c.cloud && currentConversationSecurityStatus(c)==="verified"
+            ? '<div class="info-banner">Encryption key verified on this device.</div>'
+            : ""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -920,7 +990,15 @@ function renderChat(){
       </section>
     </main>`;
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
-  document.querySelector("#infoBtn").onclick=()=>{ if(isGroup(c)){state.route="groupInfo";render()} else alert("Conversation details remain a UX placeholder."); };
+  document.querySelector("#infoBtn").onclick=async()=>{
+    if(isGroup(c)){state.route="groupInfo";return render();}
+    if(c?.cloud){
+      await peerPublicKeyForConversation(c.id,{refresh:true});
+      state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId:c.id};
+      return render();
+    }
+    alert("Conversation details remain a UX placeholder.");
+  };
   document.querySelector("#moreBtn").onclick=()=>{state.toolsOpen=!state.toolsOpen;render()};
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
@@ -955,6 +1033,16 @@ async function sendCurrent(){
   const conversationId=state.selectedId;
   const c=currentConversation();
   const cloud=!!c?.cloud;
+
+  if(cloud && c?.peerUid){
+    await peerPublicKeyForConversation(conversationId,{refresh:true});
+    if(peerTrustStatus(c.peerUid)==="changed"){
+      state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId};
+      render();
+      return;
+    }
+  }
+
   const m={
     id:crypto.randomUUID(),
     mine:true,
@@ -1034,8 +1122,12 @@ async function flushQueued(){
         await persistState();
         if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render();
 
-        const peerKey=await peerPublicKeyForConversation(payload.conversationId);
+        const peerKey=await peerPublicKeyForConversation(payload.conversationId,{refresh:true});
         if(!peerKey) throw new Error("Recipient encryption key is not available yet");
+        const peerUid=await resolvePeerUidForConversation(payload.conversationId);
+        if(peerUid && peerTrustStatus(peerUid)==="changed"){
+          throw new Error("Recipient encryption key changed. Verify the new key in Conversation Security before sending.");
+        }
         const encrypted=await encryptCloudText(payload.text,peerKey,payload.conversationId);
         const identity=await getOrCreateDeviceIdentity();
         await sendCloudMessage(payload.conversationId,{
@@ -1220,6 +1312,72 @@ function renderModal(){
       }
       state.modal=null;render();
     };
+  } else if(modal.type==="conversationSecurity"){
+    const c=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
+    const peerUid=modal.peerUid || c?.peerUid || null;
+    const trust=peerTrustRecord(peerUid);
+    const status=peerTrustStatus(peerUid);
+    const fp=trust?.observedFingerprint||"";
+    let peerDevices=[];
+    let devicesError="";
+    host.innerHTML=`
+      <div class="modal">
+        <h2>Conversation Security</h2>
+        <p><strong>${esc(c?.name||"FIDUNIO contact")}</strong></p>
+        <p class="small-note">Compare this fingerprint with your contact using a separate trusted channel, such as an in-person comparison or a call you already trust.</p>
+        <label class="form-label">Current public-key fingerprint</label>
+        <div class="uid-box">${esc(fp?formatFingerprint(fp):"Key unavailable")}</div>
+        <div class="permission-box">
+          <div class="row-main">
+            <strong>Status</strong>
+            <span>${status==="verified"?"Verified on this device":
+              status==="changed"?"VERIFIED KEY CHANGED — sending is paused":
+              status==="changed-unverified"?"Key changed since first seen":
+              status==="unverified"?"Not yet verified":"Key unavailable"}</span>
+          </div>
+          ${trust?.verifiedFingerprint && trust.verifiedFingerprint!==trust.observedFingerprint ? `
+            <div class="row-main">
+              <strong>Previously verified</strong>
+              <span class="fingerprint-small">${esc(formatFingerprint(trust.verifiedFingerprint))}</span>
+            </div>`:""}
+        </div>
+        <div id="peerDeviceSummary"><p class="small-note">Checking registered devices…</p></div>
+        <p class="warning-note">Verification is local to this installation in 0.8.1. It does not yet provide automatic QR/device linking or per-device recipient encryption.</p>
+        <div class="modal-actions">
+          <button class="modal-cancel" id="modalCancel">Close</button>
+          ${fp && status!=="verified" ? '<button class="modal-confirm" id="verifyPeerBtn">Verify Current Key</button>' : ""}
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
+    const verifyBtn=host.querySelector("#verifyPeerBtn");
+    if(verifyBtn) verifyBtn.onclick=async()=>{
+      await verifyCurrentPeerKey(peerUid);
+      state.modal=null;
+      host.remove();
+      peerKeyCache.delete(peerUid);
+      render();
+      if(state.online) flushQueued();
+    };
+    if(peerUid){
+      getCloudUserDevices(peerUid).then(async rows=>{
+        peerDevices=rows||[];
+        const summary=host.querySelector("#peerDeviceSummary");
+        if(!summary) return;
+        const matches=[];
+        for(const d of peerDevices){
+          try{
+            const dfp=d.fingerprint || await publicKeyFingerprint(d.publicJwk);
+            if(dfp===fp) matches.push(d);
+          }catch{}
+        }
+        summary.innerHTML=`<p class="small-note">Registered devices for this contact: ${peerDevices.length}${matches.length?` • Current compatibility key matches ${matches.length} registered device${matches.length===1?"":"s"}.`:""}</p>`;
+      }).catch(err=>{
+        devicesError=err?.message||String(err);
+        const summary=host.querySelector("#peerDeviceSummary");
+        if(summary) summary.innerHTML=`<p class="small-note">Could not read contact device registry: ${esc(devicesError)}</p>`;
+      });
+    }
   } else if(modal.type==="history"){
     const c=currentConversation();
     const member=c.members.find(m=>m.id===modal.memberId);
@@ -1322,7 +1480,7 @@ function renderSettings(){
             </div>
           `}
           ${firebaseError?`<p class="warning-note">${esc(firebaseError)}</p>`:""}
-          <p class="warning-note">FIDUNIO ${esc(FIDUNIO_VERSION)} adds device identity registration to the direct-message E2EE foundation. This is still a test build; do not use sensitive content yet.</p>
+          <p class="warning-note">FIDUNIO ${esc(FIDUNIO_VERSION)} adds contact key verification and key-change detection to the E2EE/device-identity foundation. This is still a test build; do not use sensitive content yet.</p>
         </div>
 
         ${firebaseUser ? `

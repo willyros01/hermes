@@ -151,3 +151,20 @@ firebase-config.js and config-firestore.js remain protected/excluded.
 - 0.8.0 therefore DOES require publishing the included Firestore rules before device-registry testing.
 - Protected firebase-config.js and config-firestore.js remain excluded.
 - Required regression: instant two-way existing conversation, offline queued survival, reconnect automatic send/live receipt.
+
+
+0.8.1 — CONTACT KEY VERIFICATION / KEY-CHANGE DETECTION
+- Built from 0.8.0 after 0.8.0 passed device registration on iPad/iPhone, instant two-way encrypted messaging, offline queued persistence, and reconnect delivery.
+- 0.8.1 preserves 0.7.3 transport/local-first/Outbox/reconnect architecture and 0.8.0 device registry.
+- Adds encrypted local peerTrust records keyed by peer UID.
+- First observed peer account public-key fingerprint is recorded.
+- Conversation Info for cloud direct chats becomes Conversation Security.
+- Shows current peer fingerprint and registered-device count.
+- User may explicitly Verify Current Key only after comparing fingerprints through a separate trusted channel.
+- Verified-key change causes a visible security warning and blocks NEW sends until the new current key is explicitly verified.
+- Unverified key changes are warned but not treated as previously trusted.
+- Peer public keys are refreshed during live snapshots and before sends to detect changes instead of relying forever on peerKeyCache.
+- 0.8.1 verification is local per installation; no QR linking or automatic cross-device verification yet.
+- Firestore rules unchanged from 0.8.0.
+- Protected firebase-config.js and config-firestore.js remain excluded.
+- Do not deliberately clear site data to test key-change detection on the main test accounts; use a disposable controlled scenario later if needed.

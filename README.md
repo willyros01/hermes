@@ -376,3 +376,18 @@ First direct-message E2EE foundation. New 0.7.0 direct messages use a per-instal
 - Protected Firebase configuration files remain excluded.
 
 0.8.0 is a foundation only: it does not yet encrypt one message separately to every recipient device. Per-device recipient envelopes, verified device linking/key-change approval, forward secrecy, and group E2EE remain future milestones.
+
+
+## Hermes 0.8.1 / FIDUNIO 0.8.1
+
+0.8.1 adds local contact-key verification and key-change detection on top of the stable 0.8.0 device registry.
+
+- Each contact's observed account compatibility-key fingerprint is stored in the already encrypted local app state.
+- Cloud direct-chat Info now opens Conversation Security.
+- Users can compare a contact fingerprint over a separate trusted channel and explicitly mark the current key verified.
+- A change to a previously verified key becomes a blocking security event for NEW outgoing messages until the new fingerprint is reviewed and verified.
+- An unverified key change is surfaced as a warning but is not falsely described as a verified-key compromise.
+- Peer keys are refreshed on message send/live snapshot so the app can detect changes rather than trusting an indefinite memory cache.
+- The contact device registry count is shown, and FIDUNIO reports when the current compatibility key matches a registered device.
+- No Firestore rules change from 0.8.0.
+- No change to the stable message ciphertext format, Outbox, offline history, or reconnect architecture.
