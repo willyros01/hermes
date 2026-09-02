@@ -95,6 +95,21 @@ export async function getCloudUserProfile(uid){
   const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",uid));
   return snap.exists()?{uid,...snap.data()}:null;
 }
+export async function getCloudConversation(conversationId,myUid){
+  const s=await ensureServices();
+  if(!authUser || authUser.uid!==myUid) throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"conversations",conversationId));
+  if(!snap.exists()) return null;
+  const x=snap.data();
+  const members=Array.isArray(x.members)?x.members:[];
+  if(!members.includes(myUid)) throw new Error("Conversation is not available to this account.");
+  const other=members.find(m=>m!==myUid) || null;
+  return {
+    id:snap.id,cloud:true,type:x.type||"direct",peerUid:other,
+    name:x.memberNames?.[other]||"FIDUNIO contact",
+    preview:"Cloud conversation",time:""
+  };
+}
 export async function publishCloudE2EEPublicKey(uid,publicJwk){
   const s=await ensureServices();
   if(!authUser||authUser.uid!==uid)throw new Error("Cannot publish another user's encryption key.");

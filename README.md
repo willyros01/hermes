@@ -343,3 +343,7 @@ First direct-message E2EE foundation. New 0.7.0 direct messages use a per-instal
 - The proven 0.6.5 local-first/offline architecture is retained.
 - `firebase-config.js` and `config-firestore.js` remain protected and excluded.
 - One cumulative `hermes-memory.txt` replaces version-specific memory files.
+
+## Hermes 0.7.2 / FIDUNIO 0.7.2
+
+0.7.2 repairs the direct-E2EE conversation identity problem found during the first 0.7.1 test. Firestore conversation discovery already returned `peerUid`, but the local merge dropped it. Since E2EE needs the recipient UID to retrieve the recipient public key, an older/restored conversation could fail before encryption/send. 0.7.2 preserves `peerUid`, repairs missing peer identity from the authoritative Firestore conversation document, preserves it in Outbox recovery data, and retries queued/failed cloud work after conversation reconciliation. It does not change the 0.7.x cryptographic design or Firestore rule design, and it preserves the proven 0.6.5 local-first/offline architecture.

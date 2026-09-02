@@ -11,6 +11,7 @@ import {
   sendCloudMessage,
   updateCloudMessageState,
   getCloudUserProfile,
+  getCloudConversation,
   publishCloudE2EEPublicKey
 } from "./firebase.js";
 
@@ -202,6 +203,7 @@ async function queueOutboxMessage(conversationId,message){
       name:c.name,
       type:c.type,
       cloud:!!c.cloud,
+      peerUid:c.peerUid || c.uid || c.otherUid || null,
       preview:message.text,
       time:message.time,
       unread:0
@@ -338,7 +340,11 @@ function mergeCloudConversation(remote){
   const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
   const item={
     id:remote.id,type:"direct",cloud:true,
-    name:remote.name || "FIDUNIO contact",
+    // peerUid is part of the conversation's durable identity for E2EE.
+    // Never drop it while merging Firestore conversation discovery into
+    // an older locally cached conversation.
+    peerUid:remote.peerUid || existing?.peerUid || existing?.uid || existing?.otherUid || null,
+    name:remote.name || existing?.name || "FIDUNIO contact",
     unread:existing?.unread || 0,
     preview:remote.preview || existing?.preview || "Cloud conversation",
     time:remote.time || existing?.time || ""
@@ -346,6 +352,7 @@ function mergeCloudConversation(remote){
   if(existing) Object.assign(existing,item);
   else state.conversations.unshift(item);
   if(!state.messages[item.id]) state.messages[item.id]=[];
+  return existing || item;
 }
 function stopCloudMessageSubscription(){
   if(cloudMessageUnsub){ cloudMessageUnsub(); cloudMessageUnsub=null; }
@@ -355,8 +362,11 @@ function beginCloudConversationSubscription(){
   if(!firebaseUser) return;
   cloudConversationUnsub=subscribeMyConversations(firebaseUser.uid, rows=>{
     rows.forEach(mergeCloudConversation);
+    // A restored Firestore conversation may repair peerUid for an older
+    // local record. Reattach the active chat listener after reconciliation.
+    ensureActiveCloudMessageSubscription();
     persistSoon();
-    if(state.route==="messages") render();
+    if(state.route==="messages" || state.route==="chat") render();
   }, err=>{
     firebaseError=err?.message || String(err);
     if(state.route==="settings") renderSettings();
@@ -403,12 +413,36 @@ async function decryptCloudText(row,peerPublicJwk,conversationId){
   const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(row.iv),additionalData:new TextEncoder().encode(String(conversationId))},key,unb64(row.ciphertext));
   return new TextDecoder().decode(plain);
 }
-async function peerPublicKeyForConversation(conversationId){
+async function resolvePeerUidForConversation(conversationId){
   const c=state.conversations.find(x=>String(x.id)===String(conversationId));
-  const peerUid=c?.peerUid||c?.uid||c?.otherUid;
+  let peerUid=c?.peerUid || c?.uid || c?.otherUid || null;
+  if(peerUid || !firebaseUser) return peerUid;
+
+  // Repair older local conversation records that predate peerUid. The
+  // Firestore conversation document is authoritative for membership, so we
+  // can recover the other member without asking the user to copy an ID again.
+  try{
+    const remote=await getCloudConversation(conversationId,firebaseUser.uid);
+    if(remote){
+      const repaired=mergeCloudConversation(remote);
+      peerUid=repaired?.peerUid || remote.peerUid || null;
+      if(peerUid) await persistState();
+    }
+  }catch(err){
+    console.warn("Could not repair cloud conversation peer identity",conversationId,err);
+  }
+  return peerUid;
+}
+async function peerPublicKeyForConversation(conversationId){
+  const peerUid=await resolvePeerUidForConversation(conversationId);
   if(!peerUid)return null;
   if(peerKeyCache.has(peerUid))return peerKeyCache.get(peerUid);
-  try{const profile=await getCloudUserProfile(peerUid);const jwk=profile?.e2eePublicJwk||null;if(jwk)peerKeyCache.set(peerUid,jwk);return jwk;}catch{return null;}
+  try{
+    const profile=await getCloudUserProfile(peerUid);
+    const jwk=profile?.e2eePublicJwk||null;
+    if(jwk) peerKeyCache.set(peerUid,jwk);
+    return jwk;
+  }catch{return null;}
 }
 async function publishMyE2EEKey(){ if(!firebaseUser)return; const kp=await getOrCreateDeviceKeyPair(); await publishCloudE2EEPublicKey(firebaseUser.uid,kp.publicJwk); }
 

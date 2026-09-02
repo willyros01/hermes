@@ -111,3 +111,13 @@ Old messages remain legacy plaintext.
 
 Included firestore.rules MUST be published.
 firebase-config.js and config-firestore.js remain protected/excluded.
+
+0.7.2 REPAIR
+- First 0.7.1 E2EE test: iPad outgoing `Encrypted 0.7.1 from iPad` immediately showed Failed; iPhone no longer displayed the existing iPad cloud conversation.
+- Root defect in local merge: `firebase.js` conversation discovery supplied `peerUid`, but `app.js` `mergeCloudConversation()` did not retain it. E2EE send needs peerUid to fetch the peer public JWK.
+- 0.7.2 preserves peerUid in cloud-conversation merges and encrypted Outbox conversation recovery data.
+- Added authoritative repair path: if a local cloud conversation has no peerUid, read the Firestore conversation document, verify current account membership, derive the other member UID, merge/persist the repaired identity, then fetch the peer public key.
+- Conversation discovery now reattaches the active cloud message subscription and retries durable Outbox work after identity repair.
+- Do not ask user to recreate accounts, create a replacement conversation, or copy/paste FIDUNIO IDs again for this repair.
+- Firestore rules are unchanged in substance from 0.7.0/0.7.1; user should leave already-published E2EE rules in place.
+- version.js remains the single authoritative version file; current release 0.7.2.
