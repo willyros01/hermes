@@ -424,3 +424,84 @@ textarea{
 }
 html.text-aplusplus .modal{max-height:88vh}
 html.text-aplusplus .modal-actions button{min-height:52px;font-size:20px}
+
+
+/* Hermes 0.3.3 — targeted dark-mode contrast correction.
+   Preserve the existing palette; only lighten text that was too dark on dark backgrounds. */
+html.dark,
+html[data-theme="dark"]{
+  --muted:#b9c4cc;
+  --muted-2:#9eabb4;
+}
+
+/* Secondary/utility text in dark mode */
+html.dark .tool,
+html.dark .tool span,
+html.dark .row-main span,
+html.dark .small-note,
+html.dark .preview,
+html.dark .meta,
+html.dark .history-lock,
+html.dark .sender-label,
+html.dark .day-divider,
+html.dark .msg-meta,
+html.dark .secure,
+html.dark .version-footer,
+html.dark .status-banner,
+html.dark .info-banner,
+html.dark .person-chip,
+html.dark .form-label,
+html.dark .role-tag,
+html.dark .section-title,
+html.dark .appearance-btn,
+html.dark .text-size-btn,
+html[data-theme="dark"] .tool,
+html[data-theme="dark"] .tool span,
+html[data-theme="dark"] .row-main span,
+html[data-theme="dark"] .small-note,
+html[data-theme="dark"] .preview,
+html[data-theme="dark"] .meta,
+html[data-theme="dark"] .history-lock,
+html[data-theme="dark"] .sender-label,
+html[data-theme="dark"] .day-divider,
+html[data-theme="dark"] .msg-meta,
+html[data-theme="dark"] .secure,
+html[data-theme="dark"] .version-footer,
+html[data-theme="dark"] .status-banner,
+html[data-theme="dark"] .info-banner,
+html[data-theme="dark"] .person-chip,
+html[data-theme="dark"] .form-label,
+html[data-theme="dark"] .role-tag,
+html[data-theme="dark"] .section-title,
+html[data-theme="dark"] .appearance-btn,
+html[data-theme="dark"] .text-size-btn{
+  color:#c3cdd4 !important;
+}
+
+/* Keep primary/action text bright enough without changing the overall color scheme */
+html.dark .tool strong,
+html.dark .row-main strong,
+html.dark .name,
+html.dark .card h2,
+html.dark .chat-header-title strong,
+html[data-theme="dark"] .tool strong,
+html[data-theme="dark"] .row-main strong,
+html[data-theme="dark"] .name,
+html[data-theme="dark"] .card h2,
+html[data-theme="dark"] .chat-header-title strong{
+  color:#edf3f6 !important;
+}
+
+/* Informational banner text should remain readable but not stark white */
+html.dark .info-banner,
+html.dark .status-banner,
+html[data-theme="dark"] .info-banner,
+html[data-theme="dark"] .status-banner{
+  color:#b8d0dc !important;
+}
+
+/* Tool tiles themselves keep the existing background; only the text is lifted */
+html.dark .tool,
+html[data-theme="dark"] .tool{
+  opacity:1;
+}

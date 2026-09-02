@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "Hermes UX Prototype 0.3.2 with A/A+/A++ text sizing, fixed group history controls, adaptive appearance, and Hermes branding.",
+  "description": "Hermes UX Prototype 0.3.3 with improved dark-mode text contrast, A/A+/A++ text sizing, group history controls, adaptive appearance, and Hermes branding.",
   "icons": [
     {
       "src": "icon-192.png",
