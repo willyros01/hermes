@@ -197,3 +197,21 @@ This is the first functional local build.
 - Firebase/network transport is intentionally not included yet; this release proves the local persistence/offline engine first.
 
 Important: local AES-GCM storage in 0.5 is a functional prototype foundation, not the final end-to-end encryption/key-management design. Firebase transport, device identity, production key wrapping/recovery, and multi-device E2EE remain later milestones.
+
+
+## Hermes 0.6 / FIDUNIO 0.6
+
+0.6 adds the Firebase foundation and first real one-to-one, two-account Firestore transport while retaining the 0.5 encrypted IndexedDB Outbox.
+
+Added:
+- Firebase Web modular SDK bridge using Firebase's browser-module CDN.
+- Firebase Email/Password account creation/sign-in/sign-out.
+- Visible per-account FIDUNIO ID (Firebase UID) for the controlled two-device test.
+- Direct cloud conversation creation by recipient FIDUNIO ID.
+- Real Firestore message transport and live message listeners.
+- Provided Firestore Security Rules.
+- Persistent offline Outbox feeds queued cloud messages to Firestore after reconnect/foreground.
+- Detailed iPad-first setup guide: `hermes-ux-0.6-setup.txt`.
+
+Security warning:
+0.6 is a transport prototype and does NOT yet provide end-to-end encryption for Firestore message text. Use only harmless test messages. E2EE/device-key work is the next major security milestone.

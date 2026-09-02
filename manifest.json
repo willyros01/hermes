@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#ffffff",
-  "description": "FIDUNIO Functional Prototype 0.5 \u2014 installable PWA foundation with encrypted IndexedDB persistence, persistent offline Outbox, adaptive appearance, and responsive group controls.",
+  "description": "FIDUNIO Functional Prototype 0.6 \u2014 Firebase Authentication and first two-account Firestore messaging transport with persistent encrypted local Outbox.",
   "icons": [
     {
       "src": "icon-192.png",

@@ -1,5 +1,19 @@
+import {
+  isFirebaseConfigured,
+  initFirebase,
+  createFidunioAccount,
+  signInFidunio,
+  signOutFidunio,
+  getFirebaseUser,
+  startDirectConversation,
+  subscribeMyConversations,
+  subscribeConversationMessages,
+  sendCloudMessage,
+  updateCloudMessageState
+} from "./firebase.js";
+
 const app = document.querySelector("#app");
-const FIDUNIO_VERSION = "0.5";
+const FIDUNIO_VERSION = "0.6";
 
 const contacts = [
   {id:"u1", name:"Maria Santos"},
@@ -58,6 +72,12 @@ let dbPromise = null;
 let localKeyPromise = null;
 let hydrated = false;
 let persistTimer = null;
+let firebaseReady = false;
+let firebaseError = "";
+let firebaseUser = null;
+let cloudConversationUnsub = null;
+let cloudMessageUnsub = null;
+
 
 function openDb(){
   if(dbPromise) return dbPromise;
@@ -151,7 +171,7 @@ async function loadPersistedState(){
 }
 async function queueOutboxMessage(conversationId,message){
   const db=await openDb();
-  const encrypted=await encryptLocal({conversationId,messageId:message.id,text:message.text,time:message.time});
+  const encrypted=await encryptLocal({conversationId,messageId:message.id,text:message.text,time:message.time,cloud:!!message.cloud});
   db.transaction("outbox","readwrite").objectStore("outbox").put({
     id:message.id,conversationId,createdAt:Date.now(),payload:encrypted
   });
@@ -164,11 +184,96 @@ async function removeOutboxMessage(id){
   const db=await openDb();
   db.transaction("outbox","readwrite").objectStore("outbox").delete(id);
 }
+
+function cloudDisplayName(c){
+  if(!c?.cloud || !firebaseUser) return c?.name || "Conversation";
+  return c.name || "FIDUNIO contact";
+}
+function mergeCloudConversation(remote){
+  const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
+  const item={
+    id:remote.id,type:"direct",cloud:true,
+    name:remote.name || "FIDUNIO contact",
+    unread:existing?.unread || 0,
+    preview:remote.preview || existing?.preview || "Cloud conversation",
+    time:remote.time || existing?.time || ""
+  };
+  if(existing) Object.assign(existing,item);
+  else state.conversations.unshift(item);
+  if(!state.messages[item.id]) state.messages[item.id]=[];
+}
+function stopCloudMessageSubscription(){
+  if(cloudMessageUnsub){ cloudMessageUnsub(); cloudMessageUnsub=null; }
+}
+function beginCloudConversationSubscription(){
+  if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
+  if(!firebaseUser) return;
+  cloudConversationUnsub=subscribeMyConversations(firebaseUser.uid, rows=>{
+    rows.forEach(mergeCloudConversation);
+    persistSoon();
+    if(state.route==="messages") render();
+  }, err=>{
+    firebaseError=err?.message || String(err);
+    if(state.route==="settings") renderSettings();
+  });
+}
+function beginCloudMessageSubscription(conversationId){
+  stopCloudMessageSubscription();
+  const c=state.conversations.find(x=>String(x.id)===String(conversationId));
+  if(!c?.cloud || !firebaseUser) return;
+  cloudMessageUnsub=subscribeConversationMessages(conversationId, firebaseUser.uid, async rows=>{
+    state.messages[conversationId]=rows.map(m=>({
+      id:m.id,
+      mine:m.senderUid===firebaseUser.uid,
+      sender:m.senderName || "",
+      text:m.text || "",
+      time:m.timeLabel || "",
+      state:m.state || "sent",
+      cloud:true
+    }));
+    const last=state.messages[conversationId].at(-1);
+    if(last){
+      c.preview=last.text;c.time=last.time;
+    }
+    const unreadIncoming=state.messages[conversationId].filter(m=>!m.mine && m.state!=="read");
+    if(state.route==="chat" && String(state.selectedId)===String(conversationId)){
+      for(const m of unreadIncoming){
+        try{ await updateCloudMessageState(conversationId,m.id,"read"); }catch{}
+      }
+    }
+    persistSoon();
+    if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
+  }, err=>{
+    firebaseError=err?.message || String(err);
+    if(state.route==="settings") renderSettings();
+  });
+}
+async function initializeFirebaseLayer(){
+  if(!isFirebaseConfigured()) return;
+  try{
+    await initFirebase(user=>{
+      firebaseUser=user;
+      firebaseReady=true;
+      if(user) beginCloudConversationSubscription();
+      else{
+        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
+        stopCloudMessageSubscription();
+      }
+      if(state.route==="settings" || state.route==="messages") render();
+    });
+    firebaseReady=true;
+    firebaseUser=getFirebaseUser();
+  }catch(err){
+    firebaseError=err?.message || String(err);
+  }
+}
+
 async function initApp(){
   await loadPersistedState();
   hydrated=true;
   state.online=navigator.onLine;
   render();
+  initializeFirebaseLayer();
   if(state.online) flushQueued();
 }
 
@@ -216,7 +321,7 @@ function renderUnlock(){
         <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
         <button class="primary" id="unlockBtn">Unlock with device</button>
         <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO Functional Prototype 0.5 — no real biometric or PIN validation yet.</div>
+        <div class="small-note">FIDUNIO Functional Prototype 0.6 — no real biometric or PIN validation yet.</div>
       </section>
     </main>`;
   document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
@@ -249,8 +354,13 @@ function renderMessages(){
           <div class="meta">${esc(c.time)}${c.unread?`<div class="badge">${c.unread}</div>`:""}</div>
         </button>`).join("");
     list.querySelectorAll(".conversation").forEach(btn=>btn.onclick=()=>{
-      state.selectedId=Number(btn.dataset.id); state.route="chat";
-      state.conversations.find(x=>x.id===state.selectedId).unread=0; render();
+      const raw=btn.dataset.id;
+      state.selectedId=/^\d+$/.test(raw)?Number(raw):raw;
+      state.route="chat";
+      const chosen=state.conversations.find(x=>String(x.id)===String(state.selectedId));
+      if(chosen) chosen.unread=0;
+      if(chosen?.cloud) beginCloudMessageSubscription(chosen.id); else stopCloudMessageSubscription();
+      render();
     });
   };
   draw();
@@ -258,6 +368,7 @@ function renderMessages(){
 }
 
 function renderNewConversation(){
+  const cloudEnabled=isFirebaseConfigured() && firebaseUser;
   app.innerHTML=`
     <main class="app-shell">
       ${shellTop("New Message",'<button class="back-btn" id="backBtn">‹</button>')}
@@ -268,24 +379,56 @@ function renderNewConversation(){
             <span><strong>New Group</strong><span>Create a secure group conversation</span></span>
           </button>
         </div>
-        <div class="section-title">Start a conversation</div>
+
+        <div class="card">
+          <h2>FIDUNIO ID — 0.6 test</h2>
+          ${cloudEnabled ? `
+            <p class="small-note">Enter the other test account's Firebase UID. This creates a real Firestore one-to-one conversation.</p>
+            <label class="form-label" for="peerUid">Recipient FIDUNIO ID</label>
+            <input class="text-input" id="peerUid" autocomplete="off" placeholder="Paste recipient UID" />
+            <button class="primary" id="cloudDirectBtn">Start Cloud Conversation</button>
+            <p class="warning-note">0.6 cloud messages are a transport test and are not end-to-end encrypted yet. Use test messages only.</p>
+          ` : `
+            <p class="small-note">To start real two-device messaging, configure Firebase and sign in under Settings → Firebase Account.</p>
+          `}
+        </div>
+
+        <div class="section-title">Sample local contacts</div>
         <div class="choice-list">
           ${contacts.map(p=>`
             <button class="member-option direct-contact" data-id="${p.id}">
               <div class="avatar">${initials(p.name)}</div>
-              <div><strong>${esc(p.name)}</strong><div class="preview">Secure contact</div></div>
+              <div><strong>${esc(p.name)}</strong><div class="preview">Local prototype contact</div></div>
               <span>›</span>
             </button>`).join("")}
         </div>
       </section>
     </main>`;
-  document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
+  document.querySelector("#backBtn").onclick=()=>{stopCloudMessageSubscription();state.route="messages";render()};
   document.querySelector("#newGroupBtn").onclick=()=>{
     state.newGroupMembers=[];state.newGroupName="";state.route="newGroup";render();
   };
-  document.querySelectorAll(".direct-contact").forEach(btn=>btn.onclick=()=>alert("Direct-conversation creation remains a UX placeholder in 0.2."));
+  const cloudBtn=document.querySelector("#cloudDirectBtn");
+  if(cloudBtn) cloudBtn.onclick=async()=>{
+    const peerUid=document.querySelector("#peerUid").value.trim();
+    if(!peerUid) return alert("Paste the recipient FIDUNIO ID first.");
+    if(peerUid===firebaseUser.uid) return alert("Use the FIDUNIO ID from the other test account.");
+    cloudBtn.disabled=true;cloudBtn.textContent="Connecting…";
+    try{
+      const remote=await startDirectConversation(peerUid);
+      mergeCloudConversation(remote);
+      state.selectedId=remote.id;
+      state.route="chat";
+      beginCloudMessageSubscription(remote.id);
+      persistSoon();
+      render();
+    }catch(err){
+      alert("Could not create the cloud conversation: "+(err?.message||err));
+      cloudBtn.disabled=false;cloudBtn.textContent="Start Cloud Conversation";
+    }
+  };
+  document.querySelectorAll(".direct-contact").forEach(btn=>btn.onclick=()=>alert("These sample contacts remain local prototype data. Use FIDUNIO ID above for the real 0.6 two-device test."));
 }
-
 function renderNewGroup(){
   app.innerHTML=`
     <main class="app-shell">
@@ -373,6 +516,7 @@ function renderChat(){
         <button class="icon-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
+      ${c.cloud?'<div class="warning-banner">0.6 Firebase transport test — not end-to-end encrypted yet. Use test messages only.</div>':""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -396,7 +540,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.5.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO Functional Prototype 0.6.`));
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -421,12 +565,27 @@ function renderBubble(m,c){
 async function sendCurrent(){
   const box=document.querySelector("#messageBox");const text=box.value.trim();if(!text)return;
   const conversationId=state.selectedId;
-  const m={id:crypto.randomUUID(),mine:true,text,time:nowTime(),state:state.online?"sending":"queued"};
+  const c=currentConversation();
+  const cloud=!!c?.cloud;
+  const m={
+    id:crypto.randomUUID(),mine:true,text,time:nowTime(),
+    state:(state.online && (!cloud || firebaseUser))?"sending":"queued",
+    cloud
+  };
+  if(!state.messages[conversationId]) state.messages[conversationId]=[];
   state.messages[conversationId].push(m);
-  const c=currentConversation();c.preview=text;c.time=m.time;
-  if(!state.online) await queueOutboxMessage(conversationId,m);
+  c.preview=text;c.time=m.time;
+  await queueOutboxMessage(conversationId,{...m,cloud});
   render();
-  if(state.online) simulateDelivery(conversationId,m.id);
+
+  if(state.online){
+    if(cloud){
+      await flushQueued();
+    }else{
+      await removeOutboxMessage(m.id);
+      simulateDelivery(conversationId,m.id);
+    }
+  }
 }
 
 function simulateDelivery(conversationId,id){
@@ -438,7 +597,7 @@ function updateMessageState(conversationId,id,newState){
   const arr=state.messages[conversationId]||[];const m=arr.find(x=>x.id===id);if(!m)return;
   m.state=newState;
   persistSoon();
-  if(state.route==="chat"&&state.selectedId===conversationId)render();
+  if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
 }
 async function flushQueued(){
   if(!state.online) return;
@@ -448,12 +607,30 @@ async function flushQueued(){
     const arr=state.messages[record.conversationId]||[];
     const m=arr.find(x=>x.id===record.id);
     if(!m){ await removeOutboxMessage(record.id); continue; }
-    if(m.state==="queued") m.state="sending";
-    setTimeout(()=>updateMessageState(record.conversationId,m.id,"sent"),500+i*150);
-    setTimeout(()=>updateMessageState(record.conversationId,m.id,"delivered"),1200+i*150);
-    setTimeout(async()=>{updateMessageState(record.conversationId,m.id,"read");await removeOutboxMessage(m.id);},2200+i*150);
+    const c=state.conversations.find(x=>String(x.id)===String(record.conversationId));
+    if(c?.cloud){
+      if(!firebaseUser){ m.state="queued"; continue; }
+      try{
+        m.state="sending"; render();
+        await sendCloudMessage(record.conversationId,{
+          id:m.id,text:m.text,timeLabel:m.time,state:"sent"
+        });
+        m.state="sent";
+        await removeOutboxMessage(m.id);
+        persistSoon();
+      }catch(err){
+        m.state="failed";
+        firebaseError=err?.message || String(err);
+        persistSoon();
+      }
+    }else{
+      m.state="sending";
+      await removeOutboxMessage(m.id);
+      setTimeout(()=>updateMessageState(record.conversationId,m.id,"sent"),500+i*150);
+      setTimeout(()=>updateMessageState(record.conversationId,m.id,"delivered"),1200+i*150);
+      setTimeout(()=>updateMessageState(record.conversationId,m.id,"read"),2200+i*150);
+    }
   }
-  persistSoon();
   render();
 }
 window.addEventListener("online",()=>{state.online=true;flushQueued()});
@@ -507,7 +684,7 @@ function renderGroupInfo(){
   document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.5.");
+  document.querySelector("#leaveBtn").onclick=()=>alert("Leave Group is a UX placeholder in FIDUNIO Functional Prototype 0.6.");
 }
 
 function openAddMemberModal(){
@@ -646,8 +823,36 @@ function renderSettings(){
         <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}</div>
 
         <div class="card">
+          <h2>Firebase Account</h2>
+          ${!isFirebaseConfigured() ? `
+            <p class="small-note"><strong>Not configured.</strong> Complete the Firebase setup instructions in <code>hermes-ux-0.6-setup.txt</code>, then replace the placeholders in <code>firebase-config.js</code>.</p>
+          ` : firebaseUser ? `
+            <p class="small-note"><strong>Signed in:</strong> ${esc(firebaseUser.email||"Firebase user")}</p>
+            <label class="form-label">Your FIDUNIO ID</label>
+            <div class="uid-box">${esc(firebaseUser.uid)}</div>
+            <p class="small-note">Copy this ID to the other test device/account. The other account enters it under New Message → FIDUNIO ID.</p>
+            <button class="secondary" id="copyUidBtn">Copy FIDUNIO ID</button>
+            <button class="danger-btn" id="firebaseSignOutBtn">Sign Out</button>
+          ` : `
+            <p class="small-note">Use two different email accounts for the two-device test.</p>
+            <label class="form-label" for="fbName">Display name</label>
+            <input class="text-input" id="fbName" maxlength="50" placeholder="Your display name" />
+            <label class="form-label" for="fbEmail">Email</label>
+            <input class="text-input" id="fbEmail" type="email" autocomplete="username" placeholder="name@example.com" />
+            <label class="form-label" for="fbPassword">Password</label>
+            <input class="text-input" id="fbPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters" />
+            <div class="auth-actions">
+              <button class="primary" id="firebaseSignInBtn">Sign In</button>
+              <button class="secondary" id="firebaseCreateBtn">Create Test Account</button>
+            </div>
+          `}
+          ${firebaseError?`<p class="warning-note">${esc(firebaseError)}</p>`:""}
+          <p class="warning-note">0.6 establishes real Firebase transport, but E2EE is not implemented yet. Do not use private or sensitive message content for this test.</p>
+        </div>
+
+        <div class="card">
           <h2>Prototype connectivity</h2>
-          <p class="small-note">Use browser/device airplane mode or network controls to test offline behavior. Outgoing messages show Queued while offline.</p>
+          <p class="small-note">Use airplane mode to test the persistent Outbox. Local demo chats simulate delivery; cloud chats send through Firestore after Firebase is configured and you are signed in.</p>
         </div>
 
         <div class="card">
@@ -676,6 +881,33 @@ function renderSettings(){
     state.settings.textSize=btn.dataset.textSize;
     render();
   });
+
+  const signInBtn=document.querySelector("#firebaseSignInBtn");
+  if(signInBtn) signInBtn.onclick=async()=>{
+    const email=document.querySelector("#fbEmail").value.trim();
+    const password=document.querySelector("#fbPassword").value;
+    firebaseError="";
+    signInBtn.disabled=true;signInBtn.textContent="Signing in…";
+    try{ await signInFidunio(email,password); }
+    catch(err){firebaseError=err?.message||String(err);renderSettings();}
+  };
+  const createBtn=document.querySelector("#firebaseCreateBtn");
+  if(createBtn) createBtn.onclick=async()=>{
+    const displayName=document.querySelector("#fbName").value.trim();
+    const email=document.querySelector("#fbEmail").value.trim();
+    const password=document.querySelector("#fbPassword").value;
+    if(!displayName) return alert("Enter a display name.");
+    firebaseError="";
+    createBtn.disabled=true;createBtn.textContent="Creating…";
+    try{ await createFidunioAccount(email,password,displayName); }
+    catch(err){firebaseError=err?.message||String(err);renderSettings();}
+  };
+  const signOutBtn=document.querySelector("#firebaseSignOutBtn");
+  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutFidunio();firebaseError="";renderSettings();};
+  const copyBtn=document.querySelector("#copyUidBtn");
+  if(copyBtn) copyBtn.onclick=async()=>{
+    try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
+  };
 }
 function settingRow(label,key){
   return `<div class="row"><span>${esc(label)}</span><button class="toggle ${state.settings[key]?"on":""}" data-key="${key}" aria-label="${esc(label)}"></button></div>`;

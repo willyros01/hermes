@@ -547,3 +547,22 @@ html.text-aplusplus .member-card{
 html.text-aplusplus .member-card > :last-child{
   grid-column:2;justify-self:start
 }
+
+
+/* 0.6 Firebase account / transport-test UI */
+.uid-box{
+  width:100%;box-sizing:border-box;padding:12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--surface-2);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;
+  overflow-wrap:anywhere;margin:8px 0 10px;
+}
+.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.warning-note,.warning-banner{
+  color:var(--text);background:var(--surface-2);border:1px solid var(--line);
+  border-radius:12px;padding:10px 12px;line-height:1.45;
+}
+.warning-banner{margin:8px 12px 0;font-size:.9em}
+.settings code{overflow-wrap:anywhere}
+@media(max-width:430px), (min-resolution:2dppx){
+  .auth-actions{grid-template-columns:1fr}
+}
