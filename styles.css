@@ -1056,3 +1056,148 @@ html.text-aplusplus .member-card > :last-child{
     display:none;
   }
 }
+
+
+/* 0.8.1.7 — final tablet polish */
+
+/* Keep the one-line attachment toolbar, but visually group it instead of
+   stretching each item loosely across the entire chat pane. */
+@media (min-width:700px){
+  .tablet-chat-pane .composer-wrap{
+    padding-left:18px;
+    padding-right:18px;
+  }
+
+  .tablet-chat-pane .tool-panel.open{
+    width:min(100%, 860px);
+    margin:8px auto 2px;
+    padding:10px 12px 8px;
+    grid-template-columns:repeat(8,minmax(72px,1fr));
+    gap:8px;
+    border:1px solid var(--line);
+    border-radius:16px;
+    background:color-mix(in srgb, var(--panel) 88%, transparent);
+    box-shadow:var(--shadow);
+  }
+
+  .tablet-chat-pane .tool{
+    min-height:72px;
+    border-radius:12px;
+    padding:6px 3px;
+  }
+
+  .tablet-chat-pane .tool-icon{
+    width:40px;
+    height:40px;
+    border-radius:11px;
+  }
+
+  .tablet-chat-pane .tool-icon svg{
+    width:28px;
+    height:28px;
+  }
+
+  .tablet-chat-pane .tool span:last-child{
+    font-size:11px;
+    font-weight:700;
+  }
+
+  .tablet-chat-pane .quick-row,
+  .tablet-chat-pane .compose-line{
+    width:min(100%, 900px);
+    margin-left:auto;
+    margin-right:auto;
+  }
+
+  /* Tablet forms / New Message / New Group / Group Name:
+     use the available tablet workspace instead of a phone-width column
+     pinned to the left. */
+  body[data-route="newConversation"] .app-shell,
+  body[data-route="newGroup"] .app-shell,
+  body[data-route="groupName"] .app-shell{
+    max-width:960px;
+    width:min(100%,960px);
+    min-height:100dvh;
+    margin:0 auto;
+  }
+
+  body[data-route="newConversation"] .content,
+  body[data-route="newGroup"] .content,
+  body[data-route="groupName"] .content{
+    max-width:860px;
+    margin:0 auto;
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  body[data-route="newConversation"] .topbar,
+  body[data-route="newGroup"] .topbar,
+  body[data-route="groupName"] .topbar{
+    max-width:960px;
+    margin:0 auto;
+  }
+}
+
+/* Keep phone presentation unchanged. */
+@media (max-width:699px){
+  body[data-route="newConversation"] .app-shell,
+  body[data-route="newGroup"] .app-shell,
+  body[data-route="groupName"] .app-shell{
+    max-width:var(--app-max);
+    width:100%;
+  }
+}
+
+
+/* 0.8.1.8 — complete tablet treatment for secondary and first screens */
+@media (min-width:700px){
+  /* Settings should no longer look like a narrow phone panel on iPad. */
+  body[data-route="settings"] .app-shell{
+    max-width:960px;
+    width:min(100%,960px);
+    min-height:100dvh;
+    margin:0 auto;
+  }
+
+  body[data-route="settings"] .content{
+    max-width:860px;
+    width:100%;
+    margin:0 auto;
+    box-sizing:border-box;
+  }
+
+  body[data-route="settings"] .topbar{
+    max-width:960px;
+    width:100%;
+    margin:0 auto;
+    box-sizing:border-box;
+  }
+
+  /* First/unlock screen gets the same tablet-aware proportions. */
+  body[data-route="unlock"] .app-shell.unlock{
+    max-width:960px;
+    width:min(100%,960px);
+    min-height:100dvh;
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px;
+    box-sizing:border-box;
+  }
+
+  body[data-route="unlock"] .unlock-card{
+    width:min(100%,680px);
+    max-width:680px;
+    margin:auto;
+    box-sizing:border-box;
+  }
+}
+
+@media (max-width:699px){
+  body[data-route="settings"] .app-shell,
+  body[data-route="unlock"] .app-shell.unlock{
+    max-width:var(--app-max);
+    width:100%;
+  }
+}

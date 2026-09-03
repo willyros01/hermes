@@ -1,35 +1,37 @@
-HERMES / FIDUNIO 0.8.1.6 — TABLET WIDTH + TOOLBAR FIX
+HERMES / FIDUNIO 0.8.1.8 — COMPLETE TABLET SCREEN ALIGNMENT
 
 PURPOSE
-UI-only correction to the 0.8.1.5 iPad layout.
-
-ROOT CAUSE FIXED
-The phone composer was still position:fixed and used the 520px phone-width centering calculation even while the app was in tablet mode. That caused the composer/tool row to float over the split view, compress the visible area, and make the 8 icons look odd.
+UI-only patch completing the responsive tablet treatment.
 
 CHANGES
-- Tablet composer is now contained inside the RIGHT chat pane.
-- Composer width follows the right pane instead of the old phone 520px width.
-- All 8 attachment icons remain on ONE line on tablet.
-- Icons are compact, colored, and evenly spaced.
-- Two-pane breakpoint lowered from 820px to 700px so iPad portrait/narrow Safari widths stay in tablet mode.
-- iPhone remains single-pane below 700px.
-- Sidebar bottom navigation no longer sits underneath the floating composer.
+- Settings screen now uses a centered tablet-width workspace.
+- First/unlock screen now uses tablet-aware width and centering.
+- New Message/New Group/Group Name tablet treatment from 0.8.1.7 remains.
+- Two-pane iPad chat remains.
+- One-line centered attachment toolbar remains.
+- iPhone/narrow screens remain unchanged.
 
 NO SECURITY/BACKEND CHANGES
-No Firebase, Firestore Rules, E2EE, contact verification, device identity, Outbox, local history, or reconnect changes.
+No Firebase, Firestore Rules, E2EE, contact-key verification, device identity, Outbox, local history, or reconnect changes.
 
 GITHUB
 1. Upload ZIP contents to the ROOT of the hermes repository.
 2. Preserve firebase-config.js and config-firestore.js.
 3. Overwrite hermes-memory.txt and hermes-setup.txt.
-4. Confirm version.js shows 0.8.1.6.
-5. No Firestore Rules publication required.
+4. Confirm version.js shows 0.8.1.8.
+5. No Firestore Rules publication is required.
 
 TEST
-1. iPad landscape: two panes fill the screen.
-2. iPad portrait: two panes should remain if viewport is at least 700 CSS px.
-3. Open + tools:
-   PASS = Photo, File, Voice, Location, Contact, Checklist, Schedule, Saved appear in ONE horizontal row inside the right pane.
-4. Confirm sidebar bottom navigation is fully visible.
-5. Switch conversations and send one short message.
-6. iPhone remains single-pane.
+1. Launch on iPad:
+   PASS = first/unlock screen is centered and tablet-sized, not a narrow phone column.
+2. Open Settings:
+   PASS = Settings uses the same centered tablet-width presentation.
+3. Open New Message / New Group:
+   PASS = tablet-width treatment remains.
+4. Return to Messages:
+   PASS = two-pane layout remains.
+5. Open + tools:
+   PASS = one centered horizontal row of 8.
+6. iPhone:
+   PASS = existing single-pane layout remains unchanged.
+7. Send one short message each direction.

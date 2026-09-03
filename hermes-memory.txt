@@ -1,6 +1,6 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current release baseline: FIDUNIO 0.8.1.6
+Current release baseline: FIDUNIO 0.8.1.8
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -447,9 +447,9 @@ CURRENT STATUS
 ==================================================
 
 Current release under test:
-FIDUNIO 0.8.1.6
+FIDUNIO 0.8.1.8
 
-0.8.1.6 is the current UI release.
+0.8.1.8 is the current UI release.
 
 Expected behavior:
 - iPhone/narrow viewport: single-pane layout.
@@ -458,7 +458,7 @@ Expected behavior:
 - Compact 4×2 colored attachment icons remain.
 - Settings/New controls render as SVG graphics, not literal ${icon2d(...)} text.
 - Tablet conversation switching should update the right pane.
-- No Firestore Rules update required for 0.8.1.6.
+- No Firestore Rules update required for 0.8.1.8.
 - Security baseline remains 0.8.1.
 - Device-identity baseline remains 0.8.0.
 - Transport/reconnect baseline remains 0.7.3.
@@ -545,11 +545,76 @@ Fix:
 No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local history, or reconnect changes.
 
 Current expected release:
-FIDUNIO 0.8.1.6
+FIDUNIO 0.8.1.8
 - iPad/tablet >=700 CSS px: full two-pane layout.
 - Right-pane composer contained within right pane.
 - Attachment tools: exactly one row of 8.
 - iPhone/narrow <700 CSS px: single-pane.
+- Security baseline remains 0.8.1.
+- Device identity baseline remains 0.8.0.
+- Transport/reconnect baseline remains 0.7.3.
+- Offline/local-first baseline remains 0.6.5.
+- Next major planned release remains 0.9.0 true per-device E2EE.
+
+
+==================================================
+0.8.1.7 — FINAL TABLET UI POLISH
+==================================================
+
+Observed after 0.8.1.6:
+- Functional behavior was correct.
+- The 8 attachment tools finally lined up in one row.
+- On large iPad screens, the row looked too loose/spread out.
+- New Message still appeared as a narrow phone-width column on a large tablet.
+
+Changes:
+- Keep one-row attachment toolbar.
+- Center and width-limit the toolbar so it reads as one grouped control strip.
+- Add subtle rounded container around the tool row.
+- Slightly enlarge tool icons for balance.
+- Center quick replies and message composer within a comfortable max width.
+- New Message, New Group, and Group Name use a wider centered tablet workspace.
+- iPhone/narrow presentation remains unchanged.
+- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
+
+Current expected release:
+FIDUNIO 0.8.1.8
+- iPad/tablet >=700 CSS px: full two-pane chat layout.
+- Right-pane composer contained within chat pane.
+- Attachment tools: one centered horizontal row of 8.
+- New Message/New Group/Group Name: centered tablet-width workspace.
+- iPhone/narrow <700 CSS px: single-pane.
+- Security baseline remains 0.8.1.
+- Device identity baseline remains 0.8.0.
+- Transport/reconnect baseline remains 0.7.3.
+- Offline/local-first baseline remains 0.6.5.
+- Next major planned release remains 0.9.0 true per-device E2EE.
+
+
+==================================================
+0.8.1.8 — SETTINGS + FIRST SCREEN TABLET ALIGNMENT
+==================================================
+
+Observed before test of 0.8.1.7:
+- Settings still behaved like the old narrow phone-width secondary screen on iPad.
+- User also noted the first/initial screen behaved the same way.
+
+Changes:
+- Settings now gets the same centered tablet-width workspace used by New Message/New Group/Group Name.
+- First/unlock screen now gets tablet-aware centering and width.
+- 0.8.1.7 two-pane chat and centered one-line attachment toolbar are preserved.
+- iPhone/narrow layouts remain unchanged.
+- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
+
+Current expected release:
+FIDUNIO 0.8.1.8
+- iPad/tablet >=700 CSS px:
+  - first/unlock screen centered and tablet-sized;
+  - Settings centered and tablet-sized;
+  - New Message/New Group/Group Name centered and tablet-sized;
+  - Messages/chat uses two panes;
+  - attachment tools one centered horizontal row of 8.
+- iPhone/narrow <700 CSS px: established single-pane/mobile presentation.
 - Security baseline remains 0.8.1.
 - Device identity baseline remains 0.8.0.
 - Transport/reconnect baseline remains 0.7.3.

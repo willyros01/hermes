@@ -462,3 +462,27 @@ UI-only correction to the tablet layout.
 - Lowers the adaptive two-pane threshold to 700 CSS px so iPad portrait/narrow Safari viewports do not unexpectedly fall back to the centered phone layout.
 - Keeps iPhone below 700px single-pane.
 - No backend, Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.
+
+
+## Hermes 0.8.1.7 / FIDUNIO 0.8.1.7
+
+Final tablet UI polish release.
+
+- Keeps the working two-pane iPad layout from 0.8.1.6.
+- Keeps all 8 attachment tools on one line.
+- Centers the attachment toolbar in the right pane and limits its maximum width so it no longer looks overly stretched on a large iPad.
+- Gives the toolbar a subtle grouped container and slightly larger icons for better visual balance.
+- Centers the quick-reply row and message composer within a comfortable maximum width.
+- New Message, New Group, and Group Name screens now use a wider centered tablet workspace instead of the narrow phone-width column.
+- iPhone remains unchanged.
+- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-history, or reconnect changes.
+
+
+## Hermes 0.8.1.8 / FIDUNIO 0.8.1.8
+
+Completes the tablet-width treatment for secondary screens.
+
+- Settings now uses the same centered tablet-width presentation as New Message/New Group/Group Name.
+- The first/unlock screen now also adapts to iPad/tablet width instead of looking like a narrow phone screen.
+- Existing 0.8.1.7 two-pane chat, centered one-line attachment toolbar, and phone behavior remain unchanged.
+- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.

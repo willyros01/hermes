@@ -831,6 +831,7 @@ function render(){
   persistSoon();
   document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
   applyAppearance();
+  document.body.dataset.route=state.unlocked ? (state.route||"") : "unlock";
   if(!state.unlocked) return renderUnlock();
   const routes={
     messages:renderMessages, chat:renderChat, settings:renderSettings,
