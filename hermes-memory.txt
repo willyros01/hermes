@@ -1,6 +1,6 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current validated pre-0.9.0 baseline: FIDUNIO 0.8.1.12
+Current pre-0.9.0 working baseline: FIDUNIO 0.8.1.9 UI + validated Group Info fix; iPad live Sent → Read defect remains unresolved through 0.8.1.12
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -197,9 +197,9 @@ Test-path lesson:
 ==================================================
 
 Original defect:
-- On iPad two-pane layout, an outgoing message could remain visually at Sent after the iPhone opened/read the conversation.
+- On iPad two-pane layout, an outgoing message can remain visually at Sent after the iPhone opens/reads the conversation.
 - Older single-pane/earlier transport behavior had previously passed automatic live receipt.
-- Strong suspicion: listener/render lifecycle changed when the persistent two-pane iPad UI was introduced.
+- Strong suspicion remains: listener/render lifecycle changed when the persistent two-pane iPad UI was introduced.
 
 0.8.1.10 — FAILED EXPERIMENT
 - Added a 2-second server refresh/poll of the active conversation in firebase.js.
@@ -211,62 +211,68 @@ Original defect:
 - firebase.js messaging subscription returned to the exact known-good pre-experiment blob.
 - Normal sending behavior restored, but Sent → Read still did not update live.
 
-0.8.1.12 — ORDERED MESSAGE-SNAPSHOT FIX — USER PASS
-Diagnosis:
+0.8.1.12 — ORDERED MESSAGE-SNAPSHOT EXPERIMENT — FALSE POSITIVE / NOT FIXED
+Diagnosis attempted:
 - Firestore message snapshots invoke an async app callback that refreshes peer keys and decrypts rows before committing state/render.
-- In the persistent iPad two-pane chat, multiple snapshots can arrive close together and async processing can overlap.
-- An older Sent snapshot could finish after a newer Read snapshot and overwrite/repaint the UI with stale receipt state.
+- It was hypothesized that multiple close snapshots in persistent two-pane mode could overlap and allow an older Sent snapshot to finish after a newer Read snapshot.
 
-Fix:
+Change:
 - Kept the existing Firestore onSnapshot design.
 - No polling, no timer-driven server refresh and no page refresh loop.
-- serialize/queue active-conversation snapshot processing so async snapshot callbacks complete strictly in arrival order.
-- Preserve the existing 0.7.3 active-listener lifecycle and iPad two-pane UI.
-- No E2EE format, device identity, Outbox, local-history or Firestore Rules change required.
-- Service worker was touched for the v12 shell so iOS installs the correct versioned assets.
+- Serialized/queued active-conversation snapshot processing so async snapshot callbacks complete in arrival order.
+- Service worker was touched so iOS installs the v12 shell/assets.
 
-USER TEST RESULT — PASS:
-- v0.8.1.12 displayed on iPad.
-- iPad could send normally.
-- Message read on iPhone updated automatically from Sent → Read on the iPad.
-- User explicitly reported: “it works!”
+Initial test:
+- User initially reported “it works!” and v0.8.1.12 was temporarily marked PASS.
 
-Treat FIDUNIO 0.8.1.12 as the current validated pre-0.9.0 rollback baseline.
-Preserve this ordered listener behavior during 0.9.0 E2EE work.
+CORRECTED RESULT — 2026-09-03:
+- After additional testing, user reported the SAME iPad Sent → Read problem still exists in the latest version.
+- The earlier PASS was a false positive / missed reproduction.
+- Therefore 0.8.1.12 MUST NOT be treated as a validated rollback baseline for the receipt defect.
+- Ordered snapshot processing alone does not solve the problem.
+- Preserve the no-polling rule; do not return to the v10 full-query timer approach.
+
+Current investigation direction:
+- Revisit the iPad two-pane lifecycle itself, especially how the persistent chat pane attaches/retains/replaces the active message listener as render(), conversation discovery, navigation, pageshow, visibility and wide-layout transitions occur.
+- Compare against the 0.7.3 behavior that previously passed live receipts.
+- Inspect whether the active listener is still attached to the correct conversation after two-pane renders, or whether a stale/replaced listener or UI-state path prevents the Read state from reaching/rendering on iPad.
+- Any next fix must be narrowly targeted and event-driven, and must not repeatedly push the full conversation through the render pipeline.
 
 ==================================================
-CURRENT VALIDATED STATUS
+CURRENT STATUS
 ==================================================
 
-Current runtime/test version:
+Current runtime/test version in main:
 FIDUNIO 0.8.1.12
 
-Validated on iPad/root main:
-- Existing encrypted conversation history decrypts normally.
+Validated:
+- Existing encrypted conversation history decrypts normally on the normal root app.
 - Wide iPad/tablet two-pane layout preserved.
 - Group Info tablet/landscape layout fixed.
-- Normal cloud sending works.
-- iPad outgoing Sent → Read live refresh works after iPhone reads the message.
+- Normal cloud sending works after the v10 polling rollback.
+
+NOT validated / still failing:
+- iPad outgoing Sent → Read live refresh after iPhone reads the message.
+- 0.8.1.12 ordered-snapshot change did not eliminate the defect.
 
 Stable baselines to preserve:
-- UI / pre-0.9.0 integrated baseline: 0.8.1.12.
+- UI baseline: 0.8.1.9 plus validated Group Info tablet fix.
 - Security/contact verification: 0.8.1.
 - Device identity: 0.8.0.
-- Transport/reconnect core: 0.7.3, plus the 0.8.1.12 ordered-snapshot correction.
+- Transport/reconnect core: 0.7.3.
 - Offline/local-first history: 0.6.5.
 
-Before true 0.9.0 E2EE changes:
-- Run a focused regression pass if needed: two-way send/receive, Sent→Read, offline queue survival/reconnect, orientation/two-pane, Group Info.
+Do not begin true 0.9.0 per-device E2EE until the iPad receipt defect is actually reproduced/fixed and a focused regression pass succeeds.
 
 ==================================================
 0.9.0 — TRUE PER-DEVICE E2EE ROADMAP
 ==================================================
 
-Planned sequence:
+Planned sequence after receipt defect is fixed:
 1. Read recipient registered device set.
 2. Encrypt message key separately for each authorized recipient device.
 3. Add per-device recipient envelopes/fan-out.
-4. Preserve 0.8.1.12 UI/listener behavior and the 0.7.3 transport/offline/reconnect foundation.
+4. Preserve the validated tablet UI and 0.7.3 transport/offline/reconnect foundation.
 5. Regression/security test before declaring 0.9.0 complete.
 6. Follow with verified device linking/device management.
 7. Stronger device-change approval.
