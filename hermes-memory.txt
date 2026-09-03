@@ -1,6 +1,7 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current pre-0.9.0 validated baseline: FIDUNIO 0.8.1.16
+Validated rollback baseline: FIDUNIO 0.8.1.16 on main
+Current development branch: release/0.9.0
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -29,54 +30,34 @@ FIREBASE
 - Do not ask user to recreate accounts/re-paste UID unless restoration truly fails.
 
 IPAD SENT → READ DEFECT HISTORY
-Original reproducible defect:
-- iPad sends to iPhone.
-- If iPhone conversation is already open, receipt can advance to Read on iPad.
-- If iPhone leaves conversation, iPad sends another message, then iPhone re-enters and sees it, iPad could remain Sent.
+0.8.1.10 FAILED: 2-second polling caused constant refresh and broke sending. Never reintroduce polling.
+0.8.1.11 restored messaging; receipt defect remained.
+0.8.1.12 FAILED: serialized async snapshots; initial pass was false positive.
+0.8.1.13 FAILED: removed ordinary two-pane force listener restarts; defect remained.
+0.8.1.14 PARTIAL: sender receipt metadata fast-path fixed active-chat case only.
+0.8.1.15 FAILED: local renderChat read marking did not fix re-entry.
+0.8.1.16 PASS: restored established listener behavior, retained v14 receipt fast-path, and validated iPhone leave/send/re-enter Sent → Read sequence. This is the protected rollback baseline.
 
-0.8.1.10 FAILED:
-- 2-second server polling caused constant refresh and broke sending. Rejected permanently; do not reintroduce polling.
+0.9.0 DEVELOPMENT STATUS
+- Work is isolated on release/0.9.0; main remains 0.8.1.16 until intentional test promotion.
+- Do not test 0.9.0 under a different GitHub Pages subdirectory/origin; preserve the established root browser storage/key context.
+- Firestore rules source accepts bounded e2ee:2 envelope messages while retaining e2ee:1 compatibility.
+- firebase.js transport can carry envelopes, recipientDeviceIds, senderDeviceId, and senderDevicePublicJwk.
+- 0.9.0 test service-worker harness injects per-device E2EE into app.js without disturbing the protected baseline source: it reads active registered devices for both recipient and sender accounts, creates a separate AES-256-GCM ciphertext envelope per device using P-256 ECDH + HKDF, and includes the sending device public key for recipient-side derivation.
+- e2ee:2 receive path selects only the envelope addressed to this installation and decrypts with its non-exportable local device private key.
+- Existing e2ee:1 history retains the old compatibility decrypt path.
+- Outbox remains authoritative; device envelopes are generated at actual transmission/retry time from the current registry rather than stored with stale device membership in the queued record.
+- Validated 0.8.1.16 sender receipt metadata fast-path is retained in the 0.9.0 harness.
+- Before root device testing, the updated Firestore rules must be deployed to Firebase; repository rules alone do not deploy themselves because this repo has no GitHub Actions workflow for Firebase rules deployment.
+- After rules deployment, promote the prepared 0.9.0 runtime files to the normal root Pages deployment and test iPad/iPhone. If validated, move harness behavior into clean app.js source and remove temporary transforms before final 0.9.0 release.
 
-0.8.1.11:
-- Polling rollback restored normal messaging; receipt defect remained.
-
-0.8.1.12 FAILED:
-- Serialized async Firestore snapshot processing. Initial PASS was false positive; repeated testing reproduced defect.
-
-0.8.1.13 FAILED:
-- Removed ordinary two-pane force:true listener restarts at runtime. Defect remained.
-
-0.8.1.14 DIAGNOSTIC PARTIAL PASS:
-- Added receipt metadata fast-path before peer-key refresh/decryption.
-- First message with iPhone conversation open changed to Read on iPad.
-- Message sent while iPhone was outside the chat still remained Sent after re-entry.
-
-0.8.1.15 FAILED:
-- Tried marking already-known incoming local rows Read from renderChat on entry.
-- Same re-entry failure remained.
-
-0.8.1.16 PASS — VALIDATED BASELINE:
-- Restored established source listener behavior and removed the failed v13 wide-layout runtime rewrite.
-- Kept the v14 outgoing receipt metadata fast-path.
-- On narrow/mobile conversation re-entry, the existing force:true message subscription reattachment obtains a fresh server-backed snapshot; the normal active-chat callback marks incoming unread rows Read.
-- User repeated the exact failing sequence and confirmed it now works: open iPhone conversation/read first message; leave conversation; send second message from iPad; re-enter iPhone conversation; untouched iPad advances Sent → Read.
-- No polling, Firestore Rules, E2EE, Outbox, or layout changes.
-- Treat FIDUNIO 0.8.1.16 as the pre-0.9.0 rollback/baseline release.
-
-CURRENT STATUS
-Validated baseline on main: FIDUNIO 0.8.1.16.
-Validated: encrypted history, cloud sending, offline/local-first foundation, device identity, contact key verification, iPad two-pane layout, Group Info tablet layout, live Sent → Read including iPhone leave/re-enter sequence.
-Next major work may proceed toward 0.9.0 true per-device E2EE while preserving 0.8.1.16 behavior.
-
-0.9.0 TRUE PER-DEVICE E2EE ROADMAP
-1. Read recipient registered device set.
-2. Encrypt message key separately for each authorized recipient device.
-3. Add per-device recipient envelopes/fan-out.
-4. Preserve validated tablet UI and 0.7.3 transport/offline/reconnect foundation plus 0.8.1.16 receipt behavior.
-5. Regression/security test.
-6. Verified device linking/management and stronger device-change approval.
-7. Later safety numbers/QR, forward secrecy/Double Ratchet or vetted equivalent, group E2EE/key rotation/history enforcement, App Check/rules audit, quota/billing, push, passkeys.
-- Do not use homegrown crypto beyond careful vetted Web Crypto primitives/protocol design.
+0.9.0 TEST PLAN
+1. Confirm both devices show 0.9.0 at the normal FIDUNIO root.
+2. Confirm existing 0.8.x conversation history remains readable.
+3. Send iPad → iPhone and iPhone → iPad; plaintext must render normally on intended devices.
+4. Repeat the validated leave/send/re-enter receipt sequence; Sent must advance to Read.
+5. Test offline Outbox then reconnect in both directions.
+6. Only after two-device pass, add a third authorized device and verify fan-out.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports firebase-config.js.
@@ -95,4 +76,4 @@ GROUP REQUIREMENTS
 
 FIRE HD 8
 - Useful for Android-derived PWA/Web Crypto/IndexedDB/Firebase transport testing, but not full Google-certified Android target.
-- Until true per-device recipient fan-out exists, do not sign Fire 8 into either working iPad/iPhone test account unless intentionally testing migration/device behavior.
+- Do not add Fire 8 to the working accounts until the initial two-device 0.9.0 fan-out test passes.
