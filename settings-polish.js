@@ -1,4 +1,5 @@
-/* FIDUNIO settings polish: keep technical identifiers available without dominating Settings. */
+/* FIDUNIO Settings layout/polish. Tablet landscape uses two independent
+ * vertical columns so a tall Profile card never creates empty grid rows. */
 function copyText(text,button){
   const value=String(text||"").trim();if(!value)return;
   navigator.clipboard?.writeText(value).then(()=>{const old=button.textContent;button.textContent="Copied";setTimeout(()=>button.textContent=old,1200);}).catch(()=>prompt("Copy details:",value));
@@ -13,21 +14,29 @@ function collapseTechnicalCard(card,title){
   toggle.onclick=()=>{const open=details.hidden;details.hidden=!open;copy.hidden=!open;toggle.textContent=`${open?"Hide":"Show"} ${title}`;toggle.setAttribute("aria-expanded",String(open));};
   copy.onclick=()=>copyText(details.innerText,copy);card.appendChild(toggle);card.appendChild(details);card.appendChild(copy);
 }
-function cardByTitle(settings,title){return[...settings.querySelectorAll(":scope > .card")].find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}
+function allCards(settings){return[...settings.querySelectorAll(":scope > .card, :scope > .fidunio-settings-columns > .fidunio-settings-column > .card")];}
+function cardByTitle(settings,title){return allCards(settings).find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}
+function ensureColumns(settings){
+  let host=settings.querySelector(":scope > #fidunioSettingsColumns");
+  if(!host){host=document.createElement("div");host.id="fidunioSettingsColumns";host.className="fidunio-settings-columns";host.innerHTML='<div class="fidunio-settings-column fidunio-settings-leftcol"></div><div class="fidunio-settings-column fidunio-settings-rightcol"></div>';settings.prepend(host);}
+  return{host,left:host.querySelector(".fidunio-settings-leftcol"),right:host.querySelector(".fidunio-settings-rightcol")};
+}
 function arrangeSettings(settings){
-  const privacy=cardByTitle(settings,"Privacy & Access"),text=cardByTitle(settings,"Text Size"),appearance=cardByTitle(settings,"Appearance"),data=cardByTitle(settings,"Data"),firebase=cardByTitle(settings,"Firebase Account"),device=cardByTitle(settings,"Device Identity"),prototype=cardByTitle(settings,"Prototype connectivity"),profile=settings.querySelector(":scope > #fidunioProfileCard"),invites=settings.querySelector(":scope > #fidunioInvitationAdmin"),about=cardByTitle(settings,"About"),footer=settings.querySelector(":scope > .version-footer");
-  if(prototype)prototype.remove();
-  const ordered=[firebase,profile,text,privacy,appearance,data,device,invites,footer,about].filter(Boolean);
-  for(const node of ordered)settings.appendChild(node);
-  const all=[...settings.children];
-  all.forEach(el=>{el.classList.remove("fidunio-settings-left","fidunio-settings-right","fidunio-settings-full");});
-  [firebase,profile].filter(Boolean).forEach(el=>el.classList.add("fidunio-settings-left"));
-  [text,privacy,appearance,data,device,invites].filter(Boolean).forEach(el=>el.classList.add("fidunio-settings-right"));
-  [footer,about].filter(Boolean).forEach(el=>el.classList.add("fidunio-settings-full"));
+  const prototype=cardByTitle(settings,"Prototype connectivity");if(prototype)prototype.remove();
+  const {host,left,right}=ensureColumns(settings);
+  const firebase=cardByTitle(settings,"Firebase Account"),profile=settings.querySelector("#fidunioProfileCard");
+  const appearance=cardByTitle(settings,"Appearance"),text=cardByTitle(settings,"Text Size"),data=cardByTitle(settings,"Data"),device=cardByTitle(settings,"Device Identity"),privacy=cardByTitle(settings,"Privacy & Access"),invites=settings.querySelector("#fidunioInvitationAdmin"),userAdmin=settings.querySelector("#fidunioUserAdminCard");
+  [firebase,profile].filter(Boolean).forEach(node=>left.appendChild(node));
+  [appearance,text,data,device,privacy,invites,userAdmin].filter(Boolean).forEach(node=>right.appendChild(node));
+  const about=cardByTitle(settings,"About"),footer=settings.querySelector(":scope > .version-footer");
+  if(footer)settings.appendChild(footer);if(about)settings.appendChild(about);
+  /* Any future direct cards not explicitly classified stay visible rather than disappearing. */
+  [...settings.querySelectorAll(":scope > .card")].filter(c=>c!==about).forEach(c=>right.appendChild(c));
+  if(host!==settings.firstElementChild)settings.prepend(host);
 }
 function polishSettings(){
   const settings=document.querySelector(".content.settings");if(!settings)return;
-  for(const card of settings.querySelectorAll(":scope > .card")){
+  for(const card of allCards(settings)){
     const title=card.querySelector("h2")?.textContent?.trim();
     if(title==="Firebase Account")collapseTechnicalCard(card,"Firebase Account");
     if(title==="Device Identity")collapseTechnicalCard(card,"Device Identity");
