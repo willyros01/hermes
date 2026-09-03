@@ -653,3 +653,49 @@ FIDUNIO 0.8.1.9
 - Transport/reconnect baseline remains 0.7.3.
 - Offline/local-first baseline remains 0.6.5.
 - Next major planned release remains 0.9.0 true per-device E2EE.
+
+
+==================================================
+0.9.0 PREPARATION — GROUP INFO + LIVE TEST STRATEGY
+==================================================
+
+Status as of 2026-09-03:
+- 0.8.1.9 remains the authoritative runtime version in root version.js.
+- User has a local ZIP copy of the known-good 0.8.1.9 release for rollback.
+- release/0.9.0-prep branch exists for preparation work.
+- A targeted Group Info tablet-layout correction was built and tested on iPad.
+- User confirmed the Group Info screen is fixed.
+
+Group Info root cause:
+- 0.8.1.9 orientation-aware tablet selectors covered Settings, New Message, New Group, and Group Name, but omitted body[data-route="groupInfo"].
+- Group Info therefore retained a narrow phone-style column in iPad/tablet landscape.
+
+Validated Group Info correction:
+- Adds the same tablet-aware shell/content treatment for groupInfo.
+- Portrait keeps a centered tablet-width presentation.
+- Wide landscape uses the available width and a balanced two-column Group Info workspace.
+- Smaller landscape tablets use a wider centered workspace.
+- Phone/narrow behavior is preserved.
+
+Test-deployment lesson:
+- An isolated /test-0.9.0/ GitHub Pages subdirectory was useful for visual layout testing.
+- It is NOT suitable for validating existing-device E2EE or live receipt behavior because a different URL path creates a separate browser storage context for IndexedDB/site data in this app workflow.
+- On the isolated test path, existing encrypted rows displayed [Encrypted message — key unavailable].
+- On the normal 0.8.1.9 iPad site, the same conversation displays clear text because the established device key/local state is available.
+- Therefore receipt/E2EE testing should use the normal root app origin/context, not the isolated test path.
+
+Root main change on 2026-09-03:
+- The confirmed Group Info correction was moved into the normal root main app.
+- Root index.html now loads existing styles.css plus targeted styles-0.9.0.css.
+- No app.js, firebase.js, Firestore Rules, E2EE, device identity, Outbox, local-history, or receipt logic was changed in this step.
+- version.js intentionally remains 0.8.1.9 until actual 0.9.0 functional work begins.
+
+Outstanding pre-0.9.0 defect:
+- iPad live outgoing receipt refresh can remain at Sent after the iPhone opens/reads the conversation.
+- Preserve the iPad two-pane layout and stable 0.7.3 listener behavior.
+- Next controlled sequence:
+  1. Verify normal root iPad site still decrypts existing messages to clear text and Group Info remains fixed.
+  2. Reproduce Sent → Read issue with iPad on root main and iPhone on stable 0.8.1.9.
+  3. Apply only a targeted live-receipt refresh correction.
+  4. Regression-test messaging/offline/reconnect.
+  5. Then begin true per-device E2EE work for 0.9.0.
