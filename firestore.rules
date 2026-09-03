@@ -97,7 +97,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow create: if signedIn() && request.auth.uid == uid && validInvitedProfile(uid,request.resource.data);
       allow update: if registered() && request.auth.uid == uid && (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","email","e2eePublicJwk","e2eeVersion","e2eeUpdatedAt"])
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","email","telephone","photoURL","profileUpdatedAt","e2eePublicJwk","e2eeVersion","e2eeUpdatedAt"])
           || (
             !exists(/databases/$(database)/documents/system/access)
             && getAfter(/databases/$(database)/documents/system/access).data.ownerUid == uid
