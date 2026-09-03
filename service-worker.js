@@ -102,6 +102,24 @@ async function resolvePeerUidForConversation(conversationId){`;
         }`;
   source=source.replace(decryptNeedle,decryptReplacement);
 
+  // In v2, account-level compatibility-key changes are advisory only. Actual
+  // outgoing encryption is addressed to the current registered per-device
+  // public keys, so the legacy single-account trust gate must not block send.
+  const preSendTrustNeedle=`  if(cloud && c?.peerUid){
+    await peerPublicKeyForConversation(conversationId,{refresh:true});
+    if(peerTrustStatus(c.peerUid)==="changed"){
+      state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId};
+      render();
+      return;
+    }
+  }`;
+  const preSendTrustReplacement=`  if(cloud && c?.peerUid){
+    // Refresh the legacy compatibility fingerprint for display/history only.
+    // e2ee:2 transmission is authorized by the registered device set below.
+    await peerPublicKeyForConversation(conversationId,{refresh:true});
+  }`;
+  source=source.replace(preSendTrustNeedle,preSendTrustReplacement);
+
   // Send e2ee:2 envelopes at actual transmission time so Outbox retries use
   // the current authorized device registry rather than stale queued keys.
   const sendNeedle=`        const peerKey=await peerPublicKeyForConversation(payload.conversationId,{refresh:true});
@@ -117,11 +135,7 @@ async function resolvePeerUidForConversation(conversationId){`;
           senderDeviceId:identity.deviceId,
           timeLabel:payload.time,state:"sent"
         });`;
-  const sendReplacement=`        const peerKey=await peerPublicKeyForConversation(payload.conversationId,{refresh:true});
-        if(!peerKey) throw new Error("Recipient encryption key is not available yet");
-        const peerUid=await resolvePeerUidForConversation(payload.conversationId);
-        if(peerUid && peerTrustStatus(peerUid)==="changed") throw new Error("Recipient encryption key changed. Verify the new key in Conversation Security before sending.");
-        const fanout=await buildDeviceEnvelopes(payload.text,payload.conversationId);
+  const sendReplacement=`        const fanout=await buildDeviceEnvelopes(payload.text,payload.conversationId);
         await sendCloudMessage(payload.conversationId,{
           id:payload.messageId,text:"",ciphertext:"",iv:"",e2ee:2,
           envelopes:fanout.envelopes,recipientDeviceIds:fanout.recipientDeviceIds,
