@@ -699,3 +699,32 @@ Outstanding pre-0.9.0 defect:
   3. Apply only a targeted live-receipt refresh correction.
   4. Regression-test messaging/offline/reconnect.
   5. Then begin true per-device E2EE work for 0.9.0.
+
+==================================================
+0.9.0 PREPARATION — IPAD SENT → READ REFRESH FIX
+==================================================
+
+Observed on 2026-09-03:
+- User reproduced the iPad-only defect on the normal root app.
+- iPad outgoing message remained Sent even after the iPhone opened/read the conversation.
+- iPhone remains on the older stable 0.8.1.9 code path during this compatibility test.
+
+Targeted fix applied to root main firebase.js:
+- Preserves the existing Firestore onSnapshot listener and 0.7.3 listener lifecycle.
+- Adds a lightweight 2-second server refresh only for the currently subscribed/open conversation.
+- Uses getDocsFromServer(query) when available, with getDocs(query) fallback.
+- Refresh is skipped when navigator.onLine is false.
+- Overlapping refreshes are prevented.
+- Timer is cleared when the active conversation subscription is torn down.
+- Transient refresh failures do not tear down or replace the established live listener.
+- No app.js, E2EE format, device identity, Outbox, local-history, Firestore Rules, or iPhone code changes are required for this compatibility fix.
+
+Reason for this approach:
+- A conversation-level receipt pulse would require the recipient to run new code.
+- The iPhone in this test is still on the older release and only updates the message document state.
+- The active-conversation server refresh therefore reads the existing message-state change directly and remains backward-compatible with the iPhone release.
+
+Status:
+- Code committed to main.
+- Awaiting iPad retest: send a new message, read it on iPhone, and verify iPad changes Sent → Read automatically within about 2 seconds.
+- version.js remains 0.8.1.9 during this pre-0.9.0 validation.
