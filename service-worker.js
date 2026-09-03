@@ -8,10 +8,9 @@
  *   served offline after they have been fetched successfully.
  * - Firestore/Auth data transport is NEVER service-worker cached.
  *
- * 0.8.1.13: iPad two-pane receipt test. Keep the active cloud message
- * listener stable when tablet navigation/rendering re-enters the same chat.
- * This is deliberately narrow: no polling, Firestore-rule, E2EE, Outbox,
- * or layout changes.
+ * 0.8.1.14: iPad Sent → Read receipt fast-path test.
+ * Apply receipt metadata from the Firestore snapshot before peer-key refresh
+ * and decryption so visible state is not blocked by E2EE work. No polling.
  */
 
 importScripts("./version.js");
@@ -68,11 +67,7 @@ async function stableTabletAppResponse(request,response){
 
   let source=await response.text();
 
-  // 0.8.1.4 introduced force:true in the two-pane navigation path. On iPad
-  // that tears down and recreates the already-correct Firestore listener.
-  // Replace only the first optional-chain occurrence (tablet sidebar) and
-  // the wide renderMessages occurrence. The later narrow/mobile navigation
-  // force remains unchanged, as do intentional foreground recovery forces.
+  // Keep the 0.8.1.13 listener-stability experiment in place.
   source=source.replace(
     "if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true});",
     "if(chosen?.cloud) beginCloudMessageSubscription(chosen.id);"
@@ -81,6 +76,32 @@ async function stableTabletAppResponse(request,response){
     "if(chosen.cloud) beginCloudMessageSubscription(chosen.id,{force:true});",
     "if(chosen.cloud) beginCloudMessageSubscription(chosen.id);"
   );
+
+  // Receipt state is not encrypted. Update an already-visible outgoing row
+  // immediately from raw Firestore snapshot metadata before any asynchronous
+  // peer-key refresh/decryption. The normal full merge still runs afterward.
+  const needle='''      const existing=state.messages[conversationId] || [];
+      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});''';
+  const replacement='''      const existing=state.messages[conversationId] || [];
+
+      if(!meta.fromCache){
+        const rawStateById=new Map(rows.map(r=>[r.id,r.state||"sent"]));
+        let receiptChanged=false;
+        for(const local of existing){
+          if(!local?.mine) continue;
+          const next=rawStateById.get(local.id);
+          if(next && next!==local.state){
+            local.state=next;
+            receiptChanged=true;
+          }
+        }
+        if(receiptChanged && state.route==="chat" && String(state.selectedId)===String(conversationId)){
+          render();
+        }
+      }
+
+      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});''';
+  source=source.replace(needle,replacement);
 
   const headers=new Headers(response.headers);
   headers.set("content-type","text/javascript; charset=utf-8");
@@ -118,10 +139,6 @@ self.addEventListener("fetch",event=>{
 
   const url=new URL(event.request.url);
 
-  /*
-   * Firebase network/data traffic must remain under Firebase's control.
-   * Do not cache Firestore/Auth API responses.
-   */
   if(
     url.hostname.endsWith("googleapis.com") ||
     url.hostname.endsWith("firebaseio.com")
@@ -129,10 +146,6 @@ self.addEventListener("fetch",event=>{
     return;
   }
 
-  /*
-   * Firebase SDK JavaScript is versioned in its URL. Cache-first is safe;
-   * refresh it in the background whenever possible.
-   */
   if(url.hostname==="www.gstatic.com"){
     event.respondWith(
       caches.open(CACHE).then(async cache=>{
