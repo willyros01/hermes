@@ -1,8 +1,9 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
-Current validated development baseline on main: FIDUNIO 0.9.0.4
-Development branch retained: release/0.9.0
+Current validated development baseline: FIDUNIO 0.9.0.4
+Current live test build on main: FIDUNIO 0.9.1.0
+Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -31,7 +32,7 @@ FIREBASE
 - Project fidunio-fef13; Auth Email/Password; Firestore Standard (default), nam5; authorized domain willyros01.github.io.
 - Account A on iPad, Account B on iPhone and Fire HD 8 during third-device test.
 - Do not ask user to recreate accounts/re-paste UID unless restoration truly fails.
-- 0.9.0 Firestore rules were manually published by the user before live test promotion.
+- User manually published 0.9.1 branch Firestore rules before 0.9.1.0 live group test promotion.
 
 IPAD SENT → READ DEFECT HISTORY
 0.8.1.10 FAILED: 2-second polling caused constant refresh and broke sending. Never reintroduce polling.
@@ -64,27 +65,28 @@ IPAD SENT → READ DEFECT HISTORY
 - 0.9.0.4 SIBLING-DEVICE SENT-HISTORY PASS: iPhone/Beta sent a new reply; iPad/Alpha received it normally and Fire HD 8 (same Beta account) also decrypted/displayed the sent message normally.
 - 0.9.0.4 REVERSE SIBLING-DEVICE PASS: Fire HD 8/Beta sent a new reply; iPad/Alpha received it normally and iPhone (same Beta account) also decrypted/displayed the sent message normally.
 - Therefore 0.9.0.4 has passed full bidirectional three-device per-device fan-out for the tested Alpha/Beta topology, including recipient fan-out, sibling-device sent-history visibility, and sender Read behavior.
-- FIDUNIO 0.9.0.4 is the current validated development baseline. Preserve its messaging, receipt, Outbox, and per-device fan-out behavior unchanged.
+- FIDUNIO 0.9.0.4 remains the current validated development baseline. Preserve its messaging, receipt, Outbox, and per-device fan-out behavior unchanged.
 
-0.9.1 GROUP FOUNDATION — STARTED
-- The validated 0.9.0.4 direct-message code path remains untouched.
-- Added root `group-data-model.txt` at commit 651ae4bde6f22de82af1a960efda5503f9ec0944.
-- Group data is intentionally separate under `/groups/{groupId}` with authoritative `memberUids` and `adminUids`, immutable owner in this foundation phase, `historyPolicy: "fromJoin"`, `groupVersion: 1`, and `keyEpoch: 0` until group E2EE is implemented.
-- Per-member details live under `/groups/{groupId}/members/{uid}` with role, joinedAt, historyFrom, addedByUid, and active state.
-- New-member default history is from join time; earlier history is a future explicit admin grant and must later be enforced cryptographically.
-- `firestore.rules` updated at commit c8b9f2a82584c54d5b03362b197aa9a4cfd53fcf, content SHA ab8f1735dd79c723ee017f5cfbee8d764295ccc3.
-- Existing `/users`, `/conversations`, and direct `/messages` rules were preserved unchanged.
-- New group rules permit signed-in group members to read group/member data; owner creates groups; group admins may update bounded group metadata/membership while owner/type/core creation fields remain fixed.
-- `/groups/{groupId}/messages/{messageId}` is reserved but all create/update/delete operations are explicitly DENIED in this phase. Do not store plaintext group messages as a shortcut before group E2EE/key rotation exists.
-- These new GitHub rules are NOT automatically live in Firebase; user must manually publish them in Firebase Console before real group-record testing.
+0.9.1 GROUP FOUNDATION — LIVE TEST BUILD
+- Added root group-data-model.txt documenting separate /groups model, authoritative memberUids/adminUids, owner/admin/member roles, historyPolicy fromJoin, groupVersion 1, keyEpoch 0, and reserved group message collection.
+- Firestore group rules are now manually published by the user from release/0.9.1.
+- release/0.9.1 created from main and prepared as FIDUNIO 0.9.1.0.
+- firebase.js on release/0.9.1 adds listCloudUsers(), createCloudGroup(), and subscribeMyGroups().
+- service-worker.js 0.9.1 test harness preserves the validated 0.9.0.4 direct-message v2 envelope/receipt behavior and injects the temporary app-side group metadata UI wiring without modifying baseline app.js source.
+- New Group flow for this test build is intended to: load real signed-in FIDUNIO users, require at least two other members, collect group name, create real /groups/{groupId} + /members/{uid} records, and show Group Info.
+- Real group message sending remains intentionally disabled until group E2EE/key rotation is designed and tested. Do not store plaintext group messages.
+- main was fast-forward promoted to release/0.9.1 commit 50a04e0c8064c9376825591d433ca070b1c417af for controlled live testing at the normal GitHub Pages origin.
+- 0.9.1.0 is a LIVE TEST BUILD, not yet a validated baseline. If group test fails, preserve 0.9.0.4 as rollback baseline.
 
-0.9.0 NEXT DEVELOPMENT PLAN
-1. Preserve/archive 0.9.0.4 unchanged as the validated baseline before further work.
-2. Add controlled mock/sample data and supporting development paths so group creation, multiple users, member management, and group UX can be developed/tested without disturbing the validated direct-message baseline.
-3. Move validated service-worker harness logic into clean app.js and remove temporary runtime transforms.
-4. Replace the legacy single-account compatibility-key verification model with a true device-level/device-set trust UI before production; do not simply restore the obsolete account-level send gate.
-5. Implement/test group E2EE and membership-key rotation according to the group requirements below.
-6. Full regression/security test, then prepare final 0.9.0 release ZIP.
+NEXT 0.9.1 TEST
+1. Confirm visible version is 0.9.1.0 at normal FIDUNIO site.
+2. On one signed-in account, New Message → New Group.
+3. Confirm real FIDUNIO users load instead of sample local contacts.
+4. Select at least two users, name the group, create it.
+5. Confirm Group Info opens and Firestore contains group parent + member docs.
+6. Confirm other selected signed-in account(s) discover the group.
+7. Do not test group message sending yet; it should remain unavailable.
+8. After metadata flow passes, add real rename/add/remove role operations and then regress direct-message 0.9.0.4 behavior.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports firebase-config.js.
