@@ -182,6 +182,7 @@ export function subscribeMyConversations(uid,onRows,onError){
 }
 export function subscribeConversationMessages(conversationId,myUid,onRows,onError){
   let active=true,unsub=()=>{};
+  let delivery=Promise.resolve();
   ensureServices().then(s=>{
     if(!active) return;
     const q=s.fsSdk.query(
@@ -189,13 +190,22 @@ export function subscribeConversationMessages(conversationId,myUid,onRows,onErro
       s.fsSdk.orderBy("createdAt","asc")
     );
     unsub=s.fsSdk.onSnapshot(q,snap=>{
-      onRows(
-        snap.docs.map(d=>({id:d.id,...d.data()})),
-        {
-          fromCache:!!snap.metadata?.fromCache,
-          hasPendingWrites:!!snap.metadata?.hasPendingWrites
-        }
-      );
+      const rows=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const meta={
+        fromCache:!!snap.metadata?.fromCache,
+        hasPendingWrites:!!snap.metadata?.hasPendingWrites
+      };
+
+      // The app's message callback performs asynchronous key refresh,
+      // decryption, local-history caching, and read-receipt work. Keep
+      // snapshots for this one active conversation strictly ordered so an
+      // older Sent snapshot cannot finish after a newer Read snapshot and
+      // overwrite the newer receipt state in the two-pane iPad UI.
+      delivery=delivery
+        .then(()=>active ? onRows(rows,meta) : undefined)
+        .catch(err=>{
+          if(active) onError?.(err);
+        });
     },onError);
   }).catch(onError);
   return ()=>{active=false;unsub();};
