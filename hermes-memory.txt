@@ -66,6 +66,18 @@ IPAD SENT → READ DEFECT HISTORY
 - Therefore 0.9.0.4 has passed full bidirectional three-device per-device fan-out for the tested Alpha/Beta topology, including recipient fan-out, sibling-device sent-history visibility, and sender Read behavior.
 - FIDUNIO 0.9.0.4 is the current validated development baseline. Preserve its messaging, receipt, Outbox, and per-device fan-out behavior unchanged.
 
+0.9.1 GROUP FOUNDATION — STARTED
+- The validated 0.9.0.4 direct-message code path remains untouched.
+- Added root `group-data-model.txt` at commit 651ae4bde6f22de82af1a960efda5503f9ec0944.
+- Group data is intentionally separate under `/groups/{groupId}` with authoritative `memberUids` and `adminUids`, immutable owner in this foundation phase, `historyPolicy: "fromJoin"`, `groupVersion: 1`, and `keyEpoch: 0` until group E2EE is implemented.
+- Per-member details live under `/groups/{groupId}/members/{uid}` with role, joinedAt, historyFrom, addedByUid, and active state.
+- New-member default history is from join time; earlier history is a future explicit admin grant and must later be enforced cryptographically.
+- `firestore.rules` updated at commit c8b9f2a82584c54d5b03362b197aa9a4cfd53fcf, content SHA ab8f1735dd79c723ee017f5cfbee8d764295ccc3.
+- Existing `/users`, `/conversations`, and direct `/messages` rules were preserved unchanged.
+- New group rules permit signed-in group members to read group/member data; owner creates groups; group admins may update bounded group metadata/membership while owner/type/core creation fields remain fixed.
+- `/groups/{groupId}/messages/{messageId}` is reserved but all create/update/delete operations are explicitly DENIED in this phase. Do not store plaintext group messages as a shortcut before group E2EE/key rotation exists.
+- These new GitHub rules are NOT automatically live in Firebase; user must manually publish them in Firebase Console before real group-record testing.
+
 0.9.0 NEXT DEVELOPMENT PLAN
 1. Preserve/archive 0.9.0.4 unchanged as the validated baseline before further work.
 2. Add controlled mock/sample data and supporting development paths so group creation, multiple users, member management, and group UX can be developed/tested without disturbing the validated direct-message baseline.
