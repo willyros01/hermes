@@ -1,4 +1,4 @@
-/* FIDUNIO 0.9.0 test service worker. Network-first shell; Firestore/Auth are never cached. */
+/* FIDUNIO 0.9.1 test service worker. Network-first shell; Firestore/Auth are never cached. */
 importScripts("./version.js");
 const SW_VERSION=globalThis.FIDUNIO_RELEASE?.version || "unknown";
 const CACHE=`fidunio-shell-${SW_VERSION}`;
@@ -14,10 +14,6 @@ async function transformApp(request,response){
   if(url.origin!==self.location.origin||!url.pathname.endsWith("/app.js"))return response;
   let source=await response.text();
 
-  // Preserve the validated sender-side receipt fast path and, for 0.9.0,
-  // commit recipient Read state from the fresh Firestore snapshot BEFORE any
-  // asynchronous key lookup/decryption. Receipt semantics must not depend on
-  // per-device cryptographic processing completing first.
   const receiptNeedle=`      const existing=state.messages[conversationId] || [];
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
   const receiptReplacement=`      const existing=state.messages[conversationId] || [];
@@ -30,19 +26,14 @@ async function transformApp(request,response){
           if(next && next!==local.state){local.state=next;receiptChanged=true;}
         }
         if(receiptChanged && state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
-
         if(state.route==="chat" && String(state.selectedId)===String(conversationId)){
           const unreadRows=rows.filter(r=>r.senderUid!==firebaseUser.uid && (r.state||"sent")!=="read");
-          if(unreadRows.length){
-            await Promise.allSettled(unreadRows.map(r=>updateCloudMessageState(conversationId,r.id,"read")));
-          }
+          if(unreadRows.length) await Promise.allSettled(unreadRows.map(r=>updateCloudMessageState(conversationId,r.id,"read")));
         }
       }
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
   source=source.replace(receiptNeedle,receiptReplacement);
 
-  // 0.9.0 per-device envelope primitives. Each target installation gets its
-  // own AES-GCM ciphertext derived from ECDH(sender-device, target-device).
   const helperNeedle=`async function resolvePeerUidForConversation(conversationId){`;
   const helperReplacement=`async function deriveDeviceEnvelopeKey(peerPublicJwk,conversationId){
   const mine=await getOrCreateDeviceKeyPair();
@@ -52,8 +43,7 @@ async function transformApp(request,response){
   return crypto.subtle.deriveKey({name:"HKDF",hash:"SHA-256",salt:new TextEncoder().encode("FIDUNIO-E2EE-v2"),info:new TextEncoder().encode(String(conversationId))},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
 }
 async function encryptDeviceEnvelope(text,targetPublicJwk,conversationId){
-  const key=await deriveDeviceEnvelopeKey(targetPublicJwk,conversationId);
-  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveDeviceEnvelopeKey(targetPublicJwk,conversationId),iv=crypto.getRandomValues(new Uint8Array(12));
   const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:new TextEncoder().encode(String(conversationId))},key,new TextEncoder().encode(text));
   return {ciphertext:b64(cipher),iv:b64(iv)};
 }
@@ -63,48 +53,30 @@ async function buildDeviceEnvelopes(text,conversationId){
   const identity=await getOrCreateDeviceIdentity();
   const [peerDevices,myDevices]=await Promise.all([getCloudUserDevices(peerUid),getCloudUserDevices(firebaseUser.uid)]);
   const targets=new Map();
-  for(const d of [...peerDevices,...myDevices]){
-    const id=String(d.deviceId||d.id||"");
-    if(id && d.publicJwk && d.active!==false) targets.set(id,{deviceId:id,publicJwk:d.publicJwk});
-  }
+  for(const d of [...peerDevices,...myDevices]){const id=String(d.deviceId||d.id||"");if(id&&d.publicJwk&&d.active!==false)targets.set(id,{deviceId:id,publicJwk:d.publicJwk});}
   targets.set(identity.deviceId,{deviceId:identity.deviceId,publicJwk:identity.publicJwk});
-  if(!peerDevices.some(d=>d.publicJwk && d.active!==false)) throw new Error("Recipient has no registered encryption device yet");
-  const envelopes={};
-  for(const target of targets.values()) envelopes[target.deviceId]=await encryptDeviceEnvelope(text,target.publicJwk,conversationId);
+  if(!peerDevices.some(d=>d.publicJwk&&d.active!==false)) throw new Error("Recipient has no registered encryption device yet");
+  const envelopes={};for(const target of targets.values())envelopes[target.deviceId]=await encryptDeviceEnvelope(text,target.publicJwk,conversationId);
   return {envelopes,recipientDeviceIds:[...targets.keys()],identity};
 }
 async function decryptDeviceEnvelope(row,conversationId){
-  const identity=await getOrCreateDeviceIdentity();
-  const env=row?.envelopes?.[identity.deviceId];
-  if(!env?.ciphertext||!env?.iv) throw new Error("No encrypted envelope exists for this device");
-  if(!row?.senderDevicePublicJwk) throw new Error("Sender device key is unavailable");
-  const mine=await getOrCreateDeviceKeyPair();
-  const sender=await crypto.subtle.importKey("jwk",row.senderDevicePublicJwk,{name:"ECDH",namedCurve:"P-256"},false,[]);
-  const bits=await crypto.subtle.deriveBits({name:"ECDH",public:sender},mine.privateKey,256);
-  const base=await crypto.subtle.importKey("raw",bits,"HKDF",false,["deriveKey"]);
+  const identity=await getOrCreateDeviceIdentity(),env=row?.envelopes?.[identity.deviceId];
+  if(!env?.ciphertext||!env?.iv)throw new Error("No encrypted envelope exists for this device");
+  if(!row?.senderDevicePublicJwk)throw new Error("Sender device key is unavailable");
+  const mine=await getOrCreateDeviceKeyPair(),sender=await crypto.subtle.importKey("jwk",row.senderDevicePublicJwk,{name:"ECDH",namedCurve:"P-256"},false,[]);
+  const bits=await crypto.subtle.deriveBits({name:"ECDH",public:sender},mine.privateKey,256),base=await crypto.subtle.importKey("raw",bits,"HKDF",false,["deriveKey"]);
   const key=await crypto.subtle.deriveKey({name:"HKDF",hash:"SHA-256",salt:new TextEncoder().encode("FIDUNIO-E2EE-v2"),info:new TextEncoder().encode(String(conversationId))},base,{name:"AES-GCM",length:256},false,["decrypt"]);
-  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(env.iv),additionalData:new TextEncoder().encode(String(conversationId))},key,unb64(env.ciphertext));
-  return new TextDecoder().decode(plain);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(env.iv),additionalData:new TextEncoder().encode(String(conversationId))},key,unb64(env.ciphertext));return new TextDecoder().decode(plain);
 }
 async function resolvePeerUidForConversation(conversationId){`;
   source=source.replace(helperNeedle,helperReplacement);
 
-  // Receive e2ee:2 with this installation's envelope; retain e2ee:1 history compatibility.
-  const decryptNeedle=`        if(m.e2ee){
+  source=source.replace(`        if(m.e2ee){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
           else text="[Encrypted message — key unavailable]";
-        }`;
-  const decryptReplacement=`        if(m.e2ee===2){
-          try{text=await decryptDeviceEnvelope(m,conversationId);}catch{text="[Encrypted message — not available on this device]";}
-        }else if(m.e2ee){
-          if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
-          else text="[Encrypted message — key unavailable]";
-        }`;
-  source=source.replace(decryptNeedle,decryptReplacement);
+        }`,`        if(m.e2ee===2){try{text=await decryptDeviceEnvelope(m,conversationId);}catch{text="[Encrypted message — not available on this device]";}}
+        else if(m.e2ee){if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}else text="[Encrypted message — key unavailable]";}`);
 
-  // In v2, account-level compatibility-key changes are advisory only. Actual
-  // outgoing encryption is addressed to the current registered per-device
-  // public keys, so the legacy single-account trust gate must not block send.
   const preSendTrustNeedle=`  if(cloud && c?.peerUid){
     await peerPublicKeyForConversation(conversationId,{refresh:true});
     if(peerTrustStatus(c.peerUid)==="changed"){
@@ -113,20 +85,11 @@ async function resolvePeerUidForConversation(conversationId){`;
       return;
     }
   }`;
-  const preSendTrustReplacement=`  if(cloud && c?.peerUid){
-    // Refresh the legacy compatibility fingerprint for display/history only.
-    // e2ee:2 transmission is authorized by the registered device set below.
-    await peerPublicKeyForConversation(conversationId,{refresh:true});
-  }`;
+  const preSendTrustReplacement=`  if(cloud && c?.peerUid){await peerPublicKeyForConversation(conversationId,{refresh:true});}`;
   source=source.replace(preSendTrustNeedle,preSendTrustReplacement);
-  source=source.replace(
-    /  if\(cloud && c\?\.peerUid\)\{\s*await peerPublicKeyForConversation\(conversationId,\{refresh:true\}\);\s*if\(peerTrustStatus\(c\.peerUid\)==="changed"\)\{\s*state\.modal=\{type:"conversationSecurity",peerUid:c\.peerUid,conversationId\};\s*render\(\);\s*return;\s*\}\s*\}/,
-    preSendTrustReplacement
-  );
+  source=source.replace(/  if\(cloud && c\?\.peerUid\)\{\s*await peerPublicKeyForConversation\(conversationId,\{refresh:true\}\);\s*if\(peerTrustStatus\(c\.peerUid\)==="changed"\)\{\s*state\.modal=\{type:"conversationSecurity",peerUid:c\.peerUid,conversationId\};\s*render\(\);\s*return;\s*\}\s*\}/,preSendTrustReplacement);
 
-  // Send e2ee:2 envelopes at actual transmission time so Outbox retries use
-  // the current authorized device registry rather than stale queued keys.
-  const sendNeedle=`        const peerKey=await peerPublicKeyForConversation(payload.conversationId,{refresh:true});
+  source=source.replace(`        const peerKey=await peerPublicKeyForConversation(payload.conversationId,{refresh:true});
         if(!peerKey) throw new Error("Recipient encryption key is not available yet");
         const peerUid=await resolvePeerUidForConversation(payload.conversationId);
         if(peerUid && peerTrustStatus(peerUid)==="changed"){
@@ -138,15 +101,23 @@ async function resolvePeerUidForConversation(conversationId){`;
           id:payload.messageId,text:"",ciphertext:encrypted.ciphertext,iv:encrypted.iv,e2ee:encrypted.e2ee,
           senderDeviceId:identity.deviceId,
           timeLabel:payload.time,state:"sent"
-        });`;
-  const sendReplacement=`        const fanout=await buildDeviceEnvelopes(payload.text,payload.conversationId);
-        await sendCloudMessage(payload.conversationId,{
-          id:payload.messageId,text:"",ciphertext:"",iv:"",e2ee:2,
-          envelopes:fanout.envelopes,recipientDeviceIds:fanout.recipientDeviceIds,
-          senderDeviceId:fanout.identity.deviceId,senderDevicePublicJwk:fanout.identity.publicJwk,
-          timeLabel:payload.time,state:"sent"
-        });`;
-  source=source.replace(sendNeedle,sendReplacement);
+        });`,`        const fanout=await buildDeviceEnvelopes(payload.text,payload.conversationId);
+        await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",ciphertext:"",iv:"",e2ee:2,envelopes:fanout.envelopes,recipientDeviceIds:fanout.recipientDeviceIds,senderDeviceId:fanout.identity.deviceId,senderDevicePublicJwk:fanout.identity.publicJwk,timeLabel:payload.time,state:"sent"});`);
+
+  // 0.9.1 real group metadata UI. Group message writes remain intentionally disabled.
+  source=source.replace(`  getCloudUserDevices\n} from "./firebase.js";`,`  getCloudUserDevices,\n  listCloudUsers,\n  createCloudGroup,\n  subscribeMyGroups\n} from "./firebase.js";`);
+  source=source.replace(`let cloudConversationUnsub = null;`,`let cloudConversationUnsub = null;\nlet cloudGroupUnsub = null;\nlet groupCandidates = [];`);
+  source=source.replace(`function stopCloudMessageSubscription(){`,`function mergeCloudGroup(remote){\n  const existing=state.conversations.find(c=>String(c.id)===String(remote.id));\n  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Group • messaging pending E2EE",time:remote.time||existing?.time||""};\n  if(existing)Object.assign(existing,item);else state.conversations.unshift(item);\n  if(!state.messages[item.id])state.messages[item.id]=[];\n  return existing||item;\n}\nfunction beginCloudGroupSubscription(){\n  if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}\n  if(!firebaseUser)return;\n  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{firebaseError=err?.message||String(err);});\n}\nfunction stopCloudMessageSubscription(){`);
+  source=source.replace(`        beginCloudConversationSubscription();`,`        beginCloudConversationSubscription();\n        beginCloudGroupSubscription();`);
+  source=source.replace(`        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}`,`        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}\n        if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}`);
+
+  const newGroupStart=source.indexOf(`function renderNewGroup(){`),groupNameStart=source.indexOf(`function renderGroupName(){`),chatStart=source.indexOf(`function renderChat(){`);
+  if(newGroupStart>=0&&groupNameStart>newGroupStart&&chatStart>groupNameStart){
+    const groupUi=`function renderNewGroup(){\n  if(!firebaseUser){alert("Sign in to a FIDUNIO account before creating a real group.");state.route="newConversation";return render();}\n  app.innerHTML=\`<main class="app-shell">\${shellTop("New Group",'<button class="back-btn" id="backBtn">‹</button>','<button class="text-btn" id="nextBtn">Next</button>')}<section class="content"><input class="search" id="memberSearch" placeholder="Search FIDUNIO users" /><div class="chip-row" id="selectedChips"></div><div class="choice-list" id="memberChoices"><p class="small-note">Loading FIDUNIO users…</p></div></section></main>\`;\n  document.querySelector("#backBtn").onclick=()=>{state.route="newConversation";render()};\n  const draw=(term="")=>{const selected=new Set(state.newGroupMembers),choices=document.querySelector("#memberChoices"),chips=document.querySelector("#selectedChips");if(!choices||!chips)return;chips.innerHTML=state.newGroupMembers.length?groupCandidates.filter(p=>selected.has(p.uid)).map(p=>\`<span class="person-chip">\${esc(p.displayName||p.email||p.uid)}</span>\`).join(""):'<span class="small-note">Select at least 2 people for the group.</span>';choices.innerHTML=groupCandidates.filter(p=>String(p.displayName||p.email||p.uid).toLowerCase().includes(term.toLowerCase())).map(p=>\`<button class="member-option \${selected.has(p.uid)?"selected":""}" data-id="\${p.uid}"><div class="avatar">\${initials(p.displayName||p.email||"U")}</div><div><strong>\${esc(p.displayName||p.email||"FIDUNIO user")}</strong><div class="preview">FIDUNIO account</div></div><div class="checkmark">\${selected.has(p.uid)?"✓":""}</div></button>\`).join("")||'<p class="small-note">No matching FIDUNIO users.</p>';document.querySelectorAll("#memberChoices .member-option").forEach(btn=>btn.onclick=()=>{const id=btn.dataset.id;state.newGroupMembers=selected.has(id)?state.newGroupMembers.filter(x=>x!==id):[...state.newGroupMembers,id];draw(document.querySelector("#memberSearch").value);});document.querySelector("#nextBtn").disabled=state.newGroupMembers.length<2;};\n  draw();listCloudUsers().then(rows=>{groupCandidates=rows||[];draw(document.querySelector("#memberSearch")?.value||"");}).catch(err=>{firebaseError=err?.message||String(err);document.querySelector("#memberChoices").innerHTML=\`<p class="warning-note">\${esc(firebaseError)}</p>\`;});document.querySelector("#memberSearch").oninput=e=>draw(e.target.value);document.querySelector("#nextBtn").onclick=()=>{if(state.newGroupMembers.length>=2){state.route="groupName";render();}};\n}\n\nfunction renderGroupName(){\n  const selected=groupCandidates.filter(p=>state.newGroupMembers.includes(p.uid));\n  app.innerHTML=\`<main class="app-shell">\${shellTop("Group Details",'<button class="back-btn" id="backBtn">‹</button>')}<section class="content"><div class="card"><label class="form-label" for="groupNameInput">Group name</label><input class="text-input" id="groupNameInput" maxlength="120" placeholder="Enter a group name" value="\${esc(state.newGroupName)}" /><div class="section-title">Members</div><div class="chip-row">\${selected.map(p=>\`<span class="person-chip">\${esc(p.displayName||p.email||p.uid)}</span>\`).join("")}</div><p class="small-note">New members begin at join time. Real group messaging remains disabled until group E2EE is implemented.</p></div><button class="primary" id="createGroupBtn">Create Group</button></section></main>\`;\n  document.querySelector("#backBtn").onclick=()=>{state.route="newGroup";render()};const input=document.querySelector("#groupNameInput"),btn=document.querySelector("#createGroupBtn");const validate=()=>{state.newGroupName=input.value;btn.disabled=!input.value.trim()||state.newGroupMembers.length<2;};input.oninput=validate;validate();btn.onclick=async()=>{btn.disabled=true;btn.textContent="Creating…";try{const group=await createCloudGroup(state.newGroupName.trim(),state.newGroupMembers);mergeCloudGroup(group);state.selectedId=group.id;state.newGroupMembers=[];state.newGroupName="";state.route="groupInfo";await persistState();render();}catch(err){alert("Could not create group: "+(err?.message||err));btn.disabled=false;btn.textContent="Create Group";}};\n}\n\n`;
+    source=source.slice(0,newGroupStart)+groupUi+source.slice(chatStart);
+  }
+  source=source.replace(`  const cloud=!!c?.cloud;`,`  const cloud=!!c?.cloud;\n  if(c?.cloudGroup){alert("Group messaging is intentionally disabled in FIDUNIO 0.9.1.0 until group E2EE is implemented.");return;}`);
+  source=source.replace(`${'${c.cloud?"Cloud":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}'}`,`${'${c.cloudGroup?`${c.members?.length||c.memberUids?.length||0} members • Group metadata`:c.cloud?"Cloud":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}'}`);
 
   const headers=new Headers(response.headers);headers.set("content-type","text/javascript; charset=utf-8");headers.delete("content-length");
   return new Response(source,{status:response.status,statusText:response.statusText,headers});
