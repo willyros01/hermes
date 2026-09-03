@@ -2,7 +2,7 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.2.3
+Current live test build on main: FIDUNIO 0.9.2.7
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -34,18 +34,21 @@ STABLE BASELINES
 - Forgot Password and authenticated Change Password implemented.
 - Profile fields displayName, email, telephone and photoURL save to /users/{uid}; email/password changes require current-password reauthentication.
 - Firebase Account and Device Identity technical cards are collapsed by default with Copy Details.
-- 0.9.2.2 attempted display-name propagation by rewriting conversation memberNames from the renamed user's client, but live test FAILED because Firestore conversation update rules only allow a conversation member and the approach did not reliably refresh peer UI. Do not rely on memberNames as authoritative profile name.
-- 0.9.2.3 changes peer display-name propagation to READ the authoritative /users/{peerUid}.displayName on each device via live profile listeners and overlays the peer name in conversation/chat UI. This avoids requiring cross-document conversation metadata writes and leaves E2EE/message transport untouched.
-- 0.9.2.3 adds a visible Sign Out button directly on the main Messages/chat screen, not hidden inside Firebase Account.
-- 0.9.2.3 forces About to be the absolute final Settings child, after the version footer and all dynamically-added Profile/Invitation cards.
+- 0.9.2.2 attempted display-name propagation by rewriting conversation memberNames from the renamed user's client, but live test FAILED. Do not rely on memberNames as authoritative profile name.
+- 0.9.2.3 changes peer display-name propagation to READ authoritative /users/{peerUid}.displayName via live profile listeners and overlays the peer name in conversation/chat UI, leaving message/E2EE transport untouched.
+- 0.9.2.3 added visible Sign Out directly on the main Messages/chat screen and moved About to the final Settings position.
+- 0.9.2.4 fixed a UI mutation loop introduced by main-screen polishing that could prevent the local unlock screen from responding.
+- 0.9.2.5 rebalanced iPad landscape Settings columns and tightened spacing.
+- 0.9.2.6 removed the obsolete Prototype connectivity Settings card while preserving actual Outbox/reconnect behavior.
+- 0.9.2.7 adds auth-unlock-bridge.js. When the user explicitly submits Sign In or successfully creates an invited account, the immediately-following local PIN/biometric prototype screen is bypassed once and the user proceeds directly into Messages. This is one-shot only; later local re-locks are not bypassed.
 - firebase-config.js was not touched.
 
 NEXT LIVE TEST
-1. Refresh/reopen and confirm visible FIDUNIO v0.9.2.3.
-2. On iPhone/Beta, confirm Alpha's already-saved new display name replaces Alpha Account without changing the name again.
-3. Confirm Sign Out is visible on the first Messages/chat screen.
-4. Open Settings and confirm About is physically the bottom-most section.
-5. If these pass, continue admin/security lifecycle work before Gamma onboarding: invitation revoke, user suspend/restore/expiration, security-event audit, then inactivity PIN/passkey lock.
+1. Refresh/reopen and confirm visible FIDUNIO v0.9.2.7.
+2. Test explicit Sign Out → Sign In. After successful account authentication, Messages should open directly without the PIN/biometric screen.
+3. Future invited account creation should likewise enter Messages directly after successful creation.
+4. Later local inactivity/background lock behavior should still use the PIN/passkey layer once that feature is fully implemented.
+5. Continue admin/security lifecycle work before Gamma onboarding: invitation revoke, user suspend/restore/expiration, security-event audit, then inactivity PIN/passkey lock.
 
 SECURITY / ADMIN PLAN
 - Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
@@ -55,7 +58,7 @@ SECURITY / ADMIN PLAN
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports protected firebase-config.js.
-- index.html loads version.js then bootstrap.js. bootstrap loads settings-polish.js, auth-ui.js, profile-sync.js and main-screen-polish.js.
+- index.html loads version.js then bootstrap.js. bootstrap loads settings-polish.js, auth-unlock-bridge.js, auth-ui.js, profile-sync.js and main-screen-polish.js.
 - IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
