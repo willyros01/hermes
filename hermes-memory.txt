@@ -24,7 +24,7 @@ ARCHITECTURE / STABLE BASELINES
 - 0.8.1 contact key verification baseline: PASS.
 - UI 0.8.1.9 plus Group Info tablet fix: PASS.
 - 0.8.1.16 receipt/re-entry baseline: PASS and protected rollback point.
-- 0.9.0.2 per-device E2EE two-device + receipt/re-entry development baseline: PASS.
+- 0.9.0.2 per-device E2EE two-device + receipt/re-entry + offline Outbox/reconnect development baseline: PASS.
 
 FIREBASE
 - Project fidunio-fef13; Auth Email/Password; Firestore Standard (default), nam5; authorized domain willyros01.github.io.
@@ -54,13 +54,15 @@ IPAD SENT → READ DEFECT HISTORY
 - Existing e2ee:1 history retains the old compatibility decrypt path.
 - Outbox remains authoritative; device envelopes are generated at actual transmission/retry time from the current registry rather than stored with stale device membership in the queued record.
 - Two-device validation: existing history readable PASS; iPad→iPhone plaintext + Read PASS; iPhone→iPad plaintext + Read PASS; leave/send/re-enter Sent→Read PASS on 0.9.0.2.
-- Treat FIDUNIO 0.9.0.2 as the current validated development baseline. Preserve it while proceeding to offline Outbox testing.
-- After Outbox and third-device fan-out validation, move harness behavior into clean app.js source and remove temporary transforms before final 0.9.0 release.
+- Offline Outbox/reconnect validation on 0.9.0.2: PASS in both directions between iPad and iPhone. Queued messages successfully resume transmission after reconnect under the per-device E2EE path.
+- Treat FIDUNIO 0.9.0.2 as the current validated development baseline and preserve its behavior.
+- Next controlled validation is a third authorized device to prove per-device fan-out.
+- After third-device fan-out validation, move harness behavior into clean app.js source and remove temporary transforms before final 0.9.0 release.
 
 0.9.0 NEXT TEST PLAN
 1. Preserve 0.9.0.2 behavior unchanged as the current development baseline.
-2. Test offline Outbox then reconnect in both directions.
-3. After two-device Outbox pass, add a third authorized device and verify per-device fan-out.
+2. Add a third authorized device and verify per-device fan-out: a new message must decrypt independently on each intended registered device.
+3. Verify sender's other authorized device can read sent history/envelope where applicable.
 4. Move validated service-worker harness logic into clean app.js and remove temporary runtime transforms.
 5. Full regression/security test, then prepare final 0.9.0 release ZIP.
 
@@ -81,4 +83,4 @@ GROUP REQUIREMENTS
 
 FIRE HD 8
 - Useful for Android-derived PWA/Web Crypto/IndexedDB/Firebase transport testing, but not full Google-certified Android target.
-- Do not add Fire 8 to the working accounts until the initial two-device 0.9.0 Outbox test passes.
+- Two-device 0.9.0.2 Outbox validation is now complete, so a third-device test may proceed in a controlled manner.
