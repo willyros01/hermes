@@ -2,7 +2,7 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.1.2
+Current live test build on main: FIDUNIO 0.9.2.1
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -85,19 +85,33 @@ IPAD SENT → READ DEFECT HISTORY
 - firebase-config.js and config-firestore.js were not touched.
 - 0.9.1.2 remains a LIVE TEST BUILD, not a validated baseline. 0.9.0.4 remains the validated rollback/development baseline.
 
-NEXT 0.9.1 TEST
-1. Refresh/reopen normal FIDUNIO site and confirm visible version 0.9.1.2.
-2. Confirm the Messages list no longer contains Maria Santos, John Cruz, or Family Group mock conversations while the real Alpha/Beta cloud conversation remains.
-3. Open New Message and confirm the Sample local contacts block/fictitious contacts are gone.
-4. Open New Group and confirm Beta Account remains the real available FIDUNIO account.
-5. Create a real Gamma test account without disturbing Alpha/Beta/device keys, then create Alpha + Beta + Gamma group metadata.
-6. Confirm Group Info and selected-account discovery.
-7. Do not test group message sending yet; it should remain unavailable.
-8. After metadata flow passes, add real rename/add/remove role operations and regress direct-message 0.9.0.4 behavior.
+0.9.2 INVITE-ONLY AUTH / PROFILE FOUNDATION
+- 0.9.2.0 introduced the real FIDUNIO admission gate: existing users Sign In; new users require a valid single-use invitation link/code; unrestricted account creation is disabled at the app layer.
+- Invitation links carry only a high-entropy token. Firestore stores role, inviter, status, expiration, and acceptance metadata. Invitations default to single-use and become unusable after account creation.
+- System roles are Owner/Admin/User and are separate from group Owner/Admin/Member roles.
+- Alpha iPad successfully claimed the one-time permanent FIDUNIO Owner role. User confirmed Settings shows System role: Owner and the Invitations panel.
+- Alpha successfully generated the first real single-use User invitation with 7-day expiration. Copy Link and Share controls rendered correctly.
+- Authentication UI includes Forgot Password on Sign In and Change Password for authenticated users.
+- Profile UI includes editable display name, email address, telephone number, and profile picture URL. Display name/photo are synchronized to Firebase Auth where applicable; profile fields are stored in /users/{uid} and include profileUpdatedAt on save.
+- Email changes and password changes require reauthentication with the current password.
+- 0.9.2.1 adds settings-polish.js and loads it from bootstrap.js so Firebase Account and Device Identity are collapsed by default. Each can be expanded on demand and offers Copy Details capability. This keeps technical identifiers available without cluttering the normal Settings screen.
+- Firestore user update rules permit displayName, email, telephone, photoURL, profileUpdatedAt, and existing E2EE public-key metadata while preserving systemRole protection.
+- User explicitly requested Firestore-backed editable profile information and confirmed the cleaner collapsed technical settings direction.
+- firebase-config.js was not touched.
+- 0.9.2.1 is a live test build; 0.9.0.4 remains the validated direct-messaging development baseline.
+
+NEXT LIVE TEST
+1. Publish the latest main-branch firestore.rules containing editable profile-field permissions.
+2. Refresh/reopen Alpha iPad and confirm visible version 0.9.2.1.
+3. Confirm Firebase Account and Device Identity are collapsed by default and can be expanded/copied.
+4. Test saving a telephone number or other non-auth profile field; refresh and confirm it reloads from Firestore.
+5. Continue Gamma onboarding using Alpha's already-created single-use invitation, then confirm Beta + Gamma appear in New Group.
+6. Create Alpha + Beta + Gamma group metadata; keep group message sending disabled until group E2EE is implemented.
+7. Regress the 0.9.0.4 direct-message fan-out/receipt path after metadata group testing.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports firebase-config.js.
-- index.html loads version.js then bootstrap.js; bootstrap.js migrates prototype local state and imports app.js; service-worker.js imports version.js.
+- index.html loads version.js then bootstrap.js; bootstrap.js migrates prototype local state, loads settings-polish.js, then auth-ui.js; auth-ui.js starts app.js after admission succeeds.
 - IndexedDB DB fidunio-local v2; stores meta, outbox, history.
 - E2EE keypair meta e2ee-device-keypair-v1; device identity e2ee-device-identity-v1.
 - Firebase data is never service-worker cached.
