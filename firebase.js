@@ -74,7 +74,7 @@ export async function startDirectConversation(peerUid){
   const peerSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",peerUid));
   if(!peerSnap.exists()) throw new Error("Recipient FIDUNIO ID was not found.");
   const peer=peerSnap.data();
-  const meSnap=await s.fsSdk.getDoc(s.db,"users",authUser.uid);
+  const meSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",authUser.uid));
   const me=meSnap.exists()?meSnap.data():{displayName:authUser.displayName||authUser.email||"User"};
   const id=dmId(authUser.uid,peerUid);
   const ref=s.fsSdk.doc(s.db,"conversations",id);
