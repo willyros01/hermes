@@ -1,8 +1,7 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
-Current validated development baseline on main: FIDUNIO 0.9.0.2
-Current unvalidated test build on main: FIDUNIO 0.9.0.4
+Current validated development baseline on main: FIDUNIO 0.9.0.4
 Development branch retained: release/0.9.0
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -25,11 +24,12 @@ ARCHITECTURE / STABLE BASELINES
 - 0.8.1 contact key verification baseline: PASS.
 - UI 0.8.1.9 plus Group Info tablet fix: PASS.
 - 0.8.1.16 receipt/re-entry baseline: PASS and protected rollback point.
-- 0.9.0.2 per-device E2EE two-device + receipt/re-entry + offline Outbox/reconnect development baseline: PASS.
+- 0.9.0.2 per-device E2EE two-device + receipt/re-entry + offline Outbox/reconnect baseline: PASS.
+- 0.9.0.4 third-device per-device fan-out baseline: PASS.
 
 FIREBASE
 - Project fidunio-fef13; Auth Email/Password; Firestore Standard (default), nam5; authorized domain willyros01.github.io.
-- Account A on iPad, Account B on iPhone; different Firebase accounts.
+- Account A on iPad, Account B on iPhone and Fire HD 8 during third-device test.
 - Do not ask user to recreate accounts/re-paste UID unless restoration truly fails.
 - 0.9.0 Firestore rules were manually published by the user before live test promotion.
 
@@ -56,19 +56,19 @@ IPAD SENT → READ DEFECT HISTORY
 - Outbox remains authoritative; device envelopes are generated at actual transmission/retry time from the current registry rather than stored with stale device membership in the queued record.
 - Two-device validation: existing history readable PASS; iPad→iPhone plaintext + Read PASS; iPhone→iPad plaintext + Read PASS; leave/send/re-enter Sent→Read PASS on 0.9.0.2.
 - Offline Outbox/reconnect validation on 0.9.0.2: PASS in both directions between iPad and iPhone. Queued messages successfully resume transmission after reconnect under the per-device E2EE path.
-- Third-device setup: Fire HD 8 signed into the same account as iPhone; Conversation Security on iPad reported 2 registered devices. Fire device fingerprint did not match the displayed account-level compatibility fingerprint, confirming the old verification UI/gate is account-level rather than per-device.
-- 0.9.0.3 FAILED before send: Conversation Security still opened on iPad. The first exact service-worker source transform intended to remove the pre-queue legacy trust gate did not match the live app.js source, so the UI gate remained active. No test message was transmitted.
-- 0.9.0.4 retry: service-worker keeps the exact transform and adds a narrowly scoped regex fallback matching the same pre-send account-level trust block. The Outbox transmit path remains per-device e2ee:2 and does not use the legacy compatibility fingerprint as an authorization gate.
-- 0.9.0.4 is NOT yet validated. 0.9.0.2 remains the validated development baseline until third-device fan-out passes.
+- Third-device setup: Fire HD 8 signed into the same Beta account as iPhone; Conversation Security on iPad reported 2 registered devices. Fire device fingerprint did not match the displayed account-level compatibility fingerprint, confirming the old verification UI/gate is account-level rather than per-device.
+- Fire HD 8 cannot decrypt older messages that lack an envelope for its newly registered device; this is expected for messages created before that device was included in the recipient device set. Preserve this behavior/history for testing.
+- 0.9.0.3 FAILED before send: Conversation Security still opened on iPad because the exact service-worker source transform intended to remove the pre-queue legacy trust gate did not match the live app.js source. No test message was transmitted.
+- 0.9.0.4 adds a narrowly scoped fallback matching the same pre-send account-level trust block. The Outbox transmit path remains per-device e2ee:2 and does not use the legacy compatibility fingerprint as an authorization gate.
+- 0.9.0.4 THIRD-DEVICE FAN-OUT PASS: user sent a new message from iPad after Fire HD 8 registration. Both iPhone and Fire HD 8 independently displayed the new message normally, and the iPad sender status changed to Read. This validates current registered-device fan-out and recipient decryption for two devices on the same Beta account while preserving sender receipt behavior.
+- FIDUNIO 0.9.0.4 is now the current validated development baseline. Preserve its messaging, receipt, Outbox, and per-device fan-out behavior.
 
 0.9.0 NEXT TEST PLAN
-1. Load 0.9.0.4 on the iPad without signing out or clearing browser data.
-2. Retry iPad → Beta Account third-device fan-out. Conversation Security should no longer interrupt the send merely because the legacy account compatibility fingerprint changed.
-3. Verify the same new message decrypts independently on both iPhone and Fire HD 8.
-4. Verify sender's other authorized device can read sent history/envelope where applicable.
-5. If third-device fan-out passes, promote the passing build to validated development baseline and update memory.
-6. Move validated service-worker harness logic into clean app.js and remove temporary runtime transforms.
-7. Full regression/security test, then prepare final 0.9.0 release ZIP.
+1. Preserve 0.9.0.4 unchanged as the current validated development baseline.
+2. Verify sender's other authorized device can read sent history/envelope where applicable.
+3. Move validated service-worker harness logic into clean app.js and remove temporary runtime transforms.
+4. Replace the legacy single-account compatibility-key verification model with a true device-level/device-set trust UI before production; do not simply restore the obsolete account-level send gate.
+5. Full regression/security test, then prepare final 0.9.0 release ZIP.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports firebase-config.js.
@@ -87,4 +87,4 @@ GROUP REQUIREMENTS
 
 FIRE HD 8
 - Useful for Android-derived PWA/Web Crypto/IndexedDB/Firebase transport testing, but not full Google-certified Android target.
-- Two-device 0.9.0.2 Outbox validation is complete; Fire HD 8 is now the controlled third-device fan-out target.
+- Third-device fan-out validation on 0.9.0.4: PASS for newly sent message; older messages without a Fire-specific envelope remain unavailable on Fire as expected.
