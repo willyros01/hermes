@@ -8,6 +8,7 @@ service cloud.firestore {
     function groupDocAfter(groupId){return getAfter(/databases/$(database)/documents/groups/$(groupId));}
     function isGroupMember(groupId){return signedIn() && exists(/databases/$(database)/documents/groups/$(groupId)) && request.auth.uid in groupDoc(groupId).data.memberUids;}
     function isGroupAdmin(groupId){return isGroupMember(groupId) && request.auth.uid in groupDoc(groupId).data.adminUids;}
+    function isGroupAdminAfter(groupId){return signedIn() && request.auth.uid in groupDocAfter(groupId).data.adminUids;}
     function validGroupLists(data){
       return data.memberUids is list
         && data.adminUids is list
@@ -68,11 +69,7 @@ service cloud.firestore {
 
     match /groups/{groupId} {
       allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
-
-      allow create: if signedIn()
-        && request.resource.data.ownerUid == request.auth.uid
-        && validGroupShape(request.resource.data);
-
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && validGroupShape(request.resource.data);
       allow update: if isGroupAdmin(groupId)
         && request.resource.data.type == resource.data.type
         && request.resource.data.ownerUid == resource.data.ownerUid
@@ -85,18 +82,15 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
         && validGroupLists(request.resource.data);
-
       allow delete: if false;
 
       match /members/{uid} {
-        allow read: if isGroupMember(groupId);
-
-        allow create: if isGroupAdmin(groupId)
+        allow read: if isGroupMember(groupId) || isGroupAdminAfter(groupId);
+        allow create: if isGroupAdminAfter(groupId)
           && request.resource.data.uid == uid
           && uid in groupDocAfter(groupId).data.memberUids
           && request.resource.data.role in ["owner", "admin", "member"]
           && request.resource.data.active == true;
-
         allow update: if isGroupAdmin(groupId)
           && request.resource.data.uid == resource.data.uid
           && request.resource.data.uid == uid
@@ -105,7 +99,6 @@ service cloud.firestore {
           && uid in groupDocAfter(groupId).data.memberUids
           && request.resource.data.role in ["owner", "admin", "member"]
           && request.resource.data.active == true;
-
         allow delete: if isGroupAdmin(groupId)
           && uid != groupDoc(groupId).data.ownerUid
           && !(uid in groupDocAfter(groupId).data.memberUids);
