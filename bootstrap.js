@@ -121,6 +121,7 @@ try{
   console.warn("FIDUNIO prototype cleanup failed safely; continuing startup",err);
 }
 
+await import("./settings-polish.js");
 const {runAuthGate}=await import("./auth-ui.js");
 await runAuthGate();
 scrubPrototypeUi();
