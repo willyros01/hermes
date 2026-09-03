@@ -13,18 +13,19 @@ async function getSignOut(){
   signOutFn=()=>authSdk.signOut(auth);
   return signOutFn;
 }
+function setTextIfChanged(el,value){if(el&&el.textContent!==value)el.textContent=value;}
 function applyPeerNames(){
   document.querySelectorAll(".conversation,.tablet-conversation").forEach(row=>{
     const id=String(row.dataset.id||"");
-    const match=id.match(/^dm_(.+)_(.+)$/);if(!match)return;
+    if(!/^dm_(.+)_(.+)$/.test(id))return;
     const current=Object.entries(names).find(([uid])=>id.includes(uid));if(!current)return;
-    const nameEl=row.querySelector(".name");if(nameEl)nameEl.textContent=current[1];
+    setTextIfChanged(row.querySelector(".name"),current[1]);
   });
   const title=document.querySelector(".chat-header-title strong");
   if(title){
     const selected=document.querySelector(".tablet-conversation.active")?.dataset.id;
     const current=selected&&Object.entries(names).find(([uid])=>selected.includes(uid));
-    if(current)title.textContent=current[1];
+    if(current)setTextIfChanged(title,current[1]);
   }
 }
 function addMainSignOut(){
@@ -39,4 +40,7 @@ function addMainSignOut(){
 }
 function polish(){addMainSignOut();applyPeerNames();}
 globalThis.addEventListener("fidunio-profile-names",e=>{names=e.detail?.names||{};polish();});
-const observer=new MutationObserver(polish);observer.observe(document.documentElement,{subtree:true,childList:true});polish();
+let scheduled=false;
+const observer=new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;polish();});});
+observer.observe(document.documentElement,{subtree:true,childList:true});
+polish();
