@@ -4,6 +4,7 @@ const SDK_VERSION="12.18.0";
 let sdkPromise=null;
 let services=null;
 let authUser=null;
+const messageStreams=new Map();
 
 export function isFirebaseConfigured(){
   return firebaseConfig &&
@@ -73,7 +74,7 @@ export async function startDirectConversation(peerUid){
   const peerSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",peerUid));
   if(!peerSnap.exists()) throw new Error("Recipient FIDUNIO ID was not found.");
   const peer=peerSnap.data();
-  const meSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",authUser.uid));
+  const meSnap=await s.fsSdk.getDoc(s.db,"users",authUser.uid);
   const me=meSnap.exists()?meSnap.data():{displayName:authUser.displayName||authUser.email||"User"};
   const id=dmId(authUser.uid,peerUid);
   const ref=s.fsSdk.doc(s.db,"conversations",id);
@@ -181,32 +182,72 @@ export function subscribeMyConversations(uid,onRows,onError){
   return ()=>{active=false;unsub();};
 }
 export function subscribeConversationMessages(conversationId,myUid,onRows,onError){
-  let active=true,unsub=()=>{};
-  let delivery=Promise.resolve();
-  ensureServices().then(s=>{
-    if(!active) return;
-    const q=s.fsSdk.query(
-      s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),
-      s.fsSdk.orderBy("createdAt","asc")
-    );
-    unsub=s.fsSdk.onSnapshot(q,snap=>{
-      const rows=snap.docs.map(d=>({id:d.id,...d.data()}));
-      const meta={
-        fromCache:!!snap.metadata?.fromCache,
-        hasPendingWrites:!!snap.metadata?.hasPendingWrites
-      };
+  const key=String(conversationId);
+  const token=Symbol(key);
+  let stream=messageStreams.get(key);
 
-      // The app's message callback performs asynchronous key refresh,
-      // decryption, local-history caching, and read-receipt work. Keep
-      // snapshots for this one active conversation strictly ordered so an
-      // older Sent snapshot cannot finish after a newer Read snapshot and
-      // overwrite the newer receipt state in the two-pane iPad UI.
-      delivery=delivery
-        .then(()=>active ? onRows(rows,meta) : undefined)
-        .catch(err=>{
-          if(active) onError?.(err);
-        });
-    },onError);
-  }).catch(onError);
-  return ()=>{active=false;unsub();};
+  // Tablet two-pane navigation can re-enter the same chat during render and
+  // historically called unsubscribe + subscribe with force:true. Keep the
+  // underlying Firestore listener alive across that handoff instead of
+  // repeatedly tearing down the active receipt stream.
+  if(stream){
+    if(stream.closeTimer){clearTimeout(stream.closeTimer);stream.closeTimer=null;}
+    stream.token=token;
+    stream.onRows=onRows;
+    stream.onError=onError;
+  }else{
+    stream={
+      token,onRows,onError,
+      delivery:Promise.resolve(),
+      unsub:()=>{},
+      closeTimer:null,
+      ready:false
+    };
+    messageStreams.set(key,stream);
+    ensureServices().then(s=>{
+      if(messageStreams.get(key)!==stream) return;
+      const q=s.fsSdk.query(
+        s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),
+        s.fsSdk.orderBy("createdAt","asc")
+      );
+      stream.unsub=s.fsSdk.onSnapshot(q,snap=>{
+        const current=messageStreams.get(key);
+        if(current!==stream) return;
+        const rows=snap.docs.map(d=>({id:d.id,...d.data()}));
+        const meta={
+          fromCache:!!snap.metadata?.fromCache,
+          hasPendingWrites:!!snap.metadata?.hasPendingWrites
+        };
+        stream.delivery=stream.delivery
+          .then(()=>{
+            const live=messageStreams.get(key);
+            return live===stream ? stream.onRows(rows,meta) : undefined;
+          })
+          .catch(err=>{
+            const live=messageStreams.get(key);
+            if(live===stream) stream.onError?.(err);
+          });
+      },err=>{
+        const current=messageStreams.get(key);
+        if(current===stream) stream.onError?.(err);
+      });
+      stream.ready=true;
+    }).catch(err=>{
+      const current=messageStreams.get(key);
+      if(current===stream) stream.onError?.(err);
+    });
+  }
+
+  return ()=>{
+    const current=messageStreams.get(key);
+    if(current!==stream || current.token!==token) return;
+    // A short grace period lets the iPad's immediate forced resubscribe adopt
+    // this exact listener. Real conversation changes still close promptly.
+    current.closeTimer=setTimeout(()=>{
+      const latest=messageStreams.get(key);
+      if(latest!==stream || latest.token!==token) return;
+      latest.unsub();
+      messageStreams.delete(key);
+    },250);
+  };
 }
