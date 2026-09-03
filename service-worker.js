@@ -8,9 +8,11 @@
  *   served offline after they have been fetched successfully.
  * - Firestore/Auth data transport is NEVER service-worker cached.
  *
- * 0.8.1.14: iPad Sent → Read receipt fast-path test.
- * Apply receipt metadata from the Firestore snapshot before peer-key refresh
- * and decryption so visible state is not blocked by E2EE work. No polling.
+ * 0.8.1.15: recipient-side Read-on-entry fix.
+ * When a cloud conversation is opened, mark any already-known incoming
+ * unread messages Read immediately. This fixes the case where a message
+ * arrives while the iPhone is outside the conversation and the user later
+ * enters it. No polling, rules, E2EE, Outbox, or layout changes.
  */
 
 importScripts("./version.js");
@@ -77,12 +79,11 @@ async function stableTabletAppResponse(request,response){
     "if(chosen.cloud) beginCloudMessageSubscription(chosen.id);"
   );
 
-  // Receipt state is not encrypted. Update an already-visible outgoing row
-  // immediately from raw Firestore snapshot metadata before any asynchronous
-  // peer-key refresh/decryption. The normal full merge still runs afterward.
-  const needle=`      const existing=state.messages[conversationId] || [];
+  // 0.8.1.14 receipt fast-path: state metadata is not encrypted, so apply it
+  // before asynchronous key refresh/decryption work.
+  const receiptNeedle=`      const existing=state.messages[conversationId] || [];
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
-  const replacement=`      const existing=state.messages[conversationId] || [];
+  const receiptReplacement=`      const existing=state.messages[conversationId] || [];
 
       if(!meta.fromCache){
         const rawStateById=new Map(rows.map(r=>[r.id,r.state||"sent"]));
@@ -101,7 +102,24 @@ async function stableTabletAppResponse(request,response){
       }
 
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
-  source=source.replace(needle,replacement);
+  source=source.replace(receiptNeedle,receiptReplacement);
+
+  // 0.8.1.15 recipient-side fix: if an incoming message arrived while the
+  // recipient was outside the conversation, entering the conversation must
+  // explicitly advance those already-known incoming rows to Read. The live
+  // listener still handles messages that arrive while the chat is open.
+  const entryNeedle=`  requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
+}`;
+  const entryReplacement=`  requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
+  if(c.cloud && firebaseUser){
+    const entryConversationId=state.selectedId;
+    const entryUnread=(state.messages[entryConversationId]||[]).filter(m=>!m.mine && m.cloud && m.state!=="read");
+    for(const m of entryUnread){
+      updateCloudMessageState(entryConversationId,m.id,"read").catch(()=>{});
+    }
+  }
+}`;
+  source=source.replace(entryNeedle,entryReplacement);
 
   const headers=new Headers(response.headers);
   headers.set("content-type","text/javascript; charset=utf-8");
