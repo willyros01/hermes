@@ -1,6 +1,6 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current release baseline: FIDUNIO 0.8.1.5
+Current release baseline: FIDUNIO 0.8.1.6
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -447,9 +447,9 @@ CURRENT STATUS
 ==================================================
 
 Current release under test:
-FIDUNIO 0.8.1.5
+FIDUNIO 0.8.1.6
 
-0.8.1.5 is the current UI release.
+0.8.1.6 is the current UI release.
 
 Expected behavior:
 - iPhone/narrow viewport: single-pane layout.
@@ -458,7 +458,7 @@ Expected behavior:
 - Compact 4×2 colored attachment icons remain.
 - Settings/New controls render as SVG graphics, not literal ${icon2d(...)} text.
 - Tablet conversation switching should update the right pane.
-- No Firestore Rules update required for 0.8.1.5.
+- No Firestore Rules update required for 0.8.1.6.
 - Security baseline remains 0.8.1.
 - Device-identity baseline remains 0.8.0.
 - Transport/reconnect baseline remains 0.7.3.
@@ -517,3 +517,41 @@ Current expected 0.8.1.5 behavior:
 - Transport/reconnect baseline: 0.7.3.
 - Offline/local-first baseline: 0.6.5.
 - Next major planned release: 0.9.0 true per-device E2EE.
+
+
+==================================================
+0.8.1.6 — TABLET WIDTH / COMPOSER / TOOLBAR CORRECTION
+==================================================
+
+Observed on iPad after 0.8.1.5:
+- The 8 attachment icons technically formed one row, but the row looked cramped/detached.
+- Composer/tool strip occupied only a narrow central portion instead of the full right pane.
+- On another iPad view the entire app unexpectedly narrowed toward a phone-like centered width.
+- Sidebar bottom navigation was partially obscured/cropped.
+
+Root cause:
+- The original phone `.composer-wrap` remained `position: fixed` and still used the phone `--app-max` (520px) centering formula inside tablet mode.
+- The adaptive breakpoint of 820 CSS px was too high for some iPad/Safari portrait or constrained viewport cases.
+
+Fix:
+- In tablet mode, composer becomes position:static inside `.tablet-chat-pane`.
+- It spans 100% of the right pane.
+- 8 attachment icons remain one horizontal row and are compact/evenly spaced.
+- Tablet breakpoint lowered to 700 CSS px.
+- Body/tablet shell stretch to full viewport width.
+- Sidebar bottom navigation is no longer covered by the composer.
+- iPhone below 700 CSS px remains single-pane.
+
+No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local history, or reconnect changes.
+
+Current expected release:
+FIDUNIO 0.8.1.6
+- iPad/tablet >=700 CSS px: full two-pane layout.
+- Right-pane composer contained within right pane.
+- Attachment tools: exactly one row of 8.
+- iPhone/narrow <700 CSS px: single-pane.
+- Security baseline remains 0.8.1.
+- Device identity baseline remains 0.8.0.
+- Transport/reconnect baseline remains 0.7.3.
+- Offline/local-first baseline remains 0.6.5.
+- Next major planned release remains 0.9.0 true per-device E2EE.

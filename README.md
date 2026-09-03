@@ -450,3 +450,15 @@ Final iPad UI refinement based on the approved 0.8.1.4 two-pane layout.
 - The iPad conversation sidebar now includes a compact bottom navigation strip for Messages, Groups, Contacts, and Settings.
 - iPhone/narrow view remains a compact 4×2 attachment grid.
 - No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.
+
+
+## Hermes 0.8.1.6 / FIDUNIO 0.8.1.6
+
+UI-only correction to the tablet layout.
+
+- Fixes the tablet composer/tool strip being constrained by the old phone `position: fixed` / 520px centering rules.
+- Tablet composer now participates normally inside the right pane and spans the full chat-pane width.
+- Keeps all 8 attachment icons in one compact horizontal row.
+- Lowers the adaptive two-pane threshold to 700 CSS px so iPad portrait/narrow Safari viewports do not unexpectedly fall back to the centered phone layout.
+- Keeps iPhone below 700px single-pane.
+- No backend, Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.

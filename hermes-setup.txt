@@ -1,36 +1,35 @@
-HERMES / FIDUNIO 0.8.1.5 — FINAL IPAD TOOLBAR LAYOUT
+HERMES / FIDUNIO 0.8.1.6 — TABLET WIDTH + TOOLBAR FIX
 
 PURPOSE
-UI-only refinement of the working 0.8.1.4 iPad two-pane layout.
+UI-only correction to the 0.8.1.5 iPad layout.
 
-WHAT CHANGED
-- On iPad/tablet wide layout, all 8 attachment tools now appear on ONE horizontal line:
-  Photo | File | Voice | Location | Contact | Checklist | Schedule | Saved
-- Colored 2D icons remain.
-- Labels appear below each icon.
-- Attachment tiles are compact rather than large boxed cards.
-- Left conversation pane now has a bottom navigation strip:
-  Messages | Groups | Contacts | Settings
-- iPhone/narrow layouts remain single-pane with the compact 4×2 attachment grid.
+ROOT CAUSE FIXED
+The phone composer was still position:fixed and used the 520px phone-width centering calculation even while the app was in tablet mode. That caused the composer/tool row to float over the split view, compress the visible area, and make the 8 icons look odd.
 
-NO BACKEND OR SECURITY CHANGES
-No Firebase, Firestore Rules, E2EE, contact-key verification, device identity, Outbox, local-history, or reconnect changes.
+CHANGES
+- Tablet composer is now contained inside the RIGHT chat pane.
+- Composer width follows the right pane instead of the old phone 520px width.
+- All 8 attachment icons remain on ONE line on tablet.
+- Icons are compact, colored, and evenly spaced.
+- Two-pane breakpoint lowered from 820px to 700px so iPad portrait/narrow Safari widths stay in tablet mode.
+- iPhone remains single-pane below 700px.
+- Sidebar bottom navigation no longer sits underneath the floating composer.
+
+NO SECURITY/BACKEND CHANGES
+No Firebase, Firestore Rules, E2EE, contact verification, device identity, Outbox, local history, or reconnect changes.
 
 GITHUB
-1. Upload ZIP contents to the ROOT of the existing hermes repository.
+1. Upload ZIP contents to the ROOT of the hermes repository.
 2. Preserve firebase-config.js and config-firestore.js.
 3. Overwrite hermes-memory.txt and hermes-setup.txt.
-4. Confirm version.js shows 0.8.1.5.
-5. No Firestore Rules update is required.
+4. Confirm version.js shows 0.8.1.6.
+5. No Firestore Rules publication required.
 
 TEST
-1. iPad landscape: two panes should appear immediately.
-2. Open the + attachment tools.
-   PASS = all 8 icons appear in one horizontal row with complete labels.
-3. Confirm left sidebar shows Messages, Groups, Contacts, Settings at the bottom.
-4. Select another conversation.
-   PASS = right pane changes.
-5. iPhone:
-   PASS = single-pane and compact 4×2 attachment grid remain.
-6. Send one short message each direction.
-   PASS = messaging remains normal.
+1. iPad landscape: two panes fill the screen.
+2. iPad portrait: two panes should remain if viewport is at least 700 CSS px.
+3. Open + tools:
+   PASS = Photo, File, Voice, Location, Contact, Checklist, Schedule, Saved appear in ONE horizontal row inside the right pane.
+4. Confirm sidebar bottom navigation is fully visible.
+5. Switch conversations and send one short message.
+6. iPhone remains single-pane.

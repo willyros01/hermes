@@ -775,7 +775,7 @@ function applyAppearance(){
 }
 
 function isWideLayout(){
-  return window.matchMedia && window.matchMedia("(min-width: 820px)").matches;
+  return window.matchMedia && window.matchMedia("(min-width: 700px)").matches;
 }
 function renderConversationSidebar(){
   return `
