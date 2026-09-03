@@ -770,6 +770,46 @@ function applyAppearance(){
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute("content", effective==="dark" ? "#182127" : "#ffffff");
 }
+
+function isWideLayout(){
+  return window.matchMedia && window.matchMedia("(min-width: 820px)").matches;
+}
+function renderConversationSidebar(){
+  return `
+    <aside class="tablet-sidebar">
+      <div class="tablet-brand-row">
+        <div>
+          <div class="tablet-brand-name">FIDUNIO</div>
+          <div class="tablet-brand-sub">Private Messaging</div>
+        </div>
+        <button class="icon-btn icon-2d" id="tabletNewBtn" aria-label="New conversation">${icon2d("plus",23)}</button>
+      </div>
+      <div class="tablet-search-wrap">
+        <input class="search" id="tabletSearchBox" placeholder="Search conversations" />
+      </div>
+      <div class="tablet-conversation-list" id="tabletConversationList"></div>
+    </aside>`;
+}
+function drawTabletConversationList(term=""){
+  const list=document.querySelector("#tabletConversationList");
+  if(!list) return;
+  list.innerHTML=state.conversations
+    .filter(c=>c.name.toLowerCase().includes(term.toLowerCase())||c.preview.toLowerCase().includes(term.toLowerCase()))
+    .map(c=>`
+      <button class="tablet-conversation ${String(c.id)===String(state.selectedId)?"active":""}" data-id="${c.id}">
+        <div class="avatar ${c.type==="group"?"group-avatar":""}">${initials(c.name)}</div>
+        <div class="tablet-conversation-main">
+          <div class="tablet-row-top"><span class="name">${esc(c.name)}</span><span class="meta">${esc(c.time)}</span></div>
+          <div class="preview">${c.type==="group"?"Group • ":""}${esc(c.preview)}</div>
+        </div>
+      </button>`).join("");
+  list.querySelectorAll(".tablet-conversation").forEach(btn=>btn.onclick=()=>{
+    state.selectedId=btn.dataset.id;
+    state.route="chat";
+    render();
+  });
+}
+
 function render(){
   persistSoon();
   document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
@@ -977,8 +1017,7 @@ function renderGroupName(){
 function renderChat(){
   const c=currentConversation();
   const msgs=state.messages[state.selectedId]||[];
-  app.innerHTML=`
-    <main class="app-shell">
+  const chatMarkup=`
       <header class="topbar">
         <button class="back-btn icon-2d" id="backBtn" aria-label="Back">${icon2d("back",23)}</button>
         <div class="chat-header-title">
@@ -1011,8 +1050,17 @@ function renderChat(){
           ${toolButton("contact","Contact")}${toolButton("checklist","Checklist")}
           ${toolButton("schedule","Schedule")}${toolButton("saved","Saved")}
         </div>
-      </section>
-    </main>`;
+      </section>`;
+  if(isWideLayout()){
+    app.innerHTML=`<main class="app-shell tablet-shell">${renderConversationSidebar()}<section class="tablet-chat-pane">${chatMarkup}</section></main>`;
+    drawTabletConversationList();
+    const tSearch=document.querySelector("#tabletSearchBox");
+    if(tSearch) tSearch.oninput=e=>drawTabletConversationList(e.target.value);
+    const tNew=document.querySelector("#tabletNewBtn");
+    if(tNew) tNew.onclick=()=>{state.route="newConversation";render()};
+  }else{
+    app.innerHTML=`<main class="app-shell">${chatMarkup}</main>`;
+  }
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
   document.querySelector("#infoBtn").onclick=async()=>{
     if(isGroup(c)){state.route="groupInfo";return render();}
@@ -1225,6 +1273,16 @@ window.addEventListener("offline",()=>{
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible") recoverForegroundCloudSession();
 });
+
+let lastWideLayout=isWideLayout();
+window.addEventListener("resize",()=>{
+  const nowWide=isWideLayout();
+  if(nowWide!==lastWideLayout){
+    lastWideLayout=nowWide;
+    if(state.unlocked && (state.route==="chat" || state.route==="messages")) render();
+  }
+});
+
 window.addEventListener("pageshow",recoverForegroundCloudSession);
 
 function renderGroupInfo(){

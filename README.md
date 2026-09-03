@@ -415,3 +415,15 @@ Responsive UI correction for the 0.8.1.1 icon refresh.
 - Prevents tool buttons and labels from forcing the grid wider than the viewport.
 - Adds distinct color accents to the 2D tool icons to improve recognition.
 - Keeps all security, Firebase, Firestore, E2EE, verification, Outbox, history, and reconnect logic unchanged.
+
+
+## Hermes 0.8.1.3 / FIDUNIO 0.8.1.3
+
+Responsive UI refinement combining compact colored attachment icons with adaptive tablet presentation.
+
+- Restores a compact 4×2 attachment-icon grid.
+- Keeps recognizable colored 2D icons with complete labels.
+- Adds adaptive two-pane tablet layout at wider viewport sizes: conversation sidebar left, active chat right.
+- Automatically falls back to single-pane at narrow widths.
+- Uses viewport width rather than device-name detection.
+- No Firebase, Firestore rules, E2EE, key verification, device identity, Outbox, local history, or reconnect changes.

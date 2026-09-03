@@ -1,27 +1,28 @@
-HERMES / FIDUNIO 0.8.1.2 — RESPONSIVE 2D ICON FIX
+HERMES / FIDUNIO 0.8.1.3 — COMPACT ICONS + ADAPTIVE TABLET UI
 
 PURPOSE
-UI-only correction to 0.8.1.1.
+UI-only release combining the preferred compact colored icons with the approved iPad/tablet two-pane layout.
 
-CHANGES
-- Fixes attachment/tool-panel overflow on iPad.
-- iPad/tablet: 4-column tool grid.
-- iPhone/narrow screens: 2-column tool grid so every button remains fully visible.
-- Adds distinct color accents to Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved icons.
-- Quick-reply row can scroll horizontally on narrow screens instead of forcing layout overflow.
+WHAT CHANGED
+- Compact 4×2 colored attachment icons on iPhone and iPad/tablet.
+- Full labels remain visible.
+- Wide viewport (820 CSS px and above): conversations remain visible in a left sidebar while the active chat appears on the right.
+- Narrow viewport: existing single-pane phone layout.
+- Layout adapts to actual browser width, including split-screen and other tablets.
 
-NO FUNCTIONAL/SECURITY CHANGES
-No changes to Firebase, Firestore rules, E2EE, key verification, device identity, Outbox, local history, or reconnect behavior.
+NO SECURITY OR TRANSPORT CHANGES
+No changes to Firebase, Firestore rules, E2EE, contact-key verification, device identity, Outbox, local-first history, or reconnect/listener behavior.
 
 GITHUB
-1. Upload ZIP contents to the ROOT of the hermes repository.
+1. Upload ZIP contents to the ROOT of the existing hermes repository.
 2. Preserve firebase-config.js and config-firestore.js.
 3. Overwrite hermes-memory.txt and hermes-setup.txt.
-4. Confirm version.js says 0.8.1.2.
+4. Confirm version.js shows 0.8.1.3.
 5. No Firestore rules update is required.
 
 TEST
-- iPad: open + panel; all 8 tools should fit inside the app width with 4 columns.
-- iPhone: open + panel; all 8 tools should fit with 2 columns and no right-side clipping.
-- Confirm colored icons are easy to distinguish.
-- Send one message each direction to confirm no regression.
+1. iPhone: confirm single-pane chat, compact 4×2 tool icons, full labels.
+2. iPad landscape: confirm two-pane layout with conversation sidebar left and selected chat right.
+3. iPad portrait/Split View: confirm the layout adapts cleanly.
+4. Send one message each direction.
+5. Confirm Conversation Security remains verified.
