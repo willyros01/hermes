@@ -8,7 +8,7 @@
  *   served offline after they have been fetched successfully.
  * - Firestore/Auth data transport is NEVER service-worker cached.
  *
- * 0.8.1.12: service-worker script touched so iOS installs the ordered
+ * 0.8.1.13: service-worker script touched so iOS installs the stable
  * active-conversation listener build; Group Info stylesheet remains cached.
  */
 
