@@ -17,8 +17,11 @@ const observer=new MutationObserver(()=>scrubPrototypeUi());observer.observe(doc
 try{await migratePrototypeData();}catch(err){console.warn("FIDUNIO prototype cleanup failed safely; continuing startup",err);}
 await import("./settings-polish.js");
 await import("./auth-unlock-bridge.js");
+const {startAccountGuard}=await import("./account-guard.js");
+await startAccountGuard();
 const {runAuthGate}=await import("./auth-ui.js");
 await runAuthGate();
 await import("./profile-sync.js");
 await import("./main-screen-polish.js");
+await import("./admin-ui.js");
 scrubPrototypeUi();
