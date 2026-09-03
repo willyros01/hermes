@@ -486,3 +486,17 @@ Completes the tablet-width treatment for secondary screens.
 - The first/unlock screen now also adapts to iPad/tablet width instead of looking like a narrow phone screen.
 - Existing 0.8.1.7 two-pane chat, centered one-line attachment toolbar, and phone behavior remain unchanged.
 - No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.
+
+
+## Hermes 0.8.1.9 / FIDUNIO 0.8.1.9
+
+Orientation-aware tablet UI refinement.
+
+- iPad/tablet portrait preserves the centered single-column secondary-screen design.
+- iPad/tablet landscape now uses the available width instead of leaving a large empty area.
+- Settings uses a two-column card layout on wide landscape tablets.
+- Unlock/first screen becomes a wider centered card in landscape.
+- New Message/New Group/Group Name use a broader centered workspace in landscape.
+- Messages/chat retains the established two-pane tablet layout.
+- iPhone/narrow layouts remain unchanged.
+- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local history, or reconnect changes.

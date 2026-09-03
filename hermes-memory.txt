@@ -1,6 +1,6 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current release baseline: FIDUNIO 0.8.1.8
+Current release baseline: FIDUNIO 0.8.1.9
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -447,9 +447,9 @@ CURRENT STATUS
 ==================================================
 
 Current release under test:
-FIDUNIO 0.8.1.8
+FIDUNIO 0.8.1.9
 
-0.8.1.8 is the current UI release.
+0.8.1.9 is the current UI release.
 
 Expected behavior:
 - iPhone/narrow viewport: single-pane layout.
@@ -458,7 +458,7 @@ Expected behavior:
 - Compact 4×2 colored attachment icons remain.
 - Settings/New controls render as SVG graphics, not literal ${icon2d(...)} text.
 - Tablet conversation switching should update the right pane.
-- No Firestore Rules update required for 0.8.1.8.
+- No Firestore Rules update required for 0.8.1.9.
 - Security baseline remains 0.8.1.
 - Device-identity baseline remains 0.8.0.
 - Transport/reconnect baseline remains 0.7.3.
@@ -545,7 +545,7 @@ Fix:
 No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local history, or reconnect changes.
 
 Current expected release:
-FIDUNIO 0.8.1.8
+FIDUNIO 0.8.1.9
 - iPad/tablet >=700 CSS px: full two-pane layout.
 - Right-pane composer contained within right pane.
 - Attachment tools: exactly one row of 8.
@@ -578,7 +578,7 @@ Changes:
 - No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
 
 Current expected release:
-FIDUNIO 0.8.1.8
+FIDUNIO 0.8.1.9
 - iPad/tablet >=700 CSS px: full two-pane chat layout.
 - Right-pane composer contained within chat pane.
 - Attachment tools: one centered horizontal row of 8.
@@ -607,7 +607,7 @@ Changes:
 - No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
 
 Current expected release:
-FIDUNIO 0.8.1.8
+FIDUNIO 0.8.1.9
 - iPad/tablet >=700 CSS px:
   - first/unlock screen centered and tablet-sized;
   - Settings centered and tablet-sized;
@@ -615,6 +615,39 @@ FIDUNIO 0.8.1.8
   - Messages/chat uses two panes;
   - attachment tools one centered horizontal row of 8.
 - iPhone/narrow <700 CSS px: established single-pane/mobile presentation.
+- Security baseline remains 0.8.1.
+- Device identity baseline remains 0.8.0.
+- Transport/reconnect baseline remains 0.7.3.
+- Offline/local-first baseline remains 0.6.5.
+- Next major planned release remains 0.9.0 true per-device E2EE.
+
+
+==================================================
+0.8.1.9 — ORIENTATION-AWARE TABLET SECONDARY SCREENS
+==================================================
+
+Observed after 0.8.1.8:
+- Unlock, Settings, New Message and related secondary screens looked acceptable in iPad portrait.
+- In iPad landscape they retained nearly the same centered single-column proportions and left too much unused space.
+
+Changes:
+- Added orientation-aware tablet CSS.
+- Portrait keeps the approved centered tablet layout.
+- Wide landscape uses the available width.
+- Settings becomes a two-column card layout in wide landscape.
+- Unlock/first screen uses a wider centered card.
+- New Message/New Group/Group Name use broader centered workspaces in landscape.
+- Messages/chat two-pane behavior remains unchanged.
+- iPhone/narrow layouts remain unchanged.
+- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
+
+Current expected release:
+FIDUNIO 0.8.1.9
+- Portrait tablet: centered secondary screens.
+- Landscape tablet: wider/orientation-aware secondary screens.
+- Wide landscape Settings: two columns.
+- Messages/chat: two panes.
+- iPhone: single pane.
 - Security baseline remains 0.8.1.
 - Device identity baseline remains 0.8.0.
 - Transport/reconnect baseline remains 0.7.3.

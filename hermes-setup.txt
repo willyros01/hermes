@@ -1,15 +1,23 @@
-HERMES / FIDUNIO 0.8.1.8 — COMPLETE TABLET SCREEN ALIGNMENT
+HERMES / FIDUNIO 0.8.1.9 — ORIENTATION-AWARE TABLET UI
 
 PURPOSE
-UI-only patch completing the responsive tablet treatment.
+UI-only refinement so iPad portrait and landscape no longer use the exact same secondary-screen proportions.
 
-CHANGES
-- Settings screen now uses a centered tablet-width workspace.
-- First/unlock screen now uses tablet-aware width and centering.
-- New Message/New Group/Group Name tablet treatment from 0.8.1.7 remains.
-- Two-pane iPad chat remains.
-- One-line centered attachment toolbar remains.
-- iPhone/narrow screens remain unchanged.
+WHAT CHANGED
+- Portrait iPad/tablet:
+  keeps the centered single-column tablet layout.
+- Landscape iPad/tablet:
+  uses the available width more naturally.
+- Settings:
+  two-column card layout on wide landscape tablets.
+- First/unlock screen:
+  wider centered card in landscape.
+- New Message / New Group / Group Name:
+  broader centered workspace in landscape.
+- Messages/chat:
+  existing two-pane layout remains unchanged.
+- iPhone/narrow screens:
+  unchanged.
 
 NO SECURITY/BACKEND CHANGES
 No Firebase, Firestore Rules, E2EE, contact-key verification, device identity, Outbox, local history, or reconnect changes.
@@ -18,20 +26,18 @@ GITHUB
 1. Upload ZIP contents to the ROOT of the hermes repository.
 2. Preserve firebase-config.js and config-firestore.js.
 3. Overwrite hermes-memory.txt and hermes-setup.txt.
-4. Confirm version.js shows 0.8.1.8.
+4. Confirm version.js shows 0.8.1.9.
 5. No Firestore Rules publication is required.
 
 TEST
-1. Launch on iPad:
-   PASS = first/unlock screen is centered and tablet-sized, not a narrow phone column.
-2. Open Settings:
-   PASS = Settings uses the same centered tablet-width presentation.
-3. Open New Message / New Group:
-   PASS = tablet-width treatment remains.
-4. Return to Messages:
-   PASS = two-pane layout remains.
-5. Open + tools:
-   PASS = one centered horizontal row of 8.
-6. iPhone:
-   PASS = existing single-pane layout remains unchanged.
-7. Send one short message each direction.
+1. iPad portrait:
+   - Unlock, Settings, New Message remain centered and balanced.
+2. Rotate to landscape:
+   - Unlock becomes wider and centered.
+   - Settings should use two columns on a wide iPad.
+   - New Message/New Group should use more of the screen width.
+3. Messages/chat:
+   - two-pane layout remains.
+4. iPhone:
+   - existing single-pane behavior remains.
+5. Send one short message each direction.
