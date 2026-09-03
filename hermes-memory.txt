@@ -1,7 +1,8 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Validated rollback baseline: FIDUNIO 0.8.1.16 on main
-Current development branch: release/0.9.0
+Validated rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
+Current live test build on main: FIDUNIO 0.9.0
+Development branch retained: release/0.9.0
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -28,6 +29,7 @@ FIREBASE
 - Project fidunio-fef13; Auth Email/Password; Firestore Standard (default), nam5; authorized domain willyros01.github.io.
 - Account A on iPad, Account B on iPhone; different Firebase accounts.
 - Do not ask user to recreate accounts/re-paste UID unless restoration truly fails.
+- 0.9.0 Firestore rules were manually published by the user before live test promotion.
 
 IPAD SENT → READ DEFECT HISTORY
 0.8.1.10 FAILED: 2-second polling caused constant refresh and broke sending. Never reintroduce polling.
@@ -36,20 +38,19 @@ IPAD SENT → READ DEFECT HISTORY
 0.8.1.13 FAILED: removed ordinary two-pane force listener restarts; defect remained.
 0.8.1.14 PARTIAL: sender receipt metadata fast-path fixed active-chat case only.
 0.8.1.15 FAILED: local renderChat read marking did not fix re-entry.
-0.8.1.16 PASS: restored established listener behavior, retained v14 receipt fast-path, and validated iPhone leave/send/re-enter Sent → Read sequence. This is the protected rollback baseline.
+0.8.1.16 PASS: restored established listener behavior, retained v14 receipt fast-path, and validated iPhone leave/send/re-enter Sent → Read sequence. This remains the protected rollback baseline by commit.
 
-0.9.0 DEVELOPMENT STATUS
-- Work is isolated on release/0.9.0; main remains 0.8.1.16 until intentional test promotion.
-- Do not test 0.9.0 under a different GitHub Pages subdirectory/origin; preserve the established root browser storage/key context.
-- Firestore rules source accepts bounded e2ee:2 envelope messages while retaining e2ee:1 compatibility.
-- firebase.js transport can carry envelopes, recipientDeviceIds, senderDeviceId, and senderDevicePublicJwk.
-- 0.9.0 test service-worker harness injects per-device E2EE into app.js without disturbing the protected baseline source: it reads active registered devices for both recipient and sender accounts, creates a separate AES-256-GCM ciphertext envelope per device using P-256 ECDH + HKDF, and includes the sending device public key for recipient-side derivation.
+0.9.0 LIVE TEST STATUS
+- release/0.9.0 was intentionally fast-forward promoted to main after Firestore rules were published.
+- Test at the normal GitHub Pages root only; do not use a separate Pages subdirectory/origin so established browser storage/key context is preserved.
+- Firestore rules accept bounded e2ee:2 envelope messages while retaining e2ee:1 compatibility.
+- firebase.js transport carries envelopes, recipientDeviceIds, senderDeviceId, and senderDevicePublicJwk.
+- 0.9.0 test service-worker harness injects per-device E2EE into baseline app.js for this controlled test: it reads active registered devices for both recipient and sender accounts, creates a separate AES-256-GCM ciphertext envelope per device using P-256 ECDH + HKDF, and includes the sending device public key for recipient-side derivation.
 - e2ee:2 receive path selects only the envelope addressed to this installation and decrypts with its non-exportable local device private key.
 - Existing e2ee:1 history retains the old compatibility decrypt path.
 - Outbox remains authoritative; device envelopes are generated at actual transmission/retry time from the current registry rather than stored with stale device membership in the queued record.
 - Validated 0.8.1.16 sender receipt metadata fast-path is retained in the 0.9.0 harness.
-- Before root device testing, the updated Firestore rules must be deployed to Firebase; repository rules alone do not deploy themselves because this repo has no GitHub Actions workflow for Firebase rules deployment.
-- After rules deployment, promote the prepared 0.9.0 runtime files to the normal root Pages deployment and test iPad/iPhone. If validated, move harness behavior into clean app.js source and remove temporary transforms before final 0.9.0 release.
+- If the two-device 0.9.0 test validates, move harness behavior into clean app.js source and remove temporary transforms before final 0.9.0 release.
 
 0.9.0 TEST PLAN
 1. Confirm both devices show 0.9.0 at the normal FIDUNIO root.
