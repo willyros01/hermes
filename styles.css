@@ -826,3 +826,16 @@ html.text-aplusplus .member-card > :last-child{
   .tablet-shell{display:block;height:auto;}
   .tablet-sidebar{display:none;}
 }
+
+
+/* 0.8.1.4 — tablet sidebar action fix */
+.tablet-brand-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+.tablet-brand-actions .icon-btn{
+  display:inline-grid;
+  place-items:center;
+}

@@ -427,3 +427,14 @@ Responsive UI refinement combining compact colored attachment icons with adaptiv
 - Automatically falls back to single-pane at narrow widths.
 - Uses viewport width rather than device-name detection.
 - No Firebase, Firestore rules, E2EE, key verification, device identity, Outbox, local history, or reconnect changes.
+
+
+## Hermes 0.8.1.4 / FIDUNIO 0.8.1.4
+
+UI-only correction to the 0.8.1.3 adaptive tablet release.
+
+- Wide Messages route now enters the two-pane tablet shell immediately.
+- Fixes literal `${icon2d(...)}` text appearing in place of the Settings SVG.
+- Adds proper Settings/New controls to the tablet sidebar.
+- Preserves compact 4×2 colored attachment icons and all 0.8.1 security behavior.
+- No Firestore Rules update is required.

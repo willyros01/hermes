@@ -1,28 +1,38 @@
-HERMES / FIDUNIO 0.8.1.3 — COMPACT ICONS + ADAPTIVE TABLET UI
+HERMES / FIDUNIO 0.8.1.4 — IPAD TWO-PANE FIX
 
 PURPOSE
-UI-only release combining the preferred compact colored icons with the approved iPad/tablet two-pane layout.
+Corrects two UI defects in 0.8.1.3. This is a UI-only patch.
 
-WHAT CHANGED
-- Compact 4×2 colored attachment icons on iPhone and iPad/tablet.
-- Full labels remain visible.
-- Wide viewport (820 CSS px and above): conversations remain visible in a left sidebar while the active chat appears on the right.
-- Narrow viewport: existing single-pane phone layout.
-- Layout adapts to actual browser width, including split-screen and other tablets.
+FIXED
+- iPad/wide-screen Messages now immediately uses the approved two-pane layout.
+- Conversation list stays on the left and the active conversation appears on the right.
+- The corrupted upper-right Settings icon is fixed.
+- Tablet sidebar now has proper Settings and New Conversation graphic buttons.
+- Compact 4×2 colored attachment icons are retained.
+- Narrow iPhone layout remains single-pane.
 
-NO SECURITY OR TRANSPORT CHANGES
-No changes to Firebase, Firestore rules, E2EE, contact-key verification, device identity, Outbox, local-first history, or reconnect/listener behavior.
+NO BACKEND/SECURITY CHANGES
+- No Firebase changes.
+- No Firestore rules changes.
+- No E2EE changes.
+- No device-identity or key-verification changes.
+- No Outbox/history/reconnect changes.
 
 GITHUB
-1. Upload ZIP contents to the ROOT of the existing hermes repository.
-2. Preserve firebase-config.js and config-firestore.js.
-3. Overwrite hermes-memory.txt and hermes-setup.txt.
-4. Confirm version.js shows 0.8.1.3.
-5. No Firestore rules update is required.
+1. Upload the ZIP contents to the ROOT of the existing hermes repository.
+2. Preserve your existing firebase-config.js and config-firestore.js.
+3. Overwrite hermes-memory.txt and hermes-setup.txt with these current copies.
+4. Confirm root version.js shows 0.8.1.4.
+5. No Firestore Rules publication is required.
 
-TEST
-1. iPhone: confirm single-pane chat, compact 4×2 tool icons, full labels.
-2. iPad landscape: confirm two-pane layout with conversation sidebar left and selected chat right.
-3. iPad portrait/Split View: confirm the layout adapts cleanly.
-4. Send one message each direction.
-5. Confirm Conversation Security remains verified.
+QUICK TEST TONIGHT
+1. iPad landscape: reload/open FIDUNIO.
+   PASS = conversation list on LEFT and active chat on RIGHT immediately.
+2. Confirm there is no "${icon2d...}" text in the upper-right area.
+3. Tap a different conversation in the left pane.
+   PASS = right pane switches to it.
+4. Tap Settings graphic in the left sidebar.
+   PASS = Settings opens normally.
+5. iPhone: confirm existing single-pane layout remains intact.
+6. Send one short message each direction.
+   PASS = messaging remains normal.

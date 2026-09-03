@@ -1,207 +1,488 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
+Current release baseline: FIDUNIO 0.8.1.4
+Internal project/repo name: Hermes
+Public app/product name: FIDUNIO — Private Messaging
 
-CURRENT RELEASE
-- Current release: 0.7.1.
-- `version.js` is the single authoritative runtime version file.
-- Historical release numbers remain only in documentation/history where appropriate.
+==================================================
+LOCKED PROJECT CONVENTIONS
+==================================================
 
-NAMING / PACKAGING
-- Hermes = internal project/repository/ZIP naming.
-- FIDUNIO = public product; UI says "FIDUNIO — Private Messaging".
-- GitHub repo remains `hermes`.
-- Release ZIP format remains `hermes-ux-<version>.zip`.
-- Files stay flat in the repository root.
-- `firebase-config.js` and `config-firestore.js` are protected configured files and must not be overwritten or included in release ZIPs.
-- Maintain one cumulative memory file named `hermes-memory.txt`; future releases reuse/update this same filename.
+NAMING
+- Hermes = internal project/repository/release ZIP naming.
+- FIDUNIO = public-facing app/product.
+- GitHub repo remains hermes.
+- Release ZIP naming remains hermes-ux-X.Y[.Z].zip.
+- User-facing UI, PWA, About, and notifications say FIDUNIO — Private Messaging.
+
+REPOSITORY / PACKAGING
+- Keep release files flat in the repository root.
+- Keep exactly one cumulative root-level hermes-memory.txt.
+- Keep exactly one reusable root-level hermes-setup.txt.
+- Do NOT create version-numbered setup or memory TXT files.
+- Release ZIP itself may remain versioned.
+- firebase-config.js and config-firestore.js must NEVER be regenerated, overwritten, or included in update ZIPs.
+- Preserve the configured GitHub copies untouched.
 
 VERSIONING
-- Starting 0.7.1, all current runtime version display should derive from `version.js`.
-- `app.js` reads `globalThis.FIDUNIO_RELEASE.version`.
-- `service-worker.js` imports `version.js`.
-- Avoid hard-coded current release numbers in other runtime JavaScript/UI.
+- Root-level version.js is the single authoritative runtime version source.
+- It exposes globalThis.FIDUNIO_RELEASE.version.
+- app.js reads version.js.
+- service-worker.js imports version.js.
+- Avoid hard-coded current release numbers elsewhere in runtime UI/JS.
 
-UX / TEST PLATFORMS
-- Palette navy/teal/gray; no gold.
-- A / A+ / A++ approved.
+VISUAL / UX
+- Preserve current winged-messenger artwork.
+- Navy/teal/gray palette.
+- No gold.
+- A / A+ / A++ text sizing approved.
 - Auto / Light / Dark approved.
-- History Access buttons approved.
-- Group overflow fix passed on iPad/iPhone.
-- Primary test devices: iPad and iPhone; Fire HD 8 and Mac also available.
-- Responsive roadmap: compact iPhone/narrow Fire layout; adaptive iPad; persistent-sidebar/workspace Mac layout.
+- Bottom/action icons should use richer two-dimensional graphic icons rather than flat/simple symbols.
+- Colored icon accents are preferred where they improve recognition.
+- iPhone/narrow screens: single-pane layout.
+- iPad/tablet: adaptive two-pane layout when viewport is wide enough.
+- Narrow split-screen/tablet widths collapse back to compact single-pane.
+- Future Mac/desktop can use persistent sidebar + workspace.
+- Responsive behavior should be based on viewport width, not device-name detection.
 
-FIREBASE
-- Firebase project: fidunio-fef13.
-- Email/Password authentication enabled.
-- Firestore Standard, default DB, nam5.
-- GitHub Pages authorized domain configured.
-- Existing iPad/iPhone accounts and direct cloud conversation should persist.
-- GitHub secret-scanning alert for the Firebase Web API key is a low-priority hardening item. Later verify it is only the intended public Web API key, review Google Cloud API restrictions, and resolve the alert. Do not interrupt E2EE/functionality work.
+==================================================
+ARCHITECTURE
+==================================================
 
-RELIABILITY BASELINE — 0.6.5
-- Live two-way iPad/iPhone cloud messaging passed.
-- Offline cold-start history passed.
-- Repeated offline/online cycles preserved messages.
-- Offline queued messages survived kill/reopen.
-- Queued messages automatically sent when communications returned.
-- Preserve local-first design: encrypted durable local state/history/Outbox first, Firebase sync second.
-- Firestore cache snapshots must not erase restored local history.
-- Service worker follows Scorecard-style own-app network-first behavior and does not cache Firebase API/data traffic.
+- JavaScript-first PWA.
+- HTML/CSS/JS.
+- Firebase Authentication.
+- Cloud Firestore.
+- Storage/Functions later.
+- FCM where supported, but do not rely on FCM alone for Fire OS.
+- App Check later.
+- Firestore/Storage Security Rules.
+- Web Crypto only / vetted crypto primitives.
+- WebAuthn/passkeys later.
+- PIN/password fallback.
+- IndexedDB encrypted local persistence + Outbox.
+- Service Worker.
+- Message states: Queued → Sending → Sent → Delivered → Read; Failed when needed.
+- Client IDs/idempotency.
+- No plaintext in push notifications by default.
+- Multi-device/device keys underway.
+- QR/invite contacts; no global directory.
+- PWA limitation: cannot guarantee immediate background send if OS suspends app.
 
-E2EE FOUNDATION — 0.7.0 / 0.7.1
-- Per-installation non-exportable ECDH P-256 private key stored locally in IndexedDB.
-- Public JWK is published to the signed-in user's Firestore profile.
-- ECDH shared secret -> HKDF-SHA-256 -> AES-256-GCM.
-- Fresh 12-byte IV for each message.
-- Conversation ID used as AES-GCM additional authenticated data.
-- New encrypted direct messages store e2ee=1, ciphertext, iv, and text="" in Firestore.
+==================================================
+GROUP REQUIREMENTS
+==================================================
+
+- Group UX similar to direct chat.
+- Incoming group messages show sender.
+- New Message → New Group → select people → name → create.
+- Group Info includes members/add/remove/rename/mute/search/shared media/files/disappearing/security/leave.
+- Creator is Owner/Admin.
+- New member sees only messages from join time by default.
+- Admin may grant prior history: 24h, 7d, selected date, entire available.
+- Production enforcement should be cryptographic.
+- Rotate group keys on membership changes.
+
+==================================================
+FIREBASE SETUP
+==================================================
+
+Firebase project:
+- fidunio-fef13
+
+Authentication:
+- Email/Password enabled.
+- Google/Phone/etc not enabled.
+
+Firestore:
+- Standard edition.
+- Database: (default)
+- Region: nam5 (United States)
+- Production mode.
+- No manual collection creation required.
+
+Authorized domain:
+- willyros01.github.io
+
+==================================================
+TEST ACCOUNTS / DEVICES
+==================================================
+
+- Account A created on iPad.
+- Account B created on iPhone.
+- Different Firebase test accounts.
+- Existing direct cloud conversation created by copying iPhone Firebase UID once.
+- Do not ask user to recreate accounts or re-paste UID unless restoration truly fails.
+- During 0.7.2 testing, missing iPhone conversation was caused by the iPhone not being signed into Firebase; signing into the same existing account restored the conversation.
+
+==================================================
+STABLE TRANSPORT / OFFLINE BASELINE
+==================================================
+
+0.6.5 — STABLE TRANSPORT/OFFLINE BASELINE
+
+Root cause fixed:
+- Offline Firestore onSnapshot could emit empty/incomplete cached snapshots with metadata.fromCache === true.
+- Earlier builds overwrote restored local history with [].
+
+0.6.5 behavior:
+- Cache snapshots merge non-destructively and never erase local rows.
+- Server-backed snapshots authoritative except local pending outbound.
+- Local-first startup:
+  loadPersistedState()
+  → loadCloudHistory()
+  → restoreOutboxIntoState()
+  → hydrated=true
+  → render()
+  → initializeFirebaseLayer()
+  → flush if online.
+- Read receipts only server-backed.
+- Firebase data never service-worker cached.
+
+User test PASS:
+- Repeated offline/online cycles retained all messages.
+- Queued message automatically sent when communications returned.
+
+Treat 0.6.5 local-first persistence as stable and do not change without a specific defect.
+
+==================================================
+E2EE HISTORY
+==================================================
+
+0.7.0 — E2EE FOUNDATION
+
+Direct-message E2EE:
+- Each installation generates Web Crypto ECDH P-256 key pair.
+- Private key non-exportable.
+- Stored in IndexedDB meta key e2ee-device-keypair-v1.
+- Public JWK published on user profile as e2eePublicJwk.
+- ECDH shared secret.
+- HKDF-SHA-256:
+  salt = FIDUNIO-E2EE-v1
+  info = conversation ID.
+- AES-256-GCM with fresh 12-byte IV.
+- Conversation ID used as AAD.
+- Firestore encrypted rows use:
+  e2ee:1
+  ciphertext
+  iv
+  text:""
+  sender metadata/time/state.
 - Recipient decrypts locally.
-- 0.7.1 keeps this E2EE design; it fixes version consistency rather than changing cryptography/rules.
+- Outbox plaintext exists only inside existing locally AES-GCM encrypted IndexedDB record before cloud encryption.
+- Missing/decrypt-failure UI:
+  [Encrypted message — key unavailable]
+- Legacy plaintext rows remain readable.
+- Auth restoration republishes own public key.
 
-CURRENT E2EE LIMITATIONS
-- One active installation/device-key assumption per account.
-- No multi-device key fan-out yet.
-- Clearing site data/reinstall can generate a new device key.
-- No QR/safety-number verification yet.
-- No key-change warning yet.
-- No Double Ratchet/forward secrecy yet.
-- Group E2EE not yet implemented.
-- Firebase can still see metadata.
-- Legacy pre-0.7.0 cloud messages remain legacy plaintext.
-- Do not use sensitive/private content yet.
+Known limitations at this stage:
+- One active installation/device key per account assumption.
+- No multi-device fan-out.
+- Clearing site data/reinstall creates a new key.
+- No safety-number verification.
+- No key-change approval.
+- No forward secrecy / Double Ratchet.
+- No group E2EE.
+- Metadata visible.
+- Old cloud messages remain plaintext.
 
-SECURITY ROADMAP
-- Multi-device/device identity and identity verification.
-- Forward secrecy / ratcheting.
-- Group E2EE/key rotation/history enforcement.
-- Firebase App Check.
-- Abuse/billing safeguards.
-- Hostile-client Firestore-rules audit.
-- API-key restriction/secret-scanning cleanup after core functionality is stable.
+0.7.1 — VERSION CONSISTENCY
 
-0.7.1 TEST PLAN
-- Upload 0.7.1 root files while preserving protected Firebase config files.
-- If 0.7.0 E2EE Firestore rules were already published, they may remain; 0.7.1 does not introduce a substantive rule change.
-- Verify GitHub `version.js` says 0.7.1.
-- Verify startup/login and Settings/About both show 0.7.1.
-- Test encrypted direct message each direction.
-- Repeat offline cold-start history.
-- Repeat offline Outbox survival and reconnect.
-- If "[Encrypted message — key unavailable]" appears, stop and diagnose key publication/retrieval.
+- Added authoritative root-level version.js.
+- index.html loads version.js before app.js.
+- service-worker.js imports version.js.
+- User confirmed both devices showed 0.7.1.
+- First E2EE send failed because mergeCloudConversation(remote) dropped peerUid.
 
---- PRESERVED 0.7.0 MEMORY ---
+0.7.2 — E2EE CONVERSATION REPAIR
 
-HERMES / FIDUNIO MEMORY — 0.7.0
+Changes:
+- Preserve peerUid.
+- getCloudConversation() authoritative repair.
+- resolvePeerUidForConversation().
+- Outbox conversation payload includes peerUid.
+- No need to re-copy UID.
+- Firestore rules unchanged.
 
-0.6.5 passed full reliability: live messaging, offline cold-start history, repeated offline/online,
-Outbox survival, automatic reconnect delivery. Preserve its local-first architecture.
+Test:
+- After iPhone signed back into the existing account, old conversation reappeared.
+- Previously failed iPad message automatically retried and arrived.
+- iPhone → iPad encrypted message arrived.
+- Direct E2EE passed both directions.
+- Offline queued message survived close/reopen and later sent.
+- Remaining issue: reconnect/live listener could lag or require leaving/re-entering conversation.
 
-0.7.0 begins direct-message E2EE:
-- non-exportable per-installation ECDH P-256 private key in IndexedDB
-- public JWK published to own Firestore user profile
-- ECDH shared secret -> HKDF-SHA-256 -> AES-256-GCM
-- fresh 12-byte IV/message; conversation ID is AES-GCM AAD
-- Firestore new direct message text="" and contains ciphertext/iv/e2ee=1
-- recipient decrypts locally
-- encrypted local history/Outbox retained
+0.7.3 — STABLE DIRECT-E2EE + OFFLINE/RECONNECT BASELINE
 
-Limitations: one-installation-per-account assumption; no multi-device fan-out, safety-number/QR,
-key-change warning, Double Ratchet/forward secrecy, or group E2EE. Metadata remains visible.
-Old messages remain legacy plaintext.
+Changes:
+- cloudMessageConversationId added.
+- ensureActiveCloudMessageSubscription(force=false).
+- Active message listener idempotent for same conversation.
+- Conversation discovery no longer tears down/recreates active message listener on every updatedAt change.
+- Navigation/auth/reconnect/pageshow/visibility can force one clean reattach.
+- Reconnect Outbox flush immediate, then retry ~1.5s and ~4s for iOS timing.
+- Preserved 0.7.2 E2EE and 0.6.5 local-first/Outbox design.
 
-Included firestore.rules MUST be published.
-firebase-config.js and config-firestore.js remain protected/excluded.
+User PASS:
+- Instant iPad → iPhone.
+- Instant iPhone → iPad.
+- Live receiving conversation updated without leaving/re-entering.
+- Offline queued survival.
+- Prompt automatic reconnect send.
+- Automatic live receipt.
 
-0.7.2 REPAIR
-- First 0.7.1 E2EE test: iPad outgoing `Encrypted 0.7.1 from iPad` immediately showed Failed; iPhone no longer displayed the existing iPad cloud conversation.
-- Root defect in local merge: `firebase.js` conversation discovery supplied `peerUid`, but `app.js` `mergeCloudConversation()` did not retain it. E2EE send needs peerUid to fetch the peer public JWK.
-- 0.7.2 preserves peerUid in cloud-conversation merges and encrypted Outbox conversation recovery data.
-- Added authoritative repair path: if a local cloud conversation has no peerUid, read the Firestore conversation document, verify current account membership, derive the other member UID, merge/persist the repaired identity, then fetch the peer public key.
-- Conversation discovery now reattaches the active cloud message subscription and retries durable Outbox work after identity repair.
-- Do not ask user to recreate accounts, create a replacement conversation, or copy/paste FIDUNIO IDs again for this repair.
-- Firestore rules are unchanged in substance from 0.7.0/0.7.1; user should leave already-published E2EE rules in place.
-- version.js remains the single authoritative version file; current release 0.7.2.
+Treat 0.7.3 as stable direct-E2EE transport/reconnect rollback baseline.
 
-
-0.7.3 — LIVE RECEIVE / RECONNECT RELIABILITY
-- 0.7.2 direct E2EE passed both directions on iPad/iPhone.
-- Existing conversation restoration after iPhone authentication passed.
-- A previously failed iPad message automatically retried and arrived after the iPhone signed in and its E2EE key was available.
-- Offline encrypted Outbox survived repeated close/reopen while offline.
-- After communications returned, the queued message eventually sent and arrived readable, but delivery was slow and the iPhone needed to leave/re-enter the conversation to display it.
-- 0.7.3 addresses that reliability issue without changing cryptography or Firestore rules.
-- Root cause/race addressed: conversation discovery snapshots can update when a message touches conversation.updatedAt. Earlier code re-ran ensureActiveCloudMessageSubscription(), which always stopped/restarted the active message listener. 0.7.3 makes same-conversation subscription idempotent.
-- Explicit navigation/auth/reconnect/foreground events may force one clean reattach.
-- Reconnect Outbox recovery now flushes immediately, then retries after 1.5s and 4s because iOS can report online before Firebase requests are actually ready.
-- Test 0.7.3 for prompt automatic queued-send after reconnect and live display on the already-open receiving conversation without navigating out/in.
-
+==================================================
+DEVICE IDENTITY / KEY VERIFICATION
+==================================================
 
 0.8.0 — DEVICE IDENTITY / MULTI-DEVICE FOUNDATION
-- Built from the stable 0.7.3 direct-E2EE + offline/reconnect baseline.
-- 0.7.3 passed instant two-way live receipt and queued reconnect delivery without leaving/re-entering the conversation.
-- Preserve the 0.7.3 listener/reconnect/local-first/Outbox architecture as rollback/reference baseline.
-- 0.8.0 gives every installation a stable random local Device ID.
-- It REUSES the existing 0.7.x non-exportable ECDH P-256 keypair rather than rotating the working key during upgrade.
-- It computes a SHA-256 public-key fingerprint and displays it under Settings → Device Identity.
-- It publishes public device records at users/{uid}/devices/{deviceId}.
-- New encrypted message rows carry senderDeviceId metadata.
-- The account-level e2eePublicJwk remains the active compatibility encryption key in 0.8.0 so existing direct E2EE behavior is preserved.
-- Full recipient per-device ciphertext/envelope fan-out is NOT implemented yet; 0.8.0 is only the identity/registry foundation.
-- Firestore rules now include explicit device-subcollection access: authenticated read of public device records, owner-only create/update, no delete.
-- 0.8.0 therefore DOES require publishing the included Firestore rules before device-registry testing.
-- Protected firebase-config.js and config-firestore.js remain excluded.
-- Required regression: instant two-way existing conversation, offline queued survival, reconnect automatic send/live receipt.
 
+Built from stable 0.7.3.
+
+Changes:
+- version.js authoritative version 0.8.0.
+- Each installation gets stable random Device ID in IndexedDB meta key e2ee-device-identity-v1.
+- Reuses existing 0.7.x non-exportable ECDH P-256 keypair; upgrade does NOT intentionally rotate working key.
+- Computes SHA-256 fingerprint of canonical public JWK {kty,crv,x,y}.
+- Settings → Device Identity shows:
+  This installation
+  short Device ID
+  public-key fingerprint
+  registered-device count/status
+  explanation that private key stays local/non-exportable
+  warning that direct encryption still uses 0.7.x compatibility key.
+- Firebase API:
+  publishCloudE2EEDevice(uid,device)
+  getCloudUserDevices(uid)
+- Firestore device registry:
+  users/{uid}/devices/{deviceId}
+- Existing account-level e2eePublicJwk remains active compatibility key.
+- publishMyE2EEKey() publishes compatibility key first, then device registry.
+- New encrypted messages include senderDeviceId metadata.
+- Ciphertext format unchanged.
+
+0.8.0 rules:
+- Added users/{uid}/devices/{deviceId} access rules.
+- Authenticated users may read device public-key records.
+- Owner-only create/update.
+- uid/deviceId must match path.
+- e2eeVersion == 1.
+- publicJwk must be map.
+- bounded fingerprint.
+- delete denied.
+- Other conversation/message rules unchanged.
+
+0.8.0 TEST RESULT — FULL PASS
+- iPhone Device Identity created and registered.
+- iPad Device Identity created and registered.
+- Distinct Device IDs/fingerprints.
+- Each account showed 1 registered device as expected because iPad and iPhone use different Firebase test accounts.
+- Instant two-way encrypted messaging passed.
+- Offline queued message survived restart.
+- Reconnect auto-send and live receipt passed.
+
+Treat 0.8.0 as stable device-identity foundation.
 
 0.8.1 — CONTACT KEY VERIFICATION / KEY-CHANGE DETECTION
-- Built from 0.8.0 after 0.8.0 passed device registration on iPad/iPhone, instant two-way encrypted messaging, offline queued persistence, and reconnect delivery.
-- 0.8.1 preserves 0.7.3 transport/local-first/Outbox/reconnect architecture and 0.8.0 device registry.
-- Adds encrypted local peerTrust records keyed by peer UID.
-- First observed peer account public-key fingerprint is recorded.
-- Conversation Info for cloud direct chats becomes Conversation Security.
-- Shows current peer fingerprint and registered-device count.
-- User may explicitly Verify Current Key only after comparing fingerprints through a separate trusted channel.
-- Verified-key change causes a visible security warning and blocks NEW sends until the new current key is explicitly verified.
-- Unverified key changes are warned but not treated as previously trusted.
-- Peer public keys are refreshed during live snapshots and before sends to detect changes instead of relying forever on peerKeyCache.
-- 0.8.1 verification is local per installation; no QR linking or automatic cross-device verification yet.
-- Firestore rules unchanged from 0.8.0.
-- Protected firebase-config.js and config-firestore.js remain excluded.
-- Do not deliberately clear site data to test key-change detection on the main test accounts; use a disposable controlled scenario later if needed.
 
+Changes:
+- Encrypted local peerTrust records keyed by peer UID.
+- First observed peer account public-key fingerprint recorded.
+- Cloud direct-chat Info opens Conversation Security.
+- Shows current peer fingerprint and registered-device count.
+- User can Verify Current Key after comparing fingerprint through a separate trusted channel.
+- If a previously verified key later changes:
+  visible security warning
+  NEW outgoing messages paused
+  new fingerprint must be explicitly reviewed/verified.
+- If an unverified key changes:
+  warning shown
+  not falsely treated as previously trusted.
+- Peer public keys refreshed during live receive/send rather than relying indefinitely on memory cache.
+- Verification remains local per installation.
+- No QR linking yet.
+- No automatic cross-device verification yet.
+- Firestore rules unchanged from 0.8.0.
 
 0.8.1 TEST RESULT — FULL PASS
-- iPad Conversation Security fingerprint matched the iPhone Device Identity fingerprint.
-- iPhone Conversation Security fingerprint matched the iPad Device Identity fingerprint.
-- User explicitly verified the current key in both directions.
+- iPad Conversation Security fingerprint matched iPhone Device Identity fingerprint.
+- iPhone Conversation Security fingerprint matched iPad Device Identity fingerprint.
+- Current key explicitly verified in both directions.
 - Messaging remained functional both ways after verification.
-- 0.8.1 is the stable contact-key-verification baseline.
+
+Treat 0.8.1 as stable contact-key-verification baseline.
+
+==================================================
+UI REFINEMENT RELEASES
+==================================================
 
 0.8.1.1 — 2D ICON UI REFINEMENT
-- UI-only release built from stable 0.8.1.
-- User requested richer two-dimensional graphics for the action/bottom/composer icons.
-- Replaced simple text/emoji-like graphics with inline SVG pictograms.
-- Updated Settings, New/Add, Back, Info, Send, Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved icons.
-- Preserved navy/teal/gray palette and no-gold rule.
-- No Firebase, Firestore rules, encryption, device identity, peer verification, Outbox, local-first history, or reconnect logic changes.
-- Packaging convention corrected permanently: use only root-level hermes-memory.txt and hermes-setup.txt; do not create version-numbered TXT filenames.
+- UI-only.
+- Replaced simple text/emoji-like action graphics with inline SVG pictograms.
+- Updated Settings, New/Add, Back, Info, Send, Photo, File, Voice, Location, Contact, Checklist, Schedule, Saved.
+- Preserved navy/teal/gray and no-gold rule.
+- No Firebase/Firestore/security/messaging changes.
 
-
-0.8.1.2 — RESPONSIVE 2D ICON FIX
-- User reported 0.8.1.1 attachment/tool-panel overflow on iPad and only three columns visible/clipped on iPhone.
-- Corrected responsive grid: 4 columns for tablet widths and 2 columns for narrow iPhone widths.
-- Added min-width:0 / max-width constraints so tool buttons cannot expand the grid beyond the viewport.
-- Added distinct color accents for the 8 tool icons to improve visual recognition.
-- Quick phrases may scroll horizontally on narrow screens rather than widening the layout.
-- UI-only patch; no Firebase, Firestore rules, security, E2EE, verification, Outbox, history, or reconnect logic changes.
-
+0.8.1.2 — RESPONSIVE ICON FIX
+- User reported attachment-panel overflow on iPad and clipping/incomplete columns on iPhone.
+- Added responsive grid constraints.
+- Added distinct color accents to attachment icons.
+- Quick phrases can scroll horizontally on narrow screens.
+- No Firebase/Firestore/security/messaging changes.
 
 0.8.1.3 — COMPACT COLORED ICONS + ADAPTIVE TABLET UI
-- Built after user preferred original compact proportions over larger 0.8.1.2 two-column buttons.
-- Keeps richer colored 2D icons but restores compact 4×2 attachment layout.
+PRIOR UI RELEASE
+
+- User preferred original compact proportions over larger 0.8.1.2 tool buttons.
+- Keeps richer colored 2D icons.
+- Restores compact 4×2 attachment layout.
 - Adds adaptive two-pane presentation for wider iPad/tablet viewports.
-- Two-pane mode shows conversation sidebar left and active chat right.
-- Narrow viewport automatically falls back to established single-pane layout; device model detection is not used.
-- Breakpoint currently 820 CSS px.
+- Two-pane mode:
+  conversation sidebar left
+  active chat right.
+- Narrow viewport:
+  established single-pane layout.
+- Device model detection is NOT used.
+- Current breakpoint: 820 CSS px.
 - Intended to adapt across iPad, Fire/tablet widths, rotation, and split-screen based on actual viewport.
-- UI-only release; no Firebase, Firestore rules, E2EE, contact verification, device identity, Outbox, local history, or reconnect changes.
+- No Firebase, Firestore rules, E2EE, verification, device identity, Outbox, local history, or reconnect logic changes.
+
+==================================================
+FIRE HD 8
+==================================================
+
+- Fire HD 8 is useful for Android-derived PWA/Web Crypto/IndexedDB/Firebase transport testing.
+- Fire OS is not a full Google-certified Android compatibility target.
+- Eventually test normal Android/Chrome too.
+- For current pre-0.9.0 multi-device architecture:
+  use Fire 8 for UI/browser compatibility testing.
+- Do NOT sign into one of the two working iPad/iPhone Firebase test accounts on Fire 8 yet, because current architecture still uses an account-level compatibility key and does not yet support full multi-device recipient fan-out.
+
+==================================================
+SECURITY MODEL / ROADMAP
+==================================================
+
+Current layered model:
+Authentication
+→ App Check later
+→ Firestore Security Rules
+→ E2EE
+
+Important:
+- Firebase Web API key/config is public by design.
+- Knowing client JS/config does not let an attacker modify Firestore Security Rules.
+- Rules are server-side and apply to hostile custom clients.
+- Main risks include overly broad rules, stolen admin/IAM credentials, leaked service-account keys, and quota/resource abuse.
+- Never commit service-account private keys.
+
+GitHub secret-scanning alert:
+- Google API Key detected in firebase-config.js.
+- Likely expected Firebase Web API key detection.
+- Low-priority hardening task for later:
+  verify it is only the Firebase web key
+  check Google Cloud API restrictions
+  resolve GitHub alert appropriately.
+- Do not rotate/delete solely because of the alert.
+
+NEXT MAJOR SECURITY MILESTONE
+0.9.0 — TRUE PER-DEVICE E2EE
+Planned:
+1. Read recipient registered device set.
+2. Encrypt message key separately for each authorized recipient device.
+3. Add per-device recipient envelopes/fan-out.
+4. Preserve existing transport/offline/reconnect baseline.
+5. Follow with verified device linking/device management.
+6. Add stronger device-change approval.
+7. Later: safety numbers/QR verification.
+8. Later: forward secrecy / Double Ratchet or vetted equivalent.
+9. Later: group E2EE and key rotation/history enforcement.
+10. Later: App Check.
+11. Later: hostile-client Firestore-rules audit.
+12. Later: quota/billing monitoring.
+13. Push later.
+14. Passkeys/device auth later.
+
+Do not use homegrown cryptography beyond careful use of vetted Web Crypto primitives/protocol design. For production-grade secure messaging, prefer a vetted protocol/library where feasible.
+
+==================================================
+IMPORTANT TECHNICAL DETAILS
+==================================================
+
+- app.js imports local ./firebase.js.
+- firebase.js imports local ./firebase-config.js.
+- Firebase SDK currently loaded dynamically from gstatic.
+- index.html loads version.js before module app.js.
+- service-worker.js imports version.js.
+- Local app/history restoration occurs before Firebase init.
+- navigator.onLine is not reliable proof of actual Internet reachability.
+
+IndexedDB:
+- DB: fidunio-local
+- version: 2
+- stores:
+  meta
+  outbox
+  history
+- local AES-GCM CryptoKey in meta.
+- encrypted app state.
+- encrypted Outbox.
+- encrypted cloud-history cache.
+- E2EE keypair:
+  e2ee-device-keypair-v1
+- Device identity:
+  e2ee-device-identity-v1
+
+Stable behavior references:
+- 0.5 proved encrypted IndexedDB Outbox survival.
+- 0.6.5 proved local-first offline history/Outbox/reconnect.
+- 0.7.2 proved failed Outbox auto-retry after peer auth/key availability.
+- 0.7.3 proved instant live receive and prompt reconnect.
+- 0.8.0 proved device registry without E2EE regression.
+- 0.8.1 proved manual contact-key verification without messaging regression.
+
+==================================================
+CURRENT STATUS
+==================================================
+
+Current release under test:
+FIDUNIO 0.8.1.4
+
+0.8.1.4 is the current UI release.
+
+Expected behavior:
+- iPhone/narrow viewport: single-pane layout.
+- iPad/tablet wide viewport: two-pane layout immediately from the Messages screen.
+- Conversation sidebar remains on the left; active chat is on the right.
+- Compact 4×2 colored attachment icons remain.
+- Settings/New controls render as SVG graphics, not literal ${icon2d(...)} text.
+- Tablet conversation switching should update the right pane.
+- No Firestore Rules update required for 0.8.1.4.
+- Security baseline remains 0.8.1.
+- Device-identity baseline remains 0.8.0.
+- Transport/reconnect baseline remains 0.7.3.
+- Offline/local-first history baseline remains 0.6.5.
+
+Next major planned release:
+FIDUNIO 0.9.0 — true per-device E2EE.
+
+Before 0.9.0:
+- Finish visual/functional confirmation of 0.8.1.4 on iPad and iPhone.
+
+
+==================================================
+0.8.1.4 — IPAD TWO-PANE DELIVERY FIX
+==================================================
+
+Reason:
+- 0.8.1.3 did not show the approved two-pane iPad layout from the Messages screen.
+- The upper-right Settings icon rendered corrupted/literal icon-helper text.
+
+Fixes:
+- Wide-screen Messages now enters the two-pane tablet shell immediately.
+- Conversation list/sidebar is on the left and active chat on the right.
+- Tablet sidebar has proper Settings and New Conversation controls.
+- Settings icon rendering bug corrected.
+- Compact 4×2 colored attachment icons preserved.
+- No Firebase, Firestore Rules, E2EE, contact verification, device identity, Outbox, local history, or reconnect changes.

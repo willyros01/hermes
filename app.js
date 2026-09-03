@@ -782,7 +782,10 @@ function renderConversationSidebar(){
           <div class="tablet-brand-name">FIDUNIO</div>
           <div class="tablet-brand-sub">Private Messaging</div>
         </div>
-        <button class="icon-btn icon-2d" id="tabletNewBtn" aria-label="New conversation">${icon2d("plus",23)}</button>
+        <div class="tablet-brand-actions">
+          <button class="icon-btn icon-2d" id="tabletSettingsBtn" aria-label="Settings">${icon2d("settings",23)}</button>
+          <button class="icon-btn icon-2d" id="tabletNewBtn" aria-label="New conversation">${icon2d("plus",23)}</button>
+        </div>
       </div>
       <div class="tablet-search-wrap">
         <input class="search" id="tabletSearchBox" placeholder="Search conversations" />
@@ -804,8 +807,13 @@ function drawTabletConversationList(term=""){
         </div>
       </button>`).join("");
   list.querySelectorAll(".tablet-conversation").forEach(btn=>btn.onclick=()=>{
-    state.selectedId=btn.dataset.id;
+    const raw=btn.dataset.id;
+    state.selectedId=/^\d+$/.test(raw)?Number(raw):raw;
     state.route="chat";
+    const chosen=state.conversations.find(x=>String(x.id)===String(state.selectedId));
+    if(chosen) chosen.unread=0;
+    if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true});
+    else stopCloudMessageSubscription();
     render();
   });
 }
@@ -841,9 +849,22 @@ function renderUnlock(){
 }
 
 function renderMessages(){
+  if(isWideLayout()){
+    let chosen=state.conversations.find(c=>String(c.id)===String(state.selectedId));
+    if(!chosen) chosen=state.conversations[0]||null;
+    if(chosen){
+      state.selectedId=chosen.id;
+      state.route="chat";
+      chosen.unread=0;
+      if(chosen.cloud) beginCloudMessageSubscription(chosen.id,{force:true});
+      else stopCloudMessageSubscription();
+      return renderChat();
+    }
+  }
+
   app.innerHTML=`
     <main class="app-shell">
-      ${shellTop("Messages",undefined,'<button class="icon-btn icon-2d" id="settingsBtn" aria-label="Settings">${icon2d("settings",23)}</button>')}
+      ${shellTop("Messages",undefined,'<button class="icon-btn icon-2d" id="settingsBtn" aria-label="Settings">'+icon2d("settings",23)+'</button>')}
       <section class="content">
         <input class="search" id="searchBox" placeholder="Search conversations" />
         <div class="conversation-list" id="conversationList"></div>
@@ -1056,6 +1077,8 @@ function renderChat(){
     drawTabletConversationList();
     const tSearch=document.querySelector("#tabletSearchBox");
     if(tSearch) tSearch.oninput=e=>drawTabletConversationList(e.target.value);
+    const tSettings=document.querySelector("#tabletSettingsBtn");
+    if(tSettings) tSettings.onclick=()=>{state.route="settings";render()};
     const tNew=document.querySelector("#tabletNewBtn");
     if(tNew) tNew.onclick=()=>{state.route="newConversation";render()};
   }else{
