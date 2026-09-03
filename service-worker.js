@@ -14,7 +14,10 @@ async function transformApp(request,response){
   if(url.origin!==self.location.origin||!url.pathname.endsWith("/app.js"))return response;
   let source=await response.text();
 
-  // Preserve the validated 0.8.1.16 sender-side receipt fast path.
+  // Preserve the validated sender-side receipt fast path and, for 0.9.0,
+  // commit recipient Read state from the fresh Firestore snapshot BEFORE any
+  // asynchronous key lookup/decryption. Receipt semantics must not depend on
+  // per-device cryptographic processing completing first.
   const receiptNeedle=`      const existing=state.messages[conversationId] || [];
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
   const receiptReplacement=`      const existing=state.messages[conversationId] || [];
@@ -27,6 +30,13 @@ async function transformApp(request,response){
           if(next && next!==local.state){local.state=next;receiptChanged=true;}
         }
         if(receiptChanged && state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
+
+        if(state.route==="chat" && String(state.selectedId)===String(conversationId)){
+          const unreadRows=rows.filter(r=>r.senderUid!==firebaseUser.uid && (r.state||"sent")!=="read");
+          if(unreadRows.length){
+            await Promise.allSettled(unreadRows.map(r=>updateCloudMessageState(conversationId,r.id,"read")));
+          }
+        }
       }
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
   source=source.replace(receiptNeedle,receiptReplacement);
