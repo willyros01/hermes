@@ -1,6 +1,6 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current release baseline: FIDUNIO 0.8.1.4
+Current release baseline: FIDUNIO 0.8.1.5
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -447,9 +447,9 @@ CURRENT STATUS
 ==================================================
 
 Current release under test:
-FIDUNIO 0.8.1.4
+FIDUNIO 0.8.1.5
 
-0.8.1.4 is the current UI release.
+0.8.1.5 is the current UI release.
 
 Expected behavior:
 - iPhone/narrow viewport: single-pane layout.
@@ -458,7 +458,7 @@ Expected behavior:
 - Compact 4×2 colored attachment icons remain.
 - Settings/New controls render as SVG graphics, not literal ${icon2d(...)} text.
 - Tablet conversation switching should update the right pane.
-- No Firestore Rules update required for 0.8.1.4.
+- No Firestore Rules update required for 0.8.1.5.
 - Security baseline remains 0.8.1.
 - Device-identity baseline remains 0.8.0.
 - Transport/reconnect baseline remains 0.7.3.
@@ -486,3 +486,34 @@ Fixes:
 - Settings icon rendering bug corrected.
 - Compact 4×2 colored attachment icons preserved.
 - No Firebase, Firestore Rules, E2EE, contact verification, device identity, Outbox, local history, or reconnect changes.
+
+
+==================================================
+0.8.1.5 — ONE-LINE IPAD ATTACHMENT TOOLBAR
+==================================================
+
+Reason:
+- 0.8.1.4 successfully delivered the iPad two-pane layout.
+- User confirmed the two-pane layout works.
+- User requested that the 8 attachment/widget icons occupy one horizontal line on iPad instead of multiple rows.
+
+Changes:
+- Wide iPad/tablet tool panel is exactly one row of 8 compact colored 2D icons.
+- Order:
+  Photo, File, Voice, Location, Contact, Checklist, Schedule, Saved.
+- Complete labels remain below each icon.
+- Large rectangular tool cards removed from wide tablet presentation.
+- Added compact bottom navigation to the left sidebar:
+  Messages, Groups, Contacts, Settings.
+- iPhone/narrow layout remains single-pane with compact 4×2 attachment grid.
+- No Firebase, Firestore Rules, E2EE, contact verification, device identity, Outbox, local-first history, or reconnect changes.
+
+Current expected 0.8.1.5 behavior:
+- iPad wide viewport: two panes immediately.
+- Attachment tools: one horizontal row of 8.
+- iPhone: single pane, 4×2 tools.
+- Security baseline: 0.8.1.
+- Device identity baseline: 0.8.0.
+- Transport/reconnect baseline: 0.7.3.
+- Offline/local-first baseline: 0.6.5.
+- Next major planned release: 0.9.0 true per-device E2EE.

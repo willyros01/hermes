@@ -1,38 +1,36 @@
-HERMES / FIDUNIO 0.8.1.4 — IPAD TWO-PANE FIX
+HERMES / FIDUNIO 0.8.1.5 — FINAL IPAD TOOLBAR LAYOUT
 
 PURPOSE
-Corrects two UI defects in 0.8.1.3. This is a UI-only patch.
+UI-only refinement of the working 0.8.1.4 iPad two-pane layout.
 
-FIXED
-- iPad/wide-screen Messages now immediately uses the approved two-pane layout.
-- Conversation list stays on the left and the active conversation appears on the right.
-- The corrupted upper-right Settings icon is fixed.
-- Tablet sidebar now has proper Settings and New Conversation graphic buttons.
-- Compact 4×2 colored attachment icons are retained.
-- Narrow iPhone layout remains single-pane.
+WHAT CHANGED
+- On iPad/tablet wide layout, all 8 attachment tools now appear on ONE horizontal line:
+  Photo | File | Voice | Location | Contact | Checklist | Schedule | Saved
+- Colored 2D icons remain.
+- Labels appear below each icon.
+- Attachment tiles are compact rather than large boxed cards.
+- Left conversation pane now has a bottom navigation strip:
+  Messages | Groups | Contacts | Settings
+- iPhone/narrow layouts remain single-pane with the compact 4×2 attachment grid.
 
-NO BACKEND/SECURITY CHANGES
-- No Firebase changes.
-- No Firestore rules changes.
-- No E2EE changes.
-- No device-identity or key-verification changes.
-- No Outbox/history/reconnect changes.
+NO BACKEND OR SECURITY CHANGES
+No Firebase, Firestore Rules, E2EE, contact-key verification, device identity, Outbox, local-history, or reconnect changes.
 
 GITHUB
-1. Upload the ZIP contents to the ROOT of the existing hermes repository.
-2. Preserve your existing firebase-config.js and config-firestore.js.
-3. Overwrite hermes-memory.txt and hermes-setup.txt with these current copies.
-4. Confirm root version.js shows 0.8.1.4.
-5. No Firestore Rules publication is required.
+1. Upload ZIP contents to the ROOT of the existing hermes repository.
+2. Preserve firebase-config.js and config-firestore.js.
+3. Overwrite hermes-memory.txt and hermes-setup.txt.
+4. Confirm version.js shows 0.8.1.5.
+5. No Firestore Rules update is required.
 
-QUICK TEST TONIGHT
-1. iPad landscape: reload/open FIDUNIO.
-   PASS = conversation list on LEFT and active chat on RIGHT immediately.
-2. Confirm there is no "${icon2d...}" text in the upper-right area.
-3. Tap a different conversation in the left pane.
-   PASS = right pane switches to it.
-4. Tap Settings graphic in the left sidebar.
-   PASS = Settings opens normally.
-5. iPhone: confirm existing single-pane layout remains intact.
+TEST
+1. iPad landscape: two panes should appear immediately.
+2. Open the + attachment tools.
+   PASS = all 8 icons appear in one horizontal row with complete labels.
+3. Confirm left sidebar shows Messages, Groups, Contacts, Settings at the bottom.
+4. Select another conversation.
+   PASS = right pane changes.
+5. iPhone:
+   PASS = single-pane and compact 4×2 attachment grid remain.
 6. Send one short message each direction.
    PASS = messaging remains normal.

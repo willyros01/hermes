@@ -438,3 +438,15 @@ UI-only correction to the 0.8.1.3 adaptive tablet release.
 - Adds proper Settings/New controls to the tablet sidebar.
 - Preserves compact 4×2 colored attachment icons and all 0.8.1 security behavior.
 - No Firestore Rules update is required.
+
+
+## Hermes 0.8.1.5 / FIDUNIO 0.8.1.5
+
+Final iPad UI refinement based on the approved 0.8.1.4 two-pane layout.
+
+- Wide tablet/iPad attachment tools now appear in ONE horizontal row of eight icons.
+- The row contains Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved.
+- Icons retain distinct colors and compact labels underneath.
+- The iPad conversation sidebar now includes a compact bottom navigation strip for Messages, Groups, Contacts, and Settings.
+- iPhone/narrow view remains a compact 4×2 attachment grid.
+- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.
