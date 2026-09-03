@@ -7,6 +7,9 @@
  * - The versioned Firebase SDK modules from gstatic are cached and may be
  *   served offline after they have been fetched successfully.
  * - Firestore/Auth data transport is NEVER service-worker cached.
+ *
+ * 0.8.1.10: service-worker script touched so iOS installs the new shell/version,
+ * and the targeted Group Info stylesheet is included in the shell cache.
  */
 
 importScripts("./version.js");
@@ -18,6 +21,7 @@ const SHELL=[
   "./index.html",
   "./version.js",
   "./styles.css",
+  "./styles-0.9.0.css",
   "./app.js",
   "./firebase.js",
   "./firebase-config.js",
