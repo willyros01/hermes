@@ -1,6 +1,6 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current release baseline: FIDUNIO 0.8.1.9
+Current validated pre-0.9.0 baseline: FIDUNIO 0.8.1.12
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -21,8 +21,8 @@ REPOSITORY / PACKAGING
 - Keep exactly one reusable root-level hermes-setup.txt.
 - Do NOT create version-numbered setup or memory TXT files.
 - Release ZIP itself may remain versioned.
-- firebase-config.js and config-firestore.js must NEVER be regenerated, overwritten, or included in update ZIPs.
-- Preserve the configured GitHub copies untouched.
+- firebase-config.js and config-firestore.js must NEVER be regenerated, overwritten, or included in update/release ZIPs.
+- Preserve configured GitHub copies of those files untouched.
 
 VERSIONING
 - Root-level version.js is the single authoritative runtime version source.
@@ -30,6 +30,7 @@ VERSIONING
 - app.js reads version.js.
 - service-worker.js imports version.js.
 - Avoid hard-coded current release numbers elsewhere in runtime UI/JS.
+- Every test build should use a distinct visible version number so the user can verify which code is running.
 
 VISUAL / UX
 - Preserve current winged-messenger artwork.
@@ -37,29 +38,25 @@ VISUAL / UX
 - No gold.
 - A / A+ / A++ text sizing approved.
 - Auto / Light / Dark approved.
-- Bottom/action icons should use richer two-dimensional graphic icons rather than flat/simple symbols.
+- Bottom/action icons use richer two-dimensional graphic icons.
 - Colored icon accents are preferred where they improve recognition.
 - iPhone/narrow screens: single-pane layout.
 - iPad/tablet: adaptive two-pane layout when viewport is wide enough.
 - Narrow split-screen/tablet widths collapse back to compact single-pane.
-- Future Mac/desktop can use persistent sidebar + workspace.
-- Responsive behavior should be based on viewport width, not device-name detection.
+- Responsive behavior is based on viewport width, not device-name detection.
+- Preserve the iPad two-pane design during future messaging/security work.
 
 ==================================================
 ARCHITECTURE
 ==================================================
 
-- JavaScript-first PWA.
-- HTML/CSS/JS.
-- Firebase Authentication.
-- Cloud Firestore.
+- JavaScript-first PWA using HTML/CSS/JS.
+- Firebase Authentication + Cloud Firestore.
+- Firebase SDK loaded dynamically from gstatic.
 - Storage/Functions later.
 - FCM where supported, but do not rely on FCM alone for Fire OS.
 - App Check later.
-- Firestore/Storage Security Rules.
 - Web Crypto only / vetted crypto primitives.
-- WebAuthn/passkeys later.
-- PIN/password fallback.
 - IndexedDB encrypted local persistence + Outbox.
 - Service Worker.
 - Message states: Queued → Sending → Sent → Delivered → Read; Failed when needed.
@@ -70,9 +67,238 @@ ARCHITECTURE
 - PWA limitation: cannot guarantee immediate background send if OS suspends app.
 
 ==================================================
-GROUP REQUIREMENTS
+FIREBASE SETUP
 ==================================================
 
+Firebase project:
+- fidunio-fef13
+
+Authentication:
+- Email/Password enabled.
+
+Firestore:
+- Standard edition.
+- Database: (default).
+- Region: nam5 (United States).
+- Production mode.
+
+Authorized domain:
+- willyros01.github.io
+
+TEST ACCOUNTS / DEVICES
+- Account A created on iPad.
+- Account B created on iPhone.
+- Different Firebase test accounts.
+- Existing direct cloud conversation was created by copying the iPhone Firebase UID once.
+- Do not ask the user to recreate accounts or re-paste UID unless restoration truly fails.
+
+==================================================
+STABLE TECHNICAL BASELINES
+==================================================
+
+0.6.5 — LOCAL-FIRST / OFFLINE BASELINE
+- Fixed Firestore cache snapshots erasing restored local history.
+- Cache snapshots merge non-destructively.
+- Server-backed snapshots are authoritative except local pending outbound work.
+- Startup restores encrypted local state/history/Outbox before Firebase synchronization.
+- Read receipts are only server-backed.
+- Firebase data is never service-worker cached.
+- User PASS: offline/online cycles retained messages and queued sends resumed automatically.
+- Treat 0.6.5 local-first persistence as stable.
+
+0.7.0 — DIRECT E2EE FOUNDATION
+- Installation creates non-exportable Web Crypto ECDH P-256 key pair.
+- Keypair stored in IndexedDB meta key e2ee-device-keypair-v1.
+- Account-level public JWK published in Firestore.
+- ECDH + HKDF-SHA-256 + AES-256-GCM.
+- Conversation ID used in derivation/AAD.
+- Firestore encrypted rows contain e2ee, ciphertext, iv, sender/time/state metadata and blank text.
+- Legacy plaintext rows remain readable.
+- Missing key/decrypt failure shows [Encrypted message — key unavailable].
+
+0.7.2 — E2EE CONVERSATION REPAIR
+- Preserved peerUid through cloud conversation merge.
+- Added authoritative conversation repair and peer UID resolution.
+- Outbox payload carries peerUid.
+- Direct encrypted messaging passed both directions.
+
+0.7.3 — STABLE DIRECT-E2EE TRANSPORT / RECONNECT BASELINE
+- Added cloudMessageConversationId and idempotent active message subscription.
+- Conversation discovery no longer tears down/recreates the same active listener on every metadata update.
+- Navigation/auth/reconnect/pageshow/visibility may force one clean reattach.
+- Reconnect Outbox flush runs immediately plus conservative retries.
+- User PASS: instant two-way live receive, offline queue survival, reconnect send, automatic live receipt.
+- Treat 0.7.3 as stable transport/reconnect rollback baseline.
+
+0.8.0 — DEVICE IDENTITY / MULTI-DEVICE FOUNDATION
+- Stable installation Device ID in IndexedDB meta key e2ee-device-identity-v1.
+- Reuses existing non-exportable ECDH keypair on upgrade.
+- SHA-256 public-key fingerprint.
+- Settings → Device Identity shows Device ID, fingerprint and registered-device status.
+- Firestore device registry: users/{uid}/devices/{deviceId}.
+- Existing account-level e2eePublicJwk remains compatibility key.
+- New encrypted messages include senderDeviceId.
+- User PASS: distinct iPad/iPhone identities, encrypted messaging, offline queue/reconnect/live receipt.
+- Treat 0.8.0 as stable device-identity baseline.
+
+0.8.1 — CONTACT KEY VERIFICATION / KEY-CHANGE DETECTION
+- Encrypted local peerTrust records keyed by peer UID.
+- Conversation Security shows current peer fingerprint/device count.
+- User can Verify Current Key through an independently trusted comparison.
+- Previously verified key change pauses new outgoing messages until reviewed/verified.
+- Peer keys refresh during live receive/send.
+- Verification remains local per installation.
+- User PASS: fingerprints matched both directions and messaging remained functional after verification.
+- Treat 0.8.1 as stable contact-key-verification baseline.
+
+==================================================
+UI REFINEMENT HISTORY
+==================================================
+
+0.8.1.1 — richer 2D action icons; UI-only.
+0.8.1.2 — responsive icon/grid corrections for iPad/iPhone; UI-only.
+0.8.1.3 — compact colored icons + first adaptive tablet two-pane implementation.
+0.8.1.4 — fixed iPad two-pane delivery and corrupted Settings icon rendering.
+0.8.1.5 — one horizontal row of 8 attachment tools on wide tablet; compact sidebar navigation.
+0.8.1.6 — tablet composer moved into right pane; breakpoint lowered to 700 CSS px; fixed full-width/two-pane behavior.
+0.8.1.7 — centered/grouped attachment toolbar; wider New Message/New Group/Group Name tablet workspaces.
+0.8.1.8 — tablet-aware Settings and first/unlock screen.
+0.8.1.9 — orientation-aware tablet secondary screens: portrait centered; wide landscape uses more space; Settings two columns.
+
+These UI releases intentionally did not change Firebase, Firestore Rules, E2EE, device identity, Outbox, local-first history, or reconnect logic unless separately documented.
+
+==================================================
+0.9.0 PREPARATION — GROUP INFO TABLET FIX
+==================================================
+
+Observed:
+- Group Info was omitted from the orientation-aware tablet selectors and appeared as a narrow phone-width column in iPad landscape.
+
+Validated correction:
+- Added groupInfo tablet-aware shell/content styling.
+- Portrait remains centered tablet-width.
+- Wide landscape uses a balanced two-column Group Info workspace.
+- Smaller landscape tablets use a wider centered workspace.
+- Phone/narrow behavior preserved.
+- User confirmed on iPad: Group Info screen FIXED.
+
+Implementation on main:
+- Root index.html loads existing styles.css plus targeted styles-0.9.0.css.
+- No app.js/Firebase/E2EE/Outbox/Rules changes were required for this layout fix.
+
+Test-path lesson:
+- /test-0.9.0/ was useful only for visual layout testing.
+- It is not appropriate for existing-device E2EE/receipt validation because the alternate deployment path did not reproduce the established local key/storage context.
+- Existing encrypted messages showed [Encrypted message — key unavailable] there while the normal root app could decrypt them.
+- Use the normal root app for E2EE/receipt testing.
+
+==================================================
+0.8.1.10 → 0.8.1.12 — IPAD SENT → READ DEFECT
+==================================================
+
+Original defect:
+- On iPad two-pane layout, an outgoing message could remain visually at Sent after the iPhone opened/read the conversation.
+- Older single-pane/earlier transport behavior had previously passed automatic live receipt.
+- Strong suspicion: listener/render lifecycle changed when the persistent two-pane iPad UI was introduced.
+
+0.8.1.10 — FAILED EXPERIMENT
+- Added a 2-second server refresh/poll of the active conversation in firebase.js.
+- On iPad this caused repeated refreshing and broke normal sending usability.
+- This approach is rejected. Do NOT reintroduce periodic active-conversation server polling for receipt refresh.
+
+0.8.1.11 — ROLLBACK / RESTORE
+- Removed the polling experiment.
+- firebase.js messaging subscription returned to the exact known-good pre-experiment blob.
+- Normal sending behavior restored, but Sent → Read still did not update live.
+
+0.8.1.12 — ORDERED MESSAGE-SNAPSHOT FIX — USER PASS
+Diagnosis:
+- Firestore message snapshots invoke an async app callback that refreshes peer keys and decrypts rows before committing state/render.
+- In the persistent iPad two-pane chat, multiple snapshots can arrive close together and async processing can overlap.
+- An older Sent snapshot could finish after a newer Read snapshot and overwrite/repaint the UI with stale receipt state.
+
+Fix:
+- Kept the existing Firestore onSnapshot design.
+- No polling, no timer-driven server refresh and no page refresh loop.
+- serialize/queue active-conversation snapshot processing so async snapshot callbacks complete strictly in arrival order.
+- Preserve the existing 0.7.3 active-listener lifecycle and iPad two-pane UI.
+- No E2EE format, device identity, Outbox, local-history or Firestore Rules change required.
+- Service worker was touched for the v12 shell so iOS installs the correct versioned assets.
+
+USER TEST RESULT — PASS:
+- v0.8.1.12 displayed on iPad.
+- iPad could send normally.
+- Message read on iPhone updated automatically from Sent → Read on the iPad.
+- User explicitly reported: “it works!”
+
+Treat FIDUNIO 0.8.1.12 as the current validated pre-0.9.0 rollback baseline.
+Preserve this ordered listener behavior during 0.9.0 E2EE work.
+
+==================================================
+CURRENT VALIDATED STATUS
+==================================================
+
+Current runtime/test version:
+FIDUNIO 0.8.1.12
+
+Validated on iPad/root main:
+- Existing encrypted conversation history decrypts normally.
+- Wide iPad/tablet two-pane layout preserved.
+- Group Info tablet/landscape layout fixed.
+- Normal cloud sending works.
+- iPad outgoing Sent → Read live refresh works after iPhone reads the message.
+
+Stable baselines to preserve:
+- UI / pre-0.9.0 integrated baseline: 0.8.1.12.
+- Security/contact verification: 0.8.1.
+- Device identity: 0.8.0.
+- Transport/reconnect core: 0.7.3, plus the 0.8.1.12 ordered-snapshot correction.
+- Offline/local-first history: 0.6.5.
+
+Before true 0.9.0 E2EE changes:
+- Run a focused regression pass if needed: two-way send/receive, Sent→Read, offline queue survival/reconnect, orientation/two-pane, Group Info.
+
+==================================================
+0.9.0 — TRUE PER-DEVICE E2EE ROADMAP
+==================================================
+
+Planned sequence:
+1. Read recipient registered device set.
+2. Encrypt message key separately for each authorized recipient device.
+3. Add per-device recipient envelopes/fan-out.
+4. Preserve 0.8.1.12 UI/listener behavior and the 0.7.3 transport/offline/reconnect foundation.
+5. Regression/security test before declaring 0.9.0 complete.
+6. Follow with verified device linking/device management.
+7. Stronger device-change approval.
+8. Later: safety numbers/QR verification.
+9. Later: forward secrecy / Double Ratchet or vetted equivalent.
+10. Later: group E2EE, key rotation/history enforcement.
+11. Later: App Check and hostile-client Firestore-rules audit.
+12. Later: quota/billing monitoring, push, passkeys/device auth.
+
+Do not use homegrown cryptography beyond careful use of vetted Web Crypto primitives/protocol design. For production-grade secure messaging, prefer a vetted protocol/library where feasible.
+
+==================================================
+IMPORTANT TECHNICAL DETAILS
+==================================================
+
+- app.js imports ./firebase.js.
+- firebase.js imports ./firebase-config.js.
+- index.html loads version.js before app.js.
+- service-worker.js imports version.js.
+- Local app/history restoration occurs before Firebase initialization.
+- navigator.onLine is not proof of actual Internet reachability.
+
+IndexedDB:
+- DB: fidunio-local
+- version: 2
+- stores: meta, outbox, history.
+- local AES-GCM CryptoKey in meta.
+- encrypted app state, Outbox and cloud-history cache.
+- E2EE keypair: e2ee-device-keypair-v1.
+- Device identity: e2ee-device-identity-v1.
+
+GROUP REQUIREMENTS REMAIN
 - Group UX similar to direct chat.
 - Incoming group messages show sender.
 - New Message → New Group → select people → name → create.
@@ -83,648 +309,7 @@ GROUP REQUIREMENTS
 - Production enforcement should be cryptographic.
 - Rotate group keys on membership changes.
 
-==================================================
-FIREBASE SETUP
-==================================================
-
-Firebase project:
-- fidunio-fef13
-
-Authentication:
-- Email/Password enabled.
-- Google/Phone/etc not enabled.
-
-Firestore:
-- Standard edition.
-- Database: (default)
-- Region: nam5 (United States)
-- Production mode.
-- No manual collection creation required.
-
-Authorized domain:
-- willyros01.github.io
-
-==================================================
-TEST ACCOUNTS / DEVICES
-==================================================
-
-- Account A created on iPad.
-- Account B created on iPhone.
-- Different Firebase test accounts.
-- Existing direct cloud conversation created by copying iPhone Firebase UID once.
-- Do not ask user to recreate accounts or re-paste UID unless restoration truly fails.
-- During 0.7.2 testing, missing iPhone conversation was caused by the iPhone not being signed into Firebase; signing into the same existing account restored the conversation.
-
-==================================================
-STABLE TRANSPORT / OFFLINE BASELINE
-==================================================
-
-0.6.5 — STABLE TRANSPORT/OFFLINE BASELINE
-
-Root cause fixed:
-- Offline Firestore onSnapshot could emit empty/incomplete cached snapshots with metadata.fromCache === true.
-- Earlier builds overwrote restored local history with [].
-
-0.6.5 behavior:
-- Cache snapshots merge non-destructively and never erase local rows.
-- Server-backed snapshots authoritative except local pending outbound.
-- Local-first startup:
-  loadPersistedState()
-  → loadCloudHistory()
-  → restoreOutboxIntoState()
-  → hydrated=true
-  → render()
-  → initializeFirebaseLayer()
-  → flush if online.
-- Read receipts only server-backed.
-- Firebase data never service-worker cached.
-
-User test PASS:
-- Repeated offline/online cycles retained all messages.
-- Queued message automatically sent when communications returned.
-
-Treat 0.6.5 local-first persistence as stable and do not change without a specific defect.
-
-==================================================
-E2EE HISTORY
-==================================================
-
-0.7.0 — E2EE FOUNDATION
-
-Direct-message E2EE:
-- Each installation generates Web Crypto ECDH P-256 key pair.
-- Private key non-exportable.
-- Stored in IndexedDB meta key e2ee-device-keypair-v1.
-- Public JWK published on user profile as e2eePublicJwk.
-- ECDH shared secret.
-- HKDF-SHA-256:
-  salt = FIDUNIO-E2EE-v1
-  info = conversation ID.
-- AES-256-GCM with fresh 12-byte IV.
-- Conversation ID used as AAD.
-- Firestore encrypted rows use:
-  e2ee:1
-  ciphertext
-  iv
-  text:""
-  sender metadata/time/state.
-- Recipient decrypts locally.
-- Outbox plaintext exists only inside existing locally AES-GCM encrypted IndexedDB record before cloud encryption.
-- Missing/decrypt-failure UI:
-  [Encrypted message — key unavailable]
-- Legacy plaintext rows remain readable.
-- Auth restoration republishes own public key.
-
-Known limitations at this stage:
-- One active installation/device key per account assumption.
-- No multi-device fan-out.
-- Clearing site data/reinstall creates a new key.
-- No safety-number verification.
-- No key-change approval.
-- No forward secrecy / Double Ratchet.
-- No group E2EE.
-- Metadata visible.
-- Old cloud messages remain plaintext.
-
-0.7.1 — VERSION CONSISTENCY
-
-- Added authoritative root-level version.js.
-- index.html loads version.js before app.js.
-- service-worker.js imports version.js.
-- User confirmed both devices showed 0.7.1.
-- First E2EE send failed because mergeCloudConversation(remote) dropped peerUid.
-
-0.7.2 — E2EE CONVERSATION REPAIR
-
-Changes:
-- Preserve peerUid.
-- getCloudConversation() authoritative repair.
-- resolvePeerUidForConversation().
-- Outbox conversation payload includes peerUid.
-- No need to re-copy UID.
-- Firestore rules unchanged.
-
-Test:
-- After iPhone signed back into the existing account, old conversation reappeared.
-- Previously failed iPad message automatically retried and arrived.
-- iPhone → iPad encrypted message arrived.
-- Direct E2EE passed both directions.
-- Offline queued message survived close/reopen and later sent.
-- Remaining issue: reconnect/live listener could lag or require leaving/re-entering conversation.
-
-0.7.3 — STABLE DIRECT-E2EE + OFFLINE/RECONNECT BASELINE
-
-Changes:
-- cloudMessageConversationId added.
-- ensureActiveCloudMessageSubscription(force=false).
-- Active message listener idempotent for same conversation.
-- Conversation discovery no longer tears down/recreates active message listener on every updatedAt change.
-- Navigation/auth/reconnect/pageshow/visibility can force one clean reattach.
-- Reconnect Outbox flush immediate, then retry ~1.5s and ~4s for iOS timing.
-- Preserved 0.7.2 E2EE and 0.6.5 local-first/Outbox design.
-
-User PASS:
-- Instant iPad → iPhone.
-- Instant iPhone → iPad.
-- Live receiving conversation updated without leaving/re-entering.
-- Offline queued survival.
-- Prompt automatic reconnect send.
-- Automatic live receipt.
-
-Treat 0.7.3 as stable direct-E2EE transport/reconnect rollback baseline.
-
-==================================================
-DEVICE IDENTITY / KEY VERIFICATION
-==================================================
-
-0.8.0 — DEVICE IDENTITY / MULTI-DEVICE FOUNDATION
-
-Built from stable 0.7.3.
-
-Changes:
-- version.js authoritative version 0.8.0.
-- Each installation gets stable random Device ID in IndexedDB meta key e2ee-device-identity-v1.
-- Reuses existing 0.7.x non-exportable ECDH P-256 keypair; upgrade does NOT intentionally rotate working key.
-- Computes SHA-256 fingerprint of canonical public JWK {kty,crv,x,y}.
-- Settings → Device Identity shows:
-  This installation
-  short Device ID
-  public-key fingerprint
-  registered-device count/status
-  explanation that private key stays local/non-exportable
-  warning that direct encryption still uses 0.7.x compatibility key.
-- Firebase API:
-  publishCloudE2EEDevice(uid,device)
-  getCloudUserDevices(uid)
-- Firestore device registry:
-  users/{uid}/devices/{deviceId}
-- Existing account-level e2eePublicJwk remains active compatibility key.
-- publishMyE2EEKey() publishes compatibility key first, then device registry.
-- New encrypted messages include senderDeviceId metadata.
-- Ciphertext format unchanged.
-
-0.8.0 rules:
-- Added users/{uid}/devices/{deviceId} access rules.
-- Authenticated users may read device public-key records.
-- Owner-only create/update.
-- uid/deviceId must match path.
-- e2eeVersion == 1.
-- publicJwk must be map.
-- bounded fingerprint.
-- delete denied.
-- Other conversation/message rules unchanged.
-
-0.8.0 TEST RESULT — FULL PASS
-- iPhone Device Identity created and registered.
-- iPad Device Identity created and registered.
-- Distinct Device IDs/fingerprints.
-- Each account showed 1 registered device as expected because iPad and iPhone use different Firebase test accounts.
-- Instant two-way encrypted messaging passed.
-- Offline queued message survived restart.
-- Reconnect auto-send and live receipt passed.
-
-Treat 0.8.0 as stable device-identity foundation.
-
-0.8.1 — CONTACT KEY VERIFICATION / KEY-CHANGE DETECTION
-
-Changes:
-- Encrypted local peerTrust records keyed by peer UID.
-- First observed peer account public-key fingerprint recorded.
-- Cloud direct-chat Info opens Conversation Security.
-- Shows current peer fingerprint and registered-device count.
-- User can Verify Current Key after comparing fingerprint through a separate trusted channel.
-- If a previously verified key later changes:
-  visible security warning
-  NEW outgoing messages paused
-  new fingerprint must be explicitly reviewed/verified.
-- If an unverified key changes:
-  warning shown
-  not falsely treated as previously trusted.
-- Peer public keys refreshed during live receive/send rather than relying indefinitely on memory cache.
-- Verification remains local per installation.
-- No QR linking yet.
-- No automatic cross-device verification yet.
-- Firestore rules unchanged from 0.8.0.
-
-0.8.1 TEST RESULT — FULL PASS
-- iPad Conversation Security fingerprint matched iPhone Device Identity fingerprint.
-- iPhone Conversation Security fingerprint matched iPad Device Identity fingerprint.
-- Current key explicitly verified in both directions.
-- Messaging remained functional both ways after verification.
-
-Treat 0.8.1 as stable contact-key-verification baseline.
-
-==================================================
-UI REFINEMENT RELEASES
-==================================================
-
-0.8.1.1 — 2D ICON UI REFINEMENT
-- UI-only.
-- Replaced simple text/emoji-like action graphics with inline SVG pictograms.
-- Updated Settings, New/Add, Back, Info, Send, Photo, File, Voice, Location, Contact, Checklist, Schedule, Saved.
-- Preserved navy/teal/gray and no-gold rule.
-- No Firebase/Firestore/security/messaging changes.
-
-0.8.1.2 — RESPONSIVE ICON FIX
-- User reported attachment-panel overflow on iPad and clipping/incomplete columns on iPhone.
-- Added responsive grid constraints.
-- Added distinct color accents to attachment icons.
-- Quick phrases can scroll horizontally on narrow screens.
-- No Firebase/Firestore/security/messaging changes.
-
-0.8.1.3 — COMPACT COLORED ICONS + ADAPTIVE TABLET UI
-PRIOR UI RELEASE
-
-- User preferred original compact proportions over larger 0.8.1.2 tool buttons.
-- Keeps richer colored 2D icons.
-- Restores compact 4×2 attachment layout.
-- Adds adaptive two-pane presentation for wider iPad/tablet viewports.
-- Two-pane mode:
-  conversation sidebar left
-  active chat right.
-- Narrow viewport:
-  established single-pane layout.
-- Device model detection is NOT used.
-- Current breakpoint: 820 CSS px.
-- Intended to adapt across iPad, Fire/tablet widths, rotation, and split-screen based on actual viewport.
-- No Firebase, Firestore rules, E2EE, verification, device identity, Outbox, local history, or reconnect logic changes.
-
-==================================================
 FIRE HD 8
-==================================================
-
-- Fire HD 8 is useful for Android-derived PWA/Web Crypto/IndexedDB/Firebase transport testing.
-- Fire OS is not a full Google-certified Android compatibility target.
-- Eventually test normal Android/Chrome too.
-- For current pre-0.9.0 multi-device architecture:
-  use Fire 8 for UI/browser compatibility testing.
-- Do NOT sign into one of the two working iPad/iPhone Firebase test accounts on Fire 8 yet, because current architecture still uses an account-level compatibility key and does not yet support full multi-device recipient fan-out.
-
-==================================================
-SECURITY MODEL / ROADMAP
-==================================================
-
-Current layered model:
-Authentication
-→ App Check later
-→ Firestore Security Rules
-→ E2EE
-
-Important:
-- Firebase Web API key/config is public by design.
-- Knowing client JS/config does not let an attacker modify Firestore Security Rules.
-- Rules are server-side and apply to hostile custom clients.
-- Main risks include overly broad rules, stolen admin/IAM credentials, leaked service-account keys, and quota/resource abuse.
-- Never commit service-account private keys.
-
-GitHub secret-scanning alert:
-- Google API Key detected in firebase-config.js.
-- Likely expected Firebase Web API key detection.
-- Low-priority hardening task for later:
-  verify it is only the Firebase web key
-  check Google Cloud API restrictions
-  resolve GitHub alert appropriately.
-- Do not rotate/delete solely because of the alert.
-
-NEXT MAJOR SECURITY MILESTONE
-0.9.0 — TRUE PER-DEVICE E2EE
-Planned:
-1. Read recipient registered device set.
-2. Encrypt message key separately for each authorized recipient device.
-3. Add per-device recipient envelopes/fan-out.
-4. Preserve existing transport/offline/reconnect baseline.
-5. Follow with verified device linking/device management.
-6. Add stronger device-change approval.
-7. Later: safety numbers/QR verification.
-8. Later: forward secrecy / Double Ratchet or vetted equivalent.
-9. Later: group E2EE and key rotation/history enforcement.
-10. Later: App Check.
-11. Later: hostile-client Firestore-rules audit.
-12. Later: quota/billing monitoring.
-13. Push later.
-14. Passkeys/device auth later.
-
-Do not use homegrown cryptography beyond careful use of vetted Web Crypto primitives/protocol design. For production-grade secure messaging, prefer a vetted protocol/library where feasible.
-
-==================================================
-IMPORTANT TECHNICAL DETAILS
-==================================================
-
-- app.js imports local ./firebase.js.
-- firebase.js imports local ./firebase-config.js.
-- Firebase SDK currently loaded dynamically from gstatic.
-- index.html loads version.js before module app.js.
-- service-worker.js imports version.js.
-- Local app/history restoration occurs before Firebase init.
-- navigator.onLine is not reliable proof of actual Internet reachability.
-
-IndexedDB:
-- DB: fidunio-local
-- version: 2
-- stores:
-  meta
-  outbox
-  history
-- local AES-GCM CryptoKey in meta.
-- encrypted app state.
-- encrypted Outbox.
-- encrypted cloud-history cache.
-- E2EE keypair:
-  e2ee-device-keypair-v1
-- Device identity:
-  e2ee-device-identity-v1
-
-Stable behavior references:
-- 0.5 proved encrypted IndexedDB Outbox survival.
-- 0.6.5 proved local-first offline history/Outbox/reconnect.
-- 0.7.2 proved failed Outbox auto-retry after peer auth/key availability.
-- 0.7.3 proved instant live receive and prompt reconnect.
-- 0.8.0 proved device registry without E2EE regression.
-- 0.8.1 proved manual contact-key verification without messaging regression.
-
-==================================================
-CURRENT STATUS
-==================================================
-
-Current release under test:
-FIDUNIO 0.8.1.9
-
-0.8.1.9 is the current UI release.
-
-Expected behavior:
-- iPhone/narrow viewport: single-pane layout.
-- iPad/tablet wide viewport: two-pane layout immediately from the Messages screen.
-- Conversation sidebar remains on the left; active chat is on the right.
-- Compact 4×2 colored attachment icons remain.
-- Settings/New controls render as SVG graphics, not literal ${icon2d(...)} text.
-- Tablet conversation switching should update the right pane.
-- No Firestore Rules update required for 0.8.1.9.
-- Security baseline remains 0.8.1.
-- Device-identity baseline remains 0.8.0.
-- Transport/reconnect baseline remains 0.7.3.
-- Offline/local-first history baseline remains 0.6.5.
-
-Next major planned release:
-FIDUNIO 0.9.0 — true per-device E2EE.
-
-Before 0.9.0:
-- Finish visual/functional confirmation of 0.8.1.4 on iPad and iPhone.
-
-
-==================================================
-0.8.1.4 — IPAD TWO-PANE DELIVERY FIX
-==================================================
-
-Reason:
-- 0.8.1.3 did not show the approved two-pane iPad layout from the Messages screen.
-- The upper-right Settings icon rendered corrupted/literal icon-helper text.
-
-Fixes:
-- Wide-screen Messages now enters the two-pane tablet shell immediately.
-- Conversation list/sidebar is on the left and active chat on the right.
-- Tablet sidebar has proper Settings and New Conversation controls.
-- Settings icon rendering bug corrected.
-- Compact 4×2 colored attachment icons preserved.
-- No Firebase, Firestore Rules, E2EE, contact verification, device identity, Outbox, local history, or reconnect changes.
-
-
-==================================================
-0.8.1.5 — ONE-LINE IPAD ATTACHMENT TOOLBAR
-==================================================
-
-Reason:
-- 0.8.1.4 successfully delivered the iPad two-pane layout.
-- User confirmed the two-pane layout works.
-- User requested that the 8 attachment/widget icons occupy one horizontal line on iPad instead of multiple rows.
-
-Changes:
-- Wide iPad/tablet tool panel is exactly one row of 8 compact colored 2D icons.
-- Order:
-  Photo, File, Voice, Location, Contact, Checklist, Schedule, Saved.
-- Complete labels remain below each icon.
-- Large rectangular tool cards removed from wide tablet presentation.
-- Added compact bottom navigation to the left sidebar:
-  Messages, Groups, Contacts, Settings.
-- iPhone/narrow layout remains single-pane with compact 4×2 attachment grid.
-- No Firebase, Firestore Rules, E2EE, contact verification, device identity, Outbox, local-first history, or reconnect changes.
-
-Current expected 0.8.1.5 behavior:
-- iPad wide viewport: two panes immediately.
-- Attachment tools: one horizontal row of 8.
-- iPhone: single pane, 4×2 tools.
-- Security baseline: 0.8.1.
-- Device identity baseline: 0.8.0.
-- Transport/reconnect baseline: 0.7.3.
-- Offline/local-first baseline: 0.6.5.
-- Next major planned release: 0.9.0 true per-device E2EE.
-
-
-==================================================
-0.8.1.6 — TABLET WIDTH / COMPOSER / TOOLBAR CORRECTION
-==================================================
-
-Observed on iPad after 0.8.1.5:
-- The 8 attachment icons technically formed one row, but the row looked cramped/detached.
-- Composer/tool strip occupied only a narrow central portion instead of the full right pane.
-- On another iPad view the entire app unexpectedly narrowed toward a phone-like centered width.
-- Sidebar bottom navigation was partially obscured/cropped.
-
-Root cause:
-- The original phone `.composer-wrap` remained `position: fixed` and still used the phone `--app-max` (520px) centering formula inside tablet mode.
-- The adaptive breakpoint of 820 CSS px was too high for some iPad/Safari portrait or constrained viewport cases.
-
-Fix:
-- In tablet mode, composer becomes position:static inside `.tablet-chat-pane`.
-- It spans 100% of the right pane.
-- 8 attachment icons remain one horizontal row and are compact/evenly spaced.
-- Tablet breakpoint lowered to 700 CSS px.
-- Body/tablet shell stretch to full viewport width.
-- Sidebar bottom navigation is no longer covered by the composer.
-- iPhone below 700 CSS px remains single-pane.
-
-No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local history, or reconnect changes.
-
-Current expected release:
-FIDUNIO 0.8.1.9
-- iPad/tablet >=700 CSS px: full two-pane layout.
-- Right-pane composer contained within right pane.
-- Attachment tools: exactly one row of 8.
-- iPhone/narrow <700 CSS px: single-pane.
-- Security baseline remains 0.8.1.
-- Device identity baseline remains 0.8.0.
-- Transport/reconnect baseline remains 0.7.3.
-- Offline/local-first baseline remains 0.6.5.
-- Next major planned release remains 0.9.0 true per-device E2EE.
-
-
-==================================================
-0.8.1.7 — FINAL TABLET UI POLISH
-==================================================
-
-Observed after 0.8.1.6:
-- Functional behavior was correct.
-- The 8 attachment tools finally lined up in one row.
-- On large iPad screens, the row looked too loose/spread out.
-- New Message still appeared as a narrow phone-width column on a large tablet.
-
-Changes:
-- Keep one-row attachment toolbar.
-- Center and width-limit the toolbar so it reads as one grouped control strip.
-- Add subtle rounded container around the tool row.
-- Slightly enlarge tool icons for balance.
-- Center quick replies and message composer within a comfortable max width.
-- New Message, New Group, and Group Name use a wider centered tablet workspace.
-- iPhone/narrow presentation remains unchanged.
-- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
-
-Current expected release:
-FIDUNIO 0.8.1.9
-- iPad/tablet >=700 CSS px: full two-pane chat layout.
-- Right-pane composer contained within chat pane.
-- Attachment tools: one centered horizontal row of 8.
-- New Message/New Group/Group Name: centered tablet-width workspace.
-- iPhone/narrow <700 CSS px: single-pane.
-- Security baseline remains 0.8.1.
-- Device identity baseline remains 0.8.0.
-- Transport/reconnect baseline remains 0.7.3.
-- Offline/local-first baseline remains 0.6.5.
-- Next major planned release remains 0.9.0 true per-device E2EE.
-
-
-==================================================
-0.8.1.8 — SETTINGS + FIRST SCREEN TABLET ALIGNMENT
-==================================================
-
-Observed before test of 0.8.1.7:
-- Settings still behaved like the old narrow phone-width secondary screen on iPad.
-- User also noted the first/initial screen behaved the same way.
-
-Changes:
-- Settings now gets the same centered tablet-width workspace used by New Message/New Group/Group Name.
-- First/unlock screen now gets tablet-aware centering and width.
-- 0.8.1.7 two-pane chat and centered one-line attachment toolbar are preserved.
-- iPhone/narrow layouts remain unchanged.
-- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
-
-Current expected release:
-FIDUNIO 0.8.1.9
-- iPad/tablet >=700 CSS px:
-  - first/unlock screen centered and tablet-sized;
-  - Settings centered and tablet-sized;
-  - New Message/New Group/Group Name centered and tablet-sized;
-  - Messages/chat uses two panes;
-  - attachment tools one centered horizontal row of 8.
-- iPhone/narrow <700 CSS px: established single-pane/mobile presentation.
-- Security baseline remains 0.8.1.
-- Device identity baseline remains 0.8.0.
-- Transport/reconnect baseline remains 0.7.3.
-- Offline/local-first baseline remains 0.6.5.
-- Next major planned release remains 0.9.0 true per-device E2EE.
-
-
-==================================================
-0.8.1.9 — ORIENTATION-AWARE TABLET SECONDARY SCREENS
-==================================================
-
-Observed after 0.8.1.8:
-- Unlock, Settings, New Message and related secondary screens looked acceptable in iPad portrait.
-- In iPad landscape they retained nearly the same centered single-column proportions and left too much unused space.
-
-Changes:
-- Added orientation-aware tablet CSS.
-- Portrait keeps the approved centered tablet layout.
-- Wide landscape uses the available width.
-- Settings becomes a two-column card layout in wide landscape.
-- Unlock/first screen uses a wider centered card.
-- New Message/New Group/Group Name use broader centered workspaces in landscape.
-- Messages/chat two-pane behavior remains unchanged.
-- iPhone/narrow layouts remain unchanged.
-- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-first history, or reconnect changes.
-
-Current expected release:
-FIDUNIO 0.8.1.9
-- Portrait tablet: centered secondary screens.
-- Landscape tablet: wider/orientation-aware secondary screens.
-- Wide landscape Settings: two columns.
-- Messages/chat: two panes.
-- iPhone: single pane.
-- Security baseline remains 0.8.1.
-- Device identity baseline remains 0.8.0.
-- Transport/reconnect baseline remains 0.7.3.
-- Offline/local-first baseline remains 0.6.5.
-- Next major planned release remains 0.9.0 true per-device E2EE.
-
-
-==================================================
-0.9.0 PREPARATION — GROUP INFO + LIVE TEST STRATEGY
-==================================================
-
-Status as of 2026-09-03:
-- 0.8.1.9 remains the authoritative runtime version in root version.js.
-- User has a local ZIP copy of the known-good 0.8.1.9 release for rollback.
-- release/0.9.0-prep branch exists for preparation work.
-- A targeted Group Info tablet-layout correction was built and tested on iPad.
-- User confirmed the Group Info screen is fixed.
-
-Group Info root cause:
-- 0.8.1.9 orientation-aware tablet selectors covered Settings, New Message, New Group, and Group Name, but omitted body[data-route="groupInfo"].
-- Group Info therefore retained a narrow phone-style column in iPad/tablet landscape.
-
-Validated Group Info correction:
-- Adds the same tablet-aware shell/content treatment for groupInfo.
-- Portrait keeps a centered tablet-width presentation.
-- Wide landscape uses the available width and a balanced two-column Group Info workspace.
-- Smaller landscape tablets use a wider centered workspace.
-- Phone/narrow behavior is preserved.
-
-Test-deployment lesson:
-- An isolated /test-0.9.0/ GitHub Pages subdirectory was useful for visual layout testing.
-- It is NOT suitable for validating existing-device E2EE or live receipt behavior because a different URL path creates a separate browser storage context for IndexedDB/site data in this app workflow.
-- On the isolated test path, existing encrypted rows displayed [Encrypted message — key unavailable].
-- On the normal 0.8.1.9 iPad site, the same conversation displays clear text because the established device key/local state is available.
-- Therefore receipt/E2EE testing should use the normal root app origin/context, not the isolated test path.
-
-Root main change on 2026-09-03:
-- The confirmed Group Info correction was moved into the normal root main app.
-- Root index.html now loads existing styles.css plus targeted styles-0.9.0.css.
-- No app.js, firebase.js, Firestore Rules, E2EE, device identity, Outbox, local-history, or receipt logic was changed in this step.
-- version.js intentionally remains 0.8.1.9 until actual 0.9.0 functional work begins.
-
-Outstanding pre-0.9.0 defect:
-- iPad live outgoing receipt refresh can remain at Sent after the iPhone opens/reads the conversation.
-- Preserve the iPad two-pane layout and stable 0.7.3 listener behavior.
-- Next controlled sequence:
-  1. Verify normal root iPad site still decrypts existing messages to clear text and Group Info remains fixed.
-  2. Reproduce Sent → Read issue with iPad on root main and iPhone on stable 0.8.1.9.
-  3. Apply only a targeted live-receipt refresh correction.
-  4. Regression-test messaging/offline/reconnect.
-  5. Then begin true per-device E2EE work for 0.9.0.
-
-==================================================
-0.9.0 PREPARATION — IPAD SENT → READ REFRESH FIX
-==================================================
-
-Observed on 2026-09-03:
-- User reproduced the iPad-only defect on the normal root app.
-- iPad outgoing message remained Sent even after the iPhone opened/read the conversation.
-- iPhone remains on the older stable 0.8.1.9 code path during this compatibility test.
-
-Targeted fix applied to root main firebase.js:
-- Preserves the existing Firestore onSnapshot listener and 0.7.3 listener lifecycle.
-- Adds a lightweight 2-second server refresh only for the currently subscribed/open conversation.
-- Uses getDocsFromServer(query) when available, with getDocs(query) fallback.
-- Refresh is skipped when navigator.onLine is false.
-- Overlapping refreshes are prevented.
-- Timer is cleared when the active conversation subscription is torn down.
-- Transient refresh failures do not tear down or replace the established live listener.
-- No app.js, E2EE format, device identity, Outbox, local-history, Firestore Rules, or iPhone code changes are required for this compatibility fix.
-
-Reason for this approach:
-- A conversation-level receipt pulse would require the recipient to run new code.
-- The iPhone in this test is still on the older release and only updates the message document state.
-- The active-conversation server refresh therefore reads the existing message-state change directly and remains backward-compatible with the iPhone release.
-
-Status:
-- Code committed to main.
-- Awaiting iPad retest: send a new message, read it on iPhone, and verify iPad changes Sent → Read automatically within about 2 seconds.
-- version.js remains 0.8.1.9 during this pre-0.9.0 validation.
+- Useful for Android-derived PWA/Web Crypto/IndexedDB/Firebase transport testing.
+- Do not treat Fire OS as a full Google-certified Android compatibility target.
+- Until true per-device recipient fan-out exists, do not sign Fire 8 into one of the two working iPad/iPhone test accounts unless intentionally testing key migration/device behavior.
