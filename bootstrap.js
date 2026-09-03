@@ -124,4 +124,5 @@ try{
 await import("./settings-polish.js");
 const {runAuthGate}=await import("./auth-ui.js");
 await runAuthGate();
+await import("./profile-sync.js");
 scrubPrototypeUi();
