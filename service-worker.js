@@ -80,9 +80,9 @@ async function stableTabletAppResponse(request,response){
   // Receipt state is not encrypted. Update an already-visible outgoing row
   // immediately from raw Firestore snapshot metadata before any asynchronous
   // peer-key refresh/decryption. The normal full merge still runs afterward.
-  const needle='''      const existing=state.messages[conversationId] || [];
-      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});''';
-  const replacement='''      const existing=state.messages[conversationId] || [];
+  const needle=`      const existing=state.messages[conversationId] || [];
+      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
+  const replacement=`      const existing=state.messages[conversationId] || [];
 
       if(!meta.fromCache){
         const rawStateById=new Map(rows.map(r=>[r.id,r.state||"sent"]));
@@ -100,7 +100,7 @@ async function stableTabletAppResponse(request,response){
         }
       }
 
-      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});''';
+      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
   source=source.replace(needle,replacement);
 
   const headers=new Headers(response.headers);
