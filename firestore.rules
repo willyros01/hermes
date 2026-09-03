@@ -2,13 +2,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn(){return request.auth != null;}
-    function isConversationMember(conversationId){return signedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.members;}
+    function userPath(uid){return /databases/$(database)/documents/users/$(uid);}
+    function registered(){return signedIn() && exists(userPath(request.auth.uid));}
+    function myUser(){return get(userPath(request.auth.uid));}
+    function isSystemAdmin(){return registered() && myUser().data.systemRole in ["owner", "admin"];}
+    function isConversationMember(conversationId){return registered() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.members;}
 
     function groupDoc(groupId){return get(/databases/$(database)/documents/groups/$(groupId));}
     function groupDocAfter(groupId){return getAfter(/databases/$(database)/documents/groups/$(groupId));}
-    function isGroupMember(groupId){return signedIn() && exists(/databases/$(database)/documents/groups/$(groupId)) && request.auth.uid in groupDoc(groupId).data.memberUids;}
+    function isGroupMember(groupId){return registered() && exists(/databases/$(database)/documents/groups/$(groupId)) && request.auth.uid in groupDoc(groupId).data.memberUids;}
     function isGroupAdmin(groupId){return isGroupMember(groupId) && request.auth.uid in groupDoc(groupId).data.adminUids;}
-    function isGroupAdminAfter(groupId){return signedIn() && request.auth.uid in groupDocAfter(groupId).data.adminUids;}
+    function isGroupAdminAfter(groupId){return registered() && request.auth.uid in groupDocAfter(groupId).data.adminUids;}
     function validGroupLists(data){
       return data.memberUids is list
         && data.adminUids is list
@@ -33,22 +37,87 @@ service cloud.firestore {
         && data.keyEpoch == 0
         && validGroupLists(data);
     }
+    function validInviteRole(role){return role in ["user", "admin"];}
+    function inviteAfter(inviteId){return getAfter(/databases/$(database)/documents/invitations/$(inviteId));}
+    function validInvitedProfile(uid,data){
+      return data.joinedByInviteId is string
+        && data.displayName is string
+        && data.displayName.size() > 0
+        && data.displayName.size() <= 80
+        && data.email is string
+        && data.systemRole in ["user", "admin"]
+        && data.active == true
+        && inviteAfter(data.joinedByInviteId).data.status == "accepted"
+        && inviteAfter(data.joinedByInviteId).data.acceptedUid == uid
+        && inviteAfter(data.joinedByInviteId).data.role == data.systemRole;
+    }
+
+    match /system/access {
+      allow read: if registered();
+      allow create: if signedIn()
+        && exists(userPath(request.auth.uid))
+        && !exists(/databases/$(database)/documents/system/access)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdByUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /invitations/{inviteId} {
+      allow get: if true;
+      allow list: if isSystemAdmin();
+      allow create: if isSystemAdmin()
+        && request.resource.data.status == "pending"
+        && validInviteRole(request.resource.data.role)
+        && request.resource.data.invitedByUid == request.auth.uid
+        && request.resource.data.expiresAt is timestamp;
+      allow update: if (
+          signedIn()
+          && resource.data.status == "pending"
+          && request.time < resource.data.expiresAt
+          && request.resource.data.status == "accepted"
+          && request.resource.data.acceptedUid == request.auth.uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.invitedByUid == resource.data.invitedByUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.expiresAt == resource.data.expiresAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","acceptedUid","acceptedEmail","acceptedAt"])
+        ) || (
+          isSystemAdmin()
+          && resource.data.status == "pending"
+          && request.resource.data.status == "revoked"
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.invitedByUid == resource.data.invitedByUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.expiresAt == resource.data.expiresAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","revokedAt"])
+        );
+      allow delete: if false;
+    }
 
     match /users/{uid} {
-      allow create, update: if signedIn() && request.auth.uid == uid;
-      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid && validInvitedProfile(uid,request.resource.data);
+      allow update: if registered() && request.auth.uid == uid && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","email","e2eePublicJwk","e2eeVersion","e2eeUpdatedAt"])
+          || (
+            !exists(/databases/$(database)/documents/system/access)
+            && getAfter(/databases/$(database)/documents/system/access).data.ownerUid == uid
+            && request.resource.data.systemRole == "owner"
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["systemRole"])
+          )
+        );
+      allow read: if registered();
       allow delete: if false;
       match /devices/{deviceId} {
-        allow read: if signedIn();
-        allow create, update: if signedIn() && request.auth.uid == uid && request.resource.data.uid == uid && request.resource.data.deviceId == deviceId && request.resource.data.e2eeVersion == 1 && request.resource.data.publicJwk is map && request.resource.data.fingerprint is string && request.resource.data.fingerprint.size() <= 128;
+        allow read: if registered();
+        allow create, update: if registered() && request.auth.uid == uid && request.resource.data.uid == uid && request.resource.data.deviceId == deviceId && request.resource.data.e2eeVersion == 1 && request.resource.data.publicJwk is map && request.resource.data.fingerprint is string && request.resource.data.fingerprint.size() <= 128;
         allow delete: if false;
       }
     }
 
     match /conversations/{conversationId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.members;
-      allow create: if signedIn() && request.resource.data.type == "direct" && request.resource.data.members is list && request.resource.data.members.size() == 2 && request.auth.uid in request.resource.data.members;
-      allow update: if signedIn() && request.auth.uid in resource.data.members && request.resource.data.members == resource.data.members && request.resource.data.type == resource.data.type;
+      allow read: if registered() && request.auth.uid in resource.data.members;
+      allow create: if registered() && request.resource.data.type == "direct" && request.resource.data.members is list && request.resource.data.members.size() == 2 && request.auth.uid in request.resource.data.members;
+      allow update: if registered() && request.auth.uid in resource.data.members && request.resource.data.members == resource.data.members && request.resource.data.type == resource.data.type;
       allow delete: if false;
       match /messages/{messageId} {
         allow read: if isConversationMember(conversationId);
@@ -68,8 +137,8 @@ service cloud.firestore {
     }
 
     match /groups/{groupId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
-      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && validGroupShape(request.resource.data);
+      allow read: if registered() && request.auth.uid in resource.data.memberUids;
+      allow create: if registered() && request.resource.data.ownerUid == request.auth.uid && validGroupShape(request.resource.data);
       allow update: if isGroupAdmin(groupId)
         && request.resource.data.type == resource.data.type
         && request.resource.data.ownerUid == resource.data.ownerUid
