@@ -1,6 +1,7 @@
 /* FIDUNIO profile-name propagation.
- * Keeps existing direct-conversation metadata aligned with the authoritative
- * /users/{uid}.displayName profile without changing message/E2EE transport.
+ * Keeps direct-conversation display names aligned with authoritative
+ * /users/{uid}.displayName profiles. This is read-only for conversation
+ * metadata on peer devices and does not touch message/E2EE transport.
  */
 const SDK_VERSION="12.18.0";
 
@@ -11,40 +12,41 @@ async function startProfileNameSync(){
       import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),
       import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`)
     ]);
-    const app=appSdk.getApp();
-    const auth=authSdk.getAuth(app);
-    const db=fsSdk.getFirestore(app);
-    let stopProfile=()=>{};
+    const app=appSdk.getApp(),auth=authSdk.getAuth(app),db=fsSdk.getFirestore(app);
+    let stopConversations=()=>{};
+    const profileStops=new Map();
+    const peerNames=new Map();
+
+    function stopAllProfiles(){for(const stop of profileStops.values())stop();profileStops.clear();peerNames.clear();}
+    function emit(){globalThis.dispatchEvent(new CustomEvent("fidunio-profile-names",{detail:{names:Object.fromEntries(peerNames)}}));}
 
     authSdk.onAuthStateChanged(auth,user=>{
-      stopProfile();
-      stopProfile=()=>{};
+      stopConversations();stopConversations=()=>{};stopAllProfiles();emit();
       if(!user)return;
-      const profileRef=fsSdk.doc(db,"users",user.uid);
-      let lastName="";
-      stopProfile=fsSdk.onSnapshot(profileRef,async snap=>{
-        if(!snap.exists())return;
-        const name=String(snap.data()?.displayName||"").trim();
-        if(!name||name===lastName)return;
-        lastName=name;
-        try{
-          const q=fsSdk.query(fsSdk.collection(db,"conversations"),fsSdk.where("members","array-contains",user.uid));
-          const rows=await fsSdk.getDocs(q);
-          const writes=[];
-          for(const d of rows.docs){
-            const data=d.data();
-            if(data?.type!=="direct"||data?.memberNames?.[user.uid]===name)continue;
-            writes.push(fsSdk.updateDoc(d.ref,new fsSdk.FieldPath("memberNames",user.uid),name));
-          }
-          await Promise.allSettled(writes);
-        }catch(err){
-          console.warn("FIDUNIO display-name propagation skipped",err);
+      const q=fsSdk.query(fsSdk.collection(db,"conversations"),fsSdk.where("members","array-contains",user.uid));
+      stopConversations=fsSdk.onSnapshot(q,snap=>{
+        const wanted=new Set();
+        for(const d of snap.docs){
+          const data=d.data();
+          if(data?.type!=="direct")continue;
+          const peer=(data.members||[]).find(uid=>uid!==user.uid);
+          if(peer)wanted.add(peer);
         }
-      },err=>console.warn("FIDUNIO profile-name listener unavailable",err));
+        for(const [uid,stop] of profileStops){if(!wanted.has(uid)){stop();profileStops.delete(uid);peerNames.delete(uid);}}
+        for(const uid of wanted){
+          if(profileStops.has(uid))continue;
+          const stop=fsSdk.onSnapshot(fsSdk.doc(db,"users",uid),profileSnap=>{
+            if(profileSnap.exists()){
+              const name=String(profileSnap.data()?.displayName||"").trim();
+              if(name)peerNames.set(uid,name);else peerNames.delete(uid);
+            }else peerNames.delete(uid);
+            emit();
+          },err=>console.warn("FIDUNIO peer profile listener unavailable",uid,err));
+          profileStops.set(uid,stop);
+        }
+        emit();
+      },err=>console.warn("FIDUNIO conversation profile sync unavailable",err));
     });
-  }catch(err){
-    console.warn("FIDUNIO profile-name synchronization unavailable",err);
-  }
+  }catch(err){console.warn("FIDUNIO profile-name synchronization unavailable",err);}
 }
-
 startProfileNameSync();
