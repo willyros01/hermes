@@ -16,12 +16,13 @@ function collapseTechnicalCard(card,title){
 function cardByTitle(settings,title){return[...settings.querySelectorAll(":scope > .card")].find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}
 function arrangeSettings(settings){
   const privacy=cardByTitle(settings,"Privacy & Access"),text=cardByTitle(settings,"Text Size"),appearance=cardByTitle(settings,"Appearance"),data=cardByTitle(settings,"Data"),firebase=cardByTitle(settings,"Firebase Account"),device=cardByTitle(settings,"Device Identity"),prototype=cardByTitle(settings,"Prototype connectivity"),profile=settings.querySelector(":scope > #fidunioProfileCard"),invites=settings.querySelector(":scope > #fidunioInvitationAdmin"),about=cardByTitle(settings,"About"),footer=settings.querySelector(":scope > .version-footer");
-  const ordered=[privacy,text,appearance,data,firebase,device,profile,invites,prototype,footer,about].filter(Boolean);
+  if(prototype)prototype.remove();
+  const ordered=[privacy,text,appearance,data,firebase,device,profile,invites,footer,about].filter(Boolean);
   for(const node of ordered)settings.appendChild(node);
   const all=[...settings.children];
   all.forEach(el=>{el.classList.remove("fidunio-settings-left","fidunio-settings-right","fidunio-settings-full");});
   [privacy,appearance,firebase,profile].filter(Boolean).forEach(el=>el.classList.add("fidunio-settings-left"));
-  [text,data,device,invites,prototype].filter(Boolean).forEach(el=>el.classList.add("fidunio-settings-right"));
+  [text,data,device,invites].filter(Boolean).forEach(el=>el.classList.add("fidunio-settings-right"));
   [footer,about].filter(Boolean).forEach(el=>el.classList.add("fidunio-settings-full"));
 }
 function polishSettings(){
