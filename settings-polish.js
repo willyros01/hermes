@@ -47,6 +47,32 @@ function collapseTechnicalCard(card,title){
   card.appendChild(copy);
 }
 
+function ensureVisibleSignOut(settings){
+  const original=settings.querySelector("#firebaseSignOutBtn");
+  let visible=settings.querySelector("#fidunioVisibleSignOutBtn");
+  if(!original){visible?.remove();return;}
+  if(visible)return;
+  visible=document.createElement("button");
+  visible.id="fidunioVisibleSignOutBtn";
+  visible.className="danger-btn";
+  visible.type="button";
+  visible.textContent="Sign Out";
+  visible.style.marginTop="14px";
+  visible.onclick=()=>original.click();
+  const firebaseCard=[...settings.querySelectorAll(":scope > .card")].find(card=>card.querySelector("h2")?.textContent?.trim()==="Firebase Account");
+  if(firebaseCard)firebaseCard.insertAdjacentElement("afterend",visible);
+  else settings.prepend(visible);
+}
+
+function keepAboutLast(settings){
+  const cards=[...settings.querySelectorAll(":scope > .card")];
+  const about=cards.find(card=>card.querySelector("h2")?.textContent?.trim()==="About");
+  if(!about)return;
+  const footer=settings.querySelector(":scope > .version-footer");
+  if(footer)settings.insertBefore(about,footer);
+  else settings.appendChild(about);
+}
+
 function polishSettings(){
   const settings=document.querySelector(".content.settings");
   if(!settings)return;
@@ -55,6 +81,8 @@ function polishSettings(){
     if(title==="Firebase Account")collapseTechnicalCard(card,"Firebase Account");
     if(title==="Device Identity")collapseTechnicalCard(card,"Device Identity");
   }
+  ensureVisibleSignOut(settings);
+  keepAboutLast(settings);
 }
 
 const observer=new MutationObserver(polishSettings);
