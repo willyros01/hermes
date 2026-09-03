@@ -185,3 +185,12 @@ firebase-config.js and config-firestore.js remain protected/excluded.
 - Preserved navy/teal/gray palette and no-gold rule.
 - No Firebase, Firestore rules, encryption, device identity, peer verification, Outbox, local-first history, or reconnect logic changes.
 - Packaging convention corrected permanently: use only root-level hermes-memory.txt and hermes-setup.txt; do not create version-numbered TXT filenames.
+
+
+0.8.1.2 — RESPONSIVE 2D ICON FIX
+- User reported 0.8.1.1 attachment/tool-panel overflow on iPad and only three columns visible/clipped on iPhone.
+- Corrected responsive grid: 4 columns for tablet widths and 2 columns for narrow iPhone widths.
+- Added min-width:0 / max-width constraints so tool buttons cannot expand the grid beyond the viewport.
+- Added distinct color accents for the 8 tool icons to improve visual recognition.
+- Quick phrases may scroll horizontally on narrow screens rather than widening the layout.
+- UI-only patch; no Firebase, Firestore rules, security, E2EE, verification, Outbox, history, or reconnect logic changes.

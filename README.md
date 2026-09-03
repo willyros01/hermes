@@ -404,3 +404,14 @@ UI-only refinement built from the fully passed 0.8.1 security baseline.
 - No Firebase, Firestore rules, E2EE, device-identity, peer-verification, Outbox, local-history, or reconnect logic changes.
 - `version.js` remains the single runtime version source.
 - Stable root-level TXT files are `hermes-memory.txt` and `hermes-setup.txt`.
+
+
+## Hermes 0.8.1.2 / FIDUNIO 0.8.1.2
+
+Responsive UI correction for the 0.8.1.1 icon refresh.
+
+- Fixes composer attachment-panel overflow seen on iPad.
+- Uses 4 columns on tablet-width layouts and 2 columns on narrow iPhone layouts.
+- Prevents tool buttons and labels from forcing the grid wider than the viewport.
+- Adds distinct color accents to the 2D tool icons to improve recognition.
+- Keeps all security, Firebase, Firestore, E2EE, verification, Outbox, history, and reconnect logic unchanged.

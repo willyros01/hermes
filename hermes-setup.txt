@@ -1,40 +1,27 @@
-HERMES / FIDUNIO 0.8.1.1 — 2D ICON UI REFINEMENT
+HERMES / FIDUNIO 0.8.1.2 — RESPONSIVE 2D ICON FIX
 
 PURPOSE
-0.8.1.1 is a UI-only release built from the fully passed 0.8.1 key-verification baseline.
+UI-only correction to 0.8.1.1.
 
-WHAT CHANGED
-- Replaced simple text/emoji-like action graphics with cleaner two-dimensional SVG pictograms.
-- Updated Settings, New/Add, Back, Info, Send, and the composer tool-panel graphics.
-- Composer tools now use consistent 2D icons for Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved.
-- Preserved the approved navy/teal/gray palette; no gold was added.
+CHANGES
+- Fixes attachment/tool-panel overflow on iPad.
+- iPad/tablet: 4-column tool grid.
+- iPhone/narrow screens: 2-column tool grid so every button remains fully visible.
+- Adds distinct color accents to Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved icons.
+- Quick-reply row can scroll horizontally on narrow screens instead of forcing layout overflow.
 
-WHAT DID NOT CHANGE
-- Firebase configuration
-- Firestore rules
-- E2EE ciphertext format
-- Device identity
-- Contact key verification
-- Outbox
-- Offline local history
-- Reconnect/listener behavior
-- Conversation data model
+NO FUNCTIONAL/SECURITY CHANGES
+No changes to Firebase, Firestore rules, E2EE, key verification, device identity, Outbox, local history, or reconnect behavior.
 
-GITHUB UPDATE
-1. Upload the files from this release ZIP to the ROOT of the existing hermes repository.
-2. Keep your existing firebase-config.js and config-firestore.js untouched; they are intentionally excluded.
-3. Replace the existing root-level hermes-memory.txt and hermes-setup.txt with the copies from this release.
-4. Commit and wait for GitHub Pages deployment.
-5. Open version.js in GitHub and confirm it says version: "0.8.1.1".
-
-FIRESTORE
-No Firestore rules update is required. The rules are unchanged from 0.8.1 / 0.8.0.
+GITHUB
+1. Upload ZIP contents to the ROOT of the hermes repository.
+2. Preserve firebase-config.js and config-firestore.js.
+3. Overwrite hermes-memory.txt and hermes-setup.txt.
+4. Confirm version.js says 0.8.1.2.
+5. No Firestore rules update is required.
 
 TEST
-1. Confirm Settings/About shows FIDUNIO 0.8.1.1.
-2. Confirm the new 2D icons appear clearly on both iPad and iPhone.
-3. Send one message each direction.
-PASS: messaging remains instant and readable.
-4. Open Conversation Security and confirm the previously verified state remains intact.
-5. Optional: repeat one offline queued/reconnect message.
-PASS: no behavioral regression.
+- iPad: open + panel; all 8 tools should fit inside the app width with 4 columns.
+- iPhone: open + panel; all 8 tools should fit with 2 columns and no right-side clipping.
+- Confirm colored icons are easy to distinguish.
+- Send one message each direction to confirm no regression.
