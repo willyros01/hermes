@@ -2,7 +2,7 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.1.0
+Current live test build on main: FIDUNIO 0.9.1.2
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -32,7 +32,7 @@ FIREBASE
 - Project fidunio-fef13; Auth Email/Password; Firestore Standard (default), nam5; authorized domain willyros01.github.io.
 - Account A on iPad, Account B on iPhone and Fire HD 8 during third-device test.
 - Do not ask user to recreate accounts/re-paste UID unless restoration truly fails.
-- User manually published 0.9.1 branch Firestore rules before 0.9.1.0 live group test promotion.
+- User manually published 0.9.1 branch Firestore rules before 0.9.1 live group testing.
 
 IPAD SENT → READ DEFECT HISTORY
 0.8.1.10 FAILED: 2-second polling caused constant refresh and broke sending. Never reintroduce polling.
@@ -69,28 +69,35 @@ IPAD SENT → READ DEFECT HISTORY
 
 0.9.1 GROUP FOUNDATION — LIVE TEST BUILD
 - Added root group-data-model.txt documenting separate /groups model, authoritative memberUids/adminUids, owner/admin/member roles, historyPolicy fromJoin, groupVersion 1, keyEpoch 0, and reserved group message collection.
-- Firestore group rules are now manually published by the user from release/0.9.1.
-- release/0.9.1 created from main and prepared as FIDUNIO 0.9.1.0.
-- firebase.js on release/0.9.1 adds listCloudUsers(), createCloudGroup(), and subscribeMyGroups().
-- service-worker.js 0.9.1 test harness preserves the validated 0.9.0.4 direct-message v2 envelope/receipt behavior and injects the temporary app-side group metadata UI wiring without modifying baseline app.js source.
-- New Group flow for this test build is intended to: load real signed-in FIDUNIO users, require at least two other members, collect group name, create real /groups/{groupId} + /members/{uid} records, and show Group Info.
+- Firestore group rules are manually published from release/0.9.1.
+- release/0.9.1 created from main and prepared as the 0.9.1 line.
+- firebase.js adds listCloudUsers(), createCloudGroup(), and subscribeMyGroups().
+- service-worker.js 0.9.1 test harness preserves the validated 0.9.0.4 direct-message v2 envelope/receipt behavior and injects temporary group metadata UI wiring without replacing baseline app.js source.
 - Real group message sending remains intentionally disabled until group E2EE/key rotation is designed and tested. Do not store plaintext group messages.
-- main was fast-forward promoted to release/0.9.1 commit 50a04e0c8064c9376825591d433ca070b1c417af for controlled live testing at the normal GitHub Pages origin.
-- 0.9.1.0 is a LIVE TEST BUILD, not yet a validated baseline. If group test fails, preserve 0.9.0.4 as rollback baseline.
+- 0.9.1.0 reached iPad but New Group still showed the old mock contacts because the initial service-worker group UI injection used escaped newline text and did not match/replace correctly.
+- 0.9.1.1 FIX/PASS: corrected the service-worker injection to use real JavaScript newlines. User confirmed New Group on iPad now shows real Firebase/FIDUNIO users; with Alpha signed in, Beta Account is the only available real user. This validates real-user list loading. Group creation cannot yet proceed because a group requires Alpha + at least two other users.
+- User requested removal of all fictitious user lists and mock conversations before adding Gamma.
+- 0.9.1.2 adds root bootstrap.js at commit 139946c710922bc9fb76a22624005f95f80d1d77; Safari-safe Outbox cleanup refinement commit 050fc65eea07052578800c61a35f51e5ec8e865c.
+- index.html now boots through bootstrap.js at commit f19e169fc2a462ec182f8088c8debce70cc5b615; bootstrap performs cleanup before dynamically importing app.js.
+- version.js bumped to 0.9.1.2 at commit 4d2bb6dda36595371404abe0e88016939f1373be.
+- Cleanup is narrowly scoped to known prototype conversations only: local non-cloud id 1 / Maria Santos, id 2 / John Cruz, and id 3 / Family Group. It removes those conversations/messages from encrypted app-state and corresponding prototype Outbox/history entries, while preserving real cloud conversations, E2EE keys, device identities/registry, settings, peer trust, and real message history.
+- bootstrap.js also removes the obsolete Sample local contacts UI/direct-contact buttons so Maria Santos, John Cruz, Peter Lee, Robert Cruz, and Ana Reyes no longer appear as selectable fictitious contacts.
+- firebase-config.js and config-firestore.js were not touched.
+- 0.9.1.2 remains a LIVE TEST BUILD, not a validated baseline. 0.9.0.4 remains the validated rollback/development baseline.
 
 NEXT 0.9.1 TEST
-1. Confirm visible version is 0.9.1.0 at normal FIDUNIO site.
-2. On one signed-in account, New Message → New Group.
-3. Confirm real FIDUNIO users load instead of sample local contacts.
-4. Select at least two users, name the group, create it.
-5. Confirm Group Info opens and Firestore contains group parent + member docs.
-6. Confirm other selected signed-in account(s) discover the group.
+1. Refresh/reopen normal FIDUNIO site and confirm visible version 0.9.1.2.
+2. Confirm the Messages list no longer contains Maria Santos, John Cruz, or Family Group mock conversations while the real Alpha/Beta cloud conversation remains.
+3. Open New Message and confirm the Sample local contacts block/fictitious contacts are gone.
+4. Open New Group and confirm Beta Account remains the real available FIDUNIO account.
+5. Create a real Gamma test account without disturbing Alpha/Beta/device keys, then create Alpha + Beta + Gamma group metadata.
+6. Confirm Group Info and selected-account discovery.
 7. Do not test group message sending yet; it should remain unavailable.
-8. After metadata flow passes, add real rename/add/remove role operations and then regress direct-message 0.9.0.4 behavior.
+8. After metadata flow passes, add real rename/add/remove role operations and regress direct-message 0.9.0.4 behavior.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports firebase-config.js.
-- index.html loads version.js before app.js; service-worker.js imports version.js.
+- index.html loads version.js then bootstrap.js; bootstrap.js migrates prototype local state and imports app.js; service-worker.js imports version.js.
 - IndexedDB DB fidunio-local v2; stores meta, outbox, history.
 - E2EE keypair meta e2ee-device-keypair-v1; device identity e2ee-device-identity-v1.
 - Firebase data is never service-worker cached.
