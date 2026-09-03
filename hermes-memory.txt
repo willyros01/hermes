@@ -2,7 +2,7 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.2.1
+Current live test build on main: FIDUNIO 0.9.2.3
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -12,118 +12,50 @@ LOCKED CONVENTIONS
 - Keep release files flat in repository root.
 - Keep exactly one cumulative root hermes-memory.txt and one reusable root hermes-setup.txt; no version-numbered memory/setup TXT.
 - firebase-config.js and config-firestore.js must NEVER be regenerated, overwritten, or included in update/release ZIPs.
-- version.js is the single authoritative runtime version source.
-- Every test build gets a distinct visible version.
+- version.js is the single authoritative runtime version source; every test build gets a distinct visible version.
 - Preserve winged-messenger artwork, navy/teal/gray palette, no gold.
 - Preserve iPhone single-pane and adaptive iPad two-pane behavior; responsive by viewport width.
 
-ARCHITECTURE / STABLE BASELINES
-- JavaScript PWA, Firebase Auth + Firestore, Web Crypto, encrypted IndexedDB local history/Outbox, Service Worker.
-- 0.6.5 local-first/offline baseline: PASS.
-- 0.7.3 direct E2EE transport/reconnect baseline: PASS.
-- 0.8.0 device identity baseline: PASS.
-- 0.8.1 contact key verification baseline: PASS.
-- UI 0.8.1.9 plus Group Info tablet fix: PASS.
-- 0.8.1.16 receipt/re-entry baseline: PASS and protected rollback point.
-- 0.9.0.2 per-device E2EE two-device + receipt/re-entry + offline Outbox/reconnect baseline: PASS.
-- 0.9.0.4 full three-device bidirectional per-device E2EE fan-out baseline: PASS.
+STABLE BASELINES
+- 0.6.5 local-first/offline PASS; 0.7.3 direct E2EE transport/reconnect PASS; 0.8.0 device identity PASS; 0.8.1 contact key verification PASS.
+- UI 0.8.1.9 plus Group Info tablet fix PASS.
+- 0.8.1.16 receipt/re-entry PASS and protected rollback.
+- 0.9.0.2 per-device E2EE two-device + receipt/re-entry + offline Outbox/reconnect PASS.
+- 0.9.0.4 full three-device bidirectional per-device E2EE fan-out PASS and remains validated development baseline.
+- Preserve 0.9.0.4 messaging, receipt, Outbox and per-device fan-out unchanged.
 
-FIREBASE
-- Project fidunio-fef13; Auth Email/Password; Firestore Standard (default), nam5; authorized domain willyros01.github.io.
-- Account A on iPad, Account B on iPhone and Fire HD 8 during third-device test.
-- Do not ask user to recreate accounts/re-paste UID unless restoration truly fails.
-- User manually published 0.9.1 branch Firestore rules before 0.9.1 live group testing.
+0.9.1 GROUP FOUNDATION
+- Separate /groups schema/rules and real-user group metadata UI are in place. Group message writes remain disabled until group E2EE/key rotation is implemented.
+- 0.9.1.1 real New Group user list PASS. 0.9.1.2 prototype/mock conversation cleanup PASS.
+- bootstrap.js removes only known prototype local data while preserving real cloud conversations, E2EE keys, device identities, settings, peer trust and real history.
 
-IPAD SENT → READ DEFECT HISTORY
-0.8.1.10 FAILED: 2-second polling caused constant refresh and broke sending. Never reintroduce polling.
-0.8.1.11 restored messaging; receipt defect remained.
-0.8.1.12 FAILED: serialized async snapshots; initial pass was false positive.
-0.8.1.13 FAILED: removed ordinary two-pane force listener restarts; defect remained.
-0.8.1.14 PARTIAL: sender receipt metadata fast-path fixed active-chat case only.
-0.8.1.15 FAILED: local renderChat read marking did not fix re-entry.
-0.8.1.16 PASS: restored established listener behavior, retained v14 receipt fast-path, and validated iPhone leave/send/re-enter Sent → Read sequence.
-0.9.0 initial per-device E2EE build regressed re-entry receipt while active-chat receipts still passed.
-0.9.0.1 moved recipient Read processing ahead of async E2EE work but re-entry still failed because retained listener adoption did not necessarily emit a new snapshot.
-0.9.0.2 PASS: retained listener adoption now performs an event-driven fresh Firestore read and feeds that result through normal receipt processing. Exact iPhone leave / iPad send Sent / iPhone re-enter / untouched iPad Sent→Read sequence validated by user. No polling.
-
-0.9.0 LIVE TEST STATUS
-- release/0.9.0 was intentionally fast-forward promoted to main after Firestore rules were published.
-- Test at the normal GitHub Pages root only; do not use a separate Pages subdirectory/origin so established browser storage/key context is preserved.
-- Firestore rules accept bounded e2ee:2 envelope messages while retaining e2ee:1 compatibility.
-- firebase.js transport carries envelopes, recipientDeviceIds, senderDeviceId, and senderDevicePublicJwk.
-- 0.9.0 test service-worker harness injects per-device E2EE into baseline app.js for this controlled test: it reads active registered devices for both recipient and sender accounts, creates a separate AES-256-GCM ciphertext envelope per device using P-256 ECDH + HKDF, and includes the sending device public key for recipient-side derivation.
-- e2ee:2 receive path selects only the envelope addressed to this installation and decrypts with its non-exportable local device private key.
-- Existing e2ee:1 history retains the old compatibility decrypt path.
-- Outbox remains authoritative; device envelopes are generated at actual transmission/retry time from the current registry rather than stored with stale device membership in the queued record.
-- Two-device validation: existing history readable PASS; iPad→iPhone plaintext + Read PASS; iPhone→iPad plaintext + Read PASS; leave/send/re-enter Sent→Read PASS on 0.9.0.2.
-- Offline Outbox/reconnect validation on 0.9.0.2: PASS in both directions between iPad and iPhone. Queued messages successfully resume transmission after reconnect under the per-device E2EE path.
-- Third-device setup: Fire HD 8 signed into the same Beta account as iPhone; Conversation Security on iPad reported 2 registered devices. Fire device fingerprint did not match the displayed account-level compatibility fingerprint, confirming the old verification UI/gate is account-level rather than per-device.
-- Fire HD 8 cannot decrypt older messages that lack an envelope for its newly registered device; this is expected for messages created before that device was included in the recipient device set. Preserve this behavior/history for testing.
-- 0.9.0.3 FAILED before send: Conversation Security still opened on iPad because the exact service-worker source transform intended to remove the pre-queue legacy trust gate did not match the live app.js source. No test message was transmitted.
-- 0.9.0.4 adds a narrowly scoped fallback matching the same pre-send account-level trust block. The Outbox transmit path remains per-device e2ee:2 and does not use the legacy compatibility fingerprint as an authorization gate.
-- 0.9.0.4 THIRD-DEVICE FAN-OUT PASS: iPad/Alpha sent a new message after Fire HD 8 registration; both iPhone and Fire HD 8 on Beta independently decrypted it and iPad status changed to Read.
-- 0.9.0.4 SIBLING-DEVICE SENT-HISTORY PASS: iPhone/Beta sent a new reply; iPad/Alpha received it normally and Fire HD 8 (same Beta account) also decrypted/displayed the sent message normally.
-- 0.9.0.4 REVERSE SIBLING-DEVICE PASS: Fire HD 8/Beta sent a new reply; iPad/Alpha received it normally and iPhone (same Beta account) also decrypted/displayed the sent message normally.
-- Therefore 0.9.0.4 has passed full bidirectional three-device per-device fan-out for the tested Alpha/Beta topology, including recipient fan-out, sibling-device sent-history visibility, and sender Read behavior.
-- FIDUNIO 0.9.0.4 remains the current validated development baseline. Preserve its messaging, receipt, Outbox, and per-device fan-out behavior unchanged.
-
-0.9.1 GROUP FOUNDATION — LIVE TEST BUILD
-- Added root group-data-model.txt documenting separate /groups model, authoritative memberUids/adminUids, owner/admin/member roles, historyPolicy fromJoin, groupVersion 1, keyEpoch 0, and reserved group message collection.
-- Firestore group rules are manually published from release/0.9.1.
-- release/0.9.1 created from main and prepared as the 0.9.1 line.
-- firebase.js adds listCloudUsers(), createCloudGroup(), and subscribeMyGroups().
-- service-worker.js 0.9.1 test harness preserves the validated 0.9.0.4 direct-message v2 envelope/receipt behavior and injects temporary group metadata UI wiring without replacing baseline app.js source.
-- Real group message sending remains intentionally disabled until group E2EE/key rotation is designed and tested. Do not store plaintext group messages.
-- 0.9.1.0 reached iPad but New Group still showed the old mock contacts because the initial service-worker group UI injection used escaped newline text and did not match/replace correctly.
-- 0.9.1.1 FIX/PASS: corrected the service-worker injection to use real JavaScript newlines. User confirmed New Group on iPad now shows real Firebase/FIDUNIO users; with Alpha signed in, Beta Account is the only available real user. This validates real-user list loading. Group creation cannot yet proceed because a group requires Alpha + at least two other users.
-- User requested removal of all fictitious user lists and mock conversations before adding Gamma.
-- 0.9.1.2 adds root bootstrap.js at commit 139946c710922bc9fb76a22624005f95f80d1d77; Safari-safe Outbox cleanup refinement commit 050fc65eea07052578800c61a35f51e5ec8e865c.
-- index.html now boots through bootstrap.js at commit f19e169fc2a462ec182f8088c8debce70cc5b615; bootstrap performs cleanup before dynamically importing app.js.
-- version.js bumped to 0.9.1.2 at commit 4d2bb6dda36595371404abe0e88016939f1373be.
-- Cleanup is narrowly scoped to known prototype conversations only: local non-cloud id 1 / Maria Santos, id 2 / John Cruz, and id 3 / Family Group. It removes those conversations/messages from encrypted app-state and corresponding prototype Outbox/history entries, while preserving real cloud conversations, E2EE keys, device identities/registry, settings, peer trust, and real message history.
-- bootstrap.js also removes the obsolete Sample local contacts UI/direct-contact buttons so Maria Santos, John Cruz, Peter Lee, Robert Cruz, and Ana Reyes no longer appear as selectable fictitious contacts.
-- firebase-config.js and config-firestore.js were not touched.
-- 0.9.1.2 remains a LIVE TEST BUILD, not a validated baseline. 0.9.0.4 remains the validated rollback/development baseline.
-
-0.9.2 INVITE-ONLY AUTH / PROFILE FOUNDATION
-- 0.9.2.0 introduced the real FIDUNIO admission gate: existing users Sign In; new users require a valid single-use invitation link/code; unrestricted account creation is disabled at the app layer.
-- Invitation links carry only a high-entropy token. Firestore stores role, inviter, status, expiration, and acceptance metadata. Invitations default to single-use and become unusable after account creation.
-- System roles are Owner/Admin/User and are separate from group Owner/Admin/Member roles.
-- Alpha iPad successfully claimed the one-time permanent FIDUNIO Owner role. User confirmed Settings shows System role: Owner and the Invitations panel.
-- Alpha successfully generated the first real single-use User invitation with 7-day expiration. Copy Link and Share controls rendered correctly.
-- Authentication UI includes Forgot Password on Sign In and Change Password for authenticated users.
-- Profile UI includes editable display name, email address, telephone number, and profile picture URL. Display name/photo are synchronized to Firebase Auth where applicable; profile fields are stored in /users/{uid} and include profileUpdatedAt on save.
-- Email changes and password changes require reauthentication with the current password.
-- 0.9.2.1 adds settings-polish.js and loads it from bootstrap.js so Firebase Account and Device Identity are collapsed by default. Each can be expanded on demand and offers Copy Details capability. This keeps technical identifiers available without cluttering the normal Settings screen.
-- Firestore user update rules permit displayName, email, telephone, photoURL, profileUpdatedAt, and existing E2EE public-key metadata while preserving systemRole protection.
-- User explicitly requested Firestore-backed editable profile information and confirmed the cleaner collapsed technical settings direction.
+0.9.2 INVITE / PROFILE / SETTINGS
+- Invite-only account admission implemented. Alpha claimed permanent system Owner. Owner/Admin can create single-use expiring User/Admin invitations.
+- Forgot Password and authenticated Change Password implemented.
+- Profile fields displayName, email, telephone and photoURL save to /users/{uid}; email/password changes require current-password reauthentication.
+- Firebase Account and Device Identity technical cards are collapsed by default with Copy Details.
+- 0.9.2.2 attempted display-name propagation by rewriting conversation memberNames from the renamed user's client, but live test FAILED because Firestore conversation update rules only allow a conversation member and the approach did not reliably refresh peer UI. Do not rely on memberNames as authoritative profile name.
+- 0.9.2.3 changes peer display-name propagation to READ the authoritative /users/{peerUid}.displayName on each device via live profile listeners and overlays the peer name in conversation/chat UI. This avoids requiring cross-document conversation metadata writes and leaves E2EE/message transport untouched.
+- 0.9.2.3 adds a visible Sign Out button directly on the main Messages/chat screen, not hidden inside Firebase Account.
+- 0.9.2.3 forces About to be the absolute final Settings child, after the version footer and all dynamically-added Profile/Invitation cards.
 - firebase-config.js was not touched.
-- 0.9.2.1 is a live test build; 0.9.0.4 remains the validated direct-messaging development baseline.
 
 NEXT LIVE TEST
-1. Publish the latest main-branch firestore.rules containing editable profile-field permissions.
-2. Refresh/reopen Alpha iPad and confirm visible version 0.9.2.1.
-3. Confirm Firebase Account and Device Identity are collapsed by default and can be expanded/copied.
-4. Test saving a telephone number or other non-auth profile field; refresh and confirm it reloads from Firestore.
-5. Continue Gamma onboarding using Alpha's already-created single-use invitation, then confirm Beta + Gamma appear in New Group.
-6. Create Alpha + Beta + Gamma group metadata; keep group message sending disabled until group E2EE is implemented.
-7. Regress the 0.9.0.4 direct-message fan-out/receipt path after metadata group testing.
+1. Refresh/reopen and confirm visible FIDUNIO v0.9.2.3.
+2. On iPhone/Beta, confirm Alpha's already-saved new display name replaces Alpha Account without changing the name again.
+3. Confirm Sign Out is visible on the first Messages/chat screen.
+4. Open Settings and confirm About is physically the bottom-most section.
+5. If these pass, continue admin/security lifecycle work before Gamma onboarding: invitation revoke, user suspend/restore/expiration, security-event audit, then inactivity PIN/passkey lock.
+
+SECURITY / ADMIN PLAN
+- Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
+- Add Admin Users page, invitation revoke, expiration, suspend/restore and audit/security events.
+- Firestore access should eventually require active/unexpired status. True Firebase Auth disable/delete requires privileged backend/Admin SDK rather than client-only GitHub Pages.
+- Local inactivity lock design: Firebase session may remain authenticated while FIDUNIO UI locks; unlock with local PIN verifier or standards-based WebAuthn/passkey/biometrics; configurable idle timeout and Lock Now.
 
 IMPORTANT TECHNICAL DETAILS
-- app.js imports firebase.js; firebase.js imports firebase-config.js.
-- index.html loads version.js then bootstrap.js; bootstrap.js migrates prototype local state, loads settings-polish.js, then auth-ui.js; auth-ui.js starts app.js after admission succeeds.
-- IndexedDB DB fidunio-local v2; stores meta, outbox, history.
-- E2EE keypair meta e2ee-device-keypair-v1; device identity e2ee-device-identity-v1.
-- Firebase data is never service-worker cached.
-- navigator.onLine is not proof of actual Internet reachability.
-
-GROUP REQUIREMENTS
-- Group UX similar to direct chat; sender shown for incoming group messages.
-- New Message → New Group → select people → name → create.
-- Group Info members/add/remove/rename/mute/search/shared media/files/disappearing/security/leave.
-- Creator Owner/Admin; new member sees from join time by default; admin may grant earlier history.
-- Production enforcement cryptographic; rotate group keys on membership changes.
-
-FIRE HD 8
-- Useful for Android-derived PWA/Web Crypto/IndexedDB/Firebase transport testing, but not full Google-certified Android target.
-- Full 0.9.0.4 three-device bidirectional validation: PASS for newly sent messages. Older messages without a Fire-specific envelope remain unavailable on Fire as expected.
+- app.js imports firebase.js; firebase.js imports protected firebase-config.js.
+- index.html loads version.js then bootstrap.js. bootstrap loads settings-polish.js, auth-ui.js, profile-sync.js and main-screen-polish.js.
+- IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
+- E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
+- Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
