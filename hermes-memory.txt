@@ -1,6 +1,6 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Current pre-0.9.0 working baseline: FIDUNIO 0.8.1.9 UI + validated Group Info fix; iPad live Sent → Read defect under final re-entry testing in 0.8.1.16
+Current pre-0.9.0 validated baseline: FIDUNIO 0.8.1.16
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -17,11 +17,11 @@ LOCKED CONVENTIONS
 ARCHITECTURE / STABLE BASELINES
 - JavaScript PWA, Firebase Auth + Firestore, Web Crypto, encrypted IndexedDB local history/Outbox, Service Worker.
 - 0.6.5 local-first/offline baseline: PASS.
-- 0.7.3 direct E2EE transport/reconnect baseline: PASS, including prior live receipts.
+- 0.7.3 direct E2EE transport/reconnect baseline: PASS.
 - 0.8.0 device identity baseline: PASS.
 - 0.8.1 contact key verification baseline: PASS.
 - UI 0.8.1.9 plus Group Info tablet fix: PASS.
-- Group Info: portrait centered; wide landscape balanced two-column; validated by user.
+- 0.8.1.16 receipt/re-entry baseline: PASS.
 
 FIREBASE
 - Project fidunio-fef13; Auth Email/Password; Firestore Standard (default), nam5; authorized domain willyros01.github.io.
@@ -32,7 +32,7 @@ IPAD SENT → READ DEFECT HISTORY
 Original reproducible defect:
 - iPad sends to iPhone.
 - If iPhone conversation is already open, receipt can advance to Read on iPad.
-- If iPhone leaves conversation, iPad sends another message, then iPhone re-enters and sees it, iPad can remain Sent.
+- If iPhone leaves conversation, iPad sends another message, then iPhone re-enters and sees it, iPad could remain Sent.
 
 0.8.1.10 FAILED:
 - 2-second server polling caused constant refresh and broke sending. Rejected permanently; do not reintroduce polling.
@@ -44,37 +44,35 @@ Original reproducible defect:
 - Serialized async Firestore snapshot processing. Initial PASS was false positive; repeated testing reproduced defect.
 
 0.8.1.13 FAILED:
-- Removed ordinary two-pane force:true listener restarts at runtime. Defect remained. Therefore iPad forced two-pane listener replacement was not sufficient/root fix.
+- Removed ordinary two-pane force:true listener restarts at runtime. Defect remained.
 
 0.8.1.14 DIAGNOSTIC PARTIAL PASS:
 - Added receipt metadata fast-path before peer-key refresh/decryption.
-- User test: first message with iPhone conversation open changed to Read on iPad.
-- After leaving iPhone conversation, second message sent from iPad and then viewed after re-entry remained Sent.
-- This isolated the failure to recipient conversation re-entry/read advancement rather than a universal iPad rendering failure.
+- First message with iPhone conversation open changed to Read on iPad.
+- Message sent while iPhone was outside the chat still remained Sent after re-entry.
 
 0.8.1.15 FAILED:
 - Tried marking already-known incoming local rows Read from renderChat on entry.
-- Same exact result: first/open-chat receipt works; message received while outside chat and viewed after re-entry remains Sent.
-- Reason identified in source inspection: when narrow/mobile Back leaves chat, the active Firestore listener is not stopped. It can consume/cache the incoming message while route=messages, where read marking is intentionally suppressed. The local render-time attempt is not a reliable server-backed re-entry path.
+- Same re-entry failure remained.
 
-0.8.1.16 CURRENT TEST:
-- Restores established source listener behavior (removes failed v13 wide-layout runtime rewrite).
-- Keeps v14 outgoing receipt metadata fast-path.
-- Relies on the existing narrow/mobile conversation click force:true reattachment so re-entering the iPhone chat receives a fresh server-backed snapshot; existing subscription callback then marks incoming unread rows Read because route=chat and selected conversation match.
+0.8.1.16 PASS — VALIDATED BASELINE:
+- Restored established source listener behavior and removed the failed v13 wide-layout runtime rewrite.
+- Kept the v14 outgoing receipt metadata fast-path.
+- On narrow/mobile conversation re-entry, the existing force:true message subscription reattachment obtains a fresh server-backed snapshot; the normal active-chat callback marks incoming unread rows Read.
+- User repeated the exact failing sequence and confirmed it now works: open iPhone conversation/read first message; leave conversation; send second message from iPad; re-enter iPhone conversation; untouched iPad advances Sent → Read.
 - No polling, Firestore Rules, E2EE, Outbox, or layout changes.
-- Awaiting exact repeated test: open iPhone convo/read first message; leave convo; send second from iPad; re-enter iPhone convo; verify untouched iPad advances Sent → Read.
+- Treat FIDUNIO 0.8.1.16 as the pre-0.9.0 rollback/baseline release.
 
 CURRENT STATUS
-Runtime/test version on main: FIDUNIO 0.8.1.16.
-Validated: normal encrypted history, cloud sending, iPad two-pane layout, Group Info tablet layout.
-Pending: repeated 0.8.1.16 re-entry receipt test.
-Do not begin true 0.9.0 per-device E2EE until this receipt test genuinely passes repeatedly.
+Validated baseline on main: FIDUNIO 0.8.1.16.
+Validated: encrypted history, cloud sending, offline/local-first foundation, device identity, contact key verification, iPad two-pane layout, Group Info tablet layout, live Sent → Read including iPhone leave/re-enter sequence.
+Next major work may proceed toward 0.9.0 true per-device E2EE while preserving 0.8.1.16 behavior.
 
 0.9.0 TRUE PER-DEVICE E2EE ROADMAP
 1. Read recipient registered device set.
 2. Encrypt message key separately for each authorized recipient device.
 3. Add per-device recipient envelopes/fan-out.
-4. Preserve validated tablet UI and 0.7.3 transport/offline/reconnect foundation.
+4. Preserve validated tablet UI and 0.7.3 transport/offline/reconnect foundation plus 0.8.1.16 receipt behavior.
 5. Regression/security test.
 6. Verified device linking/management and stronger device-change approval.
 7. Later safety numbers/QR, forward secrecy/Double Ratchet or vetted equivalent, group E2EE/key rotation/history enforcement, App Check/rules audit, quota/billing, push, passkeys.
