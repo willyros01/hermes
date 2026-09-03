@@ -181,15 +181,14 @@ export function subscribeMyConversations(uid,onRows,onError){
   return ()=>{active=false;unsub();};
 }
 export function subscribeConversationMessages(conversationId,myUid,onRows,onError){
-  let active=true,unsub=()=>{},refreshTimer=null,refreshing=false;
+  let active=true,unsub=()=>{};
   ensureServices().then(s=>{
     if(!active) return;
     const q=s.fsSdk.query(
       s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),
       s.fsSdk.orderBy("createdAt","asc")
     );
-    const emitSnap=snap=>{
-      if(!active) return;
+    unsub=s.fsSdk.onSnapshot(q,snap=>{
       onRows(
         snap.docs.map(d=>({id:d.id,...d.data()})),
         {
@@ -197,33 +196,7 @@ export function subscribeConversationMessages(conversationId,myUid,onRows,onErro
           hasPendingWrites:!!snap.metadata?.hasPendingWrites
         }
       );
-    };
-    unsub=s.fsSdk.onSnapshot(q,emitSnap,onError);
-
-    // iPad/Safari fallback: the normal Firestore listener remains authoritative,
-    // but some long-lived two-pane sessions have failed to repaint an outgoing
-    // Sent → Read state promptly after another device updates the message doc.
-    // Refresh only the currently subscribed conversation, and only while online.
-    const refreshFromServer=async()=>{
-      if(!active || refreshing || (typeof navigator!=="undefined" && navigator.onLine===false)) return;
-      refreshing=true;
-      try{
-        const snap=s.fsSdk.getDocsFromServer
-          ? await s.fsSdk.getDocsFromServer(q)
-          : await s.fsSdk.getDocs(q);
-        emitSnap(snap);
-      }catch(err){
-        // The live listener continues to operate; transient/offline refresh
-        // failures must not tear down the established 0.7.3 subscription.
-      }finally{
-        refreshing=false;
-      }
-    };
-    refreshTimer=setInterval(refreshFromServer,2000);
+    },onError);
   }).catch(onError);
-  return ()=>{
-    active=false;
-    if(refreshTimer) clearInterval(refreshTimer);
-    unsub();
-  };
+  return ()=>{active=false;unsub();};
 }
