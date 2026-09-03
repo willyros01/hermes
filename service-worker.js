@@ -119,6 +119,10 @@ async function resolvePeerUidForConversation(conversationId){`;
     await peerPublicKeyForConversation(conversationId,{refresh:true});
   }`;
   source=source.replace(preSendTrustNeedle,preSendTrustReplacement);
+  source=source.replace(
+    /  if\(cloud && c\?\.peerUid\)\{\s*await peerPublicKeyForConversation\(conversationId,\{refresh:true\}\);\s*if\(peerTrustStatus\(c\.peerUid\)==="changed"\)\{\s*state\.modal=\{type:"conversationSecurity",peerUid:c\.peerUid,conversationId\};\s*render\(\);\s*return;\s*\}\s*\}/,
+    preSendTrustReplacement
+  );
 
   // Send e2ee:2 envelopes at actual transmission time so Outbox retries use
   // the current authorized device registry rather than stale queued keys.
