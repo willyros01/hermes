@@ -2,7 +2,7 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.2.7
+Current live test build on main: FIDUNIO 0.9.3.0
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -27,38 +27,50 @@ STABLE BASELINES
 0.9.1 GROUP FOUNDATION
 - Separate /groups schema/rules and real-user group metadata UI are in place. Group message writes remain disabled until group E2EE/key rotation is implemented.
 - 0.9.1.1 real New Group user list PASS. 0.9.1.2 prototype/mock conversation cleanup PASS.
-- bootstrap.js removes only known prototype local data while preserving real cloud conversations, E2EE keys, device identities, settings, peer trust and real history.
 
 0.9.2 INVITE / PROFILE / SETTINGS
-- Invite-only account admission implemented. Alpha claimed permanent system Owner. Owner/Admin can create single-use expiring User/Admin invitations.
-- Forgot Password and authenticated Change Password implemented.
-- Profile fields displayName, email, telephone and photoURL save to /users/{uid}; email/password changes require current-password reauthentication.
-- Firebase Account and Device Identity technical cards are collapsed by default with Copy Details.
-- 0.9.2.2 attempted display-name propagation by rewriting conversation memberNames from the renamed user's client, but live test FAILED. Do not rely on memberNames as authoritative profile name.
-- 0.9.2.3 changes peer display-name propagation to READ authoritative /users/{peerUid}.displayName via live profile listeners and overlays the peer name in conversation/chat UI, leaving message/E2EE transport untouched.
-- 0.9.2.3 added visible Sign Out directly on the main Messages/chat screen and moved About to the final Settings position.
-- 0.9.2.4 fixed a UI mutation loop introduced by main-screen polishing that could prevent the local unlock screen from responding.
-- 0.9.2.5 rebalanced iPad landscape Settings columns and tightened spacing.
-- 0.9.2.6 removed the obsolete Prototype connectivity Settings card while preserving actual Outbox/reconnect behavior.
-- 0.9.2.7 adds auth-unlock-bridge.js. When the user explicitly submits Sign In or successfully creates an invited account, the immediately-following local PIN/biometric prototype screen is bypassed once and the user proceeds directly into Messages. This is one-shot only; later local re-locks are not bypassed.
+- Invite-only admission, Owner bootstrap, Forgot Password, Change Password and editable profile are implemented.
+- Firebase Account and Device Identity are collapsed by default.
+- Profile display-name propagation uses authoritative /users/{peerUid}.displayName listeners, not stale memberNames.
+- Visible Sign Out is on the main Messages/chat screen.
+- Prototype connectivity card removed while Outbox/reconnect remains intact.
+- Explicit Sign In and successful invited-account creation bypass the immediately-following local PIN/biometric prototype screen once.
+- 0.9.2.8 made the auth gate tablet-width aware.
+- 0.9.2.9 moved Privacy & Access and Appearance to the right side but CSS grid row coupling still produced large vertical gaps.
+
+0.9.3.0 USER ADMIN + FINAL SETTINGS COLUMN MODEL
+- Settings landscape now uses true independent left/right column containers rather than one two-column CSS grid. Left: Firebase Account + Profile. Right: Appearance, Text Size, Data, Device Identity, Privacy & Access, Invitations, User Administration. About stays full-width last. Future unclassified Settings cards remain visible rather than being discarded.
+- Added admin-ui.js for Owner/Admin:
+  - Manage Users & Access panel.
+  - List all FIDUNIO profiles with role/status/expiration.
+  - Suspend and Restore supported.
+  - Deactivate supported as non-destructive account retirement; no hard delete.
+  - Set expiration to Never / 7 / 30 / 90 days.
+  - List and Revoke pending invitations.
+  - Owner account protected from lifecycle actions; Admin cannot manage Owner or another Admin; Owner can manage Admin/User.
+- Added account-guard.js. Suspended, deactivated or expired authenticated accounts are automatically signed out when their account state is observed.
+- Firestore rules updated so sensitive app access requires account enabled and unexpired. Legacy profiles without status/expiresAt remain treated as active until first lifecycle update.
+- Suspended/deactivated users can read only their own profile document for access-state checks; conversation/group/device access requires enabled account.
+- Firestore rules must be manually published from main before User Admin lifecycle actions are tested.
 - firebase-config.js was not touched.
 
 NEXT LIVE TEST
-1. Refresh/reopen and confirm visible FIDUNIO v0.9.2.7.
-2. Test explicit Sign Out → Sign In. After successful account authentication, Messages should open directly without the PIN/biometric screen.
-3. Future invited account creation should likewise enter Messages directly after successful creation.
-4. Later local inactivity/background lock behavior should still use the PIN/passkey layer once that feature is fully implemented.
-5. Continue admin/security lifecycle work before Gamma onboarding: invitation revoke, user suspend/restore/expiration, security-event audit, then inactivity PIN/passkey lock.
+1. Publish current main firestore.rules in Firebase Console.
+2. Refresh/reopen and confirm FIDUNIO v0.9.3.0.
+3. Verify Settings has no large cross-column gaps and no prior card disappeared; About remains last.
+4. As Owner, open User Administration and verify current users and pending invitations load.
+5. With a non-owner test account, test Suspend → blocked/signed out → Restore → sign-in works.
+6. Test expiration and invitation revoke.
+7. After admin lifecycle passes, continue security-event audit/intrusion monitoring and real inactivity PIN/passkey lock.
 
 SECURITY / ADMIN PLAN
 - Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
-- Add Admin Users page, invitation revoke, expiration, suspend/restore and audit/security events.
-- Firestore access should eventually require active/unexpired status. True Firebase Auth disable/delete requires privileged backend/Admin SDK rather than client-only GitHub Pages.
-- Local inactivity lock design: Firebase session may remain authenticated while FIDUNIO UI locks; unlock with local PIN verifier or standards-based WebAuthn/passkey/biometrics; configurable idle timeout and Lock Now.
+- True Firebase Auth disable/delete still requires a privileged backend/Admin SDK rather than client-only GitHub Pages.
+- Next security work: audit/security events, new-device alerts/device proliferation checks, then local inactivity PIN/passkey lock.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports protected firebase-config.js.
-- index.html loads version.js then bootstrap.js. bootstrap loads settings-polish.js, auth-unlock-bridge.js, auth-ui.js, profile-sync.js and main-screen-polish.js.
+- index.html loads version.js then bootstrap.js. bootstrap now loads settings-polish.js, auth-unlock-bridge.js, account-guard.js, auth-ui.js, profile-sync.js, main-screen-polish.js and admin-ui.js.
 - IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
