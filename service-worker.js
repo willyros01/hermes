@@ -8,11 +8,10 @@
  *   served offline after they have been fetched successfully.
  * - Firestore/Auth data transport is NEVER service-worker cached.
  *
- * 0.8.1.15: recipient-side Read-on-entry fix.
- * When a cloud conversation is opened, mark any already-known incoming
- * unread messages Read immediately. This fixes the case where a message
- * arrives while the iPhone is outside the conversation and the user later
- * enters it. No polling, rules, E2EE, Outbox, or layout changes.
+ * 0.8.1.16: recipient-side Read-on-reentry fix.
+ * Re-entering a cloud conversation now reattaches the message subscription
+ * before Read processing, so a message received while outside the chat is
+ * fetched from Firestore and marked Read. No polling.
  */
 
 importScripts("./version.js");
@@ -69,16 +68,6 @@ async function stableTabletAppResponse(request,response){
 
   let source=await response.text();
 
-  // Keep the 0.8.1.13 listener-stability experiment in place.
-  source=source.replace(
-    "if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true});",
-    "if(chosen?.cloud) beginCloudMessageSubscription(chosen.id);"
-  );
-  source=source.replace(
-    "if(chosen.cloud) beginCloudMessageSubscription(chosen.id,{force:true});",
-    "if(chosen.cloud) beginCloudMessageSubscription(chosen.id);"
-  );
-
   // 0.8.1.14 receipt fast-path: state metadata is not encrypted, so apply it
   // before asynchronous key refresh/decryption work.
   const receiptNeedle=`      const existing=state.messages[conversationId] || [];
@@ -104,22 +93,19 @@ async function stableTabletAppResponse(request,response){
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
   source=source.replace(receiptNeedle,receiptReplacement);
 
-  // 0.8.1.15 recipient-side fix: if an incoming message arrived while the
-  // recipient was outside the conversation, entering the conversation must
-  // explicitly advance those already-known incoming rows to Read. The live
-  // listener still handles messages that arrive while the chat is open.
-  const entryNeedle=`  requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
-}`;
-  const entryReplacement=`  requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
-  if(c.cloud && firebaseUser){
-    const entryConversationId=state.selectedId;
-    const entryUnread=(state.messages[entryConversationId]||[]).filter(m=>!m.mine && m.cloud && m.state!=="read");
-    for(const m of entryUnread){
-      updateCloudMessageState(entryConversationId,m.id,"read").catch(()=>{});
-    }
-  }
-}`;
-  source=source.replace(entryNeedle,entryReplacement);
+  // 0.8.1.16: the narrow/mobile Back button leaves the chat but the old
+  // listener remains attached. A message arriving while on Messages can then
+  // be consumed without being marked Read. Force one clean reattach when the
+  // user taps that conversation again; the server-backed snapshot then runs
+  // the existing active-chat Read logic. This is event-driven, not polling.
+  const navNeedle=`      if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true}); else stopCloudMessageSubscription();
+      render();`;
+  const navReplacement=`      if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true}); else stopCloudMessageSubscription();
+      render();`;
+  source=source.replace(navNeedle,navReplacement);
+
+  // Remove the v13 wide-layout listener rewrite. It did not fix the defect
+  // and should not alter the established source behavior in this test.
 
   const headers=new Headers(response.headers);
   headers.set("content-type","text/javascript; charset=utf-8");
