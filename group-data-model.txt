@@ -1,0 +1,102 @@
+FIDUNIO GROUP DATA MODEL FOUNDATION
+Target milestone: 0.9.1
+
+PURPOSE
+Build real group records, membership, roles and Group Info on top of the validated 0.9.0.4 direct-message baseline. This phase does NOT enable real group-message sending yet.
+
+DESIGN PRINCIPLES
+- Existing /conversations direct-message data and rules remain unchanged.
+- Group data lives under a separate /groups collection.
+- Parent group document keeps authoritative member/admin UID lists for fast authorization in Firestore Rules.
+- Per-member detail lives under /groups/{groupId}/members/{uid}.
+- Group message writes remain blocked until the group E2EE/key-rotation design is implemented and tested.
+- New members default to history beginning at their join time.
+- Group membership changes will require cryptographic key rotation when encrypted group messaging is added.
+
+COLLECTION: /groups/{groupId}
+Suggested fields:
+- type: "group"
+- name: string, 1..120 characters
+- ownerUid: string
+- memberUids: list<string>, 1..64 users
+- adminUids: list<string>, 1..64 users; owner must always be included
+- createdAt: Firestore timestamp
+- updatedAt: Firestore timestamp
+- createdByUid: string, equal to ownerUid on creation
+- historyPolicy: "fromJoin"
+- groupVersion: 1
+- keyEpoch: 0 during the 0.9.1 metadata-only phase; increment/rotate when group E2EE is later implemented
+
+COLLECTION: /groups/{groupId}/members/{uid}
+Suggested fields:
+- uid: string, equal to document ID
+- role: "owner" | "admin" | "member"
+- joinedAt: Firestore timestamp
+- historyFrom: Firestore timestamp; defaults to joinedAt
+- addedByUid: string
+- active: true
+
+ROLE MODEL
+- Owner: creator; cannot be removed during the 0.9.1 foundation phase.
+- Admin: may manage normal group metadata and membership once the client-side transaction path is implemented.
+- Member: may read group metadata/member list but cannot modify group administration data.
+- The parent document ownerUid is immutable in this phase.
+
+HISTORY POLICY
+Default:
+- New member historyFrom = joinedAt.
+- Earlier history is not automatically granted.
+
+Future admin grant:
+- Admin may explicitly move historyFrom earlier only through a dedicated, audited group-history action.
+- When group E2EE exists, granting earlier history must distribute only the encryption material required for the authorized range.
+
+GROUP MESSAGE COLLECTION: /groups/{groupId}/messages/{messageId}
+Reserved fields for the later E2EE milestone:
+- senderUid
+- createdAt
+- state / receipt metadata
+- e2ee version
+- keyEpoch
+- ciphertext / encrypted payload metadata
+- per-device or group-key envelope information
+
+IMPORTANT: 0.9.1 Firestore Rules deny all writes to group messages. Do not enable plaintext group-message storage as an intermediate shortcut.
+
+MOCK/TEST USERS
+Use existing test accounts plus clearly marked test accounts:
+- Alpha Account
+- Beta Account
+- Gamma User
+- Delta User
+- Echo User
+
+CONTROLLED TEST GROUPS
+1. Test Group A
+   Alpha = owner/admin
+   Beta = member
+   Gamma = member
+
+2. Family Test
+   Alpha = owner/admin
+   Beta = member
+   Delta = member
+   Echo = member
+
+3. Membership Change Test
+   Alpha = owner/admin
+   Beta = member
+   Gamma = initial member
+   Delta = add later to test historyFrom/join-time behavior
+
+0.9.1 ACCEPTANCE TARGET
+- Create a real group record.
+- Create matching member documents.
+- Group appears only for authorized members.
+- Group Info reads real name/member/role data.
+- Rename works for owner/admin only.
+- Add/remove normal members works without affecting direct messages.
+- Owner cannot accidentally be removed.
+- A newly added member receives joinedAt/historyFrom equal to join time by default.
+- No real group message can be written yet.
+- Existing 0.9.0.4 direct-message E2EE, receipts, Outbox and multi-device fan-out remain unchanged.
