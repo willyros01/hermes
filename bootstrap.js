@@ -84,11 +84,14 @@ async function migratePrototypeData(){
   await txDone(metaTx);
 
   try{
-    const outboxTx=db.transaction("outbox","readwrite");
-    const store=outboxTx.objectStore("outbox");
-    const rows=await idbRequest(store.getAll());
-    for(const row of rows){if(PROTOTYPE_CONVERSATIONS.has(String(row?.conversationId)))store.delete(row.id);}
-    await txDone(outboxTx);
+    const rows=await idbRequest(db.transaction("outbox","readonly").objectStore("outbox").getAll());
+    const ids=rows.filter(row=>PROTOTYPE_CONVERSATIONS.has(String(row?.conversationId))).map(row=>row.id);
+    if(ids.length){
+      const outboxTx=db.transaction("outbox","readwrite");
+      const store=outboxTx.objectStore("outbox");
+      for(const id of ids)store.delete(id);
+      await txDone(outboxTx);
+    }
   }catch(err){console.warn("FIDUNIO prototype Outbox cleanup skipped",err);}
 
   try{
