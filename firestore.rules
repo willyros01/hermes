@@ -3,9 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn(){return request.auth != null;}
     function userPath(uid){return /databases/$(database)/documents/users/$(uid);}
-    function registered(){return signedIn() && exists(userPath(request.auth.uid));}
+    function enrolled(){return signedIn() && exists(userPath(request.auth.uid));}
+    function profileEnabled(data){
+      return (!('active' in data) || data.active == true)
+        && (!('status' in data) || data.status == "active")
+        && (!('expiresAt' in data) || data.expiresAt == null || request.time < data.expiresAt);
+    }
+    function registered(){return enrolled() && profileEnabled(get(userPath(request.auth.uid)).data);}
     function myUser(){return get(userPath(request.auth.uid));}
     function isSystemAdmin(){return registered() && myUser().data.systemRole in ["owner", "admin"];}
+    function isSystemOwner(){return registered() && myUser().data.systemRole == "owner";}
     function isConversationMember(conversationId){return registered() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.members;}
 
     function groupDoc(groupId){return get(/databases/$(database)/documents/groups/$(groupId));}
@@ -51,9 +58,14 @@ service cloud.firestore {
         && inviteAfter(data.joinedByInviteId).data.acceptedUid == uid
         && inviteAfter(data.joinedByInviteId).data.role == data.systemRole;
     }
+    function validLifecycle(data){
+      return data.status in ["active","suspended","deactivated"]
+        && ((data.status == "active" && data.active == true) || (data.status in ["suspended","deactivated"] && data.active == false))
+        && (!('expiresAt' in data) || data.expiresAt == null || data.expiresAt is timestamp);
+    }
 
     match /system/access {
-      allow read: if registered();
+      allow read: if enrolled();
       allow create: if signedIn()
         && exists(userPath(request.auth.uid))
         && !exists(/databases/$(database)/documents/system/access)
@@ -96,16 +108,26 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow create: if signedIn() && request.auth.uid == uid && validInvitedProfile(uid,request.resource.data);
-      allow update: if registered() && request.auth.uid == uid && (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","email","telephone","photoURL","profileUpdatedAt","e2eePublicJwk","e2eeVersion","e2eeUpdatedAt"])
-          || (
-            !exists(/databases/$(database)/documents/system/access)
-            && getAfter(/databases/$(database)/documents/system/access).data.ownerUid == uid
-            && request.resource.data.systemRole == "owner"
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["systemRole"])
-          )
+      allow update: if (
+          registered() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","email","telephone","photoURL","profileUpdatedAt","e2eePublicJwk","e2eeVersion","e2eeUpdatedAt"])
+        ) || (
+          registered() && request.auth.uid == uid
+          && !exists(/databases/$(database)/documents/system/access)
+          && getAfter(/databases/$(database)/documents/system/access).data.ownerUid == uid
+          && request.resource.data.systemRole == "owner"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["systemRole"])
+        ) || (
+          isSystemAdmin()
+          && request.auth.uid != uid
+          && resource.data.systemRole != "owner"
+          && (resource.data.systemRole != "admin" || isSystemOwner())
+          && request.resource.data.systemRole == resource.data.systemRole
+          && request.resource.data.adminUpdatedByUid == request.auth.uid
+          && validLifecycle(request.resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","active","expiresAt","suspendedAt","suspendedByUid","restoredAt","restoredByUid","deactivatedAt","deactivatedByUid","adminUpdatedAt","adminUpdatedByUid"])
         );
-      allow read: if registered();
+      allow read: if (signedIn() && request.auth.uid == uid) || registered();
       allow delete: if false;
       match /devices/{deviceId} {
         allow read: if registered();
