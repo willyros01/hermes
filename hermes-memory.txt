@@ -49,7 +49,11 @@ IPAD SENT → READ DEFECT HISTORY
 - e2ee:2 receive path selects only the envelope addressed to this installation and decrypts with its non-exportable local device private key.
 - Existing e2ee:1 history retains the old compatibility decrypt path.
 - Outbox remains authoritative; device envelopes are generated at actual transmission/retry time from the current registry rather than stored with stale device membership in the queued record.
-- Validated 0.8.1.16 sender receipt metadata fast-path is retained in the 0.9.0 harness.
+- Initial two-device 0.9.0 test: existing history readable PASS; iPad→iPhone plaintext + Read PASS; iPhone→iPad plaintext + Read PASS.
+- Initial 0.9.0 leave/send/re-enter test FAILED: iPad remained Sent after iPhone re-entered and displayed the message.
+- Diagnosis: receipt write was still downstream of asynchronous peer-key lookup, per-device decryption, local history caching and persistence. This makes re-entry receipt timing vulnerable even though decryption succeeds.
+- Targeted main fix commit 83e898893ae58d7ec61935173e3073b6789a84e0 moves recipient Read-state writes to the fresh server snapshot fast path before key lookup/decryption while retaining the sender-side raw receipt-state fast path. No Firestore rule change.
+- Retest required before marking 0.9.0 receipt behavior PASS.
 - If the two-device 0.9.0 test validates, move harness behavior into clean app.js source and remove temporary transforms before final 0.9.0 release.
 
 0.9.0 TEST PLAN
