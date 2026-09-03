@@ -69,8 +69,8 @@ function keepAboutLast(settings){
   const about=cards.find(card=>card.querySelector("h2")?.textContent?.trim()==="About");
   if(!about)return;
   const footer=settings.querySelector(":scope > .version-footer");
-  if(footer)settings.insertBefore(about,footer);
-  else settings.appendChild(about);
+  if(footer){if(about.nextElementSibling!==footer)settings.insertBefore(about,footer);}
+  else if(about!==settings.lastElementChild)settings.appendChild(about);
 }
 
 function polishSettings(){
