@@ -32,6 +32,9 @@ const GROUPS=[
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
+/* On narrow/iPhone Settings, Profile should be the first stacked section.
+ * Wide sidebar navigation keeps the established menu order above. */
+const PANEL_GROUPS=[GROUPS.find(g=>g.id==="profile"),...GROUPS.filter(g=>g.id!=="profile")];
 let activeGroup="profile";
 
 function ensureShell(settings){
@@ -81,14 +84,15 @@ function arrangeSettings(settings){
   const shell=ensureShell(settings),panels=shell.querySelector(".fidunio-settings-panels");
   ensureNav(shell);
   const assigned=new Set();
-  for(const group of GROUPS){
+  for(const group of PANEL_GROUPS){
     const panel=ensurePanel(panels,group);
+    /* Keep panel DOM order stable so narrow/mobile shows Profile first. */
+    panels.appendChild(panel);
     const nodes=[];
     for(const title of group.cards||[]){const card=cardByTitle(settings,title);if(card)nodes.push(card);}
     for(const selector of group.selectors||[]){const card=settings.querySelector(selector);if(card)nodes.push(card);}
     for(const node of nodes){assigned.add(node);placeIfNeeded(node,panel);}
   }
-  /* Keep any future/unclassified Settings cards visible under General. */
   const general=ensurePanel(panels,GROUPS[0]);
   for(const card of allCards(settings)){if(!assigned.has(card))placeIfNeeded(card,general);}
   const footer=settings.querySelector(":scope > .version-footer");
