@@ -44,3 +44,47 @@
   .fidunio-settings-column{display:flex;flex-direction:column;gap:14px;}
 }
 @media (max-width:699px){body[data-route="groupInfo"] .app-shell{max-width:var(--app-max);width:100%;}}
+
+/* 0.9.3.2 — compact User Administration table for larger user counts. */
+.fidunio-admin-modal{width:min(96vw,980px);max-width:980px!important;max-height:86dvh;overflow:auto;}
+.admin-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+.admin-modal-head h2{margin:0 0 4px;}
+.admin-section-label{font-size:.82em;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:10px;margin-bottom:7px;}
+.admin-user-table{border:1px solid var(--line);border-radius:14px;overflow:visible;background:var(--panel);}
+.admin-user-header,.admin-user-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(86px,.7fr) minmax(96px,.8fr) minmax(120px,1fr) 48px;gap:10px;align-items:center;padding:10px 12px;}
+.admin-user-header{font-size:.78em;font-weight:800;color:var(--muted);background:var(--surface-2);border-radius:14px 14px 0 0;}
+.admin-user-row{border-top:1px solid var(--line);min-height:54px;position:relative;}
+.admin-user-person{display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;align-items:center;min-width:0;}
+.admin-user-person strong,.admin-user-person span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.admin-user-person span{font-size:.82em;color:var(--muted);margin-top:2px;}
+.admin-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--accent);}
+.admin-role,.admin-expiry{font-size:.86em;color:var(--text);}
+.admin-status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:.74em;font-weight:800;letter-spacing:.03em;background:var(--surface-2);}
+.admin-status-active{color:#1f7a3d;background:rgba(31,122,61,.12);}
+.admin-status-suspended{color:#9a6500;background:rgba(154,101,0,.12);}
+.admin-status-deactivated{color:#9c2f2f;background:rgba(156,47,47,.12);}
+.admin-actions-cell{position:relative;justify-self:end;}
+.admin-more{width:38px;height:34px;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-weight:800;}
+.admin-protected{font-size:.72em;color:var(--muted);}
+.admin-menu{display:none;position:absolute;right:0;top:38px;z-index:25;min-width:170px;padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:var(--shadow);}
+.admin-menu.open{display:block;}
+.admin-menu button{display:block;width:100%;border:0;background:transparent;color:var(--text);text-align:left;padding:9px 10px;border-radius:8px;font:inherit;}
+.admin-menu button:hover,.admin-menu button:focus{background:var(--surface-2);}
+.admin-menu span{display:block;padding:7px 10px 3px;font-size:.72em;font-weight:800;text-transform:uppercase;color:var(--muted);}
+.admin-menu-sep{height:1px;background:var(--line);margin:4px 3px;}
+.admin-invite-list{border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+.admin-invite-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-top:1px solid var(--line);}
+.admin-invite-row:first-child{border-top:0;}
+.admin-invite-row strong,.admin-invite-row span{display:block;}
+.admin-invite-row span{font-size:.82em;color:var(--muted);margin-top:2px;}
+@media(max-width:760px){
+  .fidunio-admin-modal{width:min(96vw,620px);}
+  .admin-user-header{display:none;}
+  .admin-user-row{grid-template-columns:minmax(0,1fr) auto;gap:7px 10px;}
+  .admin-user-person{grid-column:1;}
+  .admin-actions-cell{grid-column:2;grid-row:1;}
+  .admin-role,.admin-expiry{font-size:.8em;}
+  .admin-role{grid-column:1;}
+  .admin-user-row > div:nth-child(3){grid-column:2;grid-row:2;justify-self:end;}
+  .admin-expiry{grid-column:1 / -1;}
+}
