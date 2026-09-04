@@ -2,7 +2,10 @@
  * This module deliberately does NOT own an app lock state or render an overlay.
  * app.js state.unlocked remains the single authoritative LOCKED/UNLOCKED state.
  */
-const CONFIG_KEY="fidunio-local-security-v1";
+const DB_NAME="fidunio-local";
+const DB_VERSION=2;
+const CONFIG_KEY="local-security-v1";
+const LEGACY_CONFIG_KEY="fidunio-local-security-v1";
 const AUTH_BYPASS_KEY="fidunio-auth-bypass-once";
 const DEFAULT_TIMEOUT_MS=5*60*1000;
 const PBKDF2_ITERATIONS=210000;
@@ -17,56 +20,112 @@ export const LOCK_TIMEOUTS=Object.freeze([
   {value:-1,label:"Never"}
 ]);
 
+function idbRequest(req){
+  return new Promise((resolve,reject)=>{
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+function txDone(tx){
+  return new Promise((resolve,reject)=>{
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error||new Error("IndexedDB transaction failed"));
+    tx.onabort=()=>reject(tx.error||new Error("IndexedDB transaction aborted"));
+  });
+}
+function openDb(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains("meta"))db.createObjectStore("meta");
+      if(!db.objectStoreNames.contains("outbox"))db.createObjectStore("outbox",{keyPath:"id"});
+      if(!db.objectStoreNames.contains("history"))db.createObjectStore("history");
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+function defaultConfig(){return {pin:null,timeoutMs:DEFAULT_TIMEOUT_MS,biometric:null};}
+function normalizeConfig(value){
+  const cfg=value&&typeof value==="object"?value:{};
+  return {
+    pin:cfg.pin||null,
+    timeoutMs:Number.isFinite(cfg.timeoutMs)?cfg.timeoutMs:DEFAULT_TIMEOUT_MS,
+    biometric:cfg.biometric||null
+  };
+}
+async function readStoredConfig(){
+  try{
+    const db=await openDb();
+    const stored=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(CONFIG_KEY));
+    if(stored)return normalizeConfig(stored);
+  }catch(err){
+    console.warn("FIDUNIO local security config read failed",err);
+  }
+  try{
+    const legacy=JSON.parse(localStorage.getItem(LEGACY_CONFIG_KEY)||"null");
+    if(legacy){
+      const migrated=normalizeConfig(legacy);
+      await writeStoredConfig(migrated);
+      try{localStorage.removeItem(LEGACY_CONFIG_KEY);}catch{}
+      return migrated;
+    }
+  }catch{}
+  return defaultConfig();
+}
+async function writeStoredConfig(config){
+  const db=await openDb();
+  const tx=db.transaction("meta","readwrite");
+  tx.objectStore("meta").put(normalizeConfig(config),CONFIG_KEY);
+  await txDone(tx);
+}
+let configCache=await readStoredConfig();
+async function persistConfig(config){
+  const next=normalizeConfig(config);
+  await writeStoredConfig(next);
+  const db=await openDb();
+  const verify=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(CONFIG_KEY));
+  if(!verify)throw new Error("Local security settings could not be saved on this device.");
+  configCache=normalizeConfig(verify);
+  return configCache;
+}
+function loadConfig(){return normalizeConfig(configCache);}
+
 function bytesToB64Url(bytes){
   let raw="";
   bytes.forEach(b=>raw+=String.fromCharCode(b));
   return btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
 }
 function b64UrlToBytes(value){
-  const padded=String(value).replace(/-/g,"+").replace(/_/g,"/")+"===".slice((String(value).length+3)%4);
+  const text=String(value||"");
+  const base=text.replace(/-/g,"+").replace(/_/g,"/");
+  const padded=base+"=".repeat((4-base.length%4)%4);
   const raw=atob(padded);
   return Uint8Array.from(raw,c=>c.charCodeAt(0));
 }
-function randomBytes(length=32){
-  return crypto.getRandomValues(new Uint8Array(length));
-}
-function loadConfig(){
-  try{
-    const parsed=JSON.parse(localStorage.getItem(CONFIG_KEY)||"{}");
-    return {
-      pin:parsed?.pin||null,
-      timeoutMs:Number.isFinite(parsed?.timeoutMs)?parsed.timeoutMs:DEFAULT_TIMEOUT_MS,
-      biometric:parsed?.biometric||null
-    };
-  }catch{
-    return {pin:null,timeoutMs:DEFAULT_TIMEOUT_MS,biometric:null};
-  }
-}
-function saveConfig(config){
-  localStorage.setItem(CONFIG_KEY,JSON.stringify(config));
-}
+function randomBytes(length=32){return crypto.getRandomValues(new Uint8Array(length));}
+
 export function getLocalSecurityStatus(){
   const cfg=loadConfig();
-  return {
-    hasPin:!!cfg.pin,
-    hasBiometric:!!cfg.biometric?.credentialId,
-    timeoutMs:cfg.timeoutMs
-  };
+  return {hasPin:!!cfg.pin,hasBiometric:!!cfg.biometric?.credentialId,timeoutMs:cfg.timeoutMs};
 }
 export function getLockTimeoutMs(){return loadConfig().timeoutMs;}
 export function setLockTimeoutMs(value){
   const allowed=new Set(LOCK_TIMEOUTS.map(x=>x.value));
   const timeoutMs=Number(value);
-  if(!allowed.has(timeoutMs)) throw new Error("Unsupported inactivity timeout.");
+  if(!allowed.has(timeoutMs))throw new Error("Unsupported inactivity timeout.");
   const cfg=loadConfig();
   cfg.timeoutMs=timeoutMs;
-  saveConfig(cfg);
+  configCache=normalizeConfig(cfg);
+  writeStoredConfig(configCache).catch(err=>console.warn("FIDUNIO inactivity setting persistence failed",err));
   activityAt=Date.now();
   scheduleIdleCheck();
 }
 
 async function derivePin(pin,salt,iterations=PBKDF2_ITERATIONS){
-  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);
+  if(!globalThis.crypto?.subtle)throw new Error("Secure PIN storage is not available in this browser.");
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),{name:"PBKDF2"},false,["deriveBits"]);
   const bits=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations},key,256);
   return new Uint8Array(bits);
 }
@@ -84,7 +143,8 @@ export async function setLocalPin(pin){
   const hash=await derivePin(pin,salt);
   const cfg=loadConfig();
   cfg.pin={salt:bytesToB64Url(salt),hash:bytesToB64Url(hash),iterations:PBKDF2_ITERATIONS};
-  saveConfig(cfg);
+  await persistConfig(cfg);
+  if(!getLocalSecurityStatus().hasPin)throw new Error("PIN was not saved. Please try again.");
 }
 export async function verifyLocalPin(pin){
   const cfg=loadConfig();
@@ -105,7 +165,7 @@ export async function removeLocalPin(currentPin){
   const cfg=loadConfig();
   cfg.pin=null;
   cfg.biometric=null;
-  saveConfig(cfg);
+  await persistConfig(cfg);
 }
 
 export async function platformAuthenticatorAvailable(){
@@ -130,7 +190,7 @@ export async function enrollBiometric(){
   }});
   if(!credential?.rawId)throw new Error("Device unlock enrollment was not completed.");
   cfg.biometric={credentialId:bytesToB64Url(new Uint8Array(credential.rawId)),userId:bytesToB64Url(userId)};
-  saveConfig(cfg);
+  await persistConfig(cfg);
 }
 export async function verifyBiometric(){
   const cfg=loadConfig();
@@ -149,12 +209,11 @@ export async function verifyBiometric(){
 export function disableBiometric(){
   const cfg=loadConfig();
   cfg.biometric=null;
-  saveConfig(cfg);
+  configCache=normalizeConfig(cfg);
+  writeStoredConfig(configCache).catch(err=>console.warn("FIDUNIO device-unlock setting persistence failed",err));
 }
 
-export function markSuccessfulAuthBypass(){
-  try{sessionStorage.setItem(AUTH_BYPASS_KEY,"1");}catch{}
-}
+export function markSuccessfulAuthBypass(){try{sessionStorage.setItem(AUTH_BYPASS_KEY,"1");}catch{}}
 export function consumeSuccessfulAuthBypass(){
   try{
     const yes=sessionStorage.getItem(AUTH_BYPASS_KEY)==="1";
@@ -192,8 +251,7 @@ export function noteLocalUnlock(){
 export function installInactivityMonitor({isUnlocked,onLock}){
   if(monitor)return;
   monitor={isUnlocked,onLock};
-  const activityEvents=["pointerdown","keydown","touchstart"];
-  activityEvents.forEach(name=>window.addEventListener(name,noteActivity,{passive:true}));
+  ["pointerdown","keydown","touchstart"].forEach(name=>window.addEventListener(name,noteActivity,{passive:true}));
   document.addEventListener("visibilitychange",()=>{
     if(document.visibilityState==="hidden"){
       hiddenAt=Date.now();
