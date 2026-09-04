@@ -1,5 +1,9 @@
 /* FIDUNIO Settings layout/polish. Tablet landscape uses two independent
- * vertical columns so a tall Profile card never creates empty grid rows. */
+ * vertical columns so a tall Profile card never creates empty grid rows.
+ * IMPORTANT: DOM placement is idempotent. Re-appending an already placed card
+ * causes a MutationObserver/render loop on iPad Safari and can make form
+ * controls appear untappable.
+ */
 function copyText(text,button){
   const value=String(text||"").trim();if(!value)return;
   navigator.clipboard?.writeText(value).then(()=>{const old=button.textContent;button.textContent="Copied";setTimeout(()=>button.textContent=old,1200);}).catch(()=>prompt("Copy details:",value));
@@ -21,17 +25,18 @@ function ensureColumns(settings){
   if(!host){host=document.createElement("div");host.id="fidunioSettingsColumns";host.className="fidunio-settings-columns";host.innerHTML='<div class="fidunio-settings-column fidunio-settings-leftcol"></div><div class="fidunio-settings-column fidunio-settings-rightcol"></div>';settings.prepend(host);}
   return{host,left:host.querySelector(".fidunio-settings-leftcol"),right:host.querySelector(".fidunio-settings-rightcol")};
 }
+function placeIfNeeded(node,parent){if(node&&node.parentElement!==parent)parent.appendChild(node);}
 function arrangeSettings(settings){
   const prototype=cardByTitle(settings,"Prototype connectivity");if(prototype)prototype.remove();
   const {host,left,right}=ensureColumns(settings);
   const firebase=cardByTitle(settings,"Firebase Account"),profile=settings.querySelector("#fidunioProfileCard"),userAdmin=settings.querySelector("#fidunioUserAdminCard");
   const appearance=cardByTitle(settings,"Appearance"),text=cardByTitle(settings,"Text Size"),data=cardByTitle(settings,"Data"),device=cardByTitle(settings,"Device Identity"),privacy=cardByTitle(settings,"Privacy & Access"),invites=settings.querySelector("#fidunioInvitationAdmin");
-  [firebase,profile,userAdmin].filter(Boolean).forEach(node=>left.appendChild(node));
-  [appearance,text,data,device,privacy,invites].filter(Boolean).forEach(node=>right.appendChild(node));
+  [firebase,profile,userAdmin].filter(Boolean).forEach(node=>placeIfNeeded(node,left));
+  [appearance,text,data,device,privacy,invites].filter(Boolean).forEach(node=>placeIfNeeded(node,right));
   const about=cardByTitle(settings,"About"),footer=settings.querySelector(":scope > .version-footer");
-  if(footer)settings.appendChild(footer);if(about)settings.appendChild(about);
-  /* Any future direct cards not explicitly classified stay visible rather than disappearing. */
-  [...settings.querySelectorAll(":scope > .card")].filter(c=>c!==about).forEach(c=>right.appendChild(c));
+  [...settings.querySelectorAll(":scope > .card")].filter(c=>c!==about).forEach(c=>placeIfNeeded(c,right));
+  if(footer&&footer.parentElement!==settings)settings.appendChild(footer);
+  if(about&&about.parentElement!==settings)settings.appendChild(about);
   if(host!==settings.firstElementChild)settings.prepend(host);
 }
 function polishSettings(){
