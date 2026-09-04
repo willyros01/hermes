@@ -2,7 +2,7 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.3.0
+Current live test build on main: FIDUNIO 0.9.3.2
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -38,39 +38,30 @@ STABLE BASELINES
 - 0.9.2.8 made the auth gate tablet-width aware.
 - 0.9.2.9 moved Privacy & Access and Appearance to the right side but CSS grid row coupling still produced large vertical gaps.
 
-0.9.3.0 USER ADMIN + FINAL SETTINGS COLUMN MODEL
-- Settings landscape now uses true independent left/right column containers rather than one two-column CSS grid. Left: Firebase Account + Profile. Right: Appearance, Text Size, Data, Device Identity, Privacy & Access, Invitations, User Administration. About stays full-width last. Future unclassified Settings cards remain visible rather than being discarded.
-- Added admin-ui.js for Owner/Admin:
-  - Manage Users & Access panel.
-  - List all FIDUNIO profiles with role/status/expiration.
-  - Suspend and Restore supported.
-  - Deactivate supported as non-destructive account retirement; no hard delete.
-  - Set expiration to Never / 7 / 30 / 90 days.
-  - List and Revoke pending invitations.
-  - Owner account protected from lifecycle actions; Admin cannot manage Owner or another Admin; Owner can manage Admin/User.
-- Added account-guard.js. Suspended, deactivated or expired authenticated accounts are automatically signed out when their account state is observed.
-- Firestore rules updated so sensitive app access requires account enabled and unexpired. Legacy profiles without status/expiresAt remain treated as active until first lifecycle update.
-- Suspended/deactivated users can read only their own profile document for access-state checks; conversation/group/device access requires enabled account.
-- Firestore rules must be manually published from main before User Admin lifecycle actions are tested.
+0.9.3 USER ADMIN + SETTINGS COLUMN MODEL
+- Settings landscape uses true independent left/right column containers rather than one coupled two-column CSS grid. About stays full-width last. Future unclassified Settings cards remain visible rather than being discarded.
+- 0.9.3.1 moved User Administration to the left Settings column under Profile. Right side keeps Appearance, Text Size, Data, Device Identity, Privacy & Access and Invitations.
+- Added account lifecycle administration and account-guard enforcement. Published Firestore rules are required and user confirmed the rules from main were published.
+- User Administration supports Suspend, Restore, Deactivate, expiration Never/7/30/90 days and pending invitation revoke. Owner is protected; Admin cannot manage Owner or another Admin.
+- 0.9.3.2 replaces large per-user management cards with a compact scalable user table. Columns: User, Role, Status, Expires, Actions. Each manageable user has a small ••• menu for Suspend/Restore, Deactivate and expiration changes. Owner/current/protected rows stay compact and non-actionable. Pending invitations remain in a compact list below the table.
+- User explicitly preferred this compact table because more users will be easier to maintain.
 - firebase-config.js was not touched.
 
 NEXT LIVE TEST
-1. Publish current main firestore.rules in Firebase Console.
-2. Refresh/reopen and confirm FIDUNIO v0.9.3.0.
-3. Verify Settings has no large cross-column gaps and no prior card disappeared; About remains last.
-4. As Owner, open User Administration and verify current users and pending invitations load.
-5. With a non-owner test account, test Suspend → blocked/signed out → Restore → sign-in works.
-6. Test expiration and invitation revoke.
-7. After admin lifecycle passes, continue security-event audit/intrusion monitoring and real inactivity PIN/passkey lock.
+1. Refresh/reopen and confirm FIDUNIO v0.9.3.2.
+2. Open Settings → User Administration → Manage Users & Access.
+3. Confirm compact table shows existing users with role/status/expiration and ••• actions where permitted.
+4. Verify pending invitation list remains visible and revocable.
+5. Next requested feature after this build: implement real local PIN + biometric/passkey inactivity lock, including configurable idle timeout and Lock Now. Successful explicit account Sign In / invited-account creation must continue to bypass an immediate local re-lock once.
 
 SECURITY / ADMIN PLAN
 - Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
 - True Firebase Auth disable/delete still requires a privileged backend/Admin SDK rather than client-only GitHub Pages.
-- Next security work: audit/security events, new-device alerts/device proliferation checks, then local inactivity PIN/passkey lock.
+- Next security work requested by user: local inactivity PIN/passkey/biometric lock, then audit/security events and new-device alerts/device proliferation checks.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports protected firebase-config.js.
-- index.html loads version.js then bootstrap.js. bootstrap now loads settings-polish.js, auth-unlock-bridge.js, account-guard.js, auth-ui.js, profile-sync.js, main-screen-polish.js and admin-ui.js.
+- index.html loads version.js then bootstrap.js. bootstrap loads settings-polish.js, auth-unlock-bridge.js, account-guard.js, auth-ui.js, profile-sync.js, main-screen-polish.js and admin-ui.js.
 - IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
