@@ -1,0 +1,52 @@
+/* FIDUNIO local security UI hardening for iOS/iPadOS Safari. */
+#localSecurityCard input.text-input,
+#localSecurityCard select.text-input,
+.unlock-card input.text-input{
+  display:block;
+  width:100%;
+  min-height:48px;
+  margin-top:6px;
+  position:relative;
+  z-index:1;
+  pointer-events:auto;
+  -webkit-user-select:text;
+  user-select:text;
+  touch-action:manipulation;
+  background:var(--input);
+  color:var(--ink);
+  border:1px solid var(--line);
+  -webkit-text-fill-color:var(--ink);
+  opacity:1;
+}
+#localSecurityCard select.text-input{
+  -webkit-user-select:auto;
+  user-select:auto;
+  appearance:auto;
+  -webkit-appearance:menulist;
+}
+#localSecurityCard input.text-input::placeholder,
+.unlock-card input.text-input::placeholder{
+  color:var(--muted);
+  -webkit-text-fill-color:var(--muted);
+  opacity:1;
+}
+#localSecurityCard .form-label,
+.unlock-card .form-label{
+  display:block;
+  margin-top:14px;
+  color:var(--ink);
+}
+html[data-theme="dark"] #localSecurityCard input.text-input,
+html[data-theme="dark"] #localSecurityCard select.text-input,
+html[data-theme="dark"] .unlock-card input.text-input{
+  background:#131c21;
+  color:#f2f6f8;
+  -webkit-text-fill-color:#f2f6f8;
+  border-color:#52636d;
+  caret-color:#f2f6f8;
+}
+html[data-theme="dark"] #localSecurityCard input.text-input::placeholder,
+html[data-theme="dark"] .unlock-card input.text-input::placeholder{
+  color:#aab6bd;
+  -webkit-text-fill-color:#aab6bd;
+}
