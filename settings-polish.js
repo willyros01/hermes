@@ -24,10 +24,10 @@ function ensureColumns(settings){
 function arrangeSettings(settings){
   const prototype=cardByTitle(settings,"Prototype connectivity");if(prototype)prototype.remove();
   const {host,left,right}=ensureColumns(settings);
-  const firebase=cardByTitle(settings,"Firebase Account"),profile=settings.querySelector("#fidunioProfileCard");
-  const appearance=cardByTitle(settings,"Appearance"),text=cardByTitle(settings,"Text Size"),data=cardByTitle(settings,"Data"),device=cardByTitle(settings,"Device Identity"),privacy=cardByTitle(settings,"Privacy & Access"),invites=settings.querySelector("#fidunioInvitationAdmin"),userAdmin=settings.querySelector("#fidunioUserAdminCard");
-  [firebase,profile].filter(Boolean).forEach(node=>left.appendChild(node));
-  [appearance,text,data,device,privacy,invites,userAdmin].filter(Boolean).forEach(node=>right.appendChild(node));
+  const firebase=cardByTitle(settings,"Firebase Account"),profile=settings.querySelector("#fidunioProfileCard"),userAdmin=settings.querySelector("#fidunioUserAdminCard");
+  const appearance=cardByTitle(settings,"Appearance"),text=cardByTitle(settings,"Text Size"),data=cardByTitle(settings,"Data"),device=cardByTitle(settings,"Device Identity"),privacy=cardByTitle(settings,"Privacy & Access"),invites=settings.querySelector("#fidunioInvitationAdmin");
+  [firebase,profile,userAdmin].filter(Boolean).forEach(node=>left.appendChild(node));
+  [appearance,text,data,device,privacy,invites].filter(Boolean).forEach(node=>right.appendChild(node));
   const about=cardByTitle(settings,"About"),footer=settings.querySelector(":scope > .version-footer");
   if(footer)settings.appendChild(footer);if(about)settings.appendChild(about);
   /* Any future direct cards not explicitly classified stay visible rather than disappearing. */
