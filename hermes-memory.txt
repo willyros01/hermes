@@ -3,7 +3,8 @@ CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development messaging baseline: FIDUNIO 0.9.0.4
 Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
-Current live PIN/accessibility/settings test build on main: FIDUNIO 0.9.4.6
+Current local rollback/checkpoint package: FIDUNIO 0.9.4.6 — hermes-ux-0.9.4.6.zip
+Current live PIN/accessibility/settings test build on main: FIDUNIO 0.9.4.7
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -84,7 +85,25 @@ PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
 - 0.9.4.6 changes only narrow/mobile panel DOM order so Profile is first. Wide sidebar navigation order stays General, Privacy & Access, Profile, User Administration, Invitations, Data, About.
 - Existing cards, IDs, handlers, PIN logic, profile/admin/invitation behavior remain unchanged; app.js, firebase.js, local-security.js, messaging/E2EE/transport were not modified for this ordering change.
 - Accessibility/high-contrast form styles remain in force.
-- NEXT TEST: refresh iPhone, confirm FIDUNIO 0.9.4.6, open Settings and confirm Profile is first/top. Then continue iPad sidebar functional checks and remaining biometric/WebAuthn acceptance.
+
+0.9.4.6 CHECKPOINT
+- User explicitly designated 0.9.4.6 as a good rollback point before cleaning the New Message screen.
+- Checkpoint ZIP created: hermes-ux-0.9.4.6.zip.
+- Verified ZIP contains exactly one hermes-memory.txt and exactly one hermes-setup.txt.
+- Verified firebase-config.js and config-firestore.js are absent everywhere in the ZIP.
+- Verified temporary .github packaging workflow is absent from the ZIP and removed from main after packaging.
+- ZIP size: 1,247,337 bytes. SHA-256: e8752fb45ff346f8e6fa9d8f4a02ba25f6b4109522b7d6ca965d850c450b9390.
+
+0.9.4.7 NEW MESSAGE CLEANUP TEST CANDIDATE
+- User requested the New Message screen be cleaned up after establishing the 0.9.4.6 checkpoint.
+- Cleanup is intentionally presentation-only and incremental; no major screen redesign and no messaging/transport behavior change.
+- Added new-message-polish.js and loaded it from bootstrap.js.
+- User-facing direct-message card now says “Start a Conversation” instead of versioned/test/developer wording.
+- Helper copy uses “FIDUNIO ID” rather than Firebase UID/Firestore terminology; placeholder becomes “Enter or paste recipient ID”; button becomes “Start Conversation”.
+- Technical E2EE test warning is replaced by concise user-facing copy: “Private one-to-one messages are end-to-end encrypted.”
+- New Group subtitle no longer overclaims “secure group conversation”; it now says “Create a group and choose its members,” consistent with group messaging still being incomplete.
+- app.js, firebase.js, local-security.js, E2EE, receipts, Outbox and message transport are untouched.
+- NEXT TEST: refresh/reopen iPad, confirm FIDUNIO 0.9.4.7, open New Message and inspect the cleaned wording/layout. Then continue iPad sidebar functional checks and biometric/WebAuthn acceptance.
 
 INVITATION / QUICK START DETAILS
 - Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
@@ -109,7 +128,7 @@ IMPORTANT TECHNICAL DETAILS
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
 
-SAFEKEEPING CHECKPOINT
-- FIDUNIO 0.9.3.7 is the approved local safekeeping baseline.
-- ZIP naming: hermes-ux-0.9.3.7.zip.
-- Exclude firebase-config.js and config-firestore.js from ZIPs.
+SAFEKEEPING CHECKPOINTS
+- FIDUNIO 0.9.3.7 remains the protected pre-PIN safekeeping baseline; ZIP hermes-ux-0.9.3.7.zip.
+- FIDUNIO 0.9.4.6 is the current PIN/accessibility/settings rollback checkpoint; ZIP hermes-ux-0.9.4.6.zip.
+- Exclude firebase-config.js and config-firestore.js from all ZIPs.
