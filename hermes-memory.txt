@@ -3,7 +3,7 @@ CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development messaging baseline: FIDUNIO 0.9.0.4
 Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
-Current live PIN/accessibility test build on main: FIDUNIO 0.9.4.3
+Current live PIN/accessibility test build on main: FIDUNIO 0.9.4.4
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -15,7 +15,7 @@ LOCKED CONVENTIONS
 - version.js is the single authoritative runtime version source; every test build gets a distinct visible version.
 - Preserve winged-messenger artwork, navy/teal/gray palette, no gold.
 - Preserve iPhone single-pane and adaptive iPad two-pane behavior; responsive by viewport width.
-- Accessibility is a core product requirement: large text, strong control/field contrast, clear focus states, and high visibility on iPhone/iPad/Fire. Do not treat this as optional polish.
+- Accessibility is a core product requirement: large text, strong control/field contrast, clear focus states, and high visibility on iPhone/iPad/Fire. Apply this CONSISTENTLY THROUGHOUT THE WHOLE APP, not only Privacy & Access or PIN screens.
 
 STABLE BASELINES
 - 0.6.5 local-first/offline PASS; 0.7.3 direct E2EE transport/reconnect PASS; 0.8.0 device identity PASS; 0.8.1 contact key verification PASS.
@@ -65,23 +65,15 @@ PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
 - Inactivity choices: Immediately, 1 min, 5 min, 15 min, 30 min, 1 hr, Never; default 5 min. Immediately means lock on background/leave, not zero-delay foreground loop.
 - Lock Now calls the same single lock function as inactivity.
 
-0.9.4.2 LIVE PIN TEST RESULTS — IPAD + IPHONE
+0.9.4 LIVE PIN / ACCESSIBILITY TEST RESULTS
 - Settings DOM placement was made idempotent after finding repeated appendChild operations under a MutationObserver could churn Safari DOM and interfere with controls.
-- Added local-security-ui.css to make PIN/security controls visible and touchable in Light/Dark modes.
 - iPad: PIN setup PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; timeout list visible/selectable PASS; 1-minute inactivity auto-lock PASS; Immediately background/return lock PASS; close/reopen with configured PIN returns locked PASS; refresh/reload while unlocked returns locked PASS.
 - iPhone: PIN setup PASS; PIN entry/dots visible PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; close/reopen returns locked PASS; Immediately background/return lock PASS; 1-minute inactivity auto-lock PASS.
 - iPhone user observed a couple of screen flickers while waiting idle for the 1-minute lock. Treat as a defect to eliminate, not a pass.
-- User reported PIN/security fields are visible but not sufficiently visible. Stronger contrast is required on BOTH iPhone and iPad.
-- User reported difficulty seeing and explicitly requires large fonts/high visibility. This requirement applies throughout FIDUNIO.
-- iPad Settings columns become heavily unbalanced after PIN is configured because Privacy & Access expands substantially.
-
-0.9.4.3 LIVE TEST CANDIDATE
-- Reduced Settings MutationObserver work: observe app root and ignore child-list mutations occurring entirely inside the already-arranged Settings columns. Goal is to remove needless iOS Safari layout/repaint activity and the reported idle flicker without touching messaging.
-- Rebalanced tablet Settings statically and stably by placing Privacy & Access in the left column; no height-measuring loop or repeated card shuffling.
-- Increased local security input/select visibility on iPhone and iPad: 2px high-contrast borders, clearer light/dark backgrounds, stronger placeholder contrast, 52px minimum control height, bold labels and visible focus outline.
-- version.js bumped to 0.9.4.3 for unambiguous live testing.
-- No messaging/E2EE/Firebase transport changes in this UI/accessibility adjustment.
-- NEXT TEST: refresh/reopen iPhone and iPad, confirm 0.9.4.3, inspect field contrast and iPad column balance, then repeat iPhone 1-minute idle test for flicker. Continue biometric/WebAuthn acceptance only after this UI stability check.
+- 0.9.4.3 reduced Settings observer work, rebalanced iPad Settings by moving Privacy & Access left, and strengthened PIN/security field visibility.
+- User confirmed 0.9.4.3 field visibility is better and explicitly requested the same high-visibility treatment consistently across the whole app.
+- 0.9.4.4 broadens the same field/control treatment app-wide for .text-input, search inputs and textarea/composer controls in Light/Dark modes: strong 2px borders, clear backgrounds/text/placeholders, 52px minimum height, and visible focus outline. This is accessibility consistency, not a PIN-only style.
+- No messaging/E2EE/Firebase transport logic changed by the 0.9.4.3/0.9.4.4 UI/accessibility work.
 
 INVITATION / QUICK START DETAILS
 - Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
