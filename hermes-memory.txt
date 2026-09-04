@@ -4,7 +4,7 @@ Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e
 Current validated development messaging baseline: FIDUNIO 0.9.0.4
 Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
 Current local rollback/checkpoint package: FIDUNIO 0.9.4.6 — hermes-ux-0.9.4.6.zip
-Current live PIN/accessibility/settings test build on main: FIDUNIO 0.9.4.7
+Current live PIN/accessibility/settings/New Message test build on main: FIDUNIO 0.9.4.8
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -18,6 +18,7 @@ LOCKED CONVENTIONS
 - Preserve iPhone single-pane and adaptive iPad behavior; responsive by viewport width.
 - Accessibility is a core product requirement: large text, strong control/field contrast, clear focus states, and high visibility on iPhone/iPad/Fire. Apply this CONSISTENTLY THROUGHOUT THE WHOLE APP, not only Privacy & Access or PIN screens.
 - UI development rule from user: once a major screen design is established, preserve that structure and make incremental/detail changes rather than repeatedly redesigning the whole screen, unless the user explicitly approves a new major design.
+- Normal user-facing identity selection should use DISPLAY NAME. Firebase/FIDUNIO UIDs are internal identifiers and should stay hidden unless needed for diagnostics/admin tooling.
 
 STABLE BASELINES
 - 0.6.5 local-first/offline PASS; 0.7.3 direct E2EE transport/reconnect PASS; 0.8.0 device identity PASS; 0.8.1 contact key verification PASS.
@@ -94,16 +95,15 @@ PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
 - Verified temporary .github packaging workflow is absent from the ZIP and removed from main after packaging.
 - ZIP size: 1,247,337 bytes. SHA-256: e8752fb45ff346f8e6fa9d8f4a02ba25f6b4109522b7d6ca965d850c450b9390.
 
-0.9.4.7 NEW MESSAGE CLEANUP TEST CANDIDATE
-- User requested the New Message screen be cleaned up after establishing the 0.9.4.6 checkpoint.
-- Cleanup is intentionally presentation-only and incremental; no major screen redesign and no messaging/transport behavior change.
-- Added new-message-polish.js and loaded it from bootstrap.js.
-- User-facing direct-message card now says “Start a Conversation” instead of versioned/test/developer wording.
-- Helper copy uses “FIDUNIO ID” rather than Firebase UID/Firestore terminology; placeholder becomes “Enter or paste recipient ID”; button becomes “Start Conversation”.
-- Technical E2EE test warning is replaced by concise user-facing copy: “Private one-to-one messages are end-to-end encrypted.”
-- New Group subtitle no longer overclaims “secure group conversation”; it now says “Create a group and choose its members,” consistent with group messaging still being incomplete.
-- app.js, firebase.js, local-security.js, E2EE, receipts, Outbox and message transport are untouched.
-- NEXT TEST: refresh/reopen iPad, confirm FIDUNIO 0.9.4.7, open New Message and inspect the cleaned wording/layout. Then continue iPad sidebar functional checks and biometric/WebAuthn acceptance.
+0.9.4.7 / 0.9.4.8 NEW MESSAGE CLEANUP + DISPLAY-NAME PICKER
+- 0.9.4.7 removed developer/test terminology from New Message without changing transport; New Group wording no longer overclaims secure group messaging.
+- User correctly questioned why Recipient FIDUNIO ID was exposed and requested recipient selection by display name instead.
+- 0.9.4.8 hides the UID field and existing Start Conversation button from normal UI. new-message-polish.js loads active FIDUNIO users with existing firebase.js listCloudUsers(), displays a searchable list by display name, and starts a conversation when the user taps a person.
+- The selected person's UID is inserted into the existing hidden #peerUid field and the existing #cloudDirectBtn handler is invoked. This preserves the existing single direct-conversation creation path and avoids duplicating messaging/Firestore logic.
+- The current signed-in user and inactive users are already filtered by listCloudUsers(). Search matches display names. UID remains internal and invisible to normal users.
+- User-facing heading becomes “Choose a Person”; helper copy becomes “Select a FIDUNIO user by display name.” One-to-one E2EE note remains concise.
+- app.js direct-message creation logic, firebase.js startDirectConversation(), local-security.js, E2EE, receipts, Outbox and transport were not changed by this picker implementation.
+- NEXT TEST: refresh/reopen iPad or iPhone, confirm FIDUNIO 0.9.4.8, open New Message, verify display-name list/search appears, tap a known user and confirm the conversation opens normally.
 
 INVITATION / QUICK START DETAILS
 - Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
