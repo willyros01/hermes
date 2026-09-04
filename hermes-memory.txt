@@ -1,8 +1,8 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
-Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.3.3
+Current validated development messaging baseline: FIDUNIO 0.9.0.4
+Current validated live test build on main: FIDUNIO 0.9.3.7
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -21,7 +21,7 @@ STABLE BASELINES
 - UI 0.8.1.9 plus Group Info tablet fix PASS.
 - 0.8.1.16 receipt/re-entry PASS and protected rollback.
 - 0.9.0.2 per-device E2EE two-device + receipt/re-entry + offline Outbox/reconnect PASS.
-- 0.9.0.4 full three-device bidirectional per-device E2EE fan-out PASS and remains validated development baseline.
+- 0.9.0.4 full three-device bidirectional per-device E2EE fan-out PASS and remains validated development messaging baseline.
 - Preserve 0.9.0.4 messaging, receipt, Outbox and per-device fan-out unchanged.
 
 0.9.1 GROUP FOUNDATION
@@ -36,28 +36,41 @@ STABLE BASELINES
 - Prototype connectivity card removed while Outbox/reconnect remains intact.
 - Explicit Sign In and successful invited-account creation bypass the immediately-following local PIN/biometric prototype screen once.
 - 0.9.2.8 made the auth gate tablet-width aware.
-- 0.9.2.9 moved Privacy & Access and Appearance to the right side but CSS grid row coupling still produced large vertical gaps.
+- Settings landscape now uses true independent left/right column containers rather than a coupled two-column CSS grid. About remains full-width last and unknown future cards remain visible.
 
-0.9.3 USER ADMIN + SETTINGS COLUMN MODEL
-- Settings landscape uses true independent left/right column containers rather than one coupled two-column CSS grid. About stays full-width last. Future unclassified Settings cards remain visible rather than being discarded.
-- 0.9.3.1 moved User Administration to the left Settings column under Profile. Right side keeps Appearance, Text Size, Data, Device Identity, Privacy & Access and Invitations.
-- Added account lifecycle administration and account-guard enforcement. Published Firestore rules are required and user confirmed the rules from main were published.
-- User Administration supports Suspend, Restore, Deactivate, expiration Never/7/30/90 days and pending invitation revoke. Owner is protected; Admin cannot manage Owner or another Admin.
-- 0.9.3.2 replaces large per-user management cards with a compact scalable user table. Columns: User, Role, Status, Expires, Actions. Each manageable user has a small ••• menu for Suspend/Restore, Deactivate and expiration changes. Owner/current/protected rows stay compact and non-actionable. Pending invitations remain in a compact list below the table.
-- User explicitly preferred this compact table because more users will be easier to maintain.
-- 0.9.3.3 replaces the inline invitation role/expiry selectors with a dedicated Create Invitation modal. The modal provides working User/Admin and 1/7/30-day selectors, Cancel and Create Invitation actions, and the one-time invitation explanation. Successful creation returns the generated link to the existing invitation result card with Copy Link and Share support. This specifically fixes the iPad case where the inline selectors appeared dead.
-- firebase-config.js was not touched.
+0.9.3 USER ADMIN + INVITATIONS
+- 0.9.3.1 placed User Administration in the left Settings column under Profile. Right side keeps Appearance, Text Size, Data, Device Identity, Privacy & Access and Invitations.
+- Account lifecycle administration and account-guard enforcement are implemented. User confirmed current Firestore rules from main were published.
+- 0.9.3.2 introduced the compact scalable user table: User, Role, Status, Expires, Actions; manageable users use a ••• menu. User explicitly preferred the compact layout for future growth.
+- 0.9.3.3 replaced inline invitation role/expiry selectors with a dedicated simple Create Invitation modal.
+- 0.9.3.4 added public quick-start.html and enriched the actual invitation share message with FIDUNIO introduction, role, expiry, single-use warning, Join URL and public Quick Start Guide URL. Invitation creation itself intentionally remains simple.
+- 0.9.3.5/0.9.3.6 corrected User Administration button binding and invitation/email behavior during iPad testing.
+- 0.9.3.7 cleanly separates User Administration from Invitations. User Administration manages users only: Suspend, Restore, Deactivate and expiration Never/7/30/90 days. Owner remains protected; Admin cannot manage Owner or another Admin.
+- Invitations now owns invitation creation, pending-invitation display and Revoke. Revoke refreshes the invitation list directly and no longer shares User Administration behavior.
+- Temporary global invitation-flow timing guard was removed so it cannot leave Settings buttons dead.
+- User live-tested 0.9.3.7 and reported: "works great now." This validates the User Administration / Invitations separation and makes 0.9.3.7 the current validated live test build.
+- firebase-config.js and config-firestore.js were not touched.
 
-NEXT LIVE TEST
-1. Refresh/reopen and confirm FIDUNIO v0.9.3.3.
-2. Open Settings → Invitations and tap Create Invitation.
-3. Confirm the modal opens, User/Admin selector changes, expiration selector changes, Cancel closes it, and Create Invitation generates the link.
-4. After invitation modal passes, next requested feature is real local PIN + biometric/passkey inactivity lock, including configurable idle timeout and Lock Now. Successful explicit account Sign In / invited-account creation must continue to bypass an immediate local re-lock once.
+INVITATION / QUICK START DETAILS
+- Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
+- Shared invitation includes a subject-capable Email Invitation path: "You're invited to join FIDUNIO".
+- Join FIDUNIO and Quick Start Guide URLs are emitted as clean HTTPS URLs on separate lines for mail/message clients to recognize.
+- Public read-only Quick Start Guide: quick-start.html; no Firebase login required to read it.
+- Do not build a fancy invitation creation/result screen. Richer information belongs in the actual invitation message and public guide.
+
+NEXT REQUESTED FEATURE
+- Implement real local PIN + biometric/passkey inactivity lock.
+- Separate Firebase account authentication from local app unlock. Firebase may remain signed in while FIDUNIO UI is locally locked.
+- Track activity/backgrounding and support timeout choices: Immediately, 1 min, 5 min, 15 min, 30 min, 1 hr, Never; default about 5 min.
+- PIN is local per installation; store only a derived verifier/key, never raw PIN.
+- Biometrics use standards-based WebAuthn/passkeys to invoke platform Face ID/Touch ID/Windows Hello/Android biometrics where supported.
+- Add Lock Now.
+- Successful explicit Sign In / invited-account creation must continue to bypass an immediate local re-lock once.
 
 SECURITY / ADMIN PLAN
 - Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
 - True Firebase Auth disable/delete still requires a privileged backend/Admin SDK rather than client-only GitHub Pages.
-- Next security work requested by user: local inactivity PIN/passkey/biometric lock, then audit/security events and new-device alerts/device proliferation checks.
+- Later security work: audit/security events, new-device alerts, device proliferation checks and final multi-device trust/approval.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports protected firebase-config.js.
@@ -65,3 +78,8 @@ IMPORTANT TECHNICAL DETAILS
 - IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
+
+SAFEKEEPING CHECKPOINT
+- FIDUNIO 0.9.3.7 is approved for a local safekeeping ZIP after successful live User Administration / Invitations testing.
+- ZIP naming: hermes-ux-0.9.3.7.zip.
+- Exclude firebase-config.js and config-firestore.js from the ZIP.
