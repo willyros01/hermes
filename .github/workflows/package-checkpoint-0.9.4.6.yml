@@ -14,18 +14,22 @@ jobs:
       - name: Build checkpoint ZIP
         shell: bash
         run: |
-          rm -rf checkpoint
-          mkdir checkpoint
-          shopt -s dotglob
-          for item in *; do
-            case "$item" in
-              .git|.github|firebase-config.js|config-firestore.js) continue ;;
-            esac
-            cp -R "$item" checkpoint/
-          done
-          find checkpoint -type f \( -name 'firebase-config.js' -o -name 'config-firestore.js' \) -delete
-          cd checkpoint
-          zip -r ../hermes-ux-0.9.4.6.zip .
+          rm -f hermes-ux-0.9.4.6.zip
+          zip -r hermes-ux-0.9.4.6.zip . \
+            -x '.git/*' \
+               '.github/*' \
+               'firebase-config.js' \
+               'config-firestore.js' \
+               '*/firebase-config.js' \
+               '*/config-firestore.js' \
+               'hermes-ux-0.9.4.6.zip'
+      - name: Verify protected files excluded
+        shell: bash
+        run: |
+          if unzip -l hermes-ux-0.9.4.6.zip | grep -Eq '(^|/)(firebase-config|config-firestore)\.js$'; then
+            echo 'Protected config file found in ZIP'
+            exit 1
+          fi
       - name: Upload checkpoint
         uses: actions/upload-artifact@v4
         with:
