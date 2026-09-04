@@ -1,0 +1,104 @@
+FIDUNIO / HERMES ARCHITECTURE OWNERSHIP RULES
+Reference baseline: validated 0.9.4.11
+
+PURPOSE
+This document records the architecture rules adopted after repeated Settings and PIN/lifecycle race failures. It is a permanent reference for future changes.
+
+CORE RULE
+ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH
+
+UI OWNERSHIP
+1. Every functional screen/section has one structural owner.
+2. A feature may mutate only the DOM container explicitly assigned to it.
+3. A feature must not discover and write to a shared parent such as .content.settings, #app, or document.body for ordinary screen content.
+4. Parent controllers may create section containers and show/hide/select them, but must not rewrite another section's contents.
+5. No feature may re-parent or replace DOM nodes owned by another feature.
+6. Orientation/resize may change geometry only. It must never be required to make a feature appear or function.
+
+ASYNC / MUTEX RULE
+1. Shared mutable resources use one owner.
+2. Async writes by that owner are serialized through a local mutex/queue.
+3. Do not use loose global busy flags that drop work with `if (busy) return`.
+4. Isolation prevents cross-owner interference; mutexes prevent an owner's own async races.
+5. Prefer automatic release via try/finally.
+
+SETTINGS FINDING (0.9.4.11)
+The validated 0.9.4.11 Settings page is rebuilt by app.js using `app.innerHTML` inside renderSettings(). This destroys the previous Settings DOM every time renderSettings() runs.
+
+The three late-added sections are different from the original Settings cards:
+- Profile is created later by auth-ui.js.
+- Invitations is created later by auth-ui.js and further enhanced by invite-modal.js.
+- User Administration is created later by admin-ui.js.
+
+In 0.9.4.11 these modules survive the destructive render only because broad MutationObservers watch the document and recreate/re-append their cards after app.js rewrites Settings. settings-polish.js then observes those mutations and moves/re-parents the cards into its panels.
+
+Therefore the old working behavior is a self-repair loop, not true ownership:
+
+app.js renderSettings()
+  -> replaces entire Settings DOM
+  -> auth-ui/admin-ui observers notice mutation
+  -> Profile / Invitations / User Admin are appended again
+  -> settings-polish observer notices mutation
+  -> cards are moved into Settings panels again
+  -> invite-modal observer notices Invitation card and modifies it
+
+This explains why removing the observers in the first isolation attempt made exactly Profile, User Administration and Invitations disappear. They were never part of the authoritative Settings render lifecycle.
+
+CORRECT SETTINGS DIRECTION
+The next Settings implementation must preserve the successful lifecycle while eliminating observer-based self-repair.
+
+Required model:
+1. app.js remains the authoritative route/screen renderer.
+2. renderSettings() creates permanent, predetermined hosts for all Settings sections as part of the authoritative render.
+3. After the hosts exist, one deterministic Settings controller mounts each feature owner into its assigned host.
+4. Profile receives only the Profile host.
+5. User Administration receives only the Users host.
+6. Invitations receives only the Invitations host.
+7. Feature modules never receive .content.settings and never append to it.
+8. settings-polish must not re-parent feature cards after creation.
+9. No whole-document MutationObserver is used to restore Settings features after app.js redraws the screen.
+10. Any later renderSettings() call recreates the fixed hosts and then deterministically invokes the same feature-mount sequence.
+
+IMPORTANT DISTINCTION
+The repeated failure was initially described as a rogue writer erasing late Settings panels. Investigation shows the primary destructive writer is the legitimate app.js renderSettings() function itself. The real defect is that the three late features were outside the authoritative render lifecycle, so observer code had been compensating for that omission.
+
+PIN / BIOMETRIC FOLLOW-UP
+The local security design already keeps app.js state.unlocked as the authoritative lock state, which is good. However some local-security configuration operations update a shared cached configuration and launch IndexedDB writes independently. These should later be reviewed for read/modify/write races and serialized under one local-security owner. This work follows Settings stability and the Fire HD 8 account-isolation issue.
+
+BROADER AUDIT TARGETS
+Review all modules for:
+- document-wide or #app-wide MutationObservers used as lifecycle control
+- features that search for another module's parent container and append into it
+- modules that call innerHTML on a shared parent they do not exclusively own
+- multiple writers to the same IndexedDB key/object
+- async read/modify/write sequences without serialization
+- independent Firebase initialization or duplicated session ownership
+- location.reload() used by low-level services
+- global flags used as concurrency control
+- route/layout code that changes functionality based on orientation timing
+
+KNOWN PROTOTYPE-ERA OBSERVER RISKS IN 0.9.4.11
+- auth-ui.js: document-wide observer used to mount Profile/Invitations.
+- admin-ui.js: document-wide observer used to mount User Administration.
+- settings-polish.js: #app subtree observer used to rearrange Settings.
+- invite-modal.js: document-wide observer used to enhance Invitations.
+- main-screen-polish.js: document-wide observer used to polish main UI.
+- bootstrap.js: document-wide observer used to scrub prototype UI.
+- new-message-polish.js: #app subtree observer used to install recipient UI.
+
+These are audit targets; their presence alone does not prove a current bug.
+
+VALIDATION DISCIPLINE
+- Start changes from a user-validated checkpoint.
+- Change one ownership boundary at a time.
+- Preserve established visual design unless the user requests a UI change.
+- Give each test build a distinct visible version.
+- Test direct load in target orientation; never use rotation as a recovery step.
+- Test leaving/re-entering the screen and repeated asynchronous updates.
+- If a build fails, roll main back to the validated checkpoint before the next attempt.
+
+PROTECTED VALIDATED BASELINE
+0.9.4.11 checkpoint commit:
+1ebc19df498de083f8084e0084c34ced18fc11f0
+
+This document may be updated as the ownership audit discovers additional facts.
