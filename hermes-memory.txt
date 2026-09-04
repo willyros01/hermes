@@ -154,3 +154,13 @@ RELEASE ZIP / LOCAL SAFEKEEPING RULES
 - Never include firebase-config.js or config-firestore.js; preserve configured GitHub copies untouched.
 - version.js remains the single authoritative runtime version source.
 - For checkpoint ZIPs, verify exclusions and file placement, record ZIP size and SHA-256 in hermes-memory.txt after packaging.
+
+0.9.4.11 CHECKPOINT ZIP
+- Local safekeeping package created: hermes-ux-0.9.4.11.zip.
+- Package is flat/root-only with 35 files; no development/test subfolders are included.
+- Verified exactly one hermes-memory.txt and one hermes-setup.txt.
+- Verified firebase-config.js and config-firestore.js are absent.
+- Verified rejected invite-install code/install-prompt.js is absent.
+- Verified Back-button visibility fix, iPhone overflow containment, approved message-bubble CSS and New Message display-name picker are included.
+- ZIP size: 934,660 bytes.
+- SHA-256: 2c0f47cbfa7b78c80e3c79bf966557b306fa61af8f708445dad659fde9bfcf60.
