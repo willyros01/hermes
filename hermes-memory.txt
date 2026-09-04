@@ -2,7 +2,7 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development baseline: FIDUNIO 0.9.0.4
-Current live test build on main: FIDUNIO 0.9.3.2
+Current live test build on main: FIDUNIO 0.9.3.3
 Development branches retained: release/0.9.0 and release/0.9.1
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
@@ -45,14 +45,14 @@ STABLE BASELINES
 - User Administration supports Suspend, Restore, Deactivate, expiration Never/7/30/90 days and pending invitation revoke. Owner is protected; Admin cannot manage Owner or another Admin.
 - 0.9.3.2 replaces large per-user management cards with a compact scalable user table. Columns: User, Role, Status, Expires, Actions. Each manageable user has a small ••• menu for Suspend/Restore, Deactivate and expiration changes. Owner/current/protected rows stay compact and non-actionable. Pending invitations remain in a compact list below the table.
 - User explicitly preferred this compact table because more users will be easier to maintain.
+- 0.9.3.3 replaces the inline invitation role/expiry selectors with a dedicated Create Invitation modal. The modal provides working User/Admin and 1/7/30-day selectors, Cancel and Create Invitation actions, and the one-time invitation explanation. Successful creation returns the generated link to the existing invitation result card with Copy Link and Share support. This specifically fixes the iPad case where the inline selectors appeared dead.
 - firebase-config.js was not touched.
 
 NEXT LIVE TEST
-1. Refresh/reopen and confirm FIDUNIO v0.9.3.2.
-2. Open Settings → User Administration → Manage Users & Access.
-3. Confirm compact table shows existing users with role/status/expiration and ••• actions where permitted.
-4. Verify pending invitation list remains visible and revocable.
-5. Next requested feature after this build: implement real local PIN + biometric/passkey inactivity lock, including configurable idle timeout and Lock Now. Successful explicit account Sign In / invited-account creation must continue to bypass an immediate local re-lock once.
+1. Refresh/reopen and confirm FIDUNIO v0.9.3.3.
+2. Open Settings → Invitations and tap Create Invitation.
+3. Confirm the modal opens, User/Admin selector changes, expiration selector changes, Cancel closes it, and Create Invitation generates the link.
+4. After invitation modal passes, next requested feature is real local PIN + biometric/passkey inactivity lock, including configurable idle timeout and Lock Now. Successful explicit account Sign In / invited-account creation must continue to bypass an immediate local re-lock once.
 
 SECURITY / ADMIN PLAN
 - Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
@@ -61,7 +61,7 @@ SECURITY / ADMIN PLAN
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports protected firebase-config.js.
-- index.html loads version.js then bootstrap.js. bootstrap loads settings-polish.js, auth-unlock-bridge.js, account-guard.js, auth-ui.js, profile-sync.js, main-screen-polish.js and admin-ui.js.
+- index.html loads version.js then bootstrap.js. bootstrap loads settings-polish.js, auth-unlock-bridge.js, account-guard.js, auth-ui.js, profile-sync.js, main-screen-polish.js, admin-ui.js and invite-modal.js.
 - IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
