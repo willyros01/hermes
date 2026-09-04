@@ -24,4 +24,5 @@ await runAuthGate();
 await import("./profile-sync.js");
 await import("./main-screen-polish.js");
 await import("./admin-ui.js");
+await import("./invite-modal.js");
 scrubPrototypeUi();
