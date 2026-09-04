@@ -1,4 +1,4 @@
 /* FIDUNIO single authoritative release version. Update this file for each new release. */
 globalThis.FIDUNIO_RELEASE = Object.freeze({
-  version: "0.9.4.6"
+  version: "0.9.4.7"
 });
