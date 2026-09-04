@@ -3,7 +3,7 @@ CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development messaging baseline: FIDUNIO 0.9.0.4
 Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
-Current live PIN/accessibility test build on main: FIDUNIO 0.9.4.4
+Current live PIN/accessibility/settings test build on main: FIDUNIO 0.9.4.5
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -14,8 +14,9 @@ LOCKED CONVENTIONS
 - firebase-config.js and config-firestore.js must NEVER be regenerated, overwritten, or included in update/release ZIPs.
 - version.js is the single authoritative runtime version source; every test build gets a distinct visible version.
 - Preserve winged-messenger artwork, navy/teal/gray palette, no gold.
-- Preserve iPhone single-pane and adaptive iPad two-pane behavior; responsive by viewport width.
+- Preserve iPhone single-pane and adaptive iPad behavior; responsive by viewport width.
 - Accessibility is a core product requirement: large text, strong control/field contrast, clear focus states, and high visibility on iPhone/iPad/Fire. Apply this CONSISTENTLY THROUGHOUT THE WHOLE APP, not only Privacy & Access or PIN screens.
+- UI development rule from user: once a major screen design is established, preserve that structure and make incremental/detail changes rather than repeatedly redesigning the whole screen, unless the user explicitly approves a new major design.
 
 STABLE BASELINES
 - 0.6.5 local-first/offline PASS; 0.7.3 direct E2EE transport/reconnect PASS; 0.8.0 device identity PASS; 0.8.1 contact key verification PASS.
@@ -37,10 +38,9 @@ STABLE BASELINES
 - Prototype connectivity card removed while Outbox/reconnect remains intact.
 - Explicit Sign In and successful invited-account creation bypass the immediately-following local PIN/biometric screen once.
 - 0.9.2.8 made the auth gate tablet-width aware.
-- Settings landscape uses true independent left/right column containers rather than a coupled two-column CSS grid. About remains full-width last and unknown future cards remain visible.
 
 0.9.3 USER ADMIN + INVITATIONS
-- 0.9.3.1 placed User Administration in the left Settings column under Profile.
+- 0.9.3.1 placed User Administration in Settings under Profile-era two-column design.
 - Account lifecycle administration and account-guard enforcement are implemented. User confirmed current Firestore rules from main were published.
 - 0.9.3.2 introduced the compact scalable user table: User, Role, Status, Expires, Actions; manageable users use a ••• menu.
 - 0.9.3.3 replaced inline invitation role/expiry selectors with a dedicated simple Create Invitation modal.
@@ -70,10 +70,20 @@ PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
 - iPad: PIN setup PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; timeout list visible/selectable PASS; 1-minute inactivity auto-lock PASS; Immediately background/return lock PASS; close/reopen with configured PIN returns locked PASS; refresh/reload while unlocked returns locked PASS.
 - iPhone: PIN setup PASS; PIN entry/dots visible PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; close/reopen returns locked PASS; Immediately background/return lock PASS; 1-minute inactivity auto-lock PASS.
 - iPhone user observed a couple of screen flickers while waiting idle for the 1-minute lock. Treat as a defect to eliminate, not a pass.
-- 0.9.4.3 reduced Settings observer work, rebalanced iPad Settings by moving Privacy & Access left, and strengthened PIN/security field visibility.
-- User confirmed 0.9.4.3 field visibility is better and explicitly requested the same high-visibility treatment consistently across the whole app.
-- 0.9.4.4 broadens the same field/control treatment app-wide for .text-input, search inputs and textarea/composer controls in Light/Dark modes: strong 2px borders, clear backgrounds/text/placeholders, 52px minimum height, and visible focus outline. This is accessibility consistency, not a PIN-only style.
-- No messaging/E2EE/Firebase transport logic changed by the 0.9.4.3/0.9.4.4 UI/accessibility work.
+- 0.9.4.3 reduced Settings observer work and strengthened PIN/security field visibility.
+- User confirmed 0.9.4.3 field visibility is better and requested same high-visibility treatment consistently across whole app.
+- 0.9.4.4 broadened field/control visibility app-wide for .text-input, search inputs and textarea/composer controls in Light/Dark modes; user confirmed consistency on iPhone.
+- No messaging/E2EE/Firebase transport logic changed by 0.9.4.3/0.9.4.4 accessibility work.
+
+0.9.4.5 SETTINGS SIDEBAR TEST CANDIDATE
+- User rejected the existing iPad Settings balance after screenshot showed a large empty half-width area and approved the newly mocked sidebar/content design for implementation.
+- Implemented a major Settings layout change only for wide tablet/landscape (900px+): stable left navigation sidebar plus one right content pane. Narrow/iPhone keeps the established stacked Settings cards.
+- Sidebar sections use existing live cards/functions rather than duplicating settings logic: General (Appearance, Text Size, Firebase Account), Privacy & Access (Privacy & Access, Device Identity), Profile, User Administration, Invitations, Data, About.
+- Profile is initial selected section on wide tablet to match approved mockup; selecting sidebar sections changes only which existing card group is visible in the content pane.
+- New file settings-sidebar.css contains tablet-only layout/styling. index.html loads it after existing styles. settings-polish.js now performs idempotent grouping/navigation rather than the old two-column distribution.
+- Existing cards, IDs, buttons, PIN logic, profile/admin/invitation handlers remain untouched; app.js, firebase.js, local-security.js, messaging, E2EE and transport were not modified for this redesign.
+- Accessibility/high-contrast form styles from 0.9.4.4 remain in force inside the new layout.
+- NEXT TEST: iPad landscape refresh/reopen, confirm FIDUNIO 0.9.4.5, inspect sidebar/content proportions, then tap each Settings section and verify existing controls continue working. Also confirm iPhone Settings remains stacked and unchanged structurally.
 
 INVITATION / QUICK START DETAILS
 - Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
