@@ -16,6 +16,7 @@ function scrubPrototypeUi(){document.querySelectorAll(".direct-contact").forEach
 const observer=new MutationObserver(()=>scrubPrototypeUi());observer.observe(document.documentElement,{subtree:true,childList:true});
 try{await migratePrototypeData();}catch(err){console.warn("FIDUNIO prototype cleanup failed safely; continuing startup",err);}
 await import("./settings-polish.js");
+await import("./local-lock.js");
 await import("./auth-unlock-bridge.js");
 const {startAccountGuard}=await import("./account-guard.js");
 await startAccountGuard();
