@@ -2,8 +2,8 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development messaging baseline: FIDUNIO 0.9.0.4
-Current validated live test build on main: FIDUNIO 0.9.3.7
-Development branches retained: release/0.9.0 and release/0.9.1
+Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
+Current live PIN/accessibility test build on main: FIDUNIO 0.9.4.3
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -15,6 +15,7 @@ LOCKED CONVENTIONS
 - version.js is the single authoritative runtime version source; every test build gets a distinct visible version.
 - Preserve winged-messenger artwork, navy/teal/gray palette, no gold.
 - Preserve iPhone single-pane and adaptive iPad two-pane behavior; responsive by viewport width.
+- Accessibility is a core product requirement: large text, strong control/field contrast, clear focus states, and high visibility on iPhone/iPad/Fire. Do not treat this as optional polish.
 
 STABLE BASELINES
 - 0.6.5 local-first/offline PASS; 0.7.3 direct E2EE transport/reconnect PASS; 0.8.0 device identity PASS; 0.8.1 contact key verification PASS.
@@ -34,62 +35,73 @@ STABLE BASELINES
 - Profile display-name propagation uses authoritative /users/{peerUid}.displayName listeners, not stale memberNames.
 - Visible Sign Out is on the main Messages/chat screen.
 - Prototype connectivity card removed while Outbox/reconnect remains intact.
-- Explicit Sign In and successful invited-account creation bypass the immediately-following local PIN/biometric prototype screen once.
+- Explicit Sign In and successful invited-account creation bypass the immediately-following local PIN/biometric screen once.
 - 0.9.2.8 made the auth gate tablet-width aware.
-- Settings landscape now uses true independent left/right column containers rather than a coupled two-column CSS grid. About remains full-width last and unknown future cards remain visible.
+- Settings landscape uses true independent left/right column containers rather than a coupled two-column CSS grid. About remains full-width last and unknown future cards remain visible.
 
 0.9.3 USER ADMIN + INVITATIONS
-- 0.9.3.1 placed User Administration in the left Settings column under Profile. Right side keeps Appearance, Text Size, Data, Device Identity, Privacy & Access and Invitations.
+- 0.9.3.1 placed User Administration in the left Settings column under Profile.
 - Account lifecycle administration and account-guard enforcement are implemented. User confirmed current Firestore rules from main were published.
-- 0.9.3.2 introduced the compact scalable user table: User, Role, Status, Expires, Actions; manageable users use a ••• menu. User explicitly preferred the compact layout for future growth.
+- 0.9.3.2 introduced the compact scalable user table: User, Role, Status, Expires, Actions; manageable users use a ••• menu.
 - 0.9.3.3 replaced inline invitation role/expiry selectors with a dedicated simple Create Invitation modal.
-- 0.9.3.4 added public quick-start.html and enriched the actual invitation share message with FIDUNIO introduction, role, expiry, single-use warning, Join URL and public Quick Start Guide URL. Invitation creation itself intentionally remains simple.
+- 0.9.3.4 added public quick-start.html and enriched the actual invitation share message.
 - 0.9.3.5/0.9.3.6 corrected User Administration button binding and invitation/email behavior during iPad testing.
-- 0.9.3.7 cleanly separates User Administration from Invitations. User Administration manages users only: Suspend, Restore, Deactivate and expiration Never/7/30/90 days. Owner remains protected; Admin cannot manage Owner or another Admin.
-- Invitations now owns invitation creation, pending-invitation display and Revoke. Revoke refreshes the invitation list directly and no longer shares User Administration behavior.
-- Temporary global invitation-flow timing guard was removed so it cannot leave Settings buttons dead.
-- User live-tested 0.9.3.7 and reported: "works great now." This validates the User Administration / Invitations separation and makes 0.9.3.7 the current validated live test build.
-- User re-tested 0.9.3.7 after rollback: messaging PASS, Invitations PASS, User Administration PASS.
-- Minor known UI issue: in Dark Mode some dialog/card surfaces have insufficient contrast against the page/background; fix later as a controlled UI cleanup, not during PIN architecture work.
-- firebase-config.js and config-firestore.js were not touched.
+- 0.9.3.7 cleanly separates User Administration from Invitations. User Administration manages users only; Invitations owns creation, pending display and Revoke.
+- User live-tested 0.9.3.7 and re-tested after rollback: messaging PASS, Invitations PASS, User Administration PASS.
+- 0.9.3.7 remains the protected pre-PIN baseline.
+
+PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
+- The failed earlier 0.9.4.x PIN experiments are rejected. Do not reuse layered overlay/modal architecture.
+- Current redesign was built cleanly from validated 0.9.3.7.
+- app.js state.unlocked is the one authoritative local LOCKED/UNLOCKED state.
+- Exactly one FIDUNIO unlock screen and one successful local unlock path. No competing overlays, browser prompt PIN, synthetic unlock clicks, or MutationObserver unlock bridge.
+- local-security.js is helper-only: PIN derivation/verification, WebAuthn device authentication, timeout configuration, inactivity monitoring. It does not own another app-lock state or render a lock overlay.
+- PIN configuration is persisted in IndexedDB fidunio-local/meta with verification; legacy localStorage config is migrated if present.
+- Raw PIN is never stored. Store only PBKDF2-SHA256 verifier with random per-installation salt; 210000 iterations. PIN is local to each installation.
+- PIN input is app-owned masked numeric/password field, 4–12 digits.
+- Device unlock uses standards-based WebAuthn with user verification required and platform authenticator where supported. PIN remains fallback.
+- Firebase authentication and local unlock remain separate. Firebase can stay signed in while FIDUNIO UI is locally locked.
+- Successful Sign In / successful invitation redemption marks a one-shot bypass only after authentication succeeds; app.js consumes it once.
+- Inactivity choices: Immediately, 1 min, 5 min, 15 min, 30 min, 1 hr, Never; default 5 min. Immediately means lock on background/leave, not zero-delay foreground loop.
+- Lock Now calls the same single lock function as inactivity.
+
+0.9.4.2 LIVE PIN TEST RESULTS — IPAD + IPHONE
+- Settings DOM placement was made idempotent after finding repeated appendChild operations under a MutationObserver could churn Safari DOM and interfere with controls.
+- Added local-security-ui.css to make PIN/security controls visible and touchable in Light/Dark modes.
+- iPad: PIN setup PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; timeout list visible/selectable PASS; 1-minute inactivity auto-lock PASS; Immediately background/return lock PASS; close/reopen with configured PIN returns locked PASS; refresh/reload while unlocked returns locked PASS.
+- iPhone: PIN setup PASS; PIN entry/dots visible PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; close/reopen returns locked PASS; Immediately background/return lock PASS; 1-minute inactivity auto-lock PASS.
+- iPhone user observed a couple of screen flickers while waiting idle for the 1-minute lock. Treat as a defect to eliminate, not a pass.
+- User reported PIN/security fields are visible but not sufficiently visible. Stronger contrast is required on BOTH iPhone and iPad.
+- User reported difficulty seeing and explicitly requires large fonts/high visibility. This requirement applies throughout FIDUNIO.
+- iPad Settings columns become heavily unbalanced after PIN is configured because Privacy & Access expands substantially.
+
+0.9.4.3 LIVE TEST CANDIDATE
+- Reduced Settings MutationObserver work: observe app root and ignore child-list mutations occurring entirely inside the already-arranged Settings columns. Goal is to remove needless iOS Safari layout/repaint activity and the reported idle flicker without touching messaging.
+- Rebalanced tablet Settings statically and stably by placing Privacy & Access in the left column; no height-measuring loop or repeated card shuffling.
+- Increased local security input/select visibility on iPhone and iPad: 2px high-contrast borders, clearer light/dark backgrounds, stronger placeholder contrast, 52px minimum control height, bold labels and visible focus outline.
+- version.js bumped to 0.9.4.3 for unambiguous live testing.
+- No messaging/E2EE/Firebase transport changes in this UI/accessibility adjustment.
+- NEXT TEST: refresh/reopen iPhone and iPad, confirm 0.9.4.3, inspect field contrast and iPad column balance, then repeat iPhone 1-minute idle test for flicker. Continue biometric/WebAuthn acceptance only after this UI stability check.
 
 INVITATION / QUICK START DETAILS
 - Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
-- Shared invitation includes a subject-capable Email Invitation path: "You're invited to join FIDUNIO".
-- Join FIDUNIO and Quick Start Guide URLs are emitted as clean HTTPS URLs on separate lines for mail/message clients to recognize.
-- Public read-only Quick Start Guide: quick-start.html; no Firebase login required to read it.
-- Do not build a fancy invitation creation/result screen. Richer information belongs in the actual invitation message and public guide.
-
-PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
-- The failed 0.9.4.x PIN experiments are rejected and are not a development baseline. Do not reuse their layered overlay/modal architecture.
-- Restart PIN/biometric only from validated 0.9.3.7.
-- Development branch: pin-biometric-redesign, created directly from validated 0.9.3.7 commit db15b15c92ea476f81a2ccc37e08dde53a2e491e.
-- app.js state.unlocked remains the one and only authoritative local LOCKED/UNLOCKED state.
-- There must be exactly one FIDUNIO unlock screen and one successful local unlock path. No competing overlays, no browser prompt() PIN entry, no synthetic/simulated unlock-button clicks, and no MutationObserver unlock bridge.
-- local-security.js is a helper only: PIN derivation/verification, WebAuthn device authentication, timeout configuration, and inactivity monitoring. It does not own another app-lock state or render a lock overlay.
-- Raw PIN is never stored. Store only a PBKDF2-SHA256 verifier with a random per-installation salt. PIN is local to each installation.
-- PIN input is an app-owned masked password/numeric field, 4–12 digits, visible correctly in both Light and Dark modes.
-- Device unlock uses standards-based WebAuthn with user verification required and platform authenticator where supported. PIN always remains fallback.
-- Firebase authentication and local unlock remain separate. Firebase can stay signed in while FIDUNIO UI is locally locked.
-- auth-unlock-bridge.js is removed from the redesign startup path. Successful Sign In / successful invitation redemption explicitly marks a one-shot bypass only after authentication succeeds; app.js consumes that bypass once.
-- Inactivity choices: Immediately, 1 min, 5 min, 15 min, 30 min, 1 hr, Never; default 5 min. Immediately means lock on background/leave, not a zero-delay foreground loop.
-- Lock Now calls the same single lock function as inactivity.
-- Do not promote to main or assign a final 0.9.4 release until the complete PIN/biometric acceptance matrix passes. Avoid release-number churn during branch development.
-- Acceptance matrix: one startup unlock screen; correct PIN unlock; wrong PIN remains locked; masked dots visible Light/Dark iPhone/iPad; Lock Now first tap; each timeout selectable; Immediately background/return; 1-minute inactivity; WebAuthn enrollment; WebAuthn unlock; cancel/failure gives PIN fallback; restart/refresh while locked; explicit successful Sign In/Join bypass once; Firebase remains signed in; messaging/Read receipts/Outbox/E2EE unchanged.
+- Shared invitation includes Email Invitation path with subject “You're invited to join FIDUNIO”.
+- Join FIDUNIO and Quick Start Guide URLs are clean HTTPS URLs on separate lines.
+- Public read-only Quick Start Guide: quick-start.html; no Firebase login required.
 
 POST-PIN DEVELOPMENT ORDER
-- After PIN/biometric is complete and validated, revise message bubble/accessibility layout before adding rich-message widgets.
-- Message bubbles should follow the WhatsApp-style responsive principle: maximum bubble width, unrestricted vertical growth, large accessibility text wraps and stacks downward rather than overflowing horizontally, quoted/reply content stacks above the new message, and timestamps/read status never collide with message text.
-- Complete that message-container/font-size/stacking foundation before enabling picture, video, and other rich-message widgets.
+- After PIN/biometric is complete and validated, revise message bubble/accessibility layout before rich-message widgets.
+- Message bubbles follow WhatsApp-style responsive principle: maximum bubble width, unrestricted vertical growth, large accessibility text wraps/stacks downward, quoted/reply content stacks above new message, timestamps/read status never collide.
+- Complete message-container/font-size/stacking foundation before picture, video and other rich-message widgets.
 
 SECURITY / ADMIN PLAN
 - Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
-- True Firebase Auth disable/delete still requires a privileged backend/Admin SDK rather than client-only GitHub Pages.
+- True Firebase Auth disable/delete requires privileged backend/Admin SDK rather than client-only GitHub Pages.
 - Later security work: audit/security events, new-device alerts, device proliferation checks and final multi-device trust/approval.
 
 IMPORTANT TECHNICAL DETAILS
 - app.js imports firebase.js; firebase.js imports protected firebase-config.js.
-- index.html loads version.js then bootstrap.js. Validated 0.9.3.7 bootstrap loads settings-polish.js, auth-unlock-bridge.js, account-guard.js, auth-ui.js, profile-sync.js, main-screen-polish.js, admin-ui.js and invite-modal.js. On pin-biometric-redesign, auth-unlock-bridge.js is intentionally removed from startup and local-security.js is imported by app.js/auth-ui.js.
+- index.html loads version.js then bootstrap.js. Current PIN redesign intentionally does not load auth-unlock-bridge.js; local-security.js is imported by app.js/auth-ui.js.
 - IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
@@ -97,4 +109,4 @@ IMPORTANT TECHNICAL DETAILS
 SAFEKEEPING CHECKPOINT
 - FIDUNIO 0.9.3.7 is the approved local safekeeping baseline.
 - ZIP naming: hermes-ux-0.9.3.7.zip.
-- Exclude firebase-config.js and config-firestore.js from the ZIP.
+- Exclude firebase-config.js and config-firestore.js from ZIPs.
