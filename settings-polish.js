@@ -31,8 +31,11 @@ function arrangeSettings(settings){
   const {host,left,right}=ensureColumns(settings);
   const firebase=cardByTitle(settings,"Firebase Account"),profile=settings.querySelector("#fidunioProfileCard"),userAdmin=settings.querySelector("#fidunioUserAdminCard");
   const appearance=cardByTitle(settings,"Appearance"),text=cardByTitle(settings,"Text Size"),data=cardByTitle(settings,"Data"),device=cardByTitle(settings,"Device Identity"),privacy=cardByTitle(settings,"Privacy & Access"),invites=settings.querySelector("#fidunioInvitationAdmin");
-  [firebase,profile,userAdmin].filter(Boolean).forEach(node=>placeIfNeeded(node,left));
-  [appearance,text,data,device,privacy,invites].filter(Boolean).forEach(node=>placeIfNeeded(node,right));
+  /* Privacy & Access becomes substantially taller after a PIN is configured.
+   * Keep it in the left column with the account cards so tablet landscape stays
+   * visually balanced without measuring heights or repeatedly moving cards. */
+  [firebase,profile,userAdmin,privacy].filter(Boolean).forEach(node=>placeIfNeeded(node,left));
+  [appearance,text,data,device,invites].filter(Boolean).forEach(node=>placeIfNeeded(node,right));
   const about=cardByTitle(settings,"About"),footer=settings.querySelector(":scope > .version-footer");
   [...settings.querySelectorAll(":scope > .card")].filter(c=>c!==about).forEach(c=>placeIfNeeded(c,right));
   if(footer&&footer.parentElement!==settings)settings.appendChild(footer);
@@ -49,4 +52,15 @@ function polishSettings(){
   arrangeSettings(settings);
 }
 let queued=false;function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;polishSettings();});}
-const observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true});polishSettings();
+/* Observe only the app root. Ignore mutations that occur entirely inside the
+ * already-arranged Settings columns; those are normal live UI updates and do
+ * not require another layout pass. This prevents needless iOS Safari repaints. */
+const appRoot=document.querySelector("#app")||document.body;
+const observer=new MutationObserver(records=>{
+  const needsLayout=records.some(record=>{
+    const target=record.target instanceof Element?record.target:record.target?.parentElement;
+    return !target?.closest?.("#fidunioSettingsColumns");
+  });
+  if(needsLayout)schedule();
+});
+observer.observe(appRoot,{subtree:true,childList:true});polishSettings();
