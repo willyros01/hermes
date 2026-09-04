@@ -3,7 +3,7 @@ CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development messaging baseline: FIDUNIO 0.9.0.4
 Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
-Current live PIN/accessibility/settings test build on main: FIDUNIO 0.9.4.5
+Current live PIN/accessibility/settings test build on main: FIDUNIO 0.9.4.6
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -75,15 +75,16 @@ PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
 - 0.9.4.4 broadened field/control visibility app-wide for .text-input, search inputs and textarea/composer controls in Light/Dark modes; user confirmed consistency on iPhone.
 - No messaging/E2EE/Firebase transport logic changed by 0.9.4.3/0.9.4.4 accessibility work.
 
-0.9.4.5 SETTINGS SIDEBAR TEST CANDIDATE
+0.9.4.5 / 0.9.4.6 SETTINGS SIDEBAR + MOBILE ORDER
 - User rejected the existing iPad Settings balance after screenshot showed a large empty half-width area and approved the newly mocked sidebar/content design for implementation.
-- Implemented a major Settings layout change only for wide tablet/landscape (900px+): stable left navigation sidebar plus one right content pane. Narrow/iPhone keeps the established stacked Settings cards.
-- Sidebar sections use existing live cards/functions rather than duplicating settings logic: General (Appearance, Text Size, Firebase Account), Privacy & Access (Privacy & Access, Device Identity), Profile, User Administration, Invitations, Data, About.
-- Profile is initial selected section on wide tablet to match approved mockup; selecting sidebar sections changes only which existing card group is visible in the content pane.
-- New file settings-sidebar.css contains tablet-only layout/styling. index.html loads it after existing styles. settings-polish.js now performs idempotent grouping/navigation rather than the old two-column distribution.
-- Existing cards, IDs, buttons, PIN logic, profile/admin/invitation handlers remain untouched; app.js, firebase.js, local-security.js, messaging, E2EE and transport were not modified for this redesign.
-- Accessibility/high-contrast form styles from 0.9.4.4 remain in force inside the new layout.
-- NEXT TEST: iPad landscape refresh/reopen, confirm FIDUNIO 0.9.4.5, inspect sidebar/content proportions, then tap each Settings section and verify existing controls continue working. Also confirm iPhone Settings remains stacked and unchanged structurally.
+- 0.9.4.5 implemented wide tablet/landscape (900px+) Settings as stable left navigation sidebar plus one right content pane. Narrow/iPhone keeps stacked Settings cards.
+- Sidebar sections reuse existing live cards/functions: General, Privacy & Access, Profile, User Administration, Invitations, Data, About.
+- Profile is initial selected section on wide tablet to match approved mockup.
+- User then requested a minor iPhone refinement: Profile information should appear at the very top of the stacked Settings page.
+- 0.9.4.6 changes only narrow/mobile panel DOM order so Profile is first. Wide sidebar navigation order stays General, Privacy & Access, Profile, User Administration, Invitations, Data, About.
+- Existing cards, IDs, handlers, PIN logic, profile/admin/invitation behavior remain unchanged; app.js, firebase.js, local-security.js, messaging/E2EE/transport were not modified for this ordering change.
+- Accessibility/high-contrast form styles remain in force.
+- NEXT TEST: refresh iPhone, confirm FIDUNIO 0.9.4.6, open Settings and confirm Profile is first/top. Then continue iPad sidebar functional checks and remaining biometric/WebAuthn acceptance.
 
 INVITATION / QUICK START DETAILS
 - Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
