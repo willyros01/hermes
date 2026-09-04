@@ -16,7 +16,16 @@ import {
   publishCloudE2EEDevice,
   getCloudUserDevices
 } from "./firebase.js";
+import {
+  LOCK_TIMEOUTS,
+  getLocalSecurityStatus,
+  setLocalPin, verifyLocalPin, changeLocalPin, removeLocalPin,
+  enrollBiometric, verifyBiometric, disableBiometric,
+  setLockTimeoutMs, consumeSuccessfulAuthBypass, noteLocalUnlock,
+  installInactivityMonitor
+} from "./local-security.js";
 
+/* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
 const FIDUNIO_VERSION = globalThis.FIDUNIO_RELEASE?.version || "unknown";
 
@@ -87,7 +96,28 @@ let cloudMessageConversationId = null;
 let deviceSecurityInfo = null;
 let deviceRegistryStatus = "";
 let myRegisteredDevices = [];
+let localSecurityMessage = "";
+let localSecurityMessageIsError = false;
+let unlockError = "";
 
+function setLocalSecurityMessage(message,isError=false){
+  localSecurityMessage=String(message||"");
+  localSecurityMessageIsError=!!isError;
+}
+function lockLocalApp(reason="manual"){
+  if(!state.unlocked)return;
+  state.unlocked=false;
+  state.toolsOpen=false;
+  state.modal=null;
+  unlockError="";
+  render();
+}
+function unlockLocalApp(){
+  state.unlocked=true;
+  unlockError="";
+  noteLocalUnlock();
+  render();
+}
 
 function openDb(){
   if(dbPromise) return dbPromise;
@@ -719,6 +749,9 @@ async function initApp(){
 
   hydrated=true;
   state.online=navigator.onLine;
+  if(consumeSuccessfulAuthBypass()) state.unlocked=true;
+  installInactivityMonitor({isUnlocked:()=>state.unlocked,onLock:reason=>lockLocalApp(reason)});
+  if(state.unlocked) noteLocalUnlock();
   render();
 
   initializeFirebaseLayer();
@@ -843,19 +876,55 @@ function render(){
 }
 
 function renderUnlock(){
+  const security=getLocalSecurityStatus();
+  if(!security.hasPin){
+    app.innerHTML=`
+      <main class="app-shell unlock">
+        <section class="unlock-card">
+          <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
+          <h1>Fidunio</h1>
+          <p>This installation does not have a local PIN yet. Continue to FIDUNIO, then set one in Settings → Privacy & Access.</p>
+          <button class="primary" id="continueBtn">Continue to FIDUNIO</button>
+          <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)}</div>
+        </section>
+      </main>`;
+    document.querySelector("#continueBtn").onclick=unlockLocalApp;
+    return;
+  }
   app.innerHTML=`
     <main class="app-shell unlock">
       <section class="unlock-card">
         <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
-        <h1>Fidunio</h1>
-        <p>Secure access prototype. Production will use passkeys/device authentication where supported.</p>
-        <button class="primary" id="unlockBtn">Unlock with device</button>
-        <button class="secondary" id="pinBtn">Use PIN instead</button>
-        <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} — biometric/PIN validation remains a prototype feature.</div>
+        <h1>Unlock FIDUNIO</h1>
+        ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with device</button>':""}
+        <label class="form-label" for="localUnlockPin">PIN</label>
+        <input class="text-input" id="localUnlockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" pattern="[0-9]*" placeholder="4–12 digit PIN">
+        <button class="${security.hasBiometric?"secondary":"primary"}" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>
+        ${unlockError?`<p class="warning-note">${esc(unlockError)}</p>`:""}
+        <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} • Local unlock keeps your Firebase session signed in.</div>
       </section>
     </main>`;
-  document.querySelector("#unlockBtn").onclick=()=>{state.unlocked=true;render()};
-  document.querySelector("#pinBtn").onclick=()=>{state.unlocked=true;render()};
+  const input=document.querySelector("#localUnlockPin");
+  const pinButton=document.querySelector("#localPinUnlockBtn");
+  const tryPin=async()=>{
+    pinButton.disabled=true;
+    pinButton.textContent="Checking…";
+    if(await verifyLocalPin(input.value)){unlockLocalApp();return;}
+    unlockError="Incorrect PIN.";
+    renderUnlock();
+    document.querySelector("#localUnlockPin")?.focus();
+  };
+  pinButton.onclick=tryPin;
+  input.onkeydown=e=>{if(e.key==="Enter")tryPin();};
+  const deviceButton=document.querySelector("#deviceUnlockBtn");
+  if(deviceButton)deviceButton.onclick=async()=>{
+    deviceButton.disabled=true;
+    deviceButton.textContent="Waiting for device…";
+    if(await verifyBiometric()){unlockLocalApp();return;}
+    unlockError="Device unlock was cancelled or unavailable. Use your PIN instead.";
+    renderUnlock();
+  };
+  setTimeout(()=>document.querySelector("#localUnlockPin")?.focus(),0);
 }
 
 function renderMessages(){
@@ -1544,8 +1613,32 @@ function renderSettings(){
     <main class="app-shell">
       ${shellTop("Settings",'<button class="back-btn" id="backBtn">‹</button>')}
       <section class="content settings">
-        <div class="card"><h2>Privacy & Access</h2>
-          ${settingRow("Biometric / passkey unlock","autoLock")}
+        <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
+          ${(()=>{const security=getLocalSecurityStatus();return `
+            <div class="row-main"><strong>Local app lock</strong><span>${security.hasPin?"PIN configured on this installation":"PIN not configured"}${security.hasBiometric?" • Device unlock enabled":""}</span></div>
+            <label class="form-label" for="lockTimeoutSelect">Lock after inactivity</label>
+            <select class="text-input" id="lockTimeoutSelect">${LOCK_TIMEOUTS.map(x=>`<option value="${x.value}" ${security.timeoutMs===x.value?"selected":""}>${esc(x.label)}</option>`).join("")}</select>
+            ${!security.hasPin?`
+              <label class="form-label" for="newLocalPin">New PIN</label>
+              <input class="text-input" id="newLocalPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="4–12 digits">
+              <label class="form-label" for="confirmLocalPin">Confirm PIN</label>
+              <input class="text-input" id="confirmLocalPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="Repeat PIN">
+              <button class="primary" id="setLocalPinBtn" style="margin-top:12px">Set PIN</button>
+            `:`
+              <label class="form-label" for="currentLocalPin">Current PIN</label>
+              <input class="text-input" id="currentLocalPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" pattern="[0-9]*" placeholder="Current PIN">
+              <label class="form-label" for="replacementLocalPin">New PIN</label>
+              <input class="text-input" id="replacementLocalPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="4–12 digits">
+              <label class="form-label" for="replacementLocalPin2">Confirm new PIN</label>
+              <input class="text-input" id="replacementLocalPin2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="Repeat new PIN">
+              <button class="secondary" id="changeLocalPinBtn" style="margin-top:12px">Change PIN</button>
+              <button class="secondary" id="${security.hasBiometric?"disableBiometricBtn":"enableBiometricBtn"}" style="margin-top:10px">${security.hasBiometric?"Disable Device Unlock":"Enable Device Unlock"}</button>
+              <button class="secondary" id="lockNowBtn" style="margin-top:10px">Lock Now</button>
+              <button class="danger-btn" id="removeLocalPinBtn" style="margin-top:10px">Remove Local PIN</button>
+            `}
+            <p class="small-note">The raw PIN is never stored. Device unlock uses WebAuthn/passkeys where the browser and device support a user-verifying platform authenticator.</p>
+            ${localSecurityMessage?`<p class="${localSecurityMessageIsError?"warning-note":"small-note"}">${esc(localSecurityMessage)}</p>`:""}
+          `})()}
           ${settingRow("Notification message previews","previews")}
         </div>
 
@@ -1656,6 +1749,44 @@ function renderSettings(){
     state.settings.textSize=btn.dataset.textSize;
     render();
   });
+
+  const timeoutSelect=document.querySelector("#lockTimeoutSelect");
+  if(timeoutSelect)timeoutSelect.onchange=()=>{
+    try{setLockTimeoutMs(Number(timeoutSelect.value));setLocalSecurityMessage("Inactivity lock updated.");renderSettings();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+  };
+  const setPinBtn=document.querySelector("#setLocalPinBtn");
+  if(setPinBtn)setPinBtn.onclick=async()=>{
+    const pin=document.querySelector("#newLocalPin").value,confirm=document.querySelector("#confirmLocalPin").value;
+    if(pin!==confirm){setLocalSecurityMessage("PIN entries do not match.",true);renderSettings();return;}
+    setPinBtn.disabled=true;setPinBtn.textContent="Setting…";
+    try{await setLocalPin(pin);setLocalSecurityMessage("Local PIN is set on this installation.");renderSettings();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+  };
+  const changePinBtn=document.querySelector("#changeLocalPinBtn");
+  if(changePinBtn)changePinBtn.onclick=async()=>{
+    const current=document.querySelector("#currentLocalPin").value,next=document.querySelector("#replacementLocalPin").value,confirm=document.querySelector("#replacementLocalPin2").value;
+    if(next!==confirm){setLocalSecurityMessage("New PIN entries do not match.",true);renderSettings();return;}
+    changePinBtn.disabled=true;changePinBtn.textContent="Changing…";
+    try{await changeLocalPin(current,next);setLocalSecurityMessage("Local PIN changed.");renderSettings();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+  };
+  const removePinBtn=document.querySelector("#removeLocalPinBtn");
+  if(removePinBtn)removePinBtn.onclick=async()=>{
+    const current=document.querySelector("#currentLocalPin").value;
+    try{await removeLocalPin(current);setLocalSecurityMessage("Local PIN and device unlock removed.");renderSettings();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+  };
+  const enableBiometricBtn=document.querySelector("#enableBiometricBtn");
+  if(enableBiometricBtn)enableBiometricBtn.onclick=async()=>{
+    enableBiometricBtn.disabled=true;enableBiometricBtn.textContent="Waiting for device…";
+    try{await enrollBiometric();setLocalSecurityMessage("Device unlock enabled.");renderSettings();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+  };
+  const disableBiometricBtn=document.querySelector("#disableBiometricBtn");
+  if(disableBiometricBtn)disableBiometricBtn.onclick=()=>{disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");renderSettings();};
+  const lockNowBtn=document.querySelector("#lockNowBtn");
+  if(lockNowBtn)lockNowBtn.onclick=()=>lockLocalApp("manual");
 
   const signInBtn=document.querySelector("#firebaseSignInBtn");
   if(signInBtn) signInBtn.onclick=async()=>{
