@@ -1,8 +1,7 @@
-/* FIDUNIO Settings layout/polish. Tablet landscape uses two independent
- * vertical columns so a tall Profile card never creates empty grid rows.
- * IMPORTANT: DOM placement is idempotent. Re-appending an already placed card
- * causes a MutationObserver/render loop on iPad Safari and can make form
- * controls appear untappable.
+/* FIDUNIO Settings layout/polish.
+ * Wide tablet/landscape uses one stable sidebar plus one content pane.
+ * Narrow/mobile keeps the established stacked Settings cards.
+ * DOM placement is idempotent to avoid Safari MutationObserver churn.
  */
 function copyText(text,button){
   const value=String(text||"").trim();if(!value)return;
@@ -18,29 +17,84 @@ function collapseTechnicalCard(card,title){
   toggle.onclick=()=>{const open=details.hidden;details.hidden=!open;copy.hidden=!open;toggle.textContent=`${open?"Hide":"Show"} ${title}`;toggle.setAttribute("aria-expanded",String(open));};
   copy.onclick=()=>copyText(details.innerText,copy);card.appendChild(toggle);card.appendChild(details);card.appendChild(copy);
 }
-function allCards(settings){return[...settings.querySelectorAll(":scope > .card, :scope > .fidunio-settings-columns > .fidunio-settings-column > .card")];}
-function cardByTitle(settings,title){return allCards(settings).find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}
-function ensureColumns(settings){
-  let host=settings.querySelector(":scope > #fidunioSettingsColumns");
-  if(!host){host=document.createElement("div");host.id="fidunioSettingsColumns";host.className="fidunio-settings-columns";host.innerHTML='<div class="fidunio-settings-column fidunio-settings-leftcol"></div><div class="fidunio-settings-column fidunio-settings-rightcol"></div>';settings.prepend(host);}
-  return{host,left:host.querySelector(".fidunio-settings-leftcol"),right:host.querySelector(".fidunio-settings-rightcol")};
+function allCards(settings){
+  return[...settings.querySelectorAll(":scope > .card, :scope > #fidunioSettingsShell .card")];
 }
+function cardByTitle(settings,title){return allCards(settings).find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}
 function placeIfNeeded(node,parent){if(node&&node.parentElement!==parent)parent.appendChild(node);}
+
+const GROUPS=[
+  {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Firebase Account"]},
+  {id:"privacy",label:"Privacy & Access",icon:"🔒",subtitle:"Local PIN, device unlock, inactivity lock, and device identity.",cards:["Privacy & Access","Device Identity"]},
+  {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users.",selectors:["#fidunioProfileCard"]},
+  {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, and expiration.",selectors:["#fidunioUserAdminCard"]},
+  {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations.",selectors:["#fidunioInvitationAdmin"]},
+  {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
+  {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
+];
+let activeGroup="profile";
+
+function ensureShell(settings){
+  let shell=settings.querySelector(":scope > #fidunioSettingsShell");
+  if(shell)return shell;
+  shell=document.createElement("div");shell.id="fidunioSettingsShell";
+  shell.innerHTML='<aside id="fidunioSettingsNav" aria-label="Settings sections"><h2>Settings</h2><div class="fidunio-settings-nav-list"></div></aside><div class="fidunio-settings-panels"></div>';
+  settings.prepend(shell);
+  return shell;
+}
+function ensurePanel(panels,group){
+  let panel=panels.querySelector(`#fidunioSettingsPanel-${group.id}`);
+  if(!panel){
+    panel=document.createElement("section");
+    panel.id=`fidunioSettingsPanel-${group.id}`;
+    panel.className="fidunio-settings-panel";
+    panel.dataset.group=group.id;
+    const title=document.createElement("h2");title.className="fidunio-settings-panel-title";title.textContent=group.label;
+    const subtitle=document.createElement("p");subtitle.className="fidunio-settings-panel-subtitle";subtitle.textContent=group.subtitle;
+    panel.append(title,subtitle);
+    panels.appendChild(panel);
+  }
+  return panel;
+}
+function updateSelection(shell){
+  shell.querySelectorAll(".fidunio-settings-nav-btn").forEach(btn=>{
+    const active=btn.dataset.group===activeGroup;
+    btn.classList.toggle("is-active",active);
+    btn.setAttribute("aria-current",active?"page":"false");
+  });
+  shell.querySelectorAll(".fidunio-settings-panel").forEach(panel=>panel.classList.toggle("is-active",panel.dataset.group===activeGroup));
+}
+function ensureNav(shell){
+  const list=shell.querySelector(".fidunio-settings-nav-list");
+  for(const group of GROUPS){
+    let btn=list.querySelector(`[data-group="${group.id}"]`);
+    if(!btn){
+      btn=document.createElement("button");btn.type="button";btn.className="fidunio-settings-nav-btn";btn.dataset.group=group.id;
+      btn.innerHTML=`<span class="fidunio-settings-nav-icon" aria-hidden="true">${group.icon}</span><span>${group.label}</span><span class="fidunio-settings-nav-arrow" aria-hidden="true">›</span>`;
+      btn.addEventListener("click",()=>{activeGroup=group.id;updateSelection(shell);shell.querySelector(`#fidunioSettingsPanel-${group.id}`)?.scrollIntoView({block:"start"});});
+      list.appendChild(btn);
+    }
+  }
+}
 function arrangeSettings(settings){
   const prototype=cardByTitle(settings,"Prototype connectivity");if(prototype)prototype.remove();
-  const {host,left,right}=ensureColumns(settings);
-  const firebase=cardByTitle(settings,"Firebase Account"),profile=settings.querySelector("#fidunioProfileCard"),userAdmin=settings.querySelector("#fidunioUserAdminCard");
-  const appearance=cardByTitle(settings,"Appearance"),text=cardByTitle(settings,"Text Size"),data=cardByTitle(settings,"Data"),device=cardByTitle(settings,"Device Identity"),privacy=cardByTitle(settings,"Privacy & Access"),invites=settings.querySelector("#fidunioInvitationAdmin");
-  /* Privacy & Access becomes substantially taller after a PIN is configured.
-   * Keep it in the left column with the account cards so tablet landscape stays
-   * visually balanced without measuring heights or repeatedly moving cards. */
-  [firebase,profile,userAdmin,privacy].filter(Boolean).forEach(node=>placeIfNeeded(node,left));
-  [appearance,text,data,device,invites].filter(Boolean).forEach(node=>placeIfNeeded(node,right));
-  const about=cardByTitle(settings,"About"),footer=settings.querySelector(":scope > .version-footer");
-  [...settings.querySelectorAll(":scope > .card")].filter(c=>c!==about).forEach(c=>placeIfNeeded(c,right));
-  if(footer&&footer.parentElement!==settings)settings.appendChild(footer);
-  if(about&&about.parentElement!==settings)settings.appendChild(about);
-  if(host!==settings.firstElementChild)settings.prepend(host);
+  const shell=ensureShell(settings),panels=shell.querySelector(".fidunio-settings-panels");
+  ensureNav(shell);
+  const assigned=new Set();
+  for(const group of GROUPS){
+    const panel=ensurePanel(panels,group);
+    const nodes=[];
+    for(const title of group.cards||[]){const card=cardByTitle(settings,title);if(card)nodes.push(card);}
+    for(const selector of group.selectors||[]){const card=settings.querySelector(selector);if(card)nodes.push(card);}
+    for(const node of nodes){assigned.add(node);placeIfNeeded(node,panel);}
+  }
+  /* Keep any future/unclassified Settings cards visible under General. */
+  const general=ensurePanel(panels,GROUPS[0]);
+  for(const card of allCards(settings)){if(!assigned.has(card))placeIfNeeded(card,general);}
+  const footer=settings.querySelector(":scope > .version-footer");
+  if(footer){footer.id="fidunioSettingsFooter";if(footer.parentElement!==settings)settings.appendChild(footer);}
+  if(shell!==settings.firstElementChild)settings.prepend(shell);
+  updateSelection(shell);
 }
 function polishSettings(){
   const settings=document.querySelector(".content.settings");if(!settings)return;
@@ -52,14 +106,11 @@ function polishSettings(){
   arrangeSettings(settings);
 }
 let queued=false;function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;polishSettings();});}
-/* Observe only the app root. Ignore mutations that occur entirely inside the
- * already-arranged Settings columns; those are normal live UI updates and do
- * not require another layout pass. This prevents needless iOS Safari repaints. */
 const appRoot=document.querySelector("#app")||document.body;
 const observer=new MutationObserver(records=>{
   const needsLayout=records.some(record=>{
     const target=record.target instanceof Element?record.target:record.target?.parentElement;
-    return !target?.closest?.("#fidunioSettingsColumns");
+    return !target?.closest?.("#fidunioSettingsShell");
   });
   if(needsLayout)schedule();
 });
