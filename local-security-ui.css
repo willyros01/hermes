@@ -1,21 +1,25 @@
-/* FIDUNIO local security UI hardening for iOS/iPadOS Safari. */
+/* FIDUNIO local security UI hardening for iOS/iPadOS Safari.
+ * High visibility is intentional: local-security controls must remain easy to
+ * locate at large text sizes and for users who need stronger contrast. */
 #localSecurityCard input.text-input,
 #localSecurityCard select.text-input,
 .unlock-card input.text-input{
   display:block;
   width:100%;
-  min-height:48px;
-  margin-top:6px;
+  min-height:52px;
+  margin-top:7px;
   position:relative;
   z-index:1;
   pointer-events:auto;
   -webkit-user-select:text;
   user-select:text;
   touch-action:manipulation;
-  background:var(--input);
-  color:var(--ink);
-  border:1px solid var(--line);
-  -webkit-text-fill-color:var(--ink);
+  background:#ffffff;
+  color:#10232c;
+  border:2px solid #52636d;
+  border-radius:8px;
+  -webkit-text-fill-color:#10232c;
+  caret-color:#10232c;
   opacity:1;
 }
 #localSecurityCard select.text-input{
@@ -26,8 +30,8 @@
 }
 #localSecurityCard input.text-input::placeholder,
 .unlock-card input.text-input::placeholder{
-  color:var(--muted);
-  -webkit-text-fill-color:var(--muted);
+  color:#52636d;
+  -webkit-text-fill-color:#52636d;
   opacity:1;
 }
 #localSecurityCard .form-label,
@@ -35,18 +39,25 @@
   display:block;
   margin-top:14px;
   color:var(--ink);
+  font-weight:600;
+}
+#localSecurityCard input.text-input:focus,
+#localSecurityCard select.text-input:focus,
+.unlock-card input.text-input:focus{
+  outline:3px solid currentColor;
+  outline-offset:2px;
 }
 html[data-theme="dark"] #localSecurityCard input.text-input,
 html[data-theme="dark"] #localSecurityCard select.text-input,
 html[data-theme="dark"] .unlock-card input.text-input{
-  background:#131c21;
-  color:#f2f6f8;
-  -webkit-text-fill-color:#f2f6f8;
-  border-color:#52636d;
-  caret-color:#f2f6f8;
+  background:#071116;
+  color:#ffffff;
+  -webkit-text-fill-color:#ffffff;
+  border-color:#aebfc8;
+  caret-color:#ffffff;
 }
 html[data-theme="dark"] #localSecurityCard input.text-input::placeholder,
 html[data-theme="dark"] .unlock-card input.text-input::placeholder{
-  color:#aab6bd;
-  -webkit-text-fill-color:#aab6bd;
+  color:#d0d9de;
+  -webkit-text-fill-color:#d0d9de;
 }
