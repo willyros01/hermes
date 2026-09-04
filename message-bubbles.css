@@ -1,7 +1,7 @@
-/* FIDUNIO responsive message-bubble accessibility foundation.
- * Presentation only: no messaging, E2EE, receipt or transport logic changes.
- * Large text grows downward; metadata gets its own line and never competes
- * horizontally with the message body. */
+/* FIDUNIO approved large-text message layout.
+ * Presentation only: no messaging, E2EE, receipt, Outbox or transport changes.
+ * iPhone is the critical accessibility target: use nearly all horizontal space,
+ * very large message text, and let bubbles grow vertically without limit. */
 .chat{
   gap:8px;
 }
@@ -10,10 +10,10 @@
 }
 .bubble{
   width:fit-content;
-  max-width:min(78%, 34rem);
+  max-width:min(92%, 38rem);
   min-width:0;
-  padding:9px 11px 7px;
-  border-radius:16px;
+  padding:10px 12px 8px;
+  border-radius:18px;
   overflow-wrap:anywhere;
   word-break:normal;
 }
@@ -26,35 +26,47 @@
 }
 .msg-meta{
   width:100%;
-  margin-top:5px;
+  margin-top:6px;
   display:flex;
   flex-wrap:wrap;
   align-items:center;
   justify-content:flex-end;
-  gap:4px 6px;
+  gap:4px 7px;
   line-height:1.25;
 }
 .sender-label{
-  max-width:min(78%, 34rem);
+  max-width:min(92%, 38rem);
   overflow-wrap:anywhere;
 }
-/* A+ / A++ deliberately narrow the effective line length. This follows the
- * WhatsApp-style accessibility behavior the user requested: large text wraps
- * sooner and the bubble grows vertically rather than stretching across the
- * screen. */
+
+/* Large accessibility settings keep the same full-width philosophy. */
 html.text-aplus .bubble{
-  max-width:min(76%, 31rem);
-  padding:10px 12px 8px;
-}
-html.text-aplusplus .bubble{
-  max-width:min(72%, 27rem);
+  max-width:min(94%, 38rem);
   padding:11px 13px 9px;
 }
-html.text-aplusplus .msg-meta{
-  margin-top:7px;
+html.text-aplusplus .bubble{
+  max-width:min(96%, 40rem);
+  padding:12px 14px 10px;
 }
-/* Reserved structure for reply/quote blocks. When reply data is wired later,
- * it stacks above the new message instead of sharing a horizontal row. */
+html.text-aplusplus .msg-text{
+  font-size:32px;
+  line-height:1.22;
+  letter-spacing:-.015em;
+}
+html.text-aplusplus .msg-meta{
+  margin-top:8px;
+  font-size:18px;
+  line-height:1.2;
+}
+html.text-aplusplus textarea{
+  font-size:27px;
+  line-height:1.25;
+}
+html.text-aplusplus .quick-chip{
+  font-size:19px;
+}
+
+/* Reply/quote content stacks above the new message. */
 .reply-quote,
 .quoted-message,
 .reply-preview{
@@ -62,23 +74,59 @@ html.text-aplusplus .msg-meta{
   width:100%;
   max-width:100%;
   margin:0 0 8px;
-  padding:8px 10px;
+  padding:9px 11px;
   border-inline-start:4px solid var(--accent);
-  border-radius:10px;
+  border-radius:11px;
   background:var(--accent-soft);
   overflow-wrap:anywhere;
 }
-/* Phone/narrow screens get a comfortable readable line length. */
-@media (max-width:599px){
-  .bubble{max-width:84%}
-  html.text-aplus .bubble{max-width:82%}
-  html.text-aplusplus .bubble{max-width:80%}
-  .sender-label{max-width:84%}
+
+/* Picture-message foundation matching the approved mockup. Actual attachment
+ * sending remains separate from this presentation layer. */
+.message-image,
+.msg-image,
+.bubble img.message-media{
+  display:block;
+  width:100%;
+  max-width:100%;
+  height:auto;
+  border-radius:16px;
+  object-fit:cover;
 }
-/* Wide two-pane chat should not turn bubbles into tablet-width banners. */
+.bubble.media-bubble,
+.bubble.picture-bubble{
+  width:min(96%, 40rem);
+  max-width:96%;
+  padding:5px;
+}
+.bubble.media-bubble .msg-meta,
+.bubble.picture-bubble .msg-meta{
+  padding:0 7px 3px;
+}
+
+/* iPhone/narrow viewport: deliberately consume nearly the whole chat width. */
+@media (max-width:599px){
+  .chat{
+    padding-left:7px;
+    padding-right:7px;
+  }
+  .bubble{max-width:94%}
+  html.text-aplus .bubble{max-width:96%}
+  html.text-aplusplus .bubble{max-width:98%}
+  .sender-label{max-width:94%;margin-left:5px}
+  html.text-aplusplus .msg-text{font-size:34px;line-height:1.2}
+  html.text-aplusplus .msg-meta{font-size:19px}
+  .bubble.media-bubble,
+  .bubble.picture-bubble{width:98%;max-width:98%}
+}
+
+/* On a two-pane tablet, keep bubbles readable instead of stretching across
+ * the entire conversation pane. */
 @media (min-width:900px){
-  .bubble{max-width:min(70%, 34rem)}
-  html.text-aplus .bubble{max-width:min(68%, 31rem)}
-  html.text-aplusplus .bubble{max-width:min(64%, 27rem)}
-  .sender-label{max-width:min(70%, 34rem)}
+  .bubble{max-width:min(82%, 42rem)}
+  html.text-aplus .bubble{max-width:min(84%, 42rem)}
+  html.text-aplusplus .bubble{max-width:min(86%, 44rem)}
+  .sender-label{max-width:min(82%, 42rem)}
+  .bubble.media-bubble,
+  .bubble.picture-bubble{width:min(86%, 44rem);max-width:min(86%, 44rem)}
 }
