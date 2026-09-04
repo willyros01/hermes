@@ -1,0 +1,84 @@
+/* FIDUNIO responsive message-bubble accessibility foundation.
+ * Presentation only: no messaging, E2EE, receipt or transport logic changes.
+ * Large text grows downward; metadata gets its own line and never competes
+ * horizontally with the message body. */
+.chat{
+  gap:8px;
+}
+.msg-row{
+  width:100%;
+}
+.bubble{
+  width:fit-content;
+  max-width:min(78%, 34rem);
+  min-width:0;
+  padding:9px 11px 7px;
+  border-radius:16px;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.msg-text{
+  display:block;
+  min-width:0;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.msg-meta{
+  width:100%;
+  margin-top:5px;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px 6px;
+  line-height:1.25;
+}
+.sender-label{
+  max-width:min(78%, 34rem);
+  overflow-wrap:anywhere;
+}
+/* A+ / A++ deliberately narrow the effective line length. This follows the
+ * WhatsApp-style accessibility behavior the user requested: large text wraps
+ * sooner and the bubble grows vertically rather than stretching across the
+ * screen. */
+html.text-aplus .bubble{
+  max-width:min(76%, 31rem);
+  padding:10px 12px 8px;
+}
+html.text-aplusplus .bubble{
+  max-width:min(72%, 27rem);
+  padding:11px 13px 9px;
+}
+html.text-aplusplus .msg-meta{
+  margin-top:7px;
+}
+/* Reserved structure for reply/quote blocks. When reply data is wired later,
+ * it stacks above the new message instead of sharing a horizontal row. */
+.reply-quote,
+.quoted-message,
+.reply-preview{
+  display:block;
+  width:100%;
+  max-width:100%;
+  margin:0 0 8px;
+  padding:8px 10px;
+  border-inline-start:4px solid var(--accent);
+  border-radius:10px;
+  background:var(--accent-soft);
+  overflow-wrap:anywhere;
+}
+/* Phone/narrow screens get a comfortable readable line length. */
+@media (max-width:599px){
+  .bubble{max-width:84%}
+  html.text-aplus .bubble{max-width:82%}
+  html.text-aplusplus .bubble{max-width:80%}
+  .sender-label{max-width:84%}
+}
+/* Wide two-pane chat should not turn bubbles into tablet-width banners. */
+@media (min-width:900px){
+  .bubble{max-width:min(70%, 34rem)}
+  html.text-aplus .bubble{max-width:min(68%, 31rem)}
+  html.text-aplusplus .bubble{max-width:min(64%, 27rem)}
+  .sender-label{max-width:min(70%, 34rem)}
+}
