@@ -3,8 +3,7 @@ CUMULATIVE PROJECT MEMORY
 Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
 Current validated development messaging baseline: FIDUNIO 0.9.0.4
 Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
-Current local rollback/checkpoint package: FIDUNIO 0.9.4.6 — hermes-ux-0.9.4.6.zip
-Current live PIN/accessibility/settings/New Message test build on main: FIDUNIO 0.9.4.8
+Current validated stabilization baseline on main: FIDUNIO 0.9.4.11
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
@@ -18,7 +17,6 @@ LOCKED CONVENTIONS
 - Preserve iPhone single-pane and adaptive iPad behavior; responsive by viewport width.
 - Accessibility is a core product requirement: large text, strong control/field contrast, clear focus states, and high visibility on iPhone/iPad/Fire. Apply this CONSISTENTLY THROUGHOUT THE WHOLE APP, not only Privacy & Access or PIN screens.
 - UI development rule from user: once a major screen design is established, preserve that structure and make incremental/detail changes rather than repeatedly redesigning the whole screen, unless the user explicitly approves a new major design.
-- Normal user-facing identity selection should use DISPLAY NAME. Firebase/FIDUNIO UIDs are internal identifiers and should stay hidden unless needed for diagnostics/admin tooling.
 
 STABLE BASELINES
 - 0.6.5 local-first/offline PASS; 0.7.3 direct E2EE transport/reconnect PASS; 0.8.0 device identity PASS; 0.8.1 contact key verification PASS.
@@ -86,24 +84,7 @@ PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
 - 0.9.4.6 changes only narrow/mobile panel DOM order so Profile is first. Wide sidebar navigation order stays General, Privacy & Access, Profile, User Administration, Invitations, Data, About.
 - Existing cards, IDs, handlers, PIN logic, profile/admin/invitation behavior remain unchanged; app.js, firebase.js, local-security.js, messaging/E2EE/transport were not modified for this ordering change.
 - Accessibility/high-contrast form styles remain in force.
-
-0.9.4.6 CHECKPOINT
-- User explicitly designated 0.9.4.6 as a good rollback point before cleaning the New Message screen.
-- Checkpoint ZIP created: hermes-ux-0.9.4.6.zip.
-- Verified ZIP contains exactly one hermes-memory.txt and exactly one hermes-setup.txt.
-- Verified firebase-config.js and config-firestore.js are absent everywhere in the ZIP.
-- Verified temporary .github packaging workflow is absent from the ZIP and removed from main after packaging.
-- ZIP size: 1,247,337 bytes. SHA-256: e8752fb45ff346f8e6fa9d8f4a02ba25f6b4109522b7d6ca965d850c450b9390.
-
-0.9.4.7 / 0.9.4.8 NEW MESSAGE CLEANUP + DISPLAY-NAME PICKER
-- 0.9.4.7 removed developer/test terminology from New Message without changing transport; New Group wording no longer overclaims secure group messaging.
-- User correctly questioned why Recipient FIDUNIO ID was exposed and requested recipient selection by display name instead.
-- 0.9.4.8 hides the UID field and existing Start Conversation button from normal UI. new-message-polish.js loads active FIDUNIO users with existing firebase.js listCloudUsers(), displays a searchable list by display name, and starts a conversation when the user taps a person.
-- The selected person's UID is inserted into the existing hidden #peerUid field and the existing #cloudDirectBtn handler is invoked. This preserves the existing single direct-conversation creation path and avoids duplicating messaging/Firestore logic.
-- The current signed-in user and inactive users are already filtered by listCloudUsers(). Search matches display names. UID remains internal and invisible to normal users.
-- User-facing heading becomes “Choose a Person”; helper copy becomes “Select a FIDUNIO user by display name.” One-to-one E2EE note remains concise.
-- app.js direct-message creation logic, firebase.js startDirectConversation(), local-security.js, E2EE, receipts, Outbox and transport were not changed by this picker implementation.
-- NEXT TEST: refresh/reopen iPad or iPhone, confirm FIDUNIO 0.9.4.8, open New Message, verify display-name list/search appears, tap a known user and confirm the conversation opens normally.
+- NEXT TEST: refresh iPhone, confirm FIDUNIO 0.9.4.6, open Settings and confirm Profile is first/top. Then continue iPad sidebar functional checks and remaining biometric/WebAuthn acceptance.
 
 INVITATION / QUICK START DETAILS
 - Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
@@ -128,7 +109,48 @@ IMPORTANT TECHNICAL DETAILS
 - E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
 - Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
 
-SAFEKEEPING CHECKPOINTS
-- FIDUNIO 0.9.3.7 remains the protected pre-PIN safekeeping baseline; ZIP hermes-ux-0.9.3.7.zip.
-- FIDUNIO 0.9.4.6 is the current PIN/accessibility/settings rollback checkpoint; ZIP hermes-ux-0.9.4.6.zip.
+SAFEKEEPING CHECKPOINT
+- FIDUNIO 0.9.3.7 remains the protected pre-PIN safekeeping baseline.
+- FIDUNIO 0.9.4.6 remains the earlier PIN/accessibility/settings checkpoint.
+- FIDUNIO 0.9.4.11 is the new validated stabilization baseline and restart point.
 - Exclude firebase-config.js and config-firestore.js from all ZIPs.
+
+0.9.4.7 THROUGH 0.9.4.10 — VALIDATED WORK RETAINED
+- 0.9.4.7 removed developer/test terminology from New Message without changing transport.
+- 0.9.4.8 replaced normal UID entry with a display-name recipient picker. The picker resolves the selected user to the existing hidden UID field and invokes the existing direct-conversation action, preserving the single established messaging path.
+- 0.9.4.9/0.9.4.10 established the approved WhatsApp-style responsive message-bubble/accessibility layout. iPhone uses near-full chat width, large text, vertical growth, wrapping, and stacked metadata; iPad/tablet keeps readable capped widths.
+- These changes did not alter E2EE, receipts, Outbox, Firebase transport, or local-security logic.
+
+0.9.4.11 — CLEAN STABILIZATION RESTART
+- The first invite/install-guidance experiment introduced regressions after 0.9.4.10, including Settings instability. Multiple later attempts through 0.9.4.20 were rejected as non-functional and must not be used as a development base.
+- Main was deliberately reset to the exact approved 0.9.4.10 foundation and development restarted from there.
+- 0.9.4.11 contains only two post-0.9.4.10 fixes: (1) stronger/prominent Back-button visibility and (2) iPhone conversation-list horizontal overflow/wrap containment.
+- User re-tested 0.9.4.11 and confirmed everything works as before, including the approved iPad two-panel Settings behavior, prominent Back button, and iPhone wrap/overflow fix.
+- 0.9.4.11 is therefore the current protected stabilization baseline. Do not reintroduce code from the rejected 0.9.4.12–0.9.4.20 sequence by adaptation or cherry-picking. Rebuild the invite-install feature from first principles after the higher-priority account-isolation issue is resolved.
+
+PROTECTED 0.9.4.11 UI/FUNCTIONAL BEHAVIOR
+- Settings wide/tablet design: left navigation sidebar plus one selected right content pane at 900px+; narrower views use stacked cards.
+- Settings navigation/order and handlers from the stable 0.9.4.6/0.9.4.10 implementation are protected.
+- iPhone conversation list must remain horizontally contained; long previews/ciphertext/URLs must not widen the Messages screen.
+- Back controls must remain visually prominent with a 44px target and strong contrast.
+- Preserve the approved message-bubble layout, New Message display-name picker, PIN/local unlock architecture, iPad live Sent→Read behavior, messaging/E2EE, receipts, Outbox and per-device fan-out.
+
+CURRENT EXECUTION PLAN — ONE ISSUE/FEATURE AT A TIME
+1. Freeze and preserve 0.9.4.11 as the clean rollback/restart checkpoint.
+2. Fire HD 8 account isolation: audit and fix account switching/local IndexedDB state, history, Outbox, selected conversation and cryptographic/local-key ownership so one user's local state cannot appear under another account.
+3. Re-test account A -> sign out -> account B and reverse on the same Fire browser/device; no local cross-account data may appear.
+4. Design invite-install from scratch. Do not reuse/adapt the rejected implementation. Installation guidance must be independent of Settings DOM and must not add Settings MutationObserver/layout behavior.
+5. Implement the install module with one narrow trigger and safe no-op/fallback behavior where native install prompting is unavailable.
+6. Test install guidance manually in isolation before connecting it to invited-account creation.
+7. Only after the isolated test passes, connect it to successful invited-account creation and test iPhone/iPad, Mac browsers, then Fire.
+8. Re-test all protected areas after install integration: Settings, Settings buttons, iPhone wrap, Back button, live Sent→Read, New Message, PIN/lock behavior, messaging and account switching.
+9. Keep the Web Clip/configuration-profile experiment separate from the rebuilt install-guidance feature.
+10. Mac Settings/PWA verification follows once the above passes.
+
+RELEASE ZIP / LOCAL SAFEKEEPING RULES
+- Release ZIP naming remains hermes-ux-X.Y.Z.zip.
+- Package files flat at the ZIP root; do not package development/test subfolders or temporary packaging workflows.
+- Include exactly one cumulative hermes-memory.txt and exactly one reusable hermes-setup.txt.
+- Never include firebase-config.js or config-firestore.js; preserve configured GitHub copies untouched.
+- version.js remains the single authoritative runtime version source.
+- For checkpoint ZIPs, verify exclusions and file placement, record ZIP size and SHA-256 in hermes-memory.txt after packaging.
