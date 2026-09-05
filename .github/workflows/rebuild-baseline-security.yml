@@ -40,6 +40,8 @@ jobs:
         run: npm run test:recovery-firestore
       - name: Central Firebase E2EE adapter
         run: npm run test:firebase-e2ee-adapter
+      - name: Account E2EE auth lifecycle
+        run: npm run test:e2ee-account-lifecycle
       - name: Cloud Functions recovery scaffold
         run: npm run test:functions-scaffold
       - name: Runtime transform anchor gate
