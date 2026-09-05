@@ -2,7 +2,7 @@
 // Run ONLY with Firebase Local Emulator Suite. Never points at production.
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, writeBatch, serverTimestamp } from "firebase/firestore";
-import stagedRules from "./firestore-e2ee-v1-recovery-fields-candidate.mjs";
+import stagedRules from "./firestore-e2ee-v1-schema-tightening-candidate.mjs";
 
 const PROJECT_ID="demo-fidunio-e2ee-rules";
 const env=await initializeTestEnvironment({projectId:PROJECT_ID,firestore:{rules:stagedRules}});
@@ -13,9 +13,9 @@ const results=[];
 async function test(name,fn){try{await fn();results.push([name,true]);console.log("PASS",name);}catch(e){results.push([name,false]);console.error("FAIL",name,e?.message||e);}}
 const keyA="test-key-ownerA-0001",keyB="test-key-ownerB-0001";
 const normalWrapper=()=>({version:1,ciphertext:"AAAAAAAAAAAAAAAAAAAAAA",salt:"AAAAAAAAAAAAAAAAAAAAAA",iv:"AAAAAAAAAAAAAAAA",kdf:"PBKDF2-HMAC-SHA256",iterations:600000,wrappingAlgorithm:"AES-256-GCM"});
-const recoveryWrapper=()=>({version:1,ciphertext:"AAAAAAAAAAAAAAAAAAAAAA",iv:"AAAAAAAAAAAAAAAA",wrappedRecoveryKey:"server-wrapped-ruk-test",wrappingAlgorithm:"AES-256-GCM",recoveryAuthorityVersion:1,recoveryKeyIv:"AAAAAAAAAAAAAAAA",recoveryKeyWrappingAlgorithm:"HMAC-SHA256+A256GCM",metadata:{version:1}});
+const recoveryWrapper=()=>({version:1,ciphertext:"AAAAAAAAAAAAAAAAAAAAAA",iv:"AAAAAAAAAAAAAAAA",wrappedRecoveryKey:"server-wrapped-ruk-test",wrappingAlgorithm:"AES-256-GCM",recoveryAuthorityVersion:1,recoveryKeyIv:"AAAAAAAAAAAAAAAA",recoveryKeyWrappingAlgorithm:"HMAC-SHA256+A256GCM"});
 const privateIdentity=(keyId=keyA)=>({schemaVersion:1,identityVersion:1,keyId,keyAlgorithm:"ECDH-P256",normalWrapper:normalWrapper(),recoveryWrapper:recoveryWrapper(),state:"ACTIVE",revision:1,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-const publicIdentity=(uid,keyId=keyA)=>({uid,schemaVersion:1,identityVersion:1,keyId,keyAlgorithm:"ECDH-P256",publicJwk:{kty:"EC",crv:"P-256",x:"x-test",y:"y-test",ext:true,key_ops:[]},state:"ACTIVE",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+const publicIdentity=(uid,keyId=keyA)=>({uid,schemaVersion:1,identityVersion:1,keyId,keyAlgorithm:"ECDH-P256",publicJwk:{kty:"EC",crv:"P-256",x:"x-test",y:"y-test"},state:"ACTIVE",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
 async function seed(){await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();await setDoc(doc(db,"users",A),{displayName:"Owner A",active:true,status:"active",systemRole:"user"});await setDoc(doc(db,"users",B),{displayName:"Owner B",active:true,status:"active",systemRole:"user"});await setDoc(doc(db,"users",DISABLED),{displayName:"Disabled",active:false,status:"suspended",systemRole:"user"});await setDoc(doc(db,"invitations","public-test"),{status:"pending",role:"user",invitedByUid:A,createdAt:new Date(),expiresAt:new Date(Date.now()+86400000)});});}
 await env.clearFirestore();await seed();
 
@@ -62,5 +62,9 @@ await test("37 regression direct conversation create still allowed",()=>assertSu
 await test("38 regression direct message create still allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-regression","messages","m1"),{senderUid:A,state:"sent",text:"regression",createdAt:serverTimestamp()})));
 await test("39 regression legacy device create still allowed",()=>assertSucceeds(setDoc(doc(dbA,"users",A,"devices","legacy-device"),{uid:A,deviceId:"legacy-device",e2eeVersion:1,publicJwk:{kty:"EC",crv:"P-256",x:"x",y:"y"},fingerprint:"test"})));
 await test("40 regression group create still allowed",()=>assertSucceeds(setDoc(doc(dbA,"groups","group-regression"),{type:"group",name:"Regression Group",ownerUid:A,createdByUid:A,memberUids:[A,B],adminUids:[A],historyPolicy:"fromJoin",groupVersion:1,keyEpoch:0,createdAt:serverTimestamp(),updatedAt:serverTimestamp()})));
+
+await env.clearFirestore();await seed();
+await test("41 recovery wrapper generic metadata rejected",()=>assertFails(setDoc(doc(dbB,"users",B,"e2ee","identity"),{...privateIdentity(keyB),recoveryWrapper:{...recoveryWrapper(),metadata:{unexpected:true}}})));
+await test("42 public JWK ext/key_ops rejected",()=>assertFails(setDoc(doc(dbB,"e2eePublicKeys",B),{...publicIdentity(B,keyB),publicJwk:{...publicIdentity(B,keyB).publicJwk,ext:true,key_ops:[]}})));
 
 const failed=results.filter(([,ok])=>!ok);console.log(`\n${results.length-failed.length}/${results.length} assertions passed.`);await env.cleanup();if(failed.length)process.exitCode=1;
