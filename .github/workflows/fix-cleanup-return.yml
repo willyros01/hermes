@@ -1,0 +1,34 @@
+name: Fix controlled cleanup return
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-cleanup-return.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('firebase.js')
+          s=p.read_text()
+          old='return{deactivated:changed,keptDeviceId};'
+          new='return{deactivated:changed,keptDeviceId:keepDeviceId};'
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+          p=Path('version.js');s=p.read_text();s=s.replace('version: "0.9.5.8"','version: "0.9.5.9"');p.write_text(s)
+          p=Path('hermes-memory.txt');s=p.read_text();note='- 0.9.5.8 cleanup inspection correctly protected device 459975be-e986-4dc4-8fad-8f47630933c1 and found 7 stale active devices plus fidunio-account-vault-v3. First execution deactivated the 7 stale cloud devices, then stopped on a return-value typo (`keptDeviceId` vs `keepDeviceId`) before local test-data/vault cleanup ran. 0.9.5.9 fixes only that return typo; rerun is idempotent and should report 0 remaining stale active devices before finishing local cleanup.\n'
+          if note not in s:s+= '\n'+note
+          p.write_text(s)
+          PY
+          grep -q 'keptDeviceId:keepDeviceId' firebase.js
+          grep -q 'version: "0.9.5.9"' version.js
+          git diff --check
+          git config user.name 'willyros01'
+          git config user.email 'willyros01@gmail.com'
+          git add firebase.js version.js hermes-memory.txt
+          git commit -m 'Fix controlled cleanup return variable'
+          git push
