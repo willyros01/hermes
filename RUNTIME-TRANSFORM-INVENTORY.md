@@ -44,7 +44,21 @@ On authenticated UID, `app.js` calls `bindAuthenticatedAccountE2EE(uid)`, which 
 
 This bounded step deliberately does **not** enroll a missing identity, unlock a locked identity, replace legacy direct-message transport, or deploy anything to Firebase. Missing durable identity remains `EMPTY`; an existing durable identity remains `LOCKED` until a reviewed password + exact six-digit PIN lifecycle is wired. Recovery enrollment also remains fail-closed until the reviewed Firebase/Google recovery boundary is live.
 
-The one-shot materializer and its workflow were removed immediately after materialization; they are not runtime architecture.
+The one-shot materializer and its workflow were removed immediately after materialization. GitHub run `33981660852` showed `action_required` only because the PR workflow was triggered by the Actions-bot materializer and created zero jobs. A normal user-authored follow-up run proved the repository security gate green. Protected checkpoint `checkpoint-rebuild-account-e2ee-auth-binding` points to `251679cd9240e45f335536fed9bed5bc43e76157`.
+
+### Account-authoritative direct-message crypto/rules/service — VALIDATED ISOLATED CANDIDATE
+The rebuild branch now contains a tested account-to-account direct-message replacement that is deliberately **not wired into normal runtime transport yet**:
+
+- `e2ee-account-message-crypto.js` — ECDH P-256 + HKDF-SHA-256 + AES-256-GCM account-message crypto, version `e2ee:3`;
+- `ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md` — exact format and migration constraints;
+- `firestore.rules` — exact repository candidate acceptance for account-message rows while retaining legacy plaintext/e2ee:1/e2ee:2 compatibility;
+- `firestore-account-message-v3.rules.test.mjs` — dedicated emulator-only account-message rule matrix;
+- `e2ee-account-message-service.js` — fail-closed service that uses only a READY durable account runtime identity plus the peer authoritative public account identity;
+- crypto/rules/service tests are part of `Rebuild Baseline Security Gate`.
+
+Exact crypto envelope fields are `e2ee,kdfVersion,senderKeyId,recipientKeyId,ciphertext,iv`. Device ID and per-device envelopes are absent. The exact Firestore v3 message row must keep plaintext `text` empty and bind sender/recipient keyIds to authoritative `e2eePublicKeys/{uid}` records. A dedicated test exposed and then closed a cross-format loophole where a mixed E2EE row could be accepted by the older plaintext clause; plaintext rows now explicitly require no `e2ee` field.
+
+The full expanded security gate passed at commit `ca9222bdb7171ae60de5b2b9c08bf5b9327f52c9`, including the original 42 account-E2EE rules matrix, the dedicated account-message rules matrix, account-message crypto and fail-closed service, all recovery tests, Functions scaffold, transform anchors, and runtime authority. Protected checkpoint: `checkpoint-rebuild-account-dm-v3-crypto-rules`.
 
 ## Transforms still present in `service-worker.js`
 
@@ -53,35 +67,36 @@ Only legacy/per-device E2EE compatibility transforms remain.
 ### 1. Per-device E2EE v2 helper functions — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
 Injects `deriveDeviceEnvelopeKey()`, `encryptDeviceEnvelope()`, `buildDeviceEnvelopes()`, and `decryptDeviceEnvelope()` based on per-installation device identity.
 
-**Treatment:** do not materialize as target architecture. Keep only until account-authoritative send/receive plus deliberate legacy migration replaces it.
+**Treatment:** do not materialize as target architecture. Keep until account-authoritative send/receive is actually reachable with READY account identities and deliberate legacy migration is validated.
 
 ### 2. E2EE v2 receive/decrypt branch — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
 Adds `e2ee===2` per-device envelope decrypt while preserving legacy `e2ee:1` readability.
 
-**Treatment:** keep until account-authoritative decrypt/migration is implemented.
+**Treatment:** keep until account-authoritative receive/migration is implemented and target-device validated.
 
 ### 3. Direct-send trust-gate change — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
 Changes the older account-key trust behavior for the per-device transformed runtime.
 
-**Treatment:** do not copy forward automatically; account-authoritative verification policy must own the target behavior.
+**Treatment:** do not copy forward automatically; account-authoritative verification policy owns the target behavior.
 
 ### 4. Outbox cloud-send conversion to per-device fan-out — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
 Converts cloud send to per-device `e2ee:2` fan-out.
 
-**Treatment:** preserve only as compatibility until account-authoritative encryption/send/outbox replaces it.
+**Treatment:** preserve until account-authoritative encryption/send/outbox is reachable and validated with stable message IDs and reconnect behavior.
 
-## Current consolidation order
+## Current boundary and next ordered work
 
 1. **COMPLETE:** dead one-off cleanup and security/recovery checkpoint.
 2. **COMPLETE:** empty Messages state and explicit New Message owner.
-3. **COMPLETE:** all non-cryptographic group service-worker transforms materialized into raw `app.js`; group send remains fail-closed.
+3. **COMPLETE:** all non-cryptographic group service-worker transforms materialized; group send remains fail-closed.
 4. **COMPLETE:** peer-name/main-screen observer overlays retired; Sign Out and display names are explicit projections.
-5. **COMPLETE:** Settings lifecycle bridge retired and all remaining non-central Firebase SDK ownership consolidated into `firebase.js`.
-6. **COMPLETE (LOOKUP/RESET ONLY):** validated account-E2EE identity lifecycle is bound to Firebase auth for serialized lookup and sign-out invalidation; direct-message transport is unchanged.
-7. **CURRENT:** design and wire the explicit normal account-E2EE enrollment/unlock readiness lifecycle without silently creating/replacing identity and without weakening the recovery fail-closed boundary.
-8. Replace per-device send/decrypt/fan-out transforms with account-authoritative messaging plus explicit legacy migration handling.
-9. Confirm no semantic source transform remains and reduce service worker to cache/offline only.
-10. Revalidate iPhone/iPad, receipts, Settings, offline reconnect, account switching, reinstall/recovery.
+5. **COMPLETE:** Settings lifecycle bridge retired and all non-central Firebase SDK ownership consolidated into `firebase.js`.
+6. **COMPLETE (LOOKUP/RESET):** validated account-E2EE lifecycle is bound to Firebase auth for serialized lookup and sign-out invalidation.
+7. **COMPLETE (ISOLATED PRE-HANDOFF):** account-authoritative direct-message v3 crypto, exact repository rules, and fail-closed service are validated and checkpointed; normal runtime transport is unchanged.
+8. **BLOCKED UNTIL FIREBASE/GOOGLE HANDOFF:** deploy/verify the already-reviewed account-E2EE Firestore rules and recovery enrollment boundary so a real authenticated account can safely reach durable identity `READY` without silent replacement. Normal enrollment requires the recovery service because creation atomically establishes both normal and recovery wrappers.
+9. After the live-project boundary is proven, wire normal enrollment/unlock readiness explicitly into auth/PIN lifecycle and then migrate send/receive/Outbox to account v3 in bounded increments while retaining explicit legacy readability.
+10. Only after account-authoritative send/receive is proven remove matching per-device transforms and reduce service worker to cache/offline only.
+11. Finish Firestore-authoritative encrypted history + UID-scoped rebuildable cache + serialized Outbox and revalidate iPhone/iPad/PWA receipts/offline/Settings/account switching/reinstall/recovery.
 
 ## Rule
 
