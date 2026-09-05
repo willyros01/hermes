@@ -27,7 +27,10 @@ This branch was created from `main` at commit `246c524abc78404d9bc744b272ce08244
 - `account-storage.js`
 - `settings-lifecycle.js`
 - `settings-lifecycle-bridge.js`
-- current Settings/profile/admin/invite modules actually imported by the validated runtime
+- `new-message-polish.js` — LIVE today; bootstrap imports it. Temporary display-name recipient overlay that should ultimately be materialized into the New Message owner.
+- `profile-sync.js` — LIVE today; bootstrap imports it. Read-only peer display-name synchronization.
+- `main-screen-polish.js` — LIVE today; bootstrap imports it. Temporary sign-out/display-name overlay and broad observer; behavior must be materialized before removal.
+- `quick-start.html` — LIVE dependency of Settings invitation sharing; keep.
 - current responsive/back-button/message-bubble styling
 
 ### New account-authoritative E2EE foundation
@@ -37,7 +40,7 @@ This branch was created from `main` at commit `246c524abc78404d9bc744b272ce08244
 - `e2ee-account-firebase-adapter.js` and CI test
 - recovery server crypto/session/callable/admin-adapter modules and tests
 - staged/exact Firestore E2EE rules harness and CI workflows
-- production `firestore.rules` until an exact reviewed merge is intentionally made
+- `firestore.rules` exact candidate source; repository validation does not imply Firebase production deployment
 
 ### Binding architecture/security documentation
 - `hermes-memory.txt`
@@ -54,9 +57,9 @@ This branch was created from `main` at commit `246c524abc78404d9bc744b272ce08244
 - `BUG-LIST.md`
 - `E2EE-IDENTITY-LIFECYCLE.md` as migration/history context
 
-## Confirmed legacy/development artifacts that do not belong in the rebuild baseline
+## Confirmed legacy/development artifacts removed from this rebuild branch
 
-These files are not part of the live bootstrap path and are historical one-off cleanup/diagnostic/test harnesses. They remain recoverable from `main` and Git history, so they can be removed from this rebuild branch:
+These files were not part of the live bootstrap path or were superseded by a validated owner. They remain recoverable from `main` and Git history.
 
 - `baseline-cleanup.html`
 - `baseline-cleanup.js`
@@ -71,7 +74,10 @@ These files are not part of the live bootstrap path and are historical one-off c
 - `e2ee-diagnostics.html`
 - `e2ee-diagnostics.js`
 - `.github/workflows/fix-cleanup-return.yml`
-- `auth-ui.js` — superseded by the validated `auth-ui-clean.js` path and not imported by the current bootstrap
+- `auth-ui.js` — superseded by validated `auth-ui-clean.js`
+- `admin-ui.js` — superseded by `settings-lifecycle.js`; no current runtime import
+- `invite-modal.js` — invitation behavior is now owned by `settings-lifecycle.js`; no current runtime import
+- `settings-polish.js` — superseded by `settings-lifecycle.js`; its observer/layout repair path is not imported
 - `test-0.9.0/` — historical snapshot, not a production runtime dependency
 
 ## Retain for now pending dependency removal
@@ -83,8 +89,25 @@ The following are old architecture, but cannot be deleted blindly because valida
 - prototype cleanup code in `bootstrap.js`
 - hard-coded prototype state in `app.js`
 - legacy device Firestore rules
+- `new-message-polish.js`, `profile-sync.js`, `main-screen-polish.js` until their behavior is moved into explicit owners
+- `settings-lifecycle-bridge.js` until `app.js` exposes an explicit Settings post-render hook
 
-These are migration material, not the target architecture.
+These are migration/compatibility material, not the target architecture.
+
+## Rebuild validation
+
+The branch has its own non-deploying workflow:
+`.github/workflows/rebuild-baseline-security.yml`
+
+It runs on this rebuild branch and on pull requests to `main`, and executes:
+- Firestore E2EE emulator gate
+- recovery server crypto tests
+- recovery session-policy tests
+- recovery callable-core tests
+- recovery Firestore admin-adapter tests
+- central Firebase E2EE adapter tests
+
+This workflow has read-only repository permissions and performs no Firebase production deployment.
 
 ## Rebuild target
 
@@ -105,13 +128,13 @@ index.html
 
 ## Ordered cleanup/consolidation gates
 
-1. Remove confirmed dead one-off files from this branch only.
-2. Re-run repository CI gates; security tests remain unchanged.
-3. Freeze this branch as the rebuild baseline checkpoint.
-4. Remove the broad bootstrap MutationObserver only after prototype UI/state ownership is removed from authoritative runtime.
-5. Materialize or replace every remaining `service-worker.js` source transform; delete transforms one by one.
-6. Remove hard-coded Maria Santos / John Cruz / Family Group startup state and make empty state explicit.
-7. Wire validated account E2EE through central Firebase ownership, without reviving device-owned E2EE as the target.
+1. COMPLETE — remove confirmed dead one-off/superseded files from this branch only.
+2. CURRENT — run the rebuild branch security gate after cleanup.
+3. Freeze this branch as the rebuild baseline checkpoint once CI is green.
+4. Remove prototype source/defaults and the broad bootstrap scrub observer as one bounded ownership change.
+5. Materialize/replace the live display-name/New Message/main-screen overlays into explicit owners, then remove their observers.
+6. Materialize or replace every remaining `service-worker.js` source transform; delete transforms one by one.
+7. Wire validated account E2EE through central `firebase.js` ownership, without reviving device-owned E2EE as the target.
 8. Build Firestore-authoritative sync/cache/Outbox.
 9. Revalidate iPhone/iPad UI, receipts, offline reconnect, Settings, account switching, PWA reinstall/recovery.
 10. Only after branch validation decide whether to merge this clean baseline to `main`.
