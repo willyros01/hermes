@@ -37,6 +37,15 @@ Commit `b164a12ab2c2a86c88aaac70cfdf4079114d9243` moved password-reset service a
 
 `firebase.js` is now the sole runtime Firebase SDK/service owner. The runtime authority gate has no temporary Firebase SDK exceptions and no MutationObserver exceptions.
 
+### Account E2EE auth lookup/reset binding — MATERIALIZED, TRANSPORT UNCHANGED
+Commit `ee27f32a46ef4a058a2c1e430f4a3c108e31f260` bound the validated account-E2EE lifecycle to the existing Firebase auth callback in `app.js`.
+
+On authenticated UID, `app.js` calls `bindAuthenticatedAccountE2EE(uid)`, which serializes an authoritative identity lookup through `e2ee-account-lifecycle.js` and `e2ee-account-identity-manager.js`. On sign-out, `resetAccountE2EEForSignOut()` invalidates in-flight identity work and clears runtime account-E2EE state.
+
+This bounded step deliberately does **not** enroll a missing identity, unlock a locked identity, replace legacy direct-message transport, or deploy anything to Firebase. Missing durable identity remains `EMPTY`; an existing durable identity remains `LOCKED` until a reviewed password + exact six-digit PIN lifecycle is wired. Recovery enrollment also remains fail-closed until the reviewed Firebase/Google recovery boundary is live.
+
+The one-shot materializer and its workflow were removed immediately after materialization; they are not runtime architecture.
+
 ## Transforms still present in `service-worker.js`
 
 Only legacy/per-device E2EE compatibility transforms remain.
@@ -68,10 +77,11 @@ Converts cloud send to per-device `e2ee:2` fan-out.
 3. **COMPLETE:** all non-cryptographic group service-worker transforms materialized into raw `app.js`; group send remains fail-closed.
 4. **COMPLETE:** peer-name/main-screen observer overlays retired; Sign Out and display names are explicit projections.
 5. **COMPLETE:** Settings lifecycle bridge retired and all remaining non-central Firebase SDK ownership consolidated into `firebase.js`.
-6. **CURRENT:** wire the validated account-E2EE identity lifecycle through central Firebase ownership without yet changing direct-message transport.
-7. Replace per-device send/decrypt/fan-out transforms with account-authoritative messaging plus explicit legacy migration handling.
-8. Confirm no semantic source transform remains and reduce service worker to cache/offline only.
-9. Revalidate iPhone/iPad, receipts, Settings, offline reconnect, account switching, reinstall/recovery.
+6. **COMPLETE (LOOKUP/RESET ONLY):** validated account-E2EE identity lifecycle is bound to Firebase auth for serialized lookup and sign-out invalidation; direct-message transport is unchanged.
+7. **CURRENT:** design and wire the explicit normal account-E2EE enrollment/unlock readiness lifecycle without silently creating/replacing identity and without weakening the recovery fail-closed boundary.
+8. Replace per-device send/decrypt/fan-out transforms with account-authoritative messaging plus explicit legacy migration handling.
+9. Confirm no semantic source transform remains and reduce service worker to cache/offline only.
+10. Revalidate iPhone/iPad, receipts, Settings, offline reconnect, account switching, reinstall/recovery.
 
 ## Rule
 
