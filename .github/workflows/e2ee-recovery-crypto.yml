@@ -1,4 +1,4 @@
-name: E2EE Recovery Crypto Gate
+name: E2EE Recovery Security Gate
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
     paths:
       - 'e2ee-recovery-server-crypto.mjs'
       - 'e2ee-recovery-server-crypto.test.mjs'
+      - 'e2ee-recovery-session-policy.mjs'
+      - 'e2ee-recovery-session-policy.test.mjs'
       - 'package.json'
       - '.github/workflows/e2ee-recovery-crypto.yml'
   workflow_dispatch:
@@ -14,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  recovery-crypto:
+  recovery-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -26,3 +28,5 @@ jobs:
           node-version: '20'
       - name: Run recovery crypto unit gate
         run: npm run test:recovery-crypto
+      - name: Run recovery session policy gate
+        run: npm run test:recovery-session
