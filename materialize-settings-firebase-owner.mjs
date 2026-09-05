@@ -1,4 +1,4 @@
-// One-shot rebuild materializer: move Settings Firebase operations behind firebase.js.
+// One-shot rebuild materializer: move Settings Firebase operations behind firebase.js. Trigger after workflow registration.
 import fs from "node:fs";
 
 const firebasePath="firebase.js",settingsPath="settings-lifecycle.js",gatePath="runtime-authority-gate.test.mjs";
