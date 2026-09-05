@@ -54,10 +54,14 @@ async function run(){
  await expectFail("manager refuses cross-account use until sign-out reset",()=>m.load("another-user"));
  row("serialized state path reached READY",states.includes("READY"));
 
- const gate=deferred(), slowStore={...makeStore(),async readIdentity(){await gate.promise;return null;}}, slowRecovery=makeRecovery();
+ const gate=deferred(), entered=deferred();
+ const slowStore={...makeStore(),async readIdentity(){entered.resolve();await gate.promise;return null;}};
+ const slowRecovery=makeRecovery();
  const slow=createAccountE2EEIdentityManager({identityStore:slowStore,recoveryService:slowRecovery});
  const pending=slow.load("signout-race-user");
- slow.resetForSignOut(); gate.resolve();
+ await entered.promise;
+ slow.resetForSignOut();
+ gate.resolve();
  await expectFail("sign-out invalidates an in-flight identity operation",()=>pending);
  row("sign-out race cannot repopulate runtime",slow.getRuntimeIdentity()===null&&slow.getState().state==="EMPTY");
  finish();
