@@ -1,10 +1,10 @@
-import { createAccountE2EEIdentityManager } from "./e2ee-account-identity-manager.js";
+import { createAccountE2EEIdentityManager } from "./e2ee-account-identity-manager.js?v=091dffea7642d958979b192b129fbabcd5c99b60";
 
 const out=document.getElementById("results"),rows=[];
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
 function render(){out.innerHTML=rows.map(r=>`<div class="test ${r.ok?"pass":"fail"}"><strong>${r.ok?"PASS":"FAIL"}</strong> — ${esc(r.name)}${r.detail?`<div>${esc(r.detail)}</div>`:""}</div>`).join("");}
 function row(name,ok,detail=""){rows.push({name,ok,detail});render();}
-async function expectFail(name,fn){try{await fn();row(name,false,"unexpected success");}catch{row(name,true);}}
+async function expectFail(name,fn){try{await fn();row(name,false,"unexpected success");}catch(e){row(name,true,e?.code||e?.message||"");}}
 function makeStore(){let doc=null,pub=null;return{
  async readIdentity(){return doc?structuredClone(doc):null;},
  async createIdentity({privateIdentity,publicIdentity}){if(doc)throw new Error("exists");doc={...structuredClone(privateIdentity),createdAt:1,updatedAt:1};pub={...structuredClone(publicIdentity),createdAt:1,updatedAt:1};return{revision:1};},
