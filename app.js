@@ -29,6 +29,7 @@ import {
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
+import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -1811,6 +1812,7 @@ function renderSettings(){
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
   };
+  mountSettingsLifecycle();
 }
 function settingRow(label,key){
   return `<div class="row"><span>${esc(label)}</span><button class="toggle ${state.settings[key]?"on":""}" data-key="${key}" aria-label="${esc(label)}"></button></div>`;

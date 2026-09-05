@@ -15,7 +15,6 @@ const firebaseSdkAllow=new Set([
   "settings-lifecycle.js"    // temporary Settings admin/profile data access
 ]);
 const observerAllow=new Set([
-  "settings-lifecycle-bridge.js" // temporary Settings compatibility bridge
 ]);
 
 const unexpectedFirebase=[];
@@ -49,6 +48,7 @@ if(!/mountNewMessageRecipientPicker/.test(app))throw new Error("app.js must keep
 if(!/const contacts=\[\]/.test(app))throw new Error("Prototype contact seed must not return to app.js.");
 if(!/subscribeUserDisplayNames/.test(app))throw new Error("app.js must use central peer display-name subscription.");
 if(!/mainSignOutMarkup/.test(app)||!/bindMainSignOut/.test(app))throw new Error("main-screen Sign Out must remain an explicit app projection.");
+if(!/mountSettingsLifecycle/.test(app))throw new Error("app.js must call the explicit Settings lifecycle owner.");
 
 console.log("Runtime authority gate passed.");
 console.log("Known temporary Firebase SDK exceptions:",[...firebaseSdkAllow].filter(x=>x!=="firebase.js").join(", "));
