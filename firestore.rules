@@ -263,7 +263,7 @@ service cloud.firestore {
           && request.resource.data.senderUid == request.auth.uid
           && request.resource.data.state == "sent"
           && (
-            (request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 10000)
+            (request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 10000 && !("e2ee" in request.resource.data))
             ||
             (request.resource.data.e2ee == 1 && request.resource.data.ciphertext is string && request.resource.data.ciphertext.size() > 0 && request.resource.data.ciphertext.size() <= 20000 && request.resource.data.iv is string && request.resource.data.iv.size() > 0 && request.resource.data.iv.size() <= 128 && request.resource.data.text == "")
             ||
