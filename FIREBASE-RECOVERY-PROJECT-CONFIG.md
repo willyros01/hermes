@@ -4,6 +4,8 @@
 
 This document is the handoff from repository-only recovery work to Firebase/Google project configuration. None of these live-project actions has been performed by the rebuild branch.
 
+For the user's planned Gemini-assisted Google/Firebase workflow, use `GEMINI-FIREBASE-HANDOFF.md`. Gemini is an operator/navigation assistant only; ChatGPT remains the FIDUNIO architecture/security authority and releases one prompt at a time after reviewing the prior result.
+
 ## Repository prerequisites already prepared
 
 - `functions/` is registered as Firebase Functions codebase `recovery` in `firebase.json`.
@@ -14,7 +16,7 @@ This document is the handoff from repository-only recovery work to Firebase/Goog
 - App Check enforcement is enabled in callable options.
 - recovery completion consumes a limited-use App Check token in the scaffold.
 - completion is intentionally fail-closed until supplemental recovery verification is implemented.
-- repository CI validates rules, recovery crypto/session/callable/persistence, Firebase adapter, and Functions scaffold import.
+- repository CI validates rules, recovery crypto/session/callable/persistence, Firebase adapter, Functions scaffold import, runtime transform anchors, and runtime authority regression rules.
 
 ## Live project actions that will require the project owner
 
@@ -23,6 +25,8 @@ This document is the handoff from repository-only recovery work to Firebase/Goog
 Cloud Functions 2nd gen and Secret Manager require the actual Firebase/Google Cloud project to be selected. Confirm the correct FIDUNIO project before any command or console change. If required by Firebase for deployment, the project must use the appropriate billing plan.
 
 No billing change should be made merely to test repository code.
+
+The first Google-side action should be the **read-only inventory** in `GEMINI-FIREBASE-HANDOFF.md`; no project change is authorized during that step.
 
 ### 2. Review function region
 
@@ -38,13 +42,15 @@ FIDUNIO_RECOVERY_MASTER_V1
 
 Required value: exactly 32 cryptographically random bytes encoded base64url without padding.
 
-The value must never be placed in GitHub, Firebase client config, Firestore, Notes, screenshots, or chat messages.
+The value must never be placed in GitHub, Firebase client config, Firestore, Notes, screenshots, Gemini, or ChatGPT.
 
-The secret should be created through Firebase CLI/Secret Manager only when deployment is authorized.
+The secret should be generated/entered directly in Google's protected environment only when deployment is authorized.
 
 ### 4. Enable required Google/Firebase services
 
 Deployment may require enabling the services used by Cloud Functions 2nd gen, Cloud Build/Artifact Registry, Eventarc infrastructure, Secret Manager, and Firebase App Check. Enable only what the Firebase deployment flow actually requires for this project.
+
+The Gemini operator must report missing services first rather than enabling them without an explicit ChatGPT-approved prompt.
 
 ### 5. IAM least privilege
 
@@ -102,4 +108,4 @@ Repository work may continue without the project owner until one of these become
 - registering/enforcing App Check;
 - executing a live Firebase deploy.
 
-At that point, stop and guide the project owner one console/CLI action at a time.
+At that point, stop and guide the project owner one console/CLI/Gemini action at a time.
