@@ -21,86 +21,131 @@ This document supersedes the earlier design in which conversation continuity and
 
 ## Durable account E2EE identity
 
-The Firebase UID is an identifier, not a secret and MUST NOT derive the private key.
+Firebase UID is an identifier, not a secret and MUST NOT derive the private key. FIDUNIO generates one cryptographically random account key pair once. v1 uses browser-native Web Crypto ECDH P-256. The key algorithm and serialized format are versioned so future migration never silently replaces an account identity.
 
-FIDUNIO generates one cryptographically random account key pair once. The current selected interoperable browser-native direction is Web Crypto ECDH P-256 for the account key pair. The public key may be stored/read as public account encryption material; the private key is never plaintext in Firestore.
+## Frozen v1 cryptography
 
-The key algorithm and serialized format are versioned so a future reviewed migration can occur without silently replacing an account identity.
+- Account key: ECDH P-256, versioned.
+- Normal wrapper: AES-256-GCM.
+- KDF: PBKDF2-HMAC-SHA-256, 600,000 iterations.
+- Random unique salt per normal wrapper.
+- Random unique 96-bit GCM IV per encryption/wrapping operation.
+- Password + exactly six-digit FIDUNIO PIN required together and encoded unambiguously before KDF.
+- Never persist plaintext password/PIN or derived normal wrapping key.
+- AES-GCM authenticated context binds at minimum schema version, identity version, UID, stable keyId and wrapper purpose/version using one canonical encoding fixed by crypto tests.
 
-## Normal private-key wrapper — frozen v1 direction
+## Firestore split — public vs private
 
-Normal durable-key protection uses browser-native Web Crypto:
-
-- account key: ECDH P-256, versioned;
-- wrapping cipher: AES-256-GCM;
-- KDF: PBKDF2-HMAC-SHA-256;
-- v1 work factor: 600,000 iterations;
-- random unique salt per wrapper;
-- random unique GCM IV per wrapping operation;
-- password + exactly six-digit FIDUNIO PIN are required together;
-- password/PIN input is encoded unambiguously before KDF, never naive ambiguous string concatenation;
-- wrapper records algorithm/KDF/version parameters required for future migration.
-
-The six-digit PIN is an additional required user-held input, not sufficient cryptographic protection by itself.
-
-Never persist plaintext password or plaintext PIN in Firestore, IndexedDB or localStorage. Firebase Authentication owns authentication-password verification. Sensitive transient inputs and derived key material should be retained only as long as required for the owned cryptographic operation.
-
-## Firestore E2EE identity schema — v1
-
-Target path:
+Private identity record:
 
 ```
 users/{uid}/e2ee/identity
 ```
 
-Conceptual v1 fields:
+Only the authenticated owner may read the private identity record through client Firestore access. It contains version/state metadata and encrypted wrappers, never plaintext private key.
+
+Public correspondent lookup record:
+
+```
+e2eePublicKeys/{uid}
+```
+
+Conceptual public fields:
+
+```
+uid
+schemaVersion: 1
+identityVersion: 1
+keyId
+keyAlgorithm: "ECDH-P256"
+publicJwk
+state: "ACTIVE"
+updatedAt
+```
+
+This public record contains no private wrapper, recovery material, password/PIN material, salts or secret data. Authenticated registered FIDUNIO users may read active public records for encryption. Only the owning UID may request normal publication/change through the approved identity-owner path; deletion is not a normal client operation. `uid`, `keyId`, algorithm/version and public key must correspond to the private identity.
+
+Private conceptual fields:
 
 ```
 schemaVersion: 1
 identityVersion: 1
-keyId: random stable identifier
+keyId
 keyAlgorithm: "ECDH-P256"
-publicKey: serialized public JWK/material
 
 normalWrapper:
   version: 1
-  ciphertext: wrapped/encrypted private-key bytes
-  salt: random bytes
-  iv: random GCM IV
+  ciphertext
+  salt
+  iv
   kdf: "PBKDF2-HMAC-SHA256"
   iterations: 600000
   wrappingAlgorithm: "AES-256-GCM"
 
 recoveryWrapper:
   version: 1
-  ciphertext: recovery-protected representation of SAME private key
-  iv: random GCM IV
+  ciphertext
+  iv
+  wrappedRecoveryKey
   recoveryAuthorityVersion: 1
   metadata: non-secret protocol/version information only
 
 state: "ACTIVE" | reviewed transitional state
 revision: monotonic integer
-createdAt: server timestamp
-updatedAt: server timestamp
+createdAt
+updatedAt
 ```
 
-Exact byte/JWK canonicalization and authenticated additional data fields are implementation details that MUST be fixed in the crypto module tests before production data is written. `uid`, `keyId`, schema/identity/wrapper versions should be cryptographically bound where practical so a wrapper cannot be transplanted silently between accounts/versions.
+Firestore MUST NOT contain plaintext password, plaintext PIN, plaintext private E2EE key, derived normal wrapping key, plaintext per-user recovery key, recovery master KEK or Secret Manager material.
 
-Firestore MUST NOT contain plaintext password, plaintext PIN, plaintext private E2EE key, derived normal wrapping key, recovery master secret or Secret Manager material.
+## Recovery escrow construction — frozen architectural direction
 
-## Ownership and Firestore security boundary
+The recovery service should not receive the account private key during normal enrollment. Instead use a random per-user recovery key (RUK):
 
-The authenticated client may read only its own private E2EE identity document. Public encryption material needed by legitimate correspondents should be exposed through a deliberately separate public-key publication path/rule rather than granting other users access to the private wrapper document.
+1. Client generates a cryptographically random 256-bit RUK.
+2. Client encrypts the SAME account private key under RUK using AES-256-GCM, producing `recoveryWrapper.ciphertext` + unique IV and authenticated context.
+3. Client sends the RUK, UID/keyId/version context and authenticated enrollment request to the narrowly scoped recovery function over the protected callable/API path.
+4. Recovery function wraps/protects the RUK under the server recovery KEK/capability held through Google Secret Manager/KMS boundary.
+5. Firestore stores only `wrappedRecoveryKey` plus the recovery ciphertext/metadata. Plain RUK is not stored.
+6. Client erases/discards transient RUK after authoritative enrollment succeeds.
 
-Client writes to the private identity document are restricted to the owning authenticated UID and tightly validated fields/transitions. Recovery-only fields/transitions that require recovery authority are server-only.
+Forgotten-password recovery:
 
-Cloud Functions/Admin SDK operates under Google IAM and bypasses ordinary Firestore client Security Rules. Therefore the recovery function service account receives only the minimum IAM/Secret Manager permissions required for its recovery job. Firestore client rules are not treated as protection from an over-privileged server function.
+1. user passes the approved recovery authorization flow;
+2. recovery function verifies the short-lived authorized recovery session and UID/keyId/revision context;
+3. function unwraps the per-user RUK using the protected server recovery capability;
+4. only after authorization, the RUK is released through the protected recovery transaction to the authenticated recovery client (or an equivalently reviewed protocol);
+5. client uses RUK to decrypt/import the SAME account private key;
+6. client creates and locally verifies a new normal password+PIN wrapper;
+7. compare-and-update commits the new normal wrapper/revision without changing keyId/private key;
+8. transient RUK/private-key export bytes are discarded as soon as practical.
 
-Firebase App Check should be considered as an additional abuse-control layer, not a replacement for Auth, Rules, cryptography or recovery authorization.
+Security consequence remains explicit: the recovery authority can authorize release of the per-user recovery capability, so it remains part of the security boundary. However, the server does not need to receive/store ordinary message plaintext or the account private key during normal enrollment.
 
-## Deterministic identity state machine
+Security questions, if used, are supplemental authorization evidence only and never derive RUK/KEK.
 
-Exactly one Account E2EE Identity Manager owns create/unlock/recovery/re-wrap.
+## Firestore Security Rules direction
+
+The existing production `firestore.rules` contains legacy per-device E2EE permissions and does not yet implement this target schema. Do not blindly replace the full ruleset because invitations, roles, conversations, groups and receipts depend on it.
+
+Target additions must be bounded and emulator-tested:
+
+- `users/{uid}/e2ee/identity`: client `get` only for authenticated owning UID; no list/cross-user read.
+- private identity client create/update only through explicitly validated normal identity lifecycle fields; recovery-authority-only mutations must not be writable by browser client.
+- private identity client delete denied.
+- `e2eePublicKeys/{uid}`: registered authenticated users may read; owner-only controlled create/update; delete denied.
+- public document must contain only approved public fields and matching `uid`.
+- updates use `diff().affectedKeys().hasOnly(...)`/equivalent allowlists so future fields are denied by default.
+- stable `keyId`/identity version cannot be silently changed by an ordinary wrapper re-wrap.
+- revision transitions must be monotonic and expected-state checked in application transaction logic; rules add structural constraints where practical.
+- recovery server/Admin SDK is protected by IAM because server libraries bypass Firestore client Rules.
+- callable recovery endpoint should use Firebase Auth context and App Check as abuse defense where supported; App Check supplements, never replaces recovery authorization.
+
+Before deployment, exact rules are tested in Firestore Emulator for owner/non-owner/unauthenticated/admin/recovery cases. Current legacy `devices` rules remain until migration proves they can be removed.
+
+## Deterministic identity owner and state machine
+
+Exactly one Account E2EE Identity Manager owns create/unlock/recovery/re-wrap/publication.
 
 ```
 SIGNED_OUT
@@ -119,165 +164,78 @@ Duplicate auth/startup callbacks join the same owned promise/queue. They never g
 
 ## Identity creation transaction
 
-Creation is create-once, never repair-by-replacement:
-
 1. authenticated UID established;
-2. identity owner reads authoritative identity document;
-3. if ACTIVE identity exists, creation stops and normal unlock path is used;
-4. if truly absent, generate one account key pair;
-5. create normal password+PIN wrapper and recovery wrapper;
-6. atomically create the identity record with revision 1;
-7. if another writer won the create race, discard local candidate and use authoritative identity;
-8. never overwrite an existing identity merely because local state is missing/corrupt.
+2. owner reads authoritative private identity;
+3. if ACTIVE identity exists, creation stops and unlock path is used;
+4. if truly absent, generate account key pair, normal wrapper and recovery RUK/wrapper candidate;
+5. recovery function protects RUK;
+6. atomically create private identity + corresponding public publication with revision 1 using validated prepared data;
+7. if another writer won race, discard local candidate and use authoritative identity;
+8. never overwrite existing identity because local state is missing/corrupt.
+
+No cryptographic generation occurs inside a retriable Firestore transaction callback.
 
 ## Password/PIN change — atomic re-wrap
 
-Underlying account private key and `keyId` DO NOT change.
+Underlying private key and keyId DO NOT change. Generate and locally verify candidate wrapper first. Firestore compare-and-update checks expected keyId/identity version/revision, then writes new normal wrapper and increments revision. Concurrent stale mutation cannot overwrite newer wrapper.
 
-1. unlock current valid identity;
-2. construct candidate new normal wrapper in memory;
-3. locally verify candidate can unwrap/import the SAME private key;
-4. Firestore transaction reads current identity/revision;
-5. transaction succeeds only if expected `keyId`, identity version and revision still match;
-6. write new normal wrapper and increment revision atomically;
-7. only after authoritative success retire transient old credentials/material;
-8. concurrent stale update fails/retries from fresh authoritative state rather than overwriting newer wrapper.
-
-For password change, Firebase Authentication password update and E2EE wrapper update cannot be assumed to be one cross-service atomic transaction. The implementation therefore needs an explicit recoverable staged flow: do not destroy the last valid E2EE wrapper before the replacement is verified and authoritative. If auth update succeeds but wrapper commit fails, the account enters a defined retry/recovery state; it must never silently create a new identity.
-
-For PIN change, the same re-wrap/revision rule applies. History remains readable because the identity key is unchanged.
-
-## Forgotten-password recovery authority
-
-User-facing flow remains:
-
-```
-Forgot Password
- -> verify registered email/recovery channel
- -> enter existing six-digit PIN
- -> additional approved recovery verification
- -> server recovery authorization
- -> recover SAME account private key
- -> choose new password
- -> create/verify new normal password+PIN wrapper
- -> commit new wrapper/revision
- -> restore Firestore-authoritative history
- -> security notification/session review
-```
-
-The recovery capability is implemented by a narrowly scoped Cloud Functions/Google serverless component and Google Secret Manager (or equivalently reviewed Google-managed secret facility). The protected recovery capability is never put in browser code, Firestore, GitHub or logs.
-
-Security questions, if used, are supplemental authorization evidence only and never derive the recovery key.
-
-The recovery service is explicitly part of the security boundary. This is the accepted tradeoff required to preserve history after forgotten password without mandatory second-device/recovery-code recovery.
-
-Recovery function requirements:
-- verify authenticated/authorized recovery transaction, not merely a client-supplied UID;
-- short-lived, single-use recovery challenge/session;
-- strict attempt/rate limits, especially around the six-digit PIN;
-- generic responses where appropriate to reduce account enumeration;
-- minimum IAM permissions;
-- Secret Manager access only for required recovery function;
-- no secret/private-key material in logs;
-- deterministic success/failure states;
-- audit non-secret security events;
-- notify registered channel after successful recovery;
-- review/invalidate prior sessions according to final auth policy.
+Firebase Authentication password update and Firestore wrapper update are not cross-service atomic. Use explicit recoverable staged state; never destroy last valid E2EE/recovery path. Failure enters deterministic retry/recovery, never silent identity replacement.
 
 ## Recovery rollback invariant
 
-**Never remove the last usable recovery path before the replacement wrapper is proven valid. Never respond to a failed re-wrap/recovery by generating a new account identity.**
+**Never remove the last usable recovery path before replacement is proven valid. Never respond to failed re-wrap/recovery by generating a new account identity.**
 
-Every mutation carries `keyId` + `revision`. Stale/concurrent mutations cannot silently overwrite newer state. Firestore transactions are used for compare-and-update operations that depend on current authoritative state. Transaction callbacks may be retried by Firestore, so they MUST NOT mutate UI/application state or generate new cryptographic identities as side effects. Cryptographic candidate generation occurs outside the retriable transaction; the transaction only validates expected state and commits already-prepared versioned data.
+Every mutation carries keyId + revision. Transaction callbacks may retry and MUST NOT mutate UI or generate cryptographic identities as side effects.
 
-## Firestore authority, local cache and offline behavior
+## Offline contract
 
-Firestore owns the durable encrypted conversation record.
+Firestore owns durable encrypted history. Local cache is rebuildable. One owned local Outbox holds encrypted pending sends. Offline reads show cached messages. Offline sends remain Pending. Reconnect serially retries stable/idempotent message IDs, writes Firestore, receives missed changes, reconciles cache and resumes live sync. Missing local DB is a cache miss, not history loss. UID isolation prevents cross-account cache leakage.
 
-```
-ONLINE: Firestore authoritative; local cache synchronized.
-OFFLINE READ: show cached messages.
-OFFLINE SEND: encrypted message -> owned local Outbox -> Pending.
-RECONNECT: serialized retry -> Firestore -> receive missed changes -> reconcile cache.
-```
-
-Message IDs are stable/idempotent so reconnect/retry cannot turn one user send into multiple authoritative messages. Missing local DB is a cache miss, not lost history. Cache is UID-isolated. Firestore SDK persistence may assist but must not become a competing Outbox owner.
-
-Firestore transactions themselves are not relied on while offline; offline message queuing/retry remains the explicit FIDUNIO Outbox responsibility.
+Firestore SDK persistence may assist but cannot become a second Outbox owner. Firestore transactions are not relied on while offline.
 
 ## Device ID and FCM
 
-Device ID may be collected as informational data only. It does not own keys, history, decryptability or delivery. Future FCM registration tokens are associated with UID and are separate from E2EE identity.
+Device ID may be collected as informational data only. It does not own keys, history, decryptability or delivery. Future FCM registration tokens associate with UID and remain separate from E2EE identity.
 
 ## Superseded architecture
 
-Superseded:
+Superseded: account + browser installation -> per-device E2EE identity -> per-device envelopes.
 
-```
-account + browser installation -> per-device E2EE identity -> per-device envelopes
-```
-
-Target:
-
-```
-ONE ACCOUNT = ONE DURABLE E2EE IDENTITY
-FIRESTORE = AUTHORITATIVE ENCRYPTED HISTORY
-LOCAL = REBUILDABLE CACHE
-OUTBOX = TEMPORARY OFFLINE SEND QUEUE
-DEVICE ID = INFORMATIONAL ONLY
-NORMAL UNLOCK = PASSWORD + SIX-DIGIT PIN
-FORGOTTEN PASSWORD = VERIFIED SERVER-ASSISTED RECOVERY OF SAME IDENTITY
-```
+Target: ONE ACCOUNT = ONE DURABLE E2EE IDENTITY; FIRESTORE = AUTHORITATIVE ENCRYPTED HISTORY; LOCAL = REBUILDABLE CACHE; OUTBOX = TEMPORARY OFFLINE QUEUE; DEVICE ID = INFORMATIONAL; NORMAL UNLOCK = PASSWORD + SIX-DIGIT PIN; FORGOTTEN PASSWORD = VERIFIED SERVER-ASSISTED RECOVERY OF SAME IDENTITY.
 
 Legacy per-device E2EE/service-worker transforms remain migration material and must not be blindly deleted.
 
-## Remaining design/implementation gates
+## Remaining gates before production identity writes
 
-Before production E2EE migration writes real identity data:
-
-1. freeze exact serialized private/public key format and AES-GCM authenticated-data encoding;
-2. implement crypto known-answer/round-trip/failure tests across target Safari/PWA/Fire browsers;
-3. finalize public-key publication document/rules separately from private wrapper;
-4. write/test Firestore Security Rules with Emulator/Rules tests;
-5. implement recovery Cloud Function, IAM and Secret Manager policy and test abuse/failure paths;
-6. specify exact recovery challenge lifecycle/rate limits/session invalidation;
-7. implement Account E2EE Identity Manager as sole owner;
-8. implement authoritative Firestore-to-cache synchronization and owned Outbox protocol;
-9. migrate legacy per-device envelopes in bounded steps;
-10. validate protected UI/runtime baselines after each bounded change.
+1. Freeze exact canonical JWK/private-key serialization and AES-GCM AAD byte encoding.
+2. Implement crypto round-trip/tamper/wrong-password/wrong-PIN/cross-account-transplant tests across target browsers.
+3. Draft bounded Firestore Rules additions and Emulator tests; do not disturb unrelated validated rules.
+4. Specify recovery callable challenge/session lifecycle, exact rate limits, IAM/Secret Manager/KMS implementation and notification/session policy.
+5. Implement sole Account E2EE Identity Manager.
+6. Implement Firestore-authoritative sync/UID cache/owned Outbox.
+7. Migrate legacy per-device envelopes in bounded steps.
+8. Revalidate protected UI/runtime baselines after every bounded change.
 
 ## Required acceptance tests
 
 - reinstall/cache deletion/replacement context recovers same identity/history;
 - Safari/PWA converge on same account identity;
 - password+six-digit PIN required for normal durable unlock;
-- wrong password/PIN cannot unlock;
-- password change preserves identity/history;
-- PIN change preserves identity/history;
+- wrong password/PIN/tampered wrapper/cross-account transplant cannot unlock;
+- password/PIN change preserves identity/history;
 - legitimate forgotten-password recovery restores same identity/history;
-- failed/partial re-wrap cannot strand account or silently rotate identity;
-- concurrent identity mutation cannot overwrite newer revision;
-- Firestore has ciphertext, never plaintext private keys/messages/password/PIN;
-- other authenticated UID cannot read private wrapper;
-- public-key lookup does not expose private wrapper;
+- recovery function never needs ordinary message plaintext;
+- failed/partial re-wrap cannot strand account or rotate identity;
+- concurrent mutation cannot overwrite newer revision;
+- Firestore has no plaintext private key/password/PIN/RUK/KEK;
+- other UID cannot read private wrapper;
+- public-key lookup exposes only public material;
 - recovery secret unavailable to browser/Firestore/GitHub/logs;
-- offline reads work from cache;
-- offline sends remain Pending until authoritative write;
-- reconnect automatically synchronizes and does not duplicate messages;
-- receipts remain correct;
-- account switching never exposes another UID's cache.
+- offline reads work; offline sends remain Pending until authoritative write; reconnect does not duplicate;
+- receipts remain correct; account switching never exposes another UID cache.
 
 ## Development gate
 
-Before touching implementation, read at minimum:
-- `hermes-memory.txt`
-- `CODING-GUIDELINES.md`
-- `DETERMINISTIC-UI-LIFECYCLE.md`
-- `RUNTIME-CONSOLIDATION-PLAN.md`
-- `RUNTIME-TRANSFORM-INVENTORY.md`
-- `E2EE-IDENTITY-LIFECYCLE.md` for historical context
-- this file
-- `architecture-ownership.txt`
-- `BUG-LIST.md`
+Before implementation read: `hermes-memory.txt`, `CODING-GUIDELINES.md`, this file, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `E2EE-IDENTITY-LIFECYCLE.md`, `architecture-ownership.txt`, `BUG-LIST.md`.
 
-Do not rely on conversational memory as a substitute for repository documentation.
+Do not rely on conversational memory as substitute for repository documentation.
