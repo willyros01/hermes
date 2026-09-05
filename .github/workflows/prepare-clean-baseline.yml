@@ -1,0 +1,56 @@
+name: Prepare controlled clean baseline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/prepare-clean-baseline.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add explicit cleanup owner
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('firebase.js')
+          s=p.read_text()
+          anchor='export async function getCloudUserDevices(uid){'
+          i=s.index(anchor)
+          end=s.index('\nexport async function getCloudE2EEDiagnosticSnapshot', i)
+          insert='''\nexport async function deactivateOtherCloudE2EEDevices(uid,keepDeviceId){const s=await ensureServices();if(!authUser||authUser.uid!==uid)throw new Error("Cannot clean another user's device registry.");if(!keepDeviceId)throw new Error("Current device identity is required.");const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users",uid,"devices"));const batch=s.fsSdk.writeBatch(s.db);let changed=0;for(const d of snap.docs){if(d.id===keepDeviceId)continue;const row=d.data();if(row.active===false)continue;batch.set(d.ref,{active:false,revokedAt:s.fsSdk.serverTimestamp(),revokedReason:"test-baseline-cleanup"},{merge:true});changed++;}if(changed)await batch.commit();return{deactivated:changed,keptDeviceId};}\n'''
+          s=s[:end]+insert+s[end:]
+          p.write_text(s)
+
+          Path('baseline-cleanup.js').write_text('''import {getFirebaseUser,getCloudUserDevices,deactivateOtherCloudE2EEDevices} from "./firebase.js";\n\nconst LIVE_DB="fidunio-local";\nconst KEEP_META=new Set(["local-key","local-security-v1","e2ee-device-keypair-v1","e2ee-device-identity-v1"]);\nconst OBSOLETE_VAULTS=["fidunio-account-vault","fidunio-account-vault-v2","fidunio-account-vault-v3"];\nfunction req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}\nfunction txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error("Transaction aborted"));});}\nfunction openExisting(name){return new Promise((resolve,reject)=>{const r=indexedDB.open(name);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}\nasync function existingDbNames(){if(typeof indexedDB.databases!=="function")throw new Error("This cleanup requires browser database enumeration so it cannot accidentally create a missing database.");return new Set((await indexedDB.databases()).map(x=>x.name).filter(Boolean));}\nasync function readCurrentIdentity(){const names=await existingDbNames();if(!names.has(LIVE_DB))throw new Error("FIDUNIO live database was not found.");const db=await openExisting(LIVE_DB);try{if(!db.objectStoreNames.contains("meta"))throw new Error("FIDUNIO meta store was not found.");const tx=db.transaction("meta","readonly"),store=tx.objectStore("meta");const [identity,keypair]=await Promise.all([req(store.get("e2ee-device-identity-v1")),req(store.get("e2ee-device-keypair-v1"))]);await txDone(tx);if(!identity?.deviceId||!keypair?.privateKey||!keypair?.publicKey)throw new Error("Current E2EE identity is incomplete. Cleanup stopped without changing anything.");return identity;}finally{db.close();}}\nasync function cleanLiveTestData(){const db=await openExisting(LIVE_DB);try{const stores=[...db.objectStoreNames];const writable=stores.filter(n=>n==="meta"||n==="outbox"||n==="history");if(!writable.length)return;const tx=db.transaction(writable,"readwrite");for(const name of writable){const store=tx.objectStore(name);if(name!=="meta"){store.clear();continue;}const keys=await req(store.getAllKeys());for(const key of keys){if(!KEEP_META.has(String(key)))store.delete(key);}}await txDone(tx);}finally{db.close();}}\nfunction deleteDb(name){return new Promise((resolve,reject)=>{const r=indexedDB.deleteDatabase(name);r.onsuccess=resolve;r.onerror=()=>reject(r.error);r.onblocked=()=>reject(new Error(`Close other FIDUNIO tabs, then retry cleanup: ${name} is open.`));});}\nexport async function inspectBaselineCleanup(){const user=getFirebaseUser();if(!user)throw new Error("Sign in to FIDUNIO first.");const identity=await readCurrentIdentity();const devices=await getCloudUserDevices(user.uid);const names=await existingDbNames();return{uid:user.uid,deviceId:identity.deviceId,staleActiveDevices:devices.filter(d=>d.active!==false&&d.deviceId!==identity.deviceId).length,vaults:OBSOLETE_VAULTS.filter(n=>names.has(n))};}\nexport async function executeBaselineCleanup(expectedDeviceId){const user=getFirebaseUser();if(!user)throw new Error("Sign in to FIDUNIO first.");const identity=await readCurrentIdentity();if(identity.deviceId!==expectedDeviceId)throw new Error("Device identity changed since inspection. Cleanup cancelled.");const cloud=await deactivateOtherCloudE2EEDevices(user.uid,identity.deviceId);await cleanLiveTestData();const names=await existingDbNames();for(const name of OBSOLETE_VAULTS){if(names.has(name))await deleteDb(name);}return{deviceId:identity.deviceId,deactivated:cloud.deactivated};}\n''')
+
+          Path('baseline-cleanup.html').write_text('''<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FIDUNIO Clean Baseline</title><style>body{font-family:system-ui;margin:0;background:#eef3f5;color:#17232b}.wrap{max-width:760px;margin:auto;padding:24px}.card{background:white;border-radius:18px;padding:22px;margin:16px 0}button{font:inherit;padding:12px 16px;border-radius:12px;border:1px solid #456}button.danger{font-weight:700}.muted{color:#64727a}pre{white-space:pre-wrap;word-break:break-word}</style></head><body><main class="wrap"><h1>FIDUNIO Clean Baseline</h1><div class="card"><strong id="ver"></strong><p>This is a one-time development cleanup. It preserves this installation's current E2EE device identity and local PIN/security material.</p><p class="muted">It deactivates other active cloud device registrations for this signed-in account, clears local test app-state/history/Outbox, and removes obsolete account vault databases. It does not delete cloud conversations/messages.</p></div><div class="card"><button id="inspect">Inspect cleanup</button><pre id="out">Open normal FIDUNIO in this Safari first and remain signed in.</pre></div><div class="card"><button id="clean" class="danger" disabled>Run controlled cleanup</button><p class="muted">The cleanup button is enabled only after inspection. It aborts if the current device ID changes between inspection and cleanup.</p></div></main><script src="version.js"></script><script type="module">import{initFirebase}from'./firebase.js';import{inspectBaselineCleanup,executeBaselineCleanup}from'./baseline-cleanup.js';ver.textContent='FIDUNIO '+globalThis.FIDUNIO_RELEASE.version;let inspected=null;await initFirebase(()=>{});inspect.onclick=async()=>{try{inspected=await inspectBaselineCleanup();out.textContent=JSON.stringify(inspected,null,2);clean.disabled=false;}catch(e){out.textContent=e.message;clean.disabled=true;}};clean.onclick=async()=>{if(!inspected)return;if(!confirm('Remove obsolete local TEST data and deactivate stale device registrations while preserving device '+inspected.deviceId+'?'))return;clean.disabled=true;try{const r=await executeBaselineCleanup(inspected.deviceId);out.textContent='Cleanup complete. Preserved device: '+r.deviceId+'\\nDeactivated stale cloud devices: '+r.deactivated+'\\n\\nClose this tab and reload normal FIDUNIO.';}catch(e){out.textContent='Cleanup stopped: '+e.message;clean.disabled=false;}};</script></body></html>''')
+
+          p=Path('version.js');s=p.read_text().replace('version: "0.9.5.7"','version: "0.9.5.8"');p.write_text(s)
+
+          p=Path('hermes-memory.txt');s=p.read_text();marker='CURRENT CRITICAL ARCHITECTURAL DISCOVERY — SEPTEMBER 4, 2026\n';note='''0.9.5.7 IDENTITY VALIDATION / CONTROLLED CLEANUP — SEPTEMBER 4, 2026\n- 0.9.5.7 passed on iPad Safari: repeated reloads preserved device `459975be-e...0933c1` and its fingerprint; bidirectional iPad/iPhone E2EE messaging decrypted correctly and reached Read; sign-out/sign-in preserved the same device identity.\n- Protected checkpoint: `checkpoint-0.9.5.7-identity-pass`.\n- 0.9.5.8 introduces a separate explicit development cleanup page. It preserves the current live E2EE identity/keypair and installation-local PIN/security, deactivates other active cloud device registrations for the signed-in account, clears local test app-state/history/Outbox, and deletes obsolete v1/v2/v3 account-vault databases.\n- Cleanup is never automatic at startup. It requires inspect + explicit confirmation and aborts if the current device ID changes between inspection and execution.\n- Cloud conversations/messages are deliberately NOT deleted in this first cleanup increment; remote message deletion requires separate ownership/rules review.\n\n''';
+          if note not in s:s=s.replace(marker,note+marker,1)
+          p.write_text(s)
+          PY
+      - name: Verify bounded cleanup build
+        run: |
+          grep -q 'version: "0.9.5.8"' version.js
+          grep -q 'deactivateOtherCloudE2EEDevices' firebase.js
+          grep -q 'expectedDeviceId' baseline-cleanup.js
+          grep -q 'local-security-v1' baseline-cleanup.js
+          grep -q 'checkpoint-0.9.5.7-identity-pass' hermes-memory.txt
+          git diff --check
+          test -z "$(git diff --name-only | grep -E '^(app.js|service-worker.js|account-storage.js|settings-lifecycle.js|local-security.js)$' || true)"
+      - name: Commit cleanup build
+        run: |
+          git config user.name 'willyros01'
+          git config user.email 'willyros01@gmail.com'
+          git add firebase.js baseline-cleanup.js baseline-cleanup.html version.js hermes-memory.txt
+          git commit -m 'Add controlled clean baseline operation'
+          git push
