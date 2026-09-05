@@ -30,6 +30,8 @@ jobs:
         run: npm install --ignore-scripts
       - name: Firestore E2EE rules gate
         run: npm run emulator:test:e2ee-rules
+      - name: Account direct-message rules gate
+        run: npm run emulator:test:account-message-rules
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
