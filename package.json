@@ -1,0 +1,14 @@
+{
+  "name": "fidunio-hermes-security-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2ee-rules": "node firestore-e2ee-v1.rules.test.mjs",
+    "emulator:test:e2ee-rules": "firebase emulators:exec --only firestore --project demo-fidunio-e2ee-rules \"npm run test:e2ee-rules\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.0.0",
+    "firebase-tools": "^14.0.0"
+  }
+}
