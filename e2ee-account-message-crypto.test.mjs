@@ -8,7 +8,7 @@ async function identity(uid,keyId){
   const privateKey=await crypto.subtle.importKey("pkcs8",pkcs8,{name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]);
   return{uid,keyId,privateKey,publicJwk:{kty:publicRaw.kty,crv:publicRaw.crv,x:publicRaw.x,y:publicRaw.y}};
 }
-function flip(text){const chars=text.split("");chars[chars.length-1]=chars[chars.length-1]==="A"?"B":"A";return chars.join("");}
+function flip(text){const chars=text.split(""),index=Math.floor(chars.length/2);chars[index]=chars[index]==="A"?"B":"A";return chars.join("");}
 async function expectCode(code,fn){let caught=null;try{await fn();}catch(error){caught=error;}assert.ok(caught,`Expected ${code}`);assert.equal(caught.code,code);}
 
 const alice=await identity("uid-alice","key-alice-v1");
