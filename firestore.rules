@@ -64,7 +64,6 @@ service cloud.firestore {
         && (!('expiresAt' in data) || data.expiresAt == null || data.expiresAt is timestamp);
     }
 
-
     // BEGIN E2EE V1 STAGED HELPERS — emulator candidate only
     function validNormalWrapper(w) {
       return w is map
@@ -81,7 +80,7 @@ service cloud.firestore {
     function validRecoveryWrapper(w) {
       return w is map
         && w.keys().hasAll(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm"])
-        && w.keys().hasOnly(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm","metadata"])
+        && w.keys().hasOnly(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm"])
         && w.version == 1
         && w.ciphertext is string && w.ciphertext.size() > 0 && w.ciphertext.size() <= 4096
         && w.iv is string && w.iv.size() > 0 && w.iv.size() <= 128
@@ -89,8 +88,7 @@ service cloud.firestore {
         && w.recoveryKeyIv is string && w.recoveryKeyIv.size() > 0 && w.recoveryKeyIv.size() <= 128
         && w.recoveryKeyWrappingAlgorithm == "HMAC-SHA256+A256GCM"
         && w.wrappingAlgorithm == "AES-256-GCM"
-        && w.recoveryAuthorityVersion == 1
-        && (!("metadata" in w) || w.metadata is map);
+        && w.recoveryAuthorityVersion == 1;
     }
     function validPrivateIdentityCreate(uid, d) {
       return d.keys().hasAll(["schemaVersion","identityVersion","keyId","keyAlgorithm","normalWrapper","recoveryWrapper","state","revision","createdAt","updatedAt"])
@@ -118,7 +116,7 @@ service cloud.firestore {
         && d.keyAlgorithm == "ECDH-P256"
         && d.publicJwk is map
         && d.publicJwk.keys().hasAll(["kty","crv","x","y"])
-        && d.publicJwk.keys().hasOnly(["kty","crv","x","y","ext","key_ops"])
+        && d.publicJwk.keys().hasOnly(["kty","crv","x","y"])
         && d.publicJwk.kty == "EC" && d.publicJwk.crv == "P-256"
         && d.publicJwk.x is string && d.publicJwk.x.size() > 0 && d.publicJwk.x.size() <= 128
         && d.publicJwk.y is string && d.publicJwk.y.size() > 0 && d.publicJwk.y.size() <= 128
@@ -208,7 +206,6 @@ service cloud.firestore {
         allow delete: if false;
       }
     }
-
 
     // BEGIN E2EE V1 STAGED PUBLIC MATCH — emulator candidate only
     match /e2eePublicKeys/{uid} {
