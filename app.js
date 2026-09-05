@@ -14,7 +14,10 @@ import {
   getCloudConversation,
   publishCloudE2EEPublicKey,
   publishCloudE2EEDevice,
-  getCloudUserDevices
+  getCloudUserDevices,
+  listCloudUsers,
+  createCloudGroup,
+  subscribeMyGroups
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -60,6 +63,8 @@ let firebaseReady = false;
 let firebaseError = "";
 let firebaseUser = null;
 let cloudConversationUnsub = null;
+let cloudGroupUnsub = null;
+let groupCandidates = [];
 let cloudMessageUnsub = null;
 let cloudMessageConversationId = null;
 let deviceSecurityInfo = null;
@@ -361,6 +366,18 @@ function mergeCloudConversation(remote){
   else state.conversations.unshift(item);
   if(!state.messages[item.id]) state.messages[item.id]=[];
   return existing || item;
+}
+function mergeCloudGroup(remote){
+  const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
+  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Group • messaging pending E2EE",time:remote.time||existing?.time||""};
+  if(existing)Object.assign(existing,item);else state.conversations.unshift(item);
+  if(!state.messages[item.id])state.messages[item.id]=[];
+  return existing||item;
+}
+function beginCloudGroupSubscription(){
+  if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
+  if(!firebaseUser)return;
+  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{firebaseError=err?.message||String(err);});
 }
 function stopCloudMessageSubscription(){
   if(cloudMessageUnsub){ cloudMessageUnsub(); cloudMessageUnsub=null; }
@@ -712,10 +729,12 @@ async function initializeFirebaseLayer(){
       if(user){
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
+        beginCloudGroupSubscription();
         ensureActiveCloudMessageSubscription(true);
         if(state.online) scheduleReconnectRecovery();
       }else{
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
+        if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
         stopCloudMessageSubscription();
       }
       if(state.route==="settings" || state.route==="messages") render();
@@ -1141,6 +1160,7 @@ async function sendCurrent(){
   const conversationId=state.selectedId;
   const c=currentConversation();
   const cloud=!!c?.cloud;
+  if(c?.cloudGroup){alert("Group messaging is intentionally disabled until group E2EE is implemented.");return;}
 
   if(cloud && c?.peerUid){
     await peerPublicKeyForConversation(conversationId,{refresh:true});

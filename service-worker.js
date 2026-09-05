@@ -81,32 +81,6 @@ async function resolvePeerUidForConversation(conversationId){`;
         await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",ciphertext:"",iv:"",e2ee:2,envelopes:fanout.envelopes,recipientDeviceIds:fanout.recipientDeviceIds,senderDeviceId:fanout.identity.deviceId,senderDevicePublicJwk:fanout.identity.publicJwk,timeLabel:payload.time,state:"sent"});`);
 
   // 0.9.1.1 group metadata harness. These replacements deliberately contain real newlines.
-  source=source.replace(`  getCloudUserDevices
-} from "./firebase.js";`,`  getCloudUserDevices,
-  listCloudUsers,
-  createCloudGroup,
-  subscribeMyGroups
-} from "./firebase.js";`);
-  source=source.replace(`let cloudConversationUnsub = null;`,`let cloudConversationUnsub = null;
-let cloudGroupUnsub = null;
-let groupCandidates = [];`);
-  source=source.replace(`function stopCloudMessageSubscription(){`,`function mergeCloudGroup(remote){
-  const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
-  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Group • messaging pending E2EE",time:remote.time||existing?.time||""};
-  if(existing)Object.assign(existing,item);else state.conversations.unshift(item);
-  if(!state.messages[item.id])state.messages[item.id]=[];
-  return existing||item;
-}
-function beginCloudGroupSubscription(){
-  if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
-  if(!firebaseUser)return;
-  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{firebaseError=err?.message||String(err);});
-}
-function stopCloudMessageSubscription(){`);
-  source=source.replace(`        beginCloudConversationSubscription();`,`        beginCloudConversationSubscription();
-        beginCloudGroupSubscription();`);
-  source=source.replace(`        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}`,`        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
-        if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}`);
 
   const newGroupStart=source.indexOf(`function renderNewGroup(){`),groupNameStart=source.indexOf(`function renderGroupName(){`),chatStart=source.indexOf(`function renderChat(){`);
   if(newGroupStart>=0&&groupNameStart>newGroupStart&&chatStart>groupNameStart){
@@ -127,8 +101,6 @@ function renderGroupName(){
 `;
     source=source.slice(0,newGroupStart)+groupUi+source.slice(chatStart);
   }
-  source=source.replace(`  const cloud=!!c?.cloud;`,`  const cloud=!!c?.cloud;
-  if(c?.cloudGroup){alert("Group messaging is intentionally disabled in FIDUNIO 0.9.1.1 until group E2EE is implemented.");return;}`);
 
   const headers=new Headers(response.headers);headers.set("content-type","text/javascript; charset=utf-8");headers.delete("content-length");
   return new Response(source,{status:response.status,statusText:response.statusText,headers});
