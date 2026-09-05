@@ -10,6 +10,8 @@ on:
       - 'e2ee-recovery-session-policy.test.mjs'
       - 'e2ee-recovery-callable-core.mjs'
       - 'e2ee-recovery-callable-core.test.mjs'
+      - 'e2ee-recovery-firestore-admin-adapter.mjs'
+      - 'e2ee-recovery-firestore-admin-adapter.test.mjs'
       - 'package.json'
       - '.github/workflows/e2ee-recovery-crypto.yml'
   workflow_dispatch:
@@ -34,3 +36,5 @@ jobs:
         run: npm run test:recovery-session
       - name: Run recovery callable core gate
         run: npm run test:recovery-callable-core
+      - name: Run recovery Firestore persistence gate
+        run: npm run test:recovery-firestore
