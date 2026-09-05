@@ -3,30 +3,44 @@ CUMULATIVE PROJECT MEMORY
 
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
-- At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md`.
+- At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md`.
 - Core: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
+
+E2EE V1 EXACT WIRE FORMAT + IMPLEMENTATION PROGRESS — SEPTEMBER 5, 2026
+- Exact binding format is now in `E2EE-V1-CRYPTO-FORMAT.md`.
+- Account key remains ECDH P-256. Public key serialized as Web Crypto JWK. Private wrapper plaintext serialized as DER PKCS#8 bytes, never plaintext-persisted. PKCS#8 avoids JWK property-order dependence for encrypted private-key plaintext.
+- Firestore binary wrapper fields use base64url WITHOUT padding.
+- Exact password+PIN KDF input bytes: UTF8(JSON.stringify(["FIDUNIO-E2EE-KDF",1,password,pin])). Password is not trimmed/case-folded/normalized; PIN exactly six ASCII digits and leading zeroes are significant.
+- PBKDF2-HMAC-SHA-256 600000 iterations, random 16-byte salt, derived non-extractable AES-256-GCM key.
+- AES-GCM uses random 12-byte IV and 128-bit tag.
+- Exact normal AAD bytes: UTF8(JSON.stringify(["FIDUNIO-E2EE-WRAP",1,"normal",uid,keyId,schemaVersion,identityVersion,wrapperVersion])). Recovery uses same ordered array with purpose `recovery`. This binds UID/keyId/purpose/versions and makes transplant/purpose substitution fail authentication.
+- Runtime private CryptoKey should be imported non-extractable for ordinary use. Re-wrap flows may explicitly unwrap/import extractable only for the short re-wrap operation, then discard transient export bytes.
+- Crypto error categories fixed: INVALID_INPUT, UNSUPPORTED_CRYPTO, UNLOCK_FAILED, IDENTITY_MISMATCH, FORMAT_ERROR. Ordinary UI does not reveal whether normal unlock failed due to password vs PIN vs tamper.
+- New isolated pure module `e2ee-account-crypto.js` implements v1 primitives. It owns NO Firebase, Firestore, DOM, local storage, UI or lifecycle. It is NOT yet wired into FIDUNIO runtime.
+- New isolated test runner `e2ee-account-crypto-tests.html` + `e2ee-account-crypto-tests.js` tests normal round trip, wrong password/PIN, AAD UID/keyId transplant, ciphertext/IV/salt tamper, malformed base64url, recovery RUK round trip, wrong RUK, leading-zero PIN and password/PIN re-wrap identity continuity. It does not touch Firebase/Firestore/app state.
+- New `FIRESTORE-E2EE-V1-RULES.md` contains bounded rule helpers/matches and mandatory Emulator matrix. It is a staging specification, NOT blindly deployed rules. Existing `firestore.rules` remains untouched until Emulator validation.
+- Public client v1 key publication is CREATE-ONCE. Ordinary client update/delete of established `e2eePublicKeys/{uid}` is denied because password/PIN re-wrap does not change public identity. Future key migration/rotation requires an explicit reviewed protocol.
+- Private client update is limited to normalWrapper + exact revision increment + updatedAt; stable keyId/algorithm/recoveryWrapper/state cannot be changed by ordinary client re-wrap. Recovery/Admin path is separately IAM-governed because server SDK bypasses client rules.
+- No app version bump yet because these new crypto/test/spec files are isolated and not imported by production runtime.
 
 E2EE PUBLIC/PRIVATE + RECOVERY ESCROW DECISIONS — SEPTEMBER 5, 2026
 - Private identity target: `users/{uid}/e2ee/identity`; authenticated owner only through client access. Never expose private wrapper to correspondents.
-- Public correspondent lookup target: `e2eePublicKeys/{uid}` containing only uid, versions, stable keyId, ECDH-P256 algorithm, publicJwk, ACTIVE state, timestamp. Registered authenticated users may read public key records; owner-only controlled publication/update; no normal client delete.
+- Public correspondent lookup target: `e2eePublicKeys/{uid}` containing only uid, versions, stable keyId, ECDH-P256 algorithm, publicJwk, ACTIVE state, timestamps. Registered authenticated users may read public key records.
 - Existing `firestore.rules` is legacy/current production and contains per-device E2EE permissions. Do NOT wholesale replace it. Add new rules in bounded form and Emulator-test them; preserve invitations/roles/conversations/groups/receipts. Legacy devices rules remain until migration is validated.
-- Recovery architecture now uses random per-user 256-bit Recovery Unlock Key (RUK). Client encrypts SAME account private key under RUK with AES-256-GCM. Recovery function protects/wraps RUK using server recovery KEK/capability held through Google Secret Manager/KMS boundary. Firestore stores recovery ciphertext + wrappedRecoveryKey, NEVER plaintext RUK/KEK/private key.
-- Normal enrollment does not require sending the account private key to recovery server. Server receives transient RUK for protection, not message plaintext/private identity key.
+- Recovery architecture uses random per-user 256-bit Recovery Unlock Key (RUK). Client encrypts SAME account private key under RUK with AES-256-GCM. Recovery function protects/wraps RUK using server recovery KEK/capability held through Google Secret Manager/KMS boundary. Firestore stores recovery ciphertext + wrappedRecoveryKey, NEVER plaintext RUK/KEK/private key.
+- Normal enrollment does not require sending account private key to recovery server. Server receives transient RUK for protection, not message plaintext/private identity key.
 - Forgotten-password recovery: authorized recovery function unwraps/releases per-user RUK only after approved short-lived recovery authorization; client uses RUK to recover SAME private key, then creates/verifies new Password+6-digit-PIN normal wrapper and commits by expected keyId/revision.
 - Recovery authority remains explicitly trusted security boundary because it can authorize release of recovery capability. No claim of zero-knowledge recovery.
 - Recovery callable should use Firebase Auth context and App Check as abuse defense where supported; App Check supplements, never replaces recovery authorization.
 - Cloud Functions/Admin SDK bypass client Firestore Rules, so server recovery IAM must be least privilege.
-- Public/private creation should be one deterministic identity-owner operation; cryptographic generation outside retriable Firestore transaction callbacks.
-- AES-GCM authenticated context must bind schema/identity version, UID, keyId, wrapper purpose/version using canonical encoding fixed by tests.
-- Required tests include wrong password/PIN, tamper, cross-account wrapper transplant, non-owner private read, public record field leakage, concurrent revision, failed recovery/re-wrap, reinstall/cache loss, offline/reconnect.
-- Binding detail: `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` commit beginning `04ed758c`.
+- Public/private creation is one deterministic identity-owner operation; cryptographic generation outside retriable Firestore transaction callbacks.
 
 E2EE CRYPTO SPECIFICATION — FROZEN V1 DIRECTION
 - ONE ACCOUNT = ONE durable random account E2EE identity.
 - Web Crypto ECDH P-256 account key pair, versioned.
 - Normal private-key wrapper AES-256-GCM.
 - Password+PIN KDF PBKDF2-HMAC-SHA-256, 600,000 iterations, random salt, random unique GCM IV.
-- Password + exactly six-digit FIDUNIO PIN required together, unambiguous encoding.
+- Password + exactly six-digit FIDUNIO PIN required together.
 - Firestore never contains plaintext password/PIN/private key/derived normal wrapping key/recovery RUK/master KEK.
 - Exactly one Account E2EE Identity Manager owns create/unlock/recovery/re-wrap/publication; duplicate startup/auth callbacks join same serialized operation.
 - Identity create-once; missing local state never authorizes replacement.
@@ -66,10 +80,10 @@ MAJOR ARCHITECTURE CORRECTION
 
 CURRENT IMPLEMENTATION ORDER
 1. Read mandatory docs/preserve checkpoints.
-2. Freeze canonical JWK/private serialization and AES-GCM AAD byte encoding; cross-browser crypto tests.
-3. Draft bounded public/private Firestore Rules additions + Emulator tests; do not disturb unrelated rules.
+2. Run/validate isolated v1 crypto tests on target browsers; correct crypto module only if tests expose a real defect.
+3. Convert `FIRESTORE-E2EE-V1-RULES.md` staging snippets into bounded `firestore.rules` changes only after Emulator/Rules validation; do not disturb unrelated rules.
 4. Specify recovery callable challenge/session lifecycle, exact rate limits, IAM/Secret Manager/KMS and notification/session policy.
-5. Implement sole Account E2EE Identity Manager.
+5. Implement sole Account E2EE Identity Manager using isolated crypto primitives and central Firebase service APIs.
 6. Implement Firestore-authoritative sync/UID cache/owned Outbox.
 7. Replace legacy per-device envelope routing in bounded migration.
 8. Keep device ID informational.
