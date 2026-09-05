@@ -1,4 +1,4 @@
-// One-shot rebuild materializer: make firebase.js the sole Firebase SDK owner.
+// One-shot rebuild materializer: make firebase.js the sole Firebase SDK owner. Trigger after workflow registration.
 import fs from "node:fs";
 
 const firebasePath="firebase.js",authPath="auth-ui-clean.js",gatePath="runtime-authority-gate.test.mjs";
