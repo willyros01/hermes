@@ -26,7 +26,9 @@ export function createAccountE2EEAuthLifecycle({manager}={}){
     if(boundUid&&boundUid!==clean)resetForSignOut();
     boundUid=clean;
     const token=++epoch;
-    const promise=Promise.resolve().then(()=>owner.load(clean)).then(doc=>{
+    let loadResult;
+    try{loadResult=owner.load(clean);}catch(error){loadResult=Promise.reject(error);}
+    const promise=Promise.resolve(loadResult).then(doc=>{
       if(token!==epoch||boundUid!==clean)return{uid:clean,stale:true,hasIdentity:false,state:owner.getState()};
       return{uid:clean,stale:false,hasIdentity:!!doc,state:owner.getState()};
     }).catch(error=>{
