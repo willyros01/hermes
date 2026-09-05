@@ -1,4 +1,4 @@
-// One-shot rebuild materializer: move Settings Firebase operations behind firebase.js. Trigger after workflow registration.
+// One-shot rebuild materializer: move Settings Firebase operations behind firebase.js. Retry with exact range replacement.
 import fs from "node:fs";
 
 const firebasePath="firebase.js",settingsPath="settings-lifecycle.js",gatePath="runtime-authority-gate.test.mjs";
@@ -16,7 +16,7 @@ function replaceRange(source,start,end,replacement,label){
   const a=source.indexOf(start);if(a<0)throw new Error(`${label}: start anchor missing`);
   const b=source.indexOf(end,a+start.length);if(b<0)throw new Error(`${label}: end anchor missing`);
   if(source.indexOf(start,a+start.length)>=0)throw new Error(`${label}: start anchor not unique`);
-  return source.slice(0,a)+replacement+source.slice(b);
+  return source.slice(0,a)+replacement+source.slice(b+end.length);
 }
 
 const centralApis=`// Settings account/admin APIs. firebase.js is the sole Firebase SDK/service owner;
