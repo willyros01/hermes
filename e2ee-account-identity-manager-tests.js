@@ -12,9 +12,11 @@ function makeStore(){let doc=null,pub=null;return{
  snapshot(){return{doc:doc?structuredClone(doc):null,pub:pub?structuredClone(pub):null};}
 };}
 function makeRecovery(){let saved=null;return{
- async protectRecoveryKey({uid,keyId,pin,recoveryUnlockKey}){saved={uid,keyId,pin,ruk:new Uint8Array(recoveryUnlockKey)};return{wrappedRecoveryKey:"test-server-wrapped-ruk",metadata:{test:true}};},
+ async protectRecoveryKey({uid,keyId,pin,recoveryUnlockKey}){saved={uid,keyId,pin,ruk:new Uint8Array(recoveryUnlockKey)};return{wrappedRecoveryKey:"test-server-wrapped-ruk",recoveryKeyIv:"test-server-iv",recoveryKeyWrappingAlgorithm:"HMAC-SHA256+A256GCM"};},
  get(){return saved;}
 };}
+function deferred(){let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};}
+
 async function run(){
  const uid="identity-manager-test-user",password="Test password 123!",pin="012345";
  const store=makeStore(),recovery=makeRecovery(),states=[];
@@ -22,7 +24,9 @@ async function run(){
  let enrolled;
  try{enrolled=await m.enroll({uid,password,pin});row("enroll creates one durable identity",!!enrolled?.keyId);}catch(e){row("enroll creates one durable identity",false,e.message);return finish();}
  const first=store.snapshot();
+ row("public JWK has exact minimal shape",JSON.stringify(Object.keys(first.pub?.publicJwk||{}).sort())===JSON.stringify(["crv","kty","x","y"]));
  row("public record contains no private JWK d",!("d" in (first.pub?.publicJwk||{})));
+ row("enrollment runtime private key is non-extractable",m.getRuntimeIdentity()?.privateKey?.extractable===false);
  row("recovery service receives exact six-digit PIN",recovery.get()?.pin===pin);
  await expectFail("second enrollment cannot replace existing identity",()=>m.enroll({uid,password,pin}));
  m.resetForSignOut();
@@ -38,8 +42,24 @@ async function run(){
  m.resetForSignOut();await m.load(uid);
  await expectFail("old password and PIN fail after re-wrap",()=>m.unlock({uid,password,pin}));
  try{const u=await m.unlock({uid,password:"New password 456!",pin:"654321"});row("new password and PIN unlock after re-wrap",u.keyId===enrolled.keyId);}catch(e){row("new password and PIN unlock after re-wrap",false,e.message);}
+
+ const beforeRecovery=store.snapshot(), ruk=recovery.get().ruk;
+ try{const r=await m.recover({uid,recoveryUnlockKey:ruk,newPassword:"Recovered password 789!",pin});row("recovery increments revision",r.revision===3);}catch(e){row("recovery increments revision",false,e.message);}
+ const recovered=store.snapshot();
+ row("recovery preserves keyId",recovered.doc.keyId===beforeRecovery.doc.keyId);
+ row("recovery preserves public identity",JSON.stringify(recovered.pub)===JSON.stringify(beforeRecovery.pub));
+ row("recovery preserves recovery wrapper",JSON.stringify(recovered.doc.recoveryWrapper)===JSON.stringify(beforeRecovery.doc.recoveryWrapper));
+ m.resetForSignOut();await m.load(uid);
+ try{const u=await m.unlock({uid,password:"Recovered password 789!",pin});row("recovered password plus existing PIN unlock same identity",u.keyId===enrolled.keyId);}catch(e){row("recovered password plus existing PIN unlock same identity",false,e.message);}
  await expectFail("manager refuses cross-account use until sign-out reset",()=>m.load("another-user"));
  row("serialized state path reached READY",states.includes("READY"));
+
+ const gate=deferred(), slowStore={...makeStore(),async readIdentity(){await gate.promise;return null;}}, slowRecovery=makeRecovery();
+ const slow=createAccountE2EEIdentityManager({identityStore:slowStore,recoveryService:slowRecovery});
+ const pending=slow.load("signout-race-user");
+ slow.resetForSignOut(); gate.resolve();
+ await expectFail("sign-out invalidates an in-flight identity operation",()=>pending);
+ row("sign-out race cannot repopulate runtime",slow.getRuntimeIdentity()===null&&slow.getState().state==="EMPTY");
  finish();
 }
 function finish(){const failed=rows.filter(r=>!r.ok).length;document.getElementById("summary").textContent=failed?`${failed} test(s) failed.`:`All ${rows.length} tests passed.`;}
