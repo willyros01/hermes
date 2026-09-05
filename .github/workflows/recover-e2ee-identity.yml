@@ -1,0 +1,67 @@
+name: Recover E2EE identity continuity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/recover-e2ee-identity.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch bounded identity recovery path
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('account-storage.js')
+          s=p.read_text()
+          needle='''async function loadVault(uid){const db=await openVault();const value=await idbRequest(db.transaction("snapshots","readonly").objectStore("snapshots").get(String(uid)));db.close();return value||null;}\n\nfunction bytesToB64(bytes){let s="";bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s);}\n'''
+          repl='''async function loadVault(uid){const db=await openVault();const value=await idbRequest(db.transaction("snapshots","readonly").objectStore("snapshots").get(String(uid)));db.close();return value||null;}\n\nexport async function inspectQuarantinedAccountIdentity(){\n  const snapshot=await loadVault(QUARANTINE_KEY);\n  const keypair=snapshot?.meta?.["e2ee-device-keypair-v1"]||null;\n  const identity=snapshot?.meta?.["e2ee-device-identity-v1"]||null;\n  return{\n    hasIdentity:!!(keypair?.publicJwk&&identity?.deviceId),\n    publicJwk:keypair?.publicJwk||null,\n    deviceId:identity?.deviceId||null\n  };\n}\n\nexport function recoverQuarantinedE2EEIdentity(uid,{legacyOwnerUid=null}={}){\n  const targetUid=String(uid||"").trim();\n  const ownerUid=String(legacyOwnerUid||"").trim();\n  if(!targetUid||ownerUid!==targetUid)return Promise.resolve({recovered:false,reason:"owner-not-verified"});\n  return serializeStorage(async()=>{\n    const live=await openLive();\n    try{\n      const activeUid=String(await readMeta(live,ACTIVE_UID_KEY)||"");\n      if(activeUid!==targetUid)return{recovered:false,reason:"account-not-active"};\n      const quarantine=await loadVault(QUARANTINE_KEY);\n      const legacyKeypair=quarantine?.meta?.["e2ee-device-keypair-v1"]||null;\n      const legacyIdentity=quarantine?.meta?.["e2ee-device-identity-v1"]||null;\n      if(!legacyKeypair?.publicJwk||!legacyIdentity?.deviceId)return{recovered:false,reason:"no-quarantined-identity"};\n      const currentKeypair=await readMeta(live,"e2ee-device-keypair-v1");\n      const currentIdentity=await readMeta(live,"e2ee-device-identity-v1");\n      const sameDevice=String(currentIdentity?.deviceId||"")===String(legacyIdentity.deviceId);\n      const samePublic=JSON.stringify(currentKeypair?.publicJwk||null)===JSON.stringify(legacyKeypair.publicJwk||null);\n      if(sameDevice&&samePublic)return{recovered:false,reason:"already-active",deviceId:legacyIdentity.deviceId};\n\n      // Preserve the current v3 snapshot before restoring the verified legacy\n      // device identity. This gives us a deterministic rollback point and\n      // never discards the post-migration private key.\n      const before=await readLiveSnapshot(live);\n      await saveVault(`__pre-e2ee-recovery:${targetUid}`,before);\n      await writeMeta(live,"e2ee-device-keypair-v1",legacyKeypair);\n      await writeMeta(live,"e2ee-device-identity-v1",legacyIdentity);\n      await saveVault(targetUid,await readLiveSnapshot(live));\n      return{recovered:true,deviceId:legacyIdentity.deviceId};\n    }finally{live.close();}\n  });\n}\n\nfunction bytesToB64(bytes){let s="";bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s);}\n'''
+          if needle not in s: raise SystemExit('account-storage anchor missing')
+          p.write_text(s.replace(needle,repl,1))
+
+          p=Path('auth-ui-clean.js')
+          s=p.read_text()
+          s=s.replace('''  getFidunioAccessInfo,\n  listCloudUsers,\n  validateInvitation,''','''  getFidunioAccessInfo,\n  listCloudUsers,\n  getCloudUserDevices,\n  validateInvitation,''',1)
+          s=s.replace('''  getAccountStorageStatus,\n  inspectLegacyAccountIdentity,\n  activateAccountStorage\n} from "./account-storage.js";''','''  getAccountStorageStatus,\n  inspectLegacyAccountIdentity,\n  inspectQuarantinedAccountIdentity,\n  recoverQuarantinedE2EEIdentity,\n  activateAccountStorage\n} from "./account-storage.js";''',1)
+          old='''function canonicalJwk(jwk){return JSON.stringify({kty:jwk?.kty||"",crv:jwk?.crv||"",x:jwk?.x||"",y:jwk?.y||""});}\nasync function resolveLegacyOwnerUid(){\n  const legacy=await inspectLegacyAccountIdentity();\n  if(!legacy.hasLegacyData||!legacy.publicJwk)return null;\n  const current=await getFidunioAccessInfo();\n  const others=await listCloudUsers();\n  const wanted=canonicalJwk(legacy.publicJwk);\n  const candidates=[current.profile,...others].filter(Boolean).filter(p=>canonicalJwk(p.e2eePublicJwk)===wanted);\n  const unique=[...new Set(candidates.map(p=>p.uid).filter(Boolean))];\n  return unique.length===1?unique[0]:null;\n}\n'''
+          new='''function canonicalJwk(jwk){return JSON.stringify({kty:jwk?.kty||"",crv:jwk?.crv||"",x:jwk?.x||"",y:jwk?.y||""});}\nasync function resolveIdentityOwnerUid(identity){\n  if(!identity?.publicJwk&&!identity?.deviceId)return null;\n  const current=await getFidunioAccessInfo();\n  const others=await listCloudUsers();\n  const profiles=[current.profile,...others].filter(Boolean);\n  const wantedKey=identity.publicJwk?canonicalJwk(identity.publicJwk):null;\n  const wantedDevice=String(identity.deviceId||"");\n  const matches=new Set();\n  for(const profile of profiles){\n    if(wantedKey&&canonicalJwk(profile.e2eePublicJwk)===wantedKey)matches.add(profile.uid);\n    try{\n      const devices=await getCloudUserDevices(profile.uid);\n      if(devices.some(d=>\n        (wantedDevice&&String(d.deviceId||d.id||"")===wantedDevice)||\n        (wantedKey&&canonicalJwk(d.publicJwk)===wantedKey)\n      ))matches.add(profile.uid);\n    }catch(err){console.warn("Could not inspect device registry for legacy identity ownership",profile.uid,err);}\n  }\n  return matches.size===1?[...matches][0]:null;\n}\nasync function resolveLegacyOwnerUid(){\n  const legacy=await inspectLegacyAccountIdentity();\n  if(!legacy.hasLegacyData||(!legacy.publicJwk&&!legacy.deviceId))return null;\n  return resolveIdentityOwnerUid(legacy);\n}\nasync function recoverVerifiedQuarantinedIdentity(userUid){\n  const legacy=await inspectQuarantinedAccountIdentity();\n  if(!legacy.hasIdentity)return{recovered:false,reason:"no-quarantined-identity"};\n  const ownerUid=await resolveIdentityOwnerUid(legacy);\n  if(ownerUid!==userUid)return{recovered:false,reason:ownerUid?"belongs-to-other-account":"ownership-ambiguous"};\n  return recoverQuarantinedE2EEIdentity(userUid,{legacyOwnerUid:ownerUid});\n}\n'''
+          if old not in s: raise SystemExit('auth owner-resolution anchor missing')
+          s=s.replace(old,new,1)
+          old='''  await activateAccountStorage(user.uid,{legacyOwnerUid});\n  appStarted=true;\n'''
+          new='''  await activateAccountStorage(user.uid,{legacyOwnerUid});\n  try{\n    const recovery=await recoverVerifiedQuarantinedIdentity(user.uid);\n    if(recovery?.recovered)console.info("FIDUNIO restored the verified pre-v3 E2EE device identity",recovery.deviceId);\n  }catch(err){console.warn("FIDUNIO could not recover the quarantined E2EE identity",err);}\n  appStarted=true;\n'''
+          if old not in s: raise SystemExit('auth startApp anchor missing')
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('version.js')
+          s=p.read_text().replace('version: "0.9.5.4"','version: "0.9.5.5"')
+          p.write_text(s)
+
+          p=Path('BUG-LIST.md')
+          s=p.read_text()
+          marker='''### PIN / Local Security\n'''
+          note='''### E2EE historical identity continuity\n- **0.9.5.5 focused recovery build:** older E2EE-v2 messages can show `[Encrypted message — not available on this device]` after the v3 account-storage migration even though the same messages previously decrypted and retained correct Read receipts.\n- Root cause under repair: the pre-v3 device keypair/identity may have been quarantined because account-level `e2eePublicJwk` is not a reliable ownership signal in a multi-device account; another device can overwrite that compatibility field.\n- 0.9.5.5 resolves legacy identity ownership against the full per-user device registry (device ID and public JWK), requires exactly one matching UID, and only then restores the quarantined keypair/device identity to that active account.\n- The post-migration v3 snapshot is preserved under a recovery checkpoint before any identity restore. Ambiguous ownership remains quarantined and is never guessed.\n- Messaging transport, receipt logic, service-worker E2EE-v2 transform, Settings, PIN, and account-state payloads are otherwise unchanged in this increment.\n- Status: **awaiting iPad/iPhone validation.**\n\n'''
+          if marker not in s: raise SystemExit('bug-list anchor missing')
+          p.write_text(s.replace(marker,note+marker,1))
+          PY
+      - name: Verify bounded change
+        run: |
+          grep -q 'inspectQuarantinedAccountIdentity' account-storage.js
+          grep -q 'recoverQuarantinedE2EEIdentity' account-storage.js
+          grep -q 'getCloudUserDevices' auth-ui-clean.js
+          grep -q 'recoverVerifiedQuarantinedIdentity' auth-ui-clean.js
+          grep -q 'version: "0.9.5.5"' version.js
+          git diff --check
+      - name: Commit recovery increment
+        run: |
+          git config user.name 'willyros01'
+          git config user.email 'willyros01@gmail.com'
+          git add account-storage.js auth-ui-clean.js version.js BUG-LIST.md
+          git commit -m 'Recover verified quarantined E2EE device identity'
+          git push
