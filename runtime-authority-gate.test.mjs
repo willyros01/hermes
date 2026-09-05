@@ -12,7 +12,6 @@ const jsFiles=entries
 const firebaseSdkAllow=new Set([
   "firebase.js",             // target owner
   "auth-ui-clean.js",        // temporary password-reset helper
-  "settings-lifecycle.js"    // temporary Settings admin/profile data access
 ]);
 const observerAllow=new Set([
 ]);
