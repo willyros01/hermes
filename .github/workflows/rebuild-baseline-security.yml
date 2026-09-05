@@ -42,6 +42,8 @@ jobs:
         run: npm run test:firebase-e2ee-adapter
       - name: Account E2EE auth lifecycle
         run: npm run test:e2ee-account-lifecycle
+      - name: Account direct-message crypto
+        run: npm run test:e2ee-account-message-crypto
       - name: Cloud Functions recovery scaffold
         run: npm run test:functions-scaffold
       - name: Runtime transform anchor gate
