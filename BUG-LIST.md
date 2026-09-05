@@ -24,7 +24,9 @@ This file is the durable working bug list for current development. Keep it conci
 - 0.9.5.5 resolves legacy identity ownership against the full per-user device registry (device ID and public JWK), requires exactly one matching UID, and only then restores the quarantined keypair/device identity to that active account.
 - The post-migration v3 snapshot is preserved under a recovery checkpoint before any identity restore. Ambiguous ownership remains quarantined and is never guessed.
 - Messaging transport, receipt logic, service-worker E2EE-v2 transform, Settings, PIN, and account-state payloads are otherwise unchanged in this increment.
-- Status: **awaiting iPad/iPhone validation.**
+- 0.9.5.5 result on iPad: current 0.9.5.4-era messages remain readable with correct receipts, but older 6:58/6:59 PM E2EE-v2 messages still report unavailable. Therefore 0.9.5.5 did not recover the historical identity.
+- **0.9.5.6 diagnostic-only build:** adds a separate `e2ee-diagnostics.html` page that inventories existing local/vault device IDs and public-key fingerprints and compares them with cloud message envelope device IDs. It is read-only: no app-state, key, vault, message, receipt, or Firebase writes.
+- Status: **diagnostic collection pending. No further key recovery until the report identifies whether the historical device identity still exists locally.**
 
 ### PIN / Local Security
 - **Remove Local PIN does not work.**
