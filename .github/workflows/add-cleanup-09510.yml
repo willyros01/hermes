@@ -1,0 +1,63 @@
+name: Add cache-independent cleanup 0.9.5.10
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/add-cleanup-09510.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add unique cleanup page/module
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          Path('baseline-cleanup-09510.js').write_text(r'''import { firebaseConfig } from "./firebase-config.js";
+const SDK_VERSION="12.18.0";
+const LIVE_DB="fidunio-local";
+const KEEP_META=new Set(["local-key","local-security-v1","e2ee-device-keypair-v1","e2ee-device-identity-v1"]);
+const OBSOLETE_VAULTS=["fidunio-account-vault","fidunio-account-vault-v2","fidunio-account-vault-v3"];
+let servicesPromise=null;
+function req(r){return new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("IndexedDB transaction failed"));tx.onabort=()=>reject(tx.error||new Error("IndexedDB transaction aborted"));});}
+async function services(){if(servicesPromise)return servicesPromise;servicesPromise=Promise.all([import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`)]).then(([appSdk,authSdk,fsSdk])=>{const app=appSdk.initializeApp(firebaseConfig,"fidunio-cleanup-09510");const auth=authSdk.getAuth(app);authSdk.setPersistence(auth,authSdk.browserLocalPersistence).catch(()=>{});return{app,auth,db:fsSdk.getFirestore(app),authSdk,fsSdk};});return servicesPromise;}
+async function signedInUser(){const s=await services();if(s.auth.currentUser)return s.auth.currentUser;return new Promise((resolve,reject)=>{const stop=s.authSdk.onAuthStateChanged(s.auth,u=>{stop();u?resolve(u):reject(new Error("Sign in to normal FIDUNIO in this Safari first."));},reject);});}
+async function dbNames(){if(typeof indexedDB.databases!=="function")throw new Error("Safari database enumeration is required for safe cleanup.");return new Set((await indexedDB.databases()).map(x=>x.name).filter(Boolean));}
+function openExisting(name){return new Promise((resolve,reject)=>{const r=indexedDB.open(name);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+async function readIdentity(){const names=await dbNames();if(!names.has(LIVE_DB))throw new Error("FIDUNIO live database not found.");const db=await openExisting(LIVE_DB);try{const tx=db.transaction("meta","readonly"),st=tx.objectStore("meta");const iReq=st.get("e2ee-device-identity-v1"),kReq=st.get("e2ee-device-keypair-v1");const [identity,keypair]=await Promise.all([req(iReq),req(kReq)]);await txDone(tx);if(!identity?.deviceId||!keypair?.privateKey||!keypair?.publicKey)throw new Error("Current E2EE identity is incomplete; cleanup cancelled.");return identity;}finally{db.close();}}
+async function listDevices(uid){const s=await services();const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users",uid,"devices"));return snap.docs.map(d=>({ref:d.ref,id:d.id,...d.data()}));}
+async function deactivateStale(uid,keepDeviceId){const s=await services(),rows=await listDevices(uid),batch=s.fsSdk.writeBatch(s.db);let n=0;for(const d of rows){if(d.id===keepDeviceId||d.active===false)continue;batch.set(d.ref,{active:false,revokedAt:s.fsSdk.serverTimestamp(),revokedReason:"test-baseline-cleanup-09510"},{merge:true});n++;}if(n)await batch.commit();return n;}
+async function clearLiveTestData(){const db=await openExisting(LIVE_DB);try{const stores=[...db.objectStoreNames].filter(n=>["meta","outbox","history"].includes(n));if(!stores.length)return;const tx=db.transaction(stores,"readwrite");for(const name of stores){const st=tx.objectStore(name);if(name!=="meta"){st.clear();continue;}const keys=await req(st.getAllKeys());for(const key of keys){if(!KEEP_META.has(String(key)))st.delete(key);}}await txDone(tx);}finally{db.close();}}
+function deleteDb(name){return new Promise((resolve,reject)=>{const r=indexedDB.deleteDatabase(name);r.onsuccess=resolve;r.onerror=()=>reject(r.error);r.onblocked=()=>reject(new Error(`Close the normal FIDUNIO tab, then retry. Database is still open: ${name}`));});}
+export async function inspect09510(){const user=await signedInUser(),identity=await readIdentity(),devices=await listDevices(user.uid),names=await dbNames();return{uid:user.uid,deviceId:identity.deviceId,staleActiveDevices:devices.filter(d=>d.active!==false&&d.id!==identity.deviceId).length,vaults:OBSOLETE_VAULTS.filter(n=>names.has(n))};}
+export async function run09510(expectedDeviceId){const user=await signedInUser(),identity=await readIdentity();if(identity.deviceId!==expectedDeviceId)throw new Error("Protected device identity changed; cleanup cancelled.");const deactivated=await deactivateStale(user.uid,identity.deviceId);await clearLiveTestData();const names=await dbNames();const deleted=[];for(const name of OBSOLETE_VAULTS){if(names.has(name)){await deleteDb(name);deleted.push(name);}}return{deviceId:identity.deviceId,deactivated,deleted};}
+''')
+
+          Path('baseline-cleanup-09510.html').write_text(r'''<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FIDUNIO Clean Baseline 0.9.5.10</title><style>body{font-family:system-ui;margin:0;background:#eef3f5;color:#17232b}.wrap{max-width:760px;margin:auto;padding:24px}.card{background:#fff;border-radius:18px;padding:22px;margin:16px 0}button{font:inherit;padding:12px 16px;border-radius:12px;border:1px solid #456}.danger{font-weight:700}.muted{color:#64727a}pre{white-space:pre-wrap;word-break:break-word}</style></head><body><main class="wrap"><h1>FIDUNIO Clean Baseline</h1><div class="card"><strong>FIDUNIO 0.9.5.10</strong><p>This page uses a brand-new filename and module so Safari cannot reuse the earlier cleanup code.</p><p class="muted">Protected: current E2EE identity/keypair and local PIN/security. Removed: stale active device registrations, local test app-state/history/Outbox, obsolete vault DBs. Cloud conversations/messages are not deleted.</p></div><div class="card"><button id="inspect">Inspect cleanup</button><pre id="out">Keep normal FIDUNIO signed in. Inspect first.</pre></div><div class="card"><button id="run" class="danger" disabled>Run controlled cleanup</button></div></main><script type="module">import{inspect09510,run09510}from'./baseline-cleanup-09510.js';let inspected=null;const out=document.querySelector('#out'),run=document.querySelector('#run');document.querySelector('#inspect').onclick=async()=>{try{inspected=await inspect09510();out.textContent=JSON.stringify(inspected,null,2);run.disabled=false;}catch(e){out.textContent='Inspection stopped: '+e.message;run.disabled=true;}};run.onclick=async()=>{if(!inspected)return;if(!confirm('Proceed while preserving device '+inspected.deviceId+'?'))return;run.disabled=true;try{const r=await run09510(inspected.deviceId);out.textContent='Cleanup complete.\nPreserved device: '+r.deviceId+'\nDeactivated stale cloud devices: '+r.deactivated+'\nDeleted vaults: '+(r.deleted.join(', ')||'none')+'\n\nNow reload normal FIDUNIO and verify the same device ID.';}catch(e){out.textContent='Cleanup stopped: '+e.message;run.disabled=false;}};</script></body></html>''')
+
+          p=Path('version.js');s=p.read_text().replace('version: "0.9.5.9"','version: "0.9.5.10"');p.write_text(s)
+          p=Path('hermes-memory.txt');s=p.read_text();marker='CURRENT CRITICAL ARCHITECTURAL DISCOVERY — SEPTEMBER 4, 2026\n';note='''0.9.5.10 CACHE-INDEPENDENT CLEANUP — SEPTEMBER 4, 2026\n- 0.9.5.9 cleanup retry on iPad Safari still executed cached 0.9.5.8 helper code (`keptDeviceId` typo), confirming stale module/cache mixing.\n- To finish the requested test-data cleanup safely, 0.9.5.10 uses brand-new filenames `baseline-cleanup-09510.html/js`, so the destructive operation does not depend on the previously cached cleanup module or `firebase.js` cleanup helper.\n- This standalone maintenance page is a deliberate one-time exception to normal central Firebase ownership; it uses a uniquely named Firebase app only for explicit cleanup, and does not participate in normal app runtime/lifecycle.\n- It preserves the live E2EE identity/keypair plus local PIN/security, deactivates stale device registrations, clears local test app-state/history/Outbox, deletes obsolete vault DBs, and still does NOT delete cloud conversations/messages.\n\n''';
+          if note not in s:s=s.replace(marker,note+marker,1)
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q '0.9.5.10' baseline-cleanup-09510.html
+          grep -q 'fidunio-cleanup-09510' baseline-cleanup-09510.js
+          grep -q 'version: "0.9.5.10"' version.js
+          git diff --check
+          test -z "$(git diff --name-only | grep -E '^(app.js|service-worker.js|account-storage.js|settings-lifecycle.js|local-security.js)$' || true)"
+      - name: Commit
+        run: |
+          git config user.name 'willyros01'
+          git config user.email 'willyros01@gmail.com'
+          git add baseline-cleanup-09510.js baseline-cleanup-09510.html version.js hermes-memory.txt
+          git commit -m 'Add cache-independent controlled cleanup 0.9.5.10'
+          git push
