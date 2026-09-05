@@ -8,6 +8,8 @@ on:
       - 'e2ee-recovery-server-crypto.test.mjs'
       - 'e2ee-recovery-session-policy.mjs'
       - 'e2ee-recovery-session-policy.test.mjs'
+      - 'e2ee-recovery-callable-core.mjs'
+      - 'e2ee-recovery-callable-core.test.mjs'
       - 'package.json'
       - '.github/workflows/e2ee-recovery-crypto.yml'
   workflow_dispatch:
@@ -30,3 +32,5 @@ jobs:
         run: npm run test:recovery-crypto
       - name: Run recovery session policy gate
         run: npm run test:recovery-session
+      - name: Run recovery callable core gate
+        run: npm run test:recovery-callable-core
