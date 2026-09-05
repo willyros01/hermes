@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test:e2ee-rules": "node firestore-e2ee-v1.rules.test.mjs",
-    "emulator:test:e2ee-rules": "firebase emulators:exec --only firestore --project demo-fidunio-e2ee-rules \"npm run test:e2ee-rules\""
+    "emulator:test:e2ee-rules": "firebase emulators:exec --only firestore --project demo-fidunio-e2ee-rules \"npm run test:e2ee-rules\"",
+    "test:recovery-crypto": "node e2ee-recovery-server-crypto.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
