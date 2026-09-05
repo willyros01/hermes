@@ -15,17 +15,16 @@ Validated receipt reconciliation is already present in raw `app.js` and remains 
 ### Empty production state
 Raw `app.js` uses an empty compatibility contact array, empty conversations/messages, and a real no-conversations projection rather than named prototype identities.
 
-### Group runtime foundation — MATERIALIZED
-Commit `bcfdebbc64477f4c2ed50ea77f4572322ba63abd` moved these behaviors into authoritative `app.js`:
-- central Firebase imports `listCloudUsers`, `createCloudGroup`, `subscribeMyGroups`;
-- `cloudGroupUnsub` and `groupCandidates` state;
-- `mergeCloudGroup()` and `beginCloudGroupSubscription()`;
-- authenticated start/sign-out cleanup of group subscription;
-- fail-closed cloud-group send guard.
+### Group runtime foundation and creation UI — FULLY MATERIALIZED
+Commit `bcfdebbc64477f4c2ed50ea77f4572322ba63abd` moved group imports/state/subscription/auth lifecycle and the fail-closed cloud-group send guard into authoritative `app.js`.
 
-The matching service-worker transforms were removed. The group send guard is now authoritative source and continues to block group message transport until reviewed group E2EE exists.
+Commit `249eeea1a48a3dcdf9a98e742a29e79b7525395e` then materialized the real New Group / Group Details selection-and-create UI into raw `app.js` and removed the final non-cryptographic group service-worker rewrite.
+
+Group metadata and creation now use central `firebase.js` APIs directly. Group message transport remains intentionally blocked until reviewed account-authoritative group E2EE exists.
 
 ## Transforms still present in `service-worker.js`
+
+Only legacy/per-device E2EE compatibility transforms remain.
 
 ### 1. Per-device E2EE v2 helper functions — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
 Injects `deriveDeviceEnvelopeKey()`, `encryptDeviceEnvelope()`, `buildDeviceEnvelopes()`, and `decryptDeviceEnvelope()` based on per-installation device identity.
@@ -47,11 +46,6 @@ Converts cloud send to per-device `e2ee:2` fan-out.
 
 **Treatment:** preserve only as compatibility until account-authoritative encryption/send/outbox replaces it.
 
-### 5. Real New Group / Group Details UI replacement — NON-CRYPTOGRAPHIC, REMAINING GROUP TRANSFORM
-The service worker still replaces raw group placeholder functions with FIDUNIO-user selection and real group metadata creation UI.
-
-**Treatment:** this is now the next bounded group materialization. The data/subscription APIs and fail-closed send guard it depends on are already authoritative raw source.
-
 ## Temporary non-service-worker compatibility modules
 
 ### `profile-sync.js`
@@ -70,9 +64,9 @@ Temporary bridge until `app.js` exposes the final explicit Settings render hook.
 
 1. **COMPLETE:** dead one-off cleanup and security/recovery checkpoint.
 2. **COMPLETE:** empty Messages state and explicit New Message owner.
-3. **PARTIAL COMPLETE:** group imports/state/subscription/auth lifecycle/send guard materialized; matching SW transforms removed.
-4. **CURRENT:** materialize the remaining New Group / Group Details UI transform into raw `app.js`, then remove that final non-cryptographic group transform.
-5. Replace peer-name/main-screen observer projections with central Firebase APIs + explicit `app.js` projection.
+3. **COMPLETE:** all non-cryptographic group service-worker transforms materialized into raw `app.js`; group send remains fail-closed.
+4. **CURRENT:** replace peer-name/main-screen observer projections with central Firebase APIs + explicit `app.js` projection; remove `profile-sync.js` direct SDK access and `main-screen-polish.js` MutationObserver when their behavior is owned explicitly.
+5. Consolidate remaining Settings direct Firebase service access behind bounded central APIs.
 6. Wire validated account-E2EE identity lifecycle through central `firebase.js`.
 7. Replace per-device send/decrypt/fan-out transforms with account-authoritative messaging plus explicit legacy migration handling.
 8. Confirm no semantic source transform remains and reduce service worker to cache/offline only.
