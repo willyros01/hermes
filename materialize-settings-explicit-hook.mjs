@@ -1,4 +1,4 @@
-// One-shot rebuild materializer: explicit Settings lifecycle ownership.
+// One-shot rebuild materializer: explicit Settings lifecycle ownership. Retry after bridge-retirement workflow fix.
 import fs from "node:fs";
 
 const appPath="app.js",gatePath="runtime-authority-gate.test.mjs",bridgePath="settings-lifecycle-bridge.js";
