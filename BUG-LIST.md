@@ -18,6 +18,14 @@ This file is the durable working bug list for current development. Keep it conci
   - Status: **awaiting Fire HD 8 validation on 0.9.5.3.**
   - Must preserve validated 0.9.5.1 Settings lifecycle; do not reuse the rejected 0.9.4.12 implementation.
 
+### E2EE historical identity continuity
+- **0.9.5.5 focused recovery build:** older E2EE-v2 messages can show `[Encrypted message — not available on this device]` after the v3 account-storage migration even though the same messages previously decrypted and retained correct Read receipts.
+- Root cause under repair: the pre-v3 device keypair/identity may have been quarantined because account-level `e2eePublicJwk` is not a reliable ownership signal in a multi-device account; another device can overwrite that compatibility field.
+- 0.9.5.5 resolves legacy identity ownership against the full per-user device registry (device ID and public JWK), requires exactly one matching UID, and only then restores the quarantined keypair/device identity to that active account.
+- The post-migration v3 snapshot is preserved under a recovery checkpoint before any identity restore. Ambiguous ownership remains quarantined and is never guessed.
+- Messaging transport, receipt logic, service-worker E2EE-v2 transform, Settings, PIN, and account-state payloads are otherwise unchanged in this increment.
+- Status: **awaiting iPad/iPhone validation.**
+
 ### PIN / Local Security
 - **Remove Local PIN does not work.**
   - Reported on FIDUNIO 0.9.5.1.

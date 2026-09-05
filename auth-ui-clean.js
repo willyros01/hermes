@@ -9,6 +9,7 @@ import {
   getFirebaseUser,
   getFidunioAccessInfo,
   listCloudUsers,
+  getCloudUserDevices,
   validateInvitation,
   redeemFidunioInvitation,
   signInFidunio
@@ -18,6 +19,8 @@ import {installSettingsLifecycleBridge} from "./settings-lifecycle-bridge.js";
 import {
   getAccountStorageStatus,
   inspectLegacyAccountIdentity,
+  inspectQuarantinedAccountIdentity,
+  recoverQuarantinedE2EEIdentity,
   activateAccountStorage
 } from "./account-storage.js";
 
@@ -41,15 +44,37 @@ async function resetApi(){
 }
 async function sendPasswordReset(email){const s=await resetApi();await s.authSdk.sendPasswordResetEmail(s.auth,email);}
 function canonicalJwk(jwk){return JSON.stringify({kty:jwk?.kty||"",crv:jwk?.crv||"",x:jwk?.x||"",y:jwk?.y||""});}
-async function resolveLegacyOwnerUid(){
-  const legacy=await inspectLegacyAccountIdentity();
-  if(!legacy.hasLegacyData||!legacy.publicJwk)return null;
+async function resolveIdentityOwnerUid(identity){
+  if(!identity?.publicJwk&&!identity?.deviceId)return null;
   const current=await getFidunioAccessInfo();
   const others=await listCloudUsers();
-  const wanted=canonicalJwk(legacy.publicJwk);
-  const candidates=[current.profile,...others].filter(Boolean).filter(p=>canonicalJwk(p.e2eePublicJwk)===wanted);
-  const unique=[...new Set(candidates.map(p=>p.uid).filter(Boolean))];
-  return unique.length===1?unique[0]:null;
+  const profiles=[current.profile,...others].filter(Boolean);
+  const wantedKey=identity.publicJwk?canonicalJwk(identity.publicJwk):null;
+  const wantedDevice=String(identity.deviceId||"");
+  const matches=new Set();
+  for(const profile of profiles){
+    if(wantedKey&&canonicalJwk(profile.e2eePublicJwk)===wantedKey)matches.add(profile.uid);
+    try{
+      const devices=await getCloudUserDevices(profile.uid);
+      if(devices.some(d=>
+        (wantedDevice&&String(d.deviceId||d.id||"")===wantedDevice)||
+        (wantedKey&&canonicalJwk(d.publicJwk)===wantedKey)
+      ))matches.add(profile.uid);
+    }catch(err){console.warn("Could not inspect device registry for legacy identity ownership",profile.uid,err);}
+  }
+  return matches.size===1?[...matches][0]:null;
+}
+async function resolveLegacyOwnerUid(){
+  const legacy=await inspectLegacyAccountIdentity();
+  if(!legacy.hasLegacyData||(!legacy.publicJwk&&!legacy.deviceId))return null;
+  return resolveIdentityOwnerUid(legacy);
+}
+async function recoverVerifiedQuarantinedIdentity(userUid){
+  const legacy=await inspectQuarantinedAccountIdentity();
+  if(!legacy.hasIdentity)return{recovered:false,reason:"no-quarantined-identity"};
+  const ownerUid=await resolveIdentityOwnerUid(legacy);
+  if(ownerUid!==userUid)return{recovered:false,reason:ownerUid?"belongs-to-other-account":"ownership-ambiguous"};
+  return recoverQuarantinedE2EEIdentity(userUid,{legacyOwnerUid:ownerUid});
 }
 
 async function startApp(){
@@ -63,6 +88,10 @@ async function startApp(){
     catch(err){console.warn("FIDUNIO could not uniquely identify legacy local-data ownership; legacy data will be quarantined",err);}
   }
   await activateAccountStorage(user.uid,{legacyOwnerUid});
+  try{
+    const recovery=await recoverVerifiedQuarantinedIdentity(user.uid);
+    if(recovery?.recovered)console.info("FIDUNIO restored the verified pre-v3 E2EE device identity",recovery.deviceId);
+  }catch(err){console.warn("FIDUNIO could not recover the quarantined E2EE identity",err);}
   appStarted=true;
   clearInviteFromUrl();
   await import("./app.js");

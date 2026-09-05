@@ -69,6 +69,49 @@ async function restoreLiveSnapshot(db,snapshot){
 async function saveVault(uid,snapshot){const db=await openVault();const tx=db.transaction("snapshots","readwrite");tx.objectStore("snapshots").put(snapshot,String(uid));await txDone(tx);db.close();}
 async function loadVault(uid){const db=await openVault();const value=await idbRequest(db.transaction("snapshots","readonly").objectStore("snapshots").get(String(uid)));db.close();return value||null;}
 
+export async function inspectQuarantinedAccountIdentity(){
+  const snapshot=await loadVault(QUARANTINE_KEY);
+  const keypair=snapshot?.meta?.["e2ee-device-keypair-v1"]||null;
+  const identity=snapshot?.meta?.["e2ee-device-identity-v1"]||null;
+  return{
+    hasIdentity:!!(keypair?.publicJwk&&identity?.deviceId),
+    publicJwk:keypair?.publicJwk||null,
+    deviceId:identity?.deviceId||null
+  };
+}
+
+export function recoverQuarantinedE2EEIdentity(uid,{legacyOwnerUid=null}={}){
+  const targetUid=String(uid||"").trim();
+  const ownerUid=String(legacyOwnerUid||"").trim();
+  if(!targetUid||ownerUid!==targetUid)return Promise.resolve({recovered:false,reason:"owner-not-verified"});
+  return serializeStorage(async()=>{
+    const live=await openLive();
+    try{
+      const activeUid=String(await readMeta(live,ACTIVE_UID_KEY)||"");
+      if(activeUid!==targetUid)return{recovered:false,reason:"account-not-active"};
+      const quarantine=await loadVault(QUARANTINE_KEY);
+      const legacyKeypair=quarantine?.meta?.["e2ee-device-keypair-v1"]||null;
+      const legacyIdentity=quarantine?.meta?.["e2ee-device-identity-v1"]||null;
+      if(!legacyKeypair?.publicJwk||!legacyIdentity?.deviceId)return{recovered:false,reason:"no-quarantined-identity"};
+      const currentKeypair=await readMeta(live,"e2ee-device-keypair-v1");
+      const currentIdentity=await readMeta(live,"e2ee-device-identity-v1");
+      const sameDevice=String(currentIdentity?.deviceId||"")===String(legacyIdentity.deviceId);
+      const samePublic=JSON.stringify(currentKeypair?.publicJwk||null)===JSON.stringify(legacyKeypair.publicJwk||null);
+      if(sameDevice&&samePublic)return{recovered:false,reason:"already-active",deviceId:legacyIdentity.deviceId};
+
+      // Preserve the current v3 snapshot before restoring the verified legacy
+      // device identity. This gives us a deterministic rollback point and
+      // never discards the post-migration private key.
+      const before=await readLiveSnapshot(live);
+      await saveVault(`__pre-e2ee-recovery:${targetUid}`,before);
+      await writeMeta(live,"e2ee-device-keypair-v1",legacyKeypair);
+      await writeMeta(live,"e2ee-device-identity-v1",legacyIdentity);
+      await saveVault(targetUid,await readLiveSnapshot(live));
+      return{recovered:true,deviceId:legacyIdentity.deviceId};
+    }finally{live.close();}
+  });
+}
+
 function bytesToB64(bytes){let s="";bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s);}
 async function ensureBlankAppState(db){
   const existing=await readMeta(db,STATE_KEY);
