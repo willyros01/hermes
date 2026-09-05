@@ -1,172 +1,99 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
-Protected rollback baseline: FIDUNIO 0.8.1.16 at commit 2a6380e26ce969fc95f0a38e29517e48b09b781b
-Current validated development messaging baseline: FIDUNIO 0.9.0.4
-Current validated pre-PIN baseline: FIDUNIO 0.9.3.7 at commit db15b15c92ea476f81a2ccc37e08dde53a2e491e
-Current validated stabilization baseline on main: FIDUNIO 0.9.4.11
-Internal project/repo name: Hermes
-Public app/product name: FIDUNIO — Private Messaging
 
-MANDATORY FIRST READ BEFORE ANY CODE CHANGE
-- `CODING-GUIDELINES.md` is a binding project architecture contract and MUST be read before writing, editing, moving, or deleting application code.
+MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
+- `CODING-GUIDELINES.md` is the binding coding/architecture contract.
+- `RUNTIME-CONSOLIDATION-PLAN.md` is the binding current recovery/action plan and MUST be read before any runtime, messaging, storage, service-worker, prototype-cleanup, or Fire account-isolation change.
+- This requirement applies to every future chat, sub-chat, assistant instance, or coding session continuing Hermes/FIDUNIO.
 - No implementation may begin until ownership, exact resource scope, lifecycle trigger, and serialized write path are identified for every mutable resource touched.
-- Core rule: ONE RESOURCE → ONE OWNER → ONE PREDEFINED AREA → ONE SERIALIZED WRITE PATH.
-- New broad/global MutationObservers, random DOM appends, cross-module re-parenting, competing state authorities, independent auth/Firebase lifecycle decisions, fire-and-forget shared writes, and loose global busy flags are prohibited unless explicitly reviewed and approved.
-- If a future chat, sub-chat, assistant instance, or coding session continues this project, it must read `CODING-GUIDELINES.md` and this `hermes-memory.txt` before changing code.
-- The Settings failure is the canonical precedent: Profile, User Administration, and Invitations were late additions outside the authoritative Settings render lifecycle and survived only because observer-based bolt-ons recreated/rearranged them. Future repair must use explicit hosts and deterministic remounting from the authoritative screen lifecycle, not observer rediscovery.
+- Core rule: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 
-LOCKED CONVENTIONS
-- Hermes = internal project/repository/release ZIP naming; FIDUNIO = public app/product.
+CURRENT CRITICAL ARCHITECTURAL DISCOVERY — SEPTEMBER 4, 2026
+- The repository currently has a hidden dual-code runtime.
+- Raw `app.js` still contains prototype-era runtime state/UI, including Maria Santos, John Cruz, Family Group, sample contacts, local numeric IDs, and prototype group assumptions.
+- `service-worker.js` is not merely caching the application: it rewrites `app.js` source at runtime and injects later production behavior, including important receipt, E2EE/per-device fan-out, group, and related functionality.
+- Therefore raw repository `app.js` and the application actually validated under service-worker control are not necessarily the same program.
+- This explains why prototype UI/data and apparently removed behavior can reappear on cold/uncontrolled loads and why direct cleanup of raw `app.js` is dangerous.
+- Do NOT simply delete prototype arrays or service-worker replacements. Some string-replacement anchors currently carry validated production behavior.
+
+CURRENT MANDATORY RECOVERY ORDER
+1. Preserve checkpoints; `checkpoint-0.9.5.3-before-runtime-cleanup` protects the state before consolidation. `checkpoint-0.9.5.1-settings-pass` protects validated Settings ownership/lifecycle.
+2. Inventory every `service-worker.js` transformation of `app.js` and classify the injected behavior.
+3. Materialize each required transformed behavior into normal authoritative repository source in bounded increments, preserving validated messaging/E2EE/receipts/Outbox/groups/UI/Settings.
+4. Only after equivalence is proven, remove source-code rewriting from the service worker and leave it as a normal cache/offline worker.
+5. Verify cold and warm loads execute the same authoritative application.
+6. Then establish a true empty production runtime: conversations [], messages {}, selectedId null, no Maria/John/Family/sample fallback.
+7. Before empty runtime goes live, harden zero-conversation rendering, tablet two-pane behavior, missing-current-conversation handling, navigation assumptions, numeric prototype IDs, and old sample-contact group assumptions.
+8. Revalidate the full real messaging round trip: send/receive, per-device E2EE, legacy compatibility, Sent/Delivered/Read, iPad live Sent->Read, Outbox/reconnect, history/re-entry, New Message display-name flow, responsive UI, Settings, and Back button.
+9. Only after that passes, resume Fire HD 8 account isolation against the single deterministic runtime.
+10. Fire account isolation must scope account-owned local state to authenticated UID while keeping installation-local PIN/config separate unless explicitly redesigned; ambiguous mixed legacy data must never be guessed into an account.
+
+PROHIBITED DURING RECOVERY
+- No new service-worker source transforms.
+- No CSS hiding of prototype state as a substitute for removing it from runtime.
+- No broad MutationObserver repair.
+- No orientation/cache/timing-dependent repair.
+- No second runtime-state owner.
+- No broad messaging/E2EE rewrite during consolidation.
+- Do not reuse rejected 0.9.4.12 account-isolation architecture.
+- Do not assume visible UI is merely cosmetic without tracing its state/event dependencies.
+
+PROTECTED FUNCTIONAL BASELINES
+- 0.6.5 local-first/offline PASS.
+- 0.7.3 direct E2EE transport/reconnect PASS.
+- 0.8.0 device identity PASS.
+- 0.8.1 contact key verification PASS.
+- UI 0.8.1.9 + Group Info tablet fix PASS.
+- 0.8.1.16 receipt/re-entry PASS; rollback commit `2a6380e26ce969fc95f0a38e29517e48b09b781b`.
+- 0.9.0.2 per-device E2EE two-device + receipts + offline Outbox/reconnect PASS.
+- 0.9.0.4 three-device bidirectional per-device E2EE fan-out PASS and remains validated messaging baseline.
+- 0.9.3.7 protected pre-PIN baseline `db15b15c92ea476f81a2ccc37e08dde53a2e491e`.
+- 0.9.4.11 protected clean stabilization baseline. It includes approved message bubbles, prominent Back button, iPhone overflow containment, New Message display-name picker, PIN/local unlock architecture, iPad two-pane behavior, and live Sent->Read behavior.
+- 0.9.5.1 Settings lifecycle PASS: Profile, User Administration, Invitations present and functional without orientation rescue. Protected branch `checkpoint-0.9.5.1-settings-pass`.
+- 0.9.5.3 is NOT a validated account-isolation solution. Protected branch `checkpoint-0.9.5.3-before-runtime-cleanup` exists only to preserve the pre-consolidation state.
+
+SETTINGS ARCHITECTURE PRECEDENT
+- Profile, User Administration, and Invitations were late bolt-ons outside the authoritative Settings render lifecycle.
+- Old broad MutationObservers recreated/reparented them after `app.js` rebuilt Settings.
+- Correct rule: authoritative screen lifecycle creates owned hosts and explicitly mounts/remounts feature owners; no observer rediscovery and no cross-owner re-parenting.
+- Settings 0.9.5.1 currently demonstrates the desired ownership direction and must be protected during runtime consolidation.
+
+PIN / LOCAL SECURITY
+- `app.js state.unlocked` remains the single authoritative local LOCKED/UNLOCKED state.
+- `local-security.js` is helper-only and must not create a competing lock state/UI.
+- PIN config is installation-local in IndexedDB; raw PIN is never stored; PBKDF2-SHA256 verifier, random salt, 210000 iterations; 4-12 digits.
+- WebAuthn platform authenticator with PIN fallback.
+- Firebase authentication and local unlock remain separate.
+- Lock Now and inactivity use the same lock authority.
+- Known open bug: Remove Local PIN does not work. Change PIN, Lock Now, timeout and existing PIN flows are working. Fix later as a focused local-security defect; do not redesign the working architecture.
+
+FIRE HD 8 ACCOUNT-ISOLATION DEFECT
+- Same-browser account switching has shown cross-account local conversation remnants and mixed plain/encrypted content among Willy/Alpha, Kyrie, and Jax.
+- Earlier 0.9.5.2/0.9.5.3 attempts exposed the deeper prototype/runtime problem and are not considered validated fixes.
+- Fire work is paused until runtime consolidation and messaging revalidation complete.
+- Future account-sensitive startup order: authenticate -> determine UID -> activate UID-owned local state -> restore state/Outbox/history/E2EE -> start app synchronization.
+- Account/storage changes must be serialized through owned mutexes and may not mutate structural UI or call reload as a synchronization mechanism.
+
+LOCKED PROJECT CONVENTIONS
+- Hermes = internal project/repository/release naming; FIDUNIO = public app/product.
 - Keep release files flat in repository root.
-- Keep exactly one cumulative root hermes-memory.txt and one reusable root hermes-setup.txt; no version-numbered memory/setup TXT.
-- firebase-config.js and config-firestore.js must NEVER be regenerated, overwritten, or included in update/release ZIPs.
-- version.js is the single authoritative runtime version source; every test build gets a distinct visible version.
+- Keep exactly one cumulative root `hermes-memory.txt` and one reusable root `hermes-setup.txt`; no version-numbered memory/setup TXT.
+- `firebase-config.js` and `config-firestore.js` must NEVER be regenerated, overwritten, or included in update/release ZIPs.
+- `version.js` is the single authoritative runtime version source; every test build gets a distinct visible version.
 - Preserve winged-messenger artwork, navy/teal/gray palette, no gold.
-- Preserve iPhone single-pane and adaptive iPad behavior; responsive by viewport width.
-- Accessibility is a core product requirement: large text, strong control/field contrast, clear focus states, and high visibility on iPhone/iPad/Fire. Apply this CONSISTENTLY THROUGHOUT THE WHOLE APP, not only Privacy & Access or PIN screens.
-- UI development rule from user: once a major screen design is established, preserve that structure and make incremental/detail changes rather than repeatedly redesigning the whole screen, unless the user explicitly approves a new major design.
+- Preserve iPhone single-pane and adaptive iPad/two-pane behavior.
+- Accessibility is a core requirement: large text, strong contrast, visible focus/control states.
+- Once a major screen design is established, preserve it and make incremental changes unless the user explicitly approves redesign.
+- User-facing identity selection uses display name; UID remains internal.
 
-STABLE BASELINES
-- 0.6.5 local-first/offline PASS; 0.7.3 direct E2EE transport/reconnect PASS; 0.8.0 device identity PASS; 0.8.1 contact key verification PASS.
-- UI 0.8.1.9 plus Group Info tablet fix PASS.
-- 0.8.1.16 receipt/re-entry PASS and protected rollback.
-- 0.9.0.2 per-device E2EE two-device + receipt/re-entry + offline Outbox/reconnect PASS.
-- 0.9.0.4 full three-device bidirectional per-device E2EE fan-out PASS and remains validated development messaging baseline.
-- Preserve 0.9.0.4 messaging, receipt, Outbox and per-device fan-out unchanged.
+RELEASE / SAFEKEEPING
+- FIDUNIO 0.9.4.11 checkpoint ZIP: `hermes-ux-0.9.4.11.zip`; flat/root-only; 35 files; excludes firebase-config.js/config-firestore.js/install-prompt.js; SHA-256 `2c0f47cbfa7b78c80e3c79bf966557b306fa61af8f708445dad659fde9bfcf60`.
+- Never reuse/adapt rejected 0.9.4.12-0.9.4.20 implementations.
+- Rejected invite-install implementation must be rebuilt from scratch later, after higher-priority architecture work.
 
-0.9.1 GROUP FOUNDATION
-- Separate /groups schema/rules and real-user group metadata UI are in place. Group message writes remain disabled until group E2EE/key rotation is implemented.
-- 0.9.1.1 real New Group user list PASS. 0.9.1.2 prototype/mock conversation cleanup PASS.
-
-0.9.2 INVITE / PROFILE / SETTINGS
-- Invite-only admission, Owner bootstrap, Forgot Password, Change Password and editable profile are implemented.
-- Firebase Account and Device Identity are collapsed by default.
-- Profile display-name propagation uses authoritative /users/{peerUid}.displayName listeners, not stale memberNames.
-- Visible Sign Out is on the main Messages/chat screen.
-- Prototype connectivity card removed while Outbox/reconnect remains intact.
-- Explicit Sign In and successful invited-account creation bypass the immediately-following local PIN/biometric screen once.
-- 0.9.2.8 made the auth gate tablet-width aware.
-
-0.9.3 USER ADMIN + INVITATIONS
-- 0.9.3.1 placed User Administration in Settings under Profile-era two-column design.
-- Account lifecycle administration and account-guard enforcement are implemented. User confirmed current Firestore rules from main were published.
-- 0.9.3.2 introduced the compact scalable user table: User, Role, Status, Expires, Actions; manageable users use a ••• menu.
-- 0.9.3.3 replaced inline invitation role/expiry selectors with a dedicated simple Create Invitation modal.
-- 0.9.3.4 added public quick-start.html and enriched the actual invitation share message.
-- 0.9.3.5/0.9.3.6 corrected User Administration button binding and invitation/email behavior during iPad testing.
-- 0.9.3.7 cleanly separates User Administration from Invitations. User Administration manages users only; Invitations owns creation, pending display and Revoke.
-- User live-tested 0.9.3.7 and re-tested after rollback: messaging PASS, Invitations PASS, User Administration PASS.
-- 0.9.3.7 remains the protected pre-PIN baseline.
-
-PIN / BIOMETRIC REDESIGN — AUTHORITATIVE ARCHITECTURE
-- The failed earlier 0.9.4.x PIN experiments are rejected. Do not reuse layered overlay/modal architecture.
-- Current redesign was built cleanly from validated 0.9.3.7.
-- app.js state.unlocked is the one authoritative local LOCKED/UNLOCKED state.
-- Exactly one FIDUNIO unlock screen and one successful local unlock path. No competing overlays, browser prompt PIN, synthetic unlock clicks, or MutationObserver unlock bridge.
-- local-security.js is helper-only: PIN derivation/verification, WebAuthn device authentication, timeout configuration, inactivity monitoring. It does not own another app-lock state or render a lock overlay.
-- PIN configuration is persisted in IndexedDB fidunio-local/meta with verification; legacy localStorage config is migrated if present.
-- Raw PIN is never stored. Store only PBKDF2-SHA256 verifier with random per-installation salt; 210000 iterations. PIN is local to each installation.
-- PIN input is app-owned masked numeric/password field, 4–12 digits.
-- Device unlock uses standards-based WebAuthn with user verification required and platform authenticator where supported. PIN remains fallback.
-- Firebase authentication and local unlock remain separate. Firebase can stay signed in while FIDUNIO UI is locally locked.
-- Successful Sign In / successful invitation redemption marks a one-shot bypass only after authentication succeeds; app.js consumes it once.
-- Inactivity choices: Immediately, 1 min, 5 min, 15 min, 30 min, 1 hr, Never; default 5 min. Immediately means lock on background/leave, not zero-delay foreground loop.
-- Lock Now calls the same single lock function as inactivity.
-
-0.9.4 LIVE PIN / ACCESSIBILITY TEST RESULTS
-- Settings DOM placement was made idempotent after finding repeated appendChild operations under a MutationObserver could churn Safari DOM and interfere with controls.
-- iPad: PIN setup PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; timeout list visible/selectable PASS; 1-minute inactivity auto-lock PASS; Immediately background/return lock PASS; close/reopen with configured PIN returns locked PASS; refresh/reload while unlocked returns locked PASS.
-- iPhone: PIN setup PASS; PIN entry/dots visible PASS; Lock Now PASS; correct PIN unlock PASS; incorrect PIN rejected/stays locked PASS; close/reopen returns locked PASS; Immediately background/return lock PASS; 1-minute inactivity auto-lock PASS.
-- iPhone user observed a couple of screen flickers while waiting idle for the 1-minute lock. Treat as a defect to eliminate, not a pass.
-- 0.9.4.3 reduced Settings observer work and strengthened PIN/security field visibility.
-- User confirmed 0.9.4.3 field visibility is better and requested same high-visibility treatment consistently across whole app.
-- 0.9.4.4 broadened field/control visibility app-wide for .text-input, search inputs and textarea/composer controls in Light/Dark modes; user confirmed consistency on iPhone.
-- No messaging/E2EE/Firebase transport logic changed by 0.9.4.3/0.9.4.4 accessibility work.
-
-0.9.4.5 / 0.9.4.6 SETTINGS SIDEBAR + MOBILE ORDER
-- User rejected the existing iPad Settings balance after screenshot showed a large empty half-width area and approved the newly mocked sidebar/content design for implementation.
-- 0.9.4.5 implemented wide tablet/landscape (900px+) Settings as stable left navigation sidebar plus one right content pane. Narrow/iPhone keeps stacked Settings cards.
-- Sidebar sections reuse existing live cards/functions: General, Privacy & Access, Profile, User Administration, Invitations, Data, About.
-- Profile is initial selected section on wide tablet to match approved mockup.
-- User then requested a minor iPhone refinement: Profile information should appear at the very top of the stacked Settings page.
-- 0.9.4.6 changes only narrow/mobile panel DOM order so Profile is first. Wide sidebar navigation order stays General, Privacy & Access, Profile, User Administration, Invitations, Data, About.
-- Existing cards, IDs, handlers, PIN logic, profile/admin/invitation behavior remain unchanged; app.js, firebase.js, local-security.js, messaging/E2EE/transport were not modified for this ordering change.
-- Accessibility/high-contrast form styles remain in force.
-- NEXT TEST: refresh iPhone, confirm FIDUNIO 0.9.4.6, open Settings and confirm Profile is first/top. Then continue iPad sidebar functional checks and remaining biometric/WebAuthn acceptance.
-
-INVITATION / QUICK START DETAILS
-- Invitation is invite-only admission, not an ongoing login credential; single-use, expiring and revocable.
-- Shared invitation includes Email Invitation path with subject “You're invited to join FIDUNIO”.
-- Join FIDUNIO and Quick Start Guide URLs are clean HTTPS URLs on separate lines.
-- Public read-only Quick Start Guide: quick-start.html; no Firebase login required.
-
-POST-PIN DEVELOPMENT ORDER
-- After PIN/biometric is complete and validated, revise message bubble/accessibility layout before rich-message widgets.
-- Message bubbles follow WhatsApp-style responsive principle: maximum bubble width, unrestricted vertical growth, large accessibility text wraps/stacks downward, quoted/reply content stacks above new message, timestamps/read status never collide.
-- Complete message-container/font-size/stacking foundation before picture, video and other rich-message widgets.
-
-SECURITY / ADMIN PLAN
-- Account lifecycle: Active → Suspended → Deactivated; avoid destructive hard-delete by default.
-- True Firebase Auth disable/delete requires privileged backend/Admin SDK rather than client-only GitHub Pages.
-- Later security work: audit/security events, new-device alerts, device proliferation checks and final multi-device trust/approval.
-
-IMPORTANT TECHNICAL DETAILS
-- app.js imports firebase.js; firebase.js imports protected firebase-config.js.
-- index.html loads version.js then bootstrap.js. Current PIN redesign intentionally does not load auth-unlock-bridge.js; local-security.js is imported by app.js/auth-ui.js.
-- IndexedDB fidunio-local v2; encrypted local state/Outbox/history. Firebase data is never service-worker cached.
-- E2EE v2 uses per-device P-256 ECDH + HKDF SHA-256 + AES-GCM envelopes; e2ee:1 legacy history compatibility retained.
-- Account-level compatibility trust is not final multi-device trust design; future device-level approval/safety numbers remain required.
-
-SAFEKEEPING CHECKPOINT
-- FIDUNIO 0.9.3.7 remains the protected pre-PIN safekeeping baseline.
-- FIDUNIO 0.9.4.6 remains the earlier PIN/accessibility/settings checkpoint.
-- FIDUNIO 0.9.4.11 is the new validated stabilization baseline and restart point.
-- Exclude firebase-config.js and config-firestore.js from all ZIPs.
-
-0.9.4.7 THROUGH 0.9.4.10 — VALIDATED WORK RETAINED
-- 0.9.4.7 removed developer/test terminology from New Message without changing transport.
-- 0.9.4.8 replaced normal UID entry with a display-name recipient picker. The picker resolves the selected user to the existing hidden UID field and invokes the existing direct-conversation action, preserving the single established messaging path.
-- 0.9.4.9/0.9.4.10 established the approved WhatsApp-style responsive message-bubble/accessibility layout. iPhone uses near-full chat width, large text, vertical growth, wrapping, and stacked metadata; iPad/tablet keeps readable capped widths.
-- These changes did not alter E2EE, receipts, Outbox, Firebase transport, or local-security logic.
-
-0.9.4.11 — CLEAN STABILIZATION RESTART
-- The first invite/install-guidance experiment introduced regressions after 0.9.4.10, including Settings instability. Multiple later attempts through 0.9.4.20 were rejected as non-functional and must not be used as a development base.
-- Main was deliberately reset to the exact approved 0.9.4.10 foundation and development restarted from there.
-- 0.9.4.11 contains only two post-0.9.4.10 fixes: (1) stronger/prominent Back-button visibility and (2) iPhone conversation-list horizontal overflow/wrap containment.
-- User re-tested 0.9.4.11 and confirmed everything works as before, including the approved iPad two-panel Settings behavior, prominent Back button, and iPhone wrap/overflow fix.
-- 0.9.4.11 is therefore the current protected stabilization baseline. Do not reintroduce code from the rejected 0.9.4.12–0.9.4.20 sequence by adaptation or cherry-picking. Rebuild the invite-install feature from first principles after the higher-priority account-isolation issue is resolved.
-
-PROTECTED 0.9.4.11 UI/FUNCTIONAL BEHAVIOR
-- Settings wide/tablet design: left navigation sidebar plus one selected right content pane at 900px+; narrower views use stacked cards.
-- Settings navigation/order and handlers from the stable 0.9.4.6/0.9.4.10 implementation are protected.
-- iPhone conversation list must remain horizontally contained; long previews/ciphertext/URLs must not widen the Messages screen.
-- Back controls must remain visually prominent with a 44px target and strong contrast.
-- Preserve the approved message-bubble layout, New Message display-name picker, PIN/local unlock architecture, iPad live Sent→Read behavior, messaging/E2EE, receipts, Outbox and per-device fan-out.
-
-CURRENT EXECUTION PLAN — ONE ISSUE/FEATURE AT A TIME
-1. Freeze and preserve 0.9.4.11 as the clean rollback/restart checkpoint.
-2. Repair Settings ownership/lifecycle by making the authoritative Settings renderer create permanent hosts and explicitly remount Profile, User Administration, and Invitations. Do not use observer-based rediscovery or cross-module re-parenting.
-3. Prove Settings stability on iPad before moving on.
-4. Fire HD 8 account isolation: audit and fix account switching/local IndexedDB state, history, Outbox, selected conversation and cryptographic/local-key ownership so one user's local state cannot appear under another account.
-5. Re-test account A -> sign out -> account B and reverse on the same Fire browser/device; no local cross-account data may appear.
-6. PIN/biometric serialization follows Fire account-isolation work even though current behavior is largely stable.
-7. Design invite-install from scratch later. Do not reuse/adapt the rejected implementation.
-8. Re-test all protected areas after each architecture change.
-
-RELEASE ZIP / LOCAL SAFEKEEPING RULES
-- Release ZIP naming remains hermes-ux-X.Y.Z.zip.
-- Package files flat at the ZIP root; do not package development/test subfolders or temporary packaging workflows.
-- Include exactly one cumulative hermes-memory.txt and exactly one reusable hermes-setup.txt.
-- Never include firebase-config.js or config-firestore.js; preserve configured GitHub copies untouched.
-- version.js remains the single authoritative runtime version source.
-- For checkpoint ZIPs, verify exclusions and file placement, record ZIP size and SHA-256 in hermes-memory.txt after packaging.
-
-0.9.4.11 CHECKPOINT ZIP
-- Local safekeeping package created: hermes-ux-0.9.4.11.zip.
-- Package is flat/root-only with 35 files; no development/test subfolders are included.
-- Verified exactly one hermes-memory.txt and one hermes-setup.txt.
-- Verified firebase-config.js and config-firestore.js are absent.
-- Verified rejected invite-install code/install-prompt.js is absent.
-- Verified Back-button visibility fix, iPhone overflow containment, approved message-bubble CSS and New Message display-name picker are included.
-- ZIP size: 934,660 bytes.
-- SHA-256: 2c0f47cbfa7b78c80e3c79bf966557b306fa61af8f708445dad659fde9bfcf60.
+AUTHORITATIVE REFERENCE FILES
+- `CODING-GUIDELINES.md` — mandatory coding contract.
+- `RUNTIME-CONSOLIDATION-PLAN.md` — mandatory current recovery plan.
+- `architecture-ownership.txt` — ownership/isolation architecture reference.
+- `BUG-LIST.md` — durable active defect list.
+- `hermes-memory.txt` — cumulative durable project memory.
