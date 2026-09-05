@@ -1,21 +1,26 @@
 # FIDUNIO Google/Firebase Handoff via Gemini
 
-**STATUS: PREPARED ONLY — DO NOT EXECUTE UNTIL CHATGPT EXPLICITLY RELEASES THE NEXT PROMPT**
+**STATUS: REPOSITORY READY FOR PROMPT 1 READ-ONLY INVENTORY — NO LIVE CHANGE AUTHORIZED**
 
 This file is a controlled operator handoff for the user to copy/paste into Gemini while ChatGPT remains the FIDUNIO architecture/security authority. Gemini is an execution/console-navigation assistant, not an independent designer for this project.
+
+Repository preparation has reached a genuine live-project dependency. Account-E2EE auth lookup/reset, exact identity rules, recovery scaffold, account direct-message `e2ee:3` crypto/rules/fail-closed service and rollback checkpoints are prepared. The remaining legacy per-device transport is intentionally retained until a real account can reach durable account E2EE READY under the reviewed live-project boundary.
+
+**Prompt 1 is now the next permitted handoff action when the user chooses to begin the Google/Firebase phase. It is read-only. Do not proceed to Prompt 2 without returning the Prompt 1 result to ChatGPT.**
 
 ## Operator rules
 
 1. Execute only one numbered prompt at a time.
 2. After Gemini responds, return the result/screenshot to ChatGPT before using the next prompt.
-3. Gemini must not redesign Firestore schema, recovery cryptography, IAM model, App Check policy, callable names, Secret Manager format, or repository architecture.
+3. Gemini must not redesign Firestore schema, direct-message v3 format, recovery cryptography, IAM model, App Check policy, callable names, Secret Manager format, or repository architecture.
 4. No production deploy occurs unless the prompt explicitly says to deploy.
 5. Never paste passwords, Firebase private keys, PINs, Recovery Unlock Keys, service-account keys, or the value of `FIDUNIO_RECOVERY_MASTER_V1` into Gemini or ChatGPT.
 6. If Gemini sees a different project, unexpected billing state, unexpected region, missing permission, or a screen that does not match the prompt, it must stop and report instead of improvising.
+7. Prompt 1 makes no changes. Every later prompt remains locked until ChatGPT reviews the prior result.
 
 ## Prompt 1 — READ-ONLY project inventory
 
-Use only after ChatGPT says repository-side preparation is ready for Google/Firebase inspection.
+**READY WHEN THE USER STARTS THE HANDOFF. MAKE NO CHANGES.**
 
 ```text
 You are assisting with the Google/Firebase console for a security-sensitive private messaging project named FIDUNIO.
@@ -95,7 +100,7 @@ Before any real deployment, ChatGPT will verify:
 - Functions source `functions/` and codebase `recovery`;
 - callable names `enrollRecoveryV1`, `startE2EERecoveryV1`, `completeE2EERecoveryV1`;
 - fail-closed supplemental verifier state;
-- exact Firestore rules source and gate result;
+- exact Firestore rules source and full gate result, including account-message v3 rules;
 - App Check state;
 - secret binding/IAM;
 - rollback plan.
@@ -112,7 +117,7 @@ The user must return to ChatGPT immediately before this step. ChatGPT will gener
 
 The following must never appear in screenshots or chats:
 - Firebase account password;
-- FIDUNIO six-digit PIN;
+- FIDUNIO six-digit account E2EE PIN;
 - plaintext account private key / PKCS#8;
 - plaintext Recovery Unlock Key (RUK);
 - `FIDUNIO_RECOVERY_MASTER_V1` secret value;
