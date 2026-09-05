@@ -1,12 +1,12 @@
-# FIDUNIO Firestore E2EE v1 Rules — Bounded Integration Specification
+# FIDUNIO Firestore E2EE v1 Rules — Exact Validated Schema
 
-**STATUS: REPOSITORY RULE SOURCE VALIDATED IN LOCAL EMULATOR; NOT CLAIMED DEPLOYED TO LIVE FIREBASE**
+**STATUS: REPOSITORY RULE SOURCE VALIDATED IN LOCAL EMULATOR; NOT DEPLOYED TO LIVE FIREBASE**
 
-This specification defines the account-E2EE paths added without replacing unrelated invitation/user/conversation/group rules. The repository `firestore.rules` source has passed the local Emulator gate; live Firebase deployment is a separate later action.
+This document records the exact account-E2EE schema currently implemented in repository `firestore.rules`. It does not authorize deployment by itself.
 
 ## Paths
 
-Private account identity:
+Private identity:
 
 ```text
 users/{uid}/e2ee/identity
@@ -18,152 +18,136 @@ Public correspondent key:
 e2eePublicKeys/{uid}
 ```
 
-Server-owned recovery state (Admin/Cloud Functions only; no client rule match):
+Server-only recovery state:
 
 ```text
 recoverySessions/{sessionId}
 e2eeRecoveryState/{uid}
 ```
 
-Unmatched recovery collections remain client-denied by default. Admin SDK access bypasses client Security Rules and must be controlled with IAM.
+The recovery collections have no client allow rule and therefore remain denied to browser clients. Firebase Admin/Cloud Functions access is controlled by IAM because Admin SDK bypasses client Security Rules.
 
-## Binding helper rules
-
-The current validated repository rule source uses the following account-E2EE constraints.
+## Exact private identity shape
 
 ```text
-function validNormalWrapper(w) {
-  return w is map
-    && w.keys().hasAll(["version","ciphertext","salt","iv","kdf","iterations","wrappingAlgorithm"])
-    && w.keys().hasOnly(["version","ciphertext","salt","iv","kdf","iterations","wrappingAlgorithm"])
-    && w.version == 1
-    && w.ciphertext is string && w.ciphertext.size() > 0 && w.ciphertext.size() <= 4096
-    && w.salt is string && w.salt.size() > 0 && w.salt.size() <= 128
-    && w.iv is string && w.iv.size() > 0 && w.iv.size() <= 128
-    && w.kdf == "PBKDF2-HMAC-SHA256"
-    && w.iterations == 600000
-    && w.wrappingAlgorithm == "AES-256-GCM";
-}
+schemaVersion: 1
+identityVersion: 1
+keyId: string, 16..128 characters
+keyAlgorithm: "ECDH-P256"
+normalWrapper: exact Normal Wrapper below
+recoveryWrapper: exact Recovery Wrapper below
+state: "ACTIVE"
+revision: 1 on create, then exact +1 normal rewraps
+createdAt: request.time on create
+updatedAt: request.time on create/update
+```
 
-function validRecoveryWrapper(w) {
-  return w is map
-    && w.keys().hasAll([
-      "version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm",
-      "recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm"
-    ])
-    && w.keys().hasOnly([
-      "version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm",
-      "recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm","metadata"
-    ])
-    && w.version == 1
-    && w.ciphertext is string && w.ciphertext.size() > 0 && w.ciphertext.size() <= 4096
-    && w.iv is string && w.iv.size() > 0 && w.iv.size() <= 128
-    && w.wrappedRecoveryKey is string && w.wrappedRecoveryKey.size() > 0 && w.wrappedRecoveryKey.size() <= 8192
-    && w.recoveryKeyIv is string && w.recoveryKeyIv.size() > 0 && w.recoveryKeyIv.size() <= 128
-    && w.wrappingAlgorithm == "AES-256-GCM"
-    && w.recoveryKeyWrappingAlgorithm == "HMAC-SHA256+A256GCM"
-    && w.recoveryAuthorityVersion == 1
-    && (!("metadata" in w) || w.metadata is map);
-}
+No additional top-level field is permitted.
 
-function validPrivateIdentityCreate(uid, d) {
-  return d.keys().hasAll(["schemaVersion","identityVersion","keyId","keyAlgorithm","normalWrapper","recoveryWrapper","state","revision","createdAt","updatedAt"])
-    && d.keys().hasOnly(["schemaVersion","identityVersion","keyId","keyAlgorithm","normalWrapper","recoveryWrapper","state","revision","createdAt","updatedAt"])
-    && d.schemaVersion == 1
-    && d.identityVersion == 1
-    && d.keyId is string && d.keyId.size() >= 16 && d.keyId.size() <= 128
-    && d.keyAlgorithm == "ECDH-P256"
-    && validNormalWrapper(d.normalWrapper)
-    && validRecoveryWrapper(d.recoveryWrapper)
-    && d.state == "ACTIVE"
-    && d.revision == 1
-    && d.createdAt == request.time
-    && d.updatedAt == request.time;
-}
+### Exact Normal Wrapper
 
-function validPrivateIdentityNormalUpdate(d, old) {
-  return d.diff(old).affectedKeys().hasOnly(["normalWrapper","revision","updatedAt"])
-    && d.schemaVersion == old.schemaVersion
-    && d.identityVersion == old.identityVersion
-    && d.keyId == old.keyId
-    && d.keyAlgorithm == old.keyAlgorithm
-    && d.recoveryWrapper == old.recoveryWrapper
-    && d.state == old.state
-    && validNormalWrapper(d.normalWrapper)
-    && d.revision == old.revision + 1
-    && d.updatedAt == request.time;
-}
+Exactly these fields are permitted:
 
-function validPublicIdentity(uid, d) {
-  return d.keys().hasAll(["uid","schemaVersion","identityVersion","keyId","keyAlgorithm","publicJwk","state","createdAt","updatedAt"])
-    && d.keys().hasOnly(["uid","schemaVersion","identityVersion","keyId","keyAlgorithm","publicJwk","state","createdAt","updatedAt"])
-    && d.uid == uid
-    && d.schemaVersion == 1
-    && d.identityVersion == 1
-    && d.keyId is string && d.keyId.size() >= 16 && d.keyId.size() <= 128
-    && d.keyAlgorithm == "ECDH-P256"
-    && d.publicJwk is map
-    && d.publicJwk.keys().hasAll(["kty","crv","x","y"])
-    && d.publicJwk.keys().hasOnly(["kty","crv","x","y","ext","key_ops"])
-    && d.publicJwk.kty == "EC"
-    && d.publicJwk.crv == "P-256"
-    && d.publicJwk.x is string && d.publicJwk.x.size() > 0 && d.publicJwk.x.size() <= 128
-    && d.publicJwk.y is string && d.publicJwk.y.size() > 0 && d.publicJwk.y.size() <= 128
-    && !("d" in d.publicJwk)
-    && d.state == "ACTIVE";
+```text
+version: 1
+ciphertext: non-empty string, <=4096
+salt: non-empty string, <=128
+iv: non-empty string, <=128
+kdf: "PBKDF2-HMAC-SHA256"
+iterations: 600000
+wrappingAlgorithm: "AES-256-GCM"
+```
+
+### Exact Recovery Wrapper
+
+Exactly these fields are permitted:
+
+```text
+version: 1
+ciphertext: non-empty string, <=4096
+iv: non-empty string, <=128
+wrappedRecoveryKey: non-empty string, <=8192
+wrappingAlgorithm: "AES-256-GCM"
+recoveryAuthorityVersion: 1
+recoveryKeyIv: non-empty string, <=128
+recoveryKeyWrappingAlgorithm: "HMAC-SHA256+A256GCM"
+```
+
+**Generic `metadata` is not permitted.** Recovery protocol data is represented only by the explicit versioned fields above.
+
+## Exact public identity shape
+
+Exactly these fields are permitted:
+
+```text
+uid
+schemaVersion: 1
+identityVersion: 1
+keyId
+keyAlgorithm: "ECDH-P256"
+publicJwk
+state: "ACTIVE"
+createdAt
+updatedAt
+```
+
+The public JWK is exactly:
+
+```json
+{
+  "kty": "EC",
+  "crv": "P-256",
+  "x": "...",
+  "y": "..."
 }
 ```
 
-## Binding matches
+No `d`, `ext`, `key_ops`, `alg`, `use`, or other JWK field is allowed.
 
-Inside `match /users/{uid}`:
+## Client permissions
+
+For `users/{uid}/e2ee/identity`:
+
+- authenticated, registered owner: `get` allowed;
+- collection `list`: denied;
+- create: owner only and only exact valid v1 shape;
+- update: owner only, and only `normalWrapper`, `revision`, `updatedAt` may change;
+- update must preserve schemaVersion, identityVersion, keyId, keyAlgorithm, recoveryWrapper, state;
+- revision must equal previous revision + 1;
+- delete: denied.
+
+For `e2eePublicKeys/{uid}`:
+
+- registered authenticated users: `get` and `list` allowed;
+- create: owning UID only and exact valid v1 shape;
+- update/delete: denied.
+
+Public-key rotation is therefore not an ordinary client operation in v1.
+
+## Recovery-server boundary
+
+The client-created recovery ciphertext uses `recoveryWrapper.ciphertext` and `recoveryWrapper.iv`. The server separately protects the random 256-bit Recovery Unlock Key using:
 
 ```text
-match /e2ee/{docId} {
-  allow get: if docId == "identity" && registered() && request.auth.uid == uid;
-  allow list: if false;
-  allow create: if docId == "identity"
-    && registered()
-    && request.auth.uid == uid
-    && validPrivateIdentityCreate(uid, request.resource.data);
-  allow update: if docId == "identity"
-    && registered()
-    && request.auth.uid == uid
-    && validPrivateIdentityNormalUpdate(request.resource.data, resource.data);
-  allow delete: if false;
-}
+recoveryAuthorityVersion: 1
+recoveryKeyWrappingAlgorithm: "HMAC-SHA256+A256GCM"
+recoveryKeyIv
+wrappedRecoveryKey
 ```
 
-Top-level public key path:
-
-```text
-match /e2eePublicKeys/{uid} {
-  allow get, list: if registered();
-  allow create: if registered()
-    && request.auth.uid == uid
-    && validPublicIdentity(uid, request.resource.data)
-    && request.resource.data.createdAt == request.time
-    && request.resource.data.updatedAt == request.time;
-  allow update, delete: if false;
-}
-```
-
-## Why public client update is denied in v1
-
-Ordinary password/PIN re-wrap does not change the durable account public key. Denying public-key update prevents a compromised ordinary client from silently replacing an established public identity. Rotation/migration requires a separate reviewed protocol.
-
-## Recovery server behavior
-
-`recoveryKeyIv` and `recoveryKeyWrappingAlgorithm` are required because the server protects the random 256-bit RUK independently from the client recovery ciphertext. The current v1 server construction is `HMAC-SHA256+A256GCM`, binding master secret + UID + keyId + six-digit PIN. Firestore never stores plaintext PIN, RUK, private key, derived recovery key, or recovery master secret.
-
-Cloud Functions/Admin SDK bypasses these client rules. Recovery server code therefore uses separate server-only `recoverySessions` and `e2eeRecoveryState` collections governed by IAM and narrow function capabilities.
+Firestore never stores plaintext PIN, plaintext RUK, private PKCS#8, password, derived recovery AES key, or recovery master secret.
 
 ## Validation status
 
-The staged account-E2EE rules passed 40/40 Local Emulator assertions covering private/public access, field allowlists, algorithms, revision discipline, immutable recovery wrapper, atomic private+public creation, no partial residue, and regressions for invitations/profiles/direct conversations/messages/legacy devices/groups.
+The current emulator gate contains **42 assertions**. It covers the original private/public/atomic/regression matrix plus two exact-schema regressions:
 
-After materialization into repository `firestore.rules`, the exact repository source was re-tested. The later recovery RUK metadata correction was also tested through the same 40-assertion gate before being materialized.
+1. generic recovery `metadata` is rejected;
+2. public JWK `ext`/`key_ops` are rejected.
 
-**Important:** repository-source validation is not the same as deploying rules to the live Firebase project. Do not claim live deployment until an explicit Firebase deploy succeeds.
+Latest validated `main` rules run before rebuild branching: GitHub Actions run `33974521992`, successful. The rebuild branch additionally runs the same rules gate as part of `Rebuild Baseline Security Gate`.
 
-Existing legacy `/users/{uid}/devices/{deviceId}` rules remain until the account-E2EE messaging migration is complete and validated.
+Passing CI proves repository rule behavior under the Firebase Local Emulator Suite. It does **not** mean the rules were deployed to the live Firebase project.
+
+## Legacy rule status
+
+Legacy `/users/{uid}/devices/{deviceId}` permissions and legacy message envelope support remain temporarily because the current runtime still contains migration-era per-device behavior. They may be removed only after the rebuilt account-authoritative messaging path replaces them and passes device validation.
