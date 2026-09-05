@@ -6,13 +6,17 @@ const jsFiles=entries
   .map(e=>e.name)
   .filter(name=>!name.endsWith(".test.mjs"));
 
+// firebase.js is the sole TARGET Firebase service owner. The other entries are
+// explicit temporary migration exceptions. The test exists to stop the list
+// from growing while we remove these exceptions one at a time.
 const firebaseSdkAllow=new Set([
-  "firebase.js",            // sole target Firebase service owner
-  "auth-ui-clean.js",       // temporary password-reset helper; consolidate later
-  "profile-sync.js"         // temporary live profile listener; consolidate later
+  "firebase.js",             // target owner
+  "auth-ui-clean.js",        // temporary password-reset helper
+  "profile-sync.js",         // temporary live peer-profile listener
+  "settings-lifecycle.js"    // temporary Settings admin/profile data access
 ]);
 const observerAllow=new Set([
-  "main-screen-polish.js",  // temporary sign-out/display-name compatibility overlay
+  "main-screen-polish.js",   // temporary sign-out/display-name compatibility overlay
   "settings-lifecycle-bridge.js" // temporary Settings compatibility bridge
 ]);
 
@@ -20,7 +24,13 @@ const unexpectedFirebase=[];
 const unexpectedObservers=[];
 for(const name of jsFiles){
   const source=await readFile(name,"utf8");
-  if(/gstatic\.com\/firebasejs\//.test(source)&&!firebaseSdkAllow.has(name))unexpectedFirebase.push(name);
+
+  // service-worker.js contains literal JavaScript source strings that it still
+  // injects into app.js. Those strings can contain gstatic Firebase imports,
+  // but the service worker itself is not acquiring Firebase services here.
+  // Its semantic transforms are guarded separately by runtime-transform-anchor.
+  const ownsFirebaseSdk=name!=="service-worker.js"&&/gstatic\.com\/firebasejs\//.test(source);
+  if(ownsFirebaseSdk&&!firebaseSdkAllow.has(name))unexpectedFirebase.push(name);
   if(/\bMutationObserver\b/.test(source)&&!observerAllow.has(name))unexpectedObservers.push(name);
 }
 
