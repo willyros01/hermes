@@ -1,4 +1,4 @@
-// One-shot rebuild materializer: explicit Settings lifecycle ownership. Retry after bridge-retirement workflow fix.
+// One-shot rebuild materializer: explicit Settings lifecycle ownership. Retry with bounded function-end anchor.
 import fs from "node:fs";
 
 const appPath="app.js",gatePath="runtime-authority-gate.test.mjs",bridgePath="settings-lifecycle-bridge.js";
@@ -21,8 +21,8 @@ app=replaceOnce(
 
 app=replaceOnce(
   app,
-  '  if(copyBtn) copyBtn.onclick=async()=>{\n    try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}\n  };\n}\nfunction settingRow(label,key){',
-  '  if(copyBtn) copyBtn.onclick=async()=>{\n    try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}\n  };\n  mountSettingsLifecycle();\n}\nfunction settingRow(label,key){',
+  '\n}\nfunction settingRow(label,key){',
+  '\n  mountSettingsLifecycle();\n}\nfunction settingRow(label,key){',
   "explicit Settings post-render hook"
 );
 
