@@ -27,6 +27,7 @@ export async function redeemFidunioInvitation(token,email,password,displayName){
 export async function createFidunioAccount(){throw new Error("FIDUNIO account creation is invitation-only. Use a valid invitation link or code.");}
 export async function signInFidunio(email,password){const s=await ensureServices();const cred=await s.authSdk.signInWithEmailAndPassword(s.auth,email,password);const profileSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",cred.user.uid));if(!profileSnap.exists()){await s.authSdk.signOut(s.auth);authUser=null;throw new Error("This Firebase login is not enrolled in FIDUNIO. A valid invitation is required.");}authUser=cred.user;return cred.user;}
 export async function signOutFidunio(){const s=await ensureServices();await s.authSdk.signOut(s.auth);authUser=null;}
+export async function sendFidunioPasswordReset(email){const s=await ensureServices();const mail=String(email||"").trim();if(!mail)throw new Error("Enter your email address first.");await s.authSdk.sendPasswordResetEmail(s.auth,mail);}
 // Settings account/admin APIs. firebase.js is the sole Firebase SDK/service owner;
 // Settings owns only its DOM lifecycle and serialized user actions.
 export async function updateFidunioProfile(values={}){

@@ -11,7 +11,6 @@ const jsFiles=entries
 // from growing while we remove these exceptions one at a time.
 const firebaseSdkAllow=new Set([
   "firebase.js",             // target owner
-  "auth-ui-clean.js",        // temporary password-reset helper
 ]);
 const observerAllow=new Set([
 ]);

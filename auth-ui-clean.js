@@ -12,10 +12,10 @@ import {
   getCloudUserDevices,
   validateInvitation,
   redeemFidunioInvitation,
-  signInFidunio
+  signInFidunio,
+  sendFidunioPasswordReset
 } from "./firebase.js";
 import {markSuccessfulAuthBypass} from "./local-security.js";
-import {installSettingsLifecycleBridge} from "./settings-lifecycle-bridge.js";
 import {
   getAccountStorageStatus,
   inspectLegacyAccountIdentity,
@@ -26,7 +26,6 @@ import {
 
 const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
 let appStarted=false;
-let resetApiPromise=null;
 
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Admin":"User";}
@@ -34,15 +33,7 @@ function inviteTokenFromUrl(){return new URL(location.href).searchParams.get("in
 function clearInviteFromUrl(){const u=new URL(location.href);if(!u.searchParams.has("invite"))return;u.searchParams.delete("invite");history.replaceState(null,"",u.pathname+(u.search||"")+u.hash);}
 function authShell(inner){document.querySelector("#app").innerHTML=`<main class="app-shell unlock"><section class="unlock-card" style="max-width:520px"><div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div><h1>FIDUNIO</h1><p>Private Messaging</p>${inner}<div class="small-note">FIDUNIO ${esc(VERSION)} • Invite-only access</div></section></main>`;}
 
-async function resetApi(){
-  if(resetApiPromise)return resetApiPromise;
-  resetApiPromise=Promise.all([
-    import("https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js"),
-    import("https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js")
-  ]).then(([appSdk,authSdk])=>({auth:authSdk.getAuth(appSdk.getApp()),authSdk}));
-  return resetApiPromise;
-}
-async function sendPasswordReset(email){const s=await resetApi();await s.authSdk.sendPasswordResetEmail(s.auth,email);}
+async function sendPasswordReset(email){return sendFidunioPasswordReset(email);}
 function canonicalJwk(jwk){return JSON.stringify({kty:jwk?.kty||"",crv:jwk?.crv||"",x:jwk?.x||"",y:jwk?.y||""});}
 async function resolveIdentityOwnerUid(identity){
   if(!identity?.publicJwk&&!identity?.deviceId)return null;
@@ -92,7 +83,6 @@ async function startApp(){
   appStarted=true;
   clearInviteFromUrl();
   await import("./app.js");
-  installSettingsLifecycleBridge();
 }
 
 function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){
