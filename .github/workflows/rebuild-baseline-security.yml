@@ -46,6 +46,8 @@ jobs:
         run: npm run test:e2ee-account-lifecycle
       - name: Account direct-message crypto
         run: npm run test:e2ee-account-message-crypto
+      - name: Account direct-message service
+        run: npm run test:e2ee-account-message-service
       - name: Cloud Functions recovery scaffold
         run: npm run test:functions-scaffold
       - name: Runtime transform anchor gate
