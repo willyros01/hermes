@@ -12,11 +12,9 @@ const jsFiles=entries
 const firebaseSdkAllow=new Set([
   "firebase.js",             // target owner
   "auth-ui-clean.js",        // temporary password-reset helper
-  "profile-sync.js",         // temporary live peer-profile listener
   "settings-lifecycle.js"    // temporary Settings admin/profile data access
 ]);
 const observerAllow=new Set([
-  "main-screen-polish.js",   // temporary sign-out/display-name compatibility overlay
   "settings-lifecycle-bridge.js" // temporary Settings compatibility bridge
 ]);
 
@@ -44,10 +42,13 @@ if(unexpectedObservers.length){
 const bootstrap=await readFile("bootstrap.js","utf8");
 if(/MutationObserver/.test(bootstrap))throw new Error("bootstrap.js must remain observer-free.");
 if(/new-message-polish/.test(bootstrap))throw new Error("bootstrap.js must not revive superseded New Message polish.");
+if(/profile-sync|main-screen-polish/.test(bootstrap))throw new Error("bootstrap.js must not revive retired main-screen projection overlays.");
 
 const app=await readFile("app.js","utf8");
 if(!/mountNewMessageRecipientPicker/.test(app))throw new Error("app.js must keep explicit New Message recipient owner hook.");
 if(!/const contacts=\[\]/.test(app))throw new Error("Prototype contact seed must not return to app.js.");
+if(!/subscribeUserDisplayNames/.test(app))throw new Error("app.js must use central peer display-name subscription.");
+if(!/mainSignOutMarkup/.test(app)||!/bindMainSignOut/.test(app))throw new Error("main-screen Sign Out must remain an explicit app projection.");
 
 console.log("Runtime authority gate passed.");
 console.log("Known temporary Firebase SDK exceptions:",[...firebaseSdkAllow].filter(x=>x!=="firebase.js").join(", "));

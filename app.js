@@ -7,6 +7,7 @@ import {
   getFirebaseUser,
   startDirectConversation,
   subscribeMyConversations,
+  subscribeUserDisplayNames,
   subscribeConversationMessages,
   sendCloudMessage,
   updateCloudMessageState,
@@ -63,6 +64,9 @@ let firebaseReady = false;
 let firebaseError = "";
 let firebaseUser = null;
 let cloudConversationUnsub = null;
+let peerDisplayNameUnsub = ()=>{};
+let peerDisplayNameKey = "";
+let peerDisplayNames = {};
 let cloudGroupUnsub = null;
 let groupCandidates = [];
 let cloudMessageUnsub = null;
@@ -362,6 +366,7 @@ function mergeCloudConversation(remote){
     preview:remote.preview || existing?.preview || "Cloud conversation",
     time:remote.time || existing?.time || ""
   };
+  if(item.peerUid&&peerDisplayNames[item.peerUid])item.name=peerDisplayNames[item.peerUid];
   if(existing) Object.assign(existing,item);
   else state.conversations.unshift(item);
   if(!state.messages[item.id]) state.messages[item.id]=[];
@@ -379,6 +384,29 @@ function beginCloudGroupSubscription(){
   if(!firebaseUser)return;
   cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{firebaseError=err?.message||String(err);});
 }
+function stopPeerDisplayNameSubscription(){
+  try{peerDisplayNameUnsub();}catch{}
+  peerDisplayNameUnsub=()=>{};
+  peerDisplayNameKey="";
+  peerDisplayNames={};
+}
+function syncPeerDisplayNameSubscription(rows){
+  const uids=[...new Set((rows||[]).map(r=>r?.peerUid).filter(Boolean))].sort();
+  const key=uids.join("|");
+  if(key===peerDisplayNameKey)return;
+  stopPeerDisplayNameSubscription();
+  peerDisplayNameKey=key;
+  if(!uids.length)return;
+  peerDisplayNameUnsub=subscribeUserDisplayNames(uids,names=>{
+    peerDisplayNames=names||{};
+    let changed=false;
+    for(const c of state.conversations){
+      const name=c?.peerUid?peerDisplayNames[c.peerUid]:null;
+      if(name&&c.name!==name){c.name=name;changed=true;}
+    }
+    if(changed){persistSoon();if(state.route==="messages"||state.route==="chat")render();}
+  },err=>console.warn("FIDUNIO peer display-name sync unavailable",err));
+}
 function stopCloudMessageSubscription(){
   if(cloudMessageUnsub){ cloudMessageUnsub(); cloudMessageUnsub=null; }
   cloudMessageConversationId=null;
@@ -388,6 +416,7 @@ function beginCloudConversationSubscription(){
   if(!firebaseUser) return;
   cloudConversationUnsub=subscribeMyConversations(firebaseUser.uid, rows=>{
     rows.forEach(mergeCloudConversation);
+    syncPeerDisplayNameSubscription(rows);
     // A restored Firestore conversation may repair peerUid for an older
     // local record. Reattach the active chat listener after reconciliation.
     ensureActiveCloudMessageSubscription();
@@ -734,6 +763,7 @@ async function initializeFirebaseLayer(){
         if(state.online) scheduleReconnectRecovery();
       }else{
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
+        stopPeerDisplayNameSubscription();
         if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
         stopCloudMessageSubscription();
       }
@@ -812,6 +842,18 @@ function isGroup(c=currentConversation()){ return c?.type==="group"; }
 function shellTop(title,left=`<span class="topbar-spacer"></span>`,right=`<span class="topbar-spacer"></span>`){
   return `<header class="topbar">${left}<h1>${esc(title)}</h1>${right}</header>`;
 }
+function mainSignOutMarkup(){
+  return '<button class="secondary" id="fidunioMainSignOutBtn" type="button" aria-label="Sign Out" style="width:auto;margin:0 6px;padding:8px 12px">Sign Out</button>';
+}
+function bindMainSignOut(){
+  const btn=document.querySelector("#fidunioMainSignOutBtn");
+  if(!btn)return;
+  btn.onclick=async()=>{
+    btn.disabled=true;btn.textContent="Signing Out…";
+    try{await signOutFidunio();location.reload();}
+    catch(err){btn.disabled=false;btn.textContent="Sign Out";alert(err?.message||String(err));}
+  };
+}
 
 function applyAppearance(){
   const root=document.documentElement;
@@ -839,6 +881,7 @@ function renderConversationSidebar(){
         <div class="tablet-brand-actions">
           <button class="icon-btn icon-2d" id="tabletSettingsBtn" aria-label="Settings">${icon2d("settings",23)}</button>
           <button class="icon-btn icon-2d" id="tabletNewBtn" aria-label="New conversation">${icon2d("plus",23)}</button>
+          ${mainSignOutMarkup()}
         </div>
       </div>
       <div class="tablet-search-wrap">
@@ -968,12 +1011,13 @@ function renderMessages(){
     document.querySelector("#tabletContactsNav")?.addEventListener("click",()=>{state.route="newConversation";render()});
     document.querySelector("#tabletSettingsNav")?.addEventListener("click",()=>{state.route="settings";render()});
     document.querySelector("#emptyNewBtn")?.addEventListener("click",()=>{state.route="newConversation";render()});
+    bindMainSignOut();
     return;
   }
 
   app.innerHTML=`
     <main class="app-shell">
-      ${shellTop("Messages",undefined,'<button class="icon-btn icon-2d" id="settingsBtn" aria-label="Settings">'+icon2d("settings",23)+'</button>')}
+      ${shellTop("Messages",undefined,'<button class="icon-btn icon-2d" id="settingsBtn" aria-label="Settings">'+icon2d("settings",23)+'</button>'+mainSignOutMarkup())}
       <section class="content">
         <input class="search" id="searchBox" placeholder="Search conversations" />
         <div class="conversation-list" id="conversationList"></div>
@@ -982,6 +1026,7 @@ function renderMessages(){
     </main>`;
   document.querySelector("#settingsBtn").onclick=()=>{state.route="settings";render()};
   document.querySelector("#newBtn").onclick=()=>{state.route="newConversation";render()};
+  bindMainSignOut();
   const list=document.querySelector("#conversationList");
   const draw=(term="")=>{
     const rows=state.conversations.filter(c=>(c.name||"").toLowerCase().includes(term.toLowerCase())||(c.preview||"").toLowerCase().includes(term.toLowerCase()));
@@ -1074,6 +1119,7 @@ function renderChat(){
           <span class="secure">● ${c.cloud?"Cloud":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}</span>
         </div>
         <button class="icon-btn icon-2d" id="infoBtn" aria-label="Info">${icon2d("info",23)}</button>
+        ${isWideLayout()?"":mainSignOutMarkup()}
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
       ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE + key verification foundation — test messages only until verified per-device fan-out and forward secrecy are complete.</div>`:""}
@@ -1120,6 +1166,7 @@ function renderChat(){
   }else{
     app.innerHTML=`<main class="app-shell">${chatMarkup}</main>`;
   }
+  bindMainSignOut();
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
   document.querySelector("#infoBtn").onclick=async()=>{
     if(isGroup(c)){state.route="groupInfo";return render();}

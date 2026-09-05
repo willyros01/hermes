@@ -46,6 +46,34 @@ export async function markCloudConversationRead(conversationId){const s=await en
 export function subscribeMyConversations(uid,onRows,onError){let active=true,unsub=()=>{};ensureServices().then(s=>{if(!active)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations"),s.fsSdk.where("members","array-contains",uid));unsub=s.fsSdk.onSnapshot(q,snap=>onRows(snap.docs.map(d=>{const x=d.data(),other=(x.members||[]).find(m=>m!==uid);return{id:d.id,cloud:true,type:"direct",peerUid:other,name:x.memberNames?.[other]||"FIDUNIO contact",preview:"Cloud conversation",time:""};})),onError);}).catch(onError);return()=>{active=false;unsub();};}
 export function subscribeConversationMessages(conversationId,myUid,onRows,onError){const key=String(conversationId),token=Symbol(key);let stream=messageStreams.get(key);if(stream){if(stream.closeTimer){clearTimeout(stream.closeTimer);stream.closeTimer=null;}stream.token=token;stream.onRows=onRows;stream.onError=onError;ensureServices().then(async s=>{if(messageStreams.get(key)!==stream||stream.token!==token)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));const snap=await s.fsSdk.getDocs(q);if(messageStreams.get(key)!==stream||stream.token!==token)return;const rows=snap.docs.map(d=>({id:d.id,...d.data()}));stream.delivery=stream.delivery.then(()=>messageStreams.get(key)===stream&&stream.token===token?stream.onRows(rows,{fromCache:false,hasPendingWrites:false}):undefined).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}).catch(err=>{if(messageStreams.get(key)===stream&&stream.token===token)stream.onError?.(err);});}else{stream={token,onRows,onError,delivery:Promise.resolve(),unsub:()=>{},closeTimer:null};messageStreams.set(key,stream);ensureServices().then(s=>{if(messageStreams.get(key)!==stream)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));stream.unsub=s.fsSdk.onSnapshot(q,snap=>{if(messageStreams.get(key)!==stream)return;const rows=snap.docs.map(d=>({id:d.id,...d.data()})),meta={fromCache:!!snap.metadata?.fromCache,hasPendingWrites:!!snap.metadata?.hasPendingWrites};stream.delivery=stream.delivery.then(()=>messageStreams.get(key)===stream?stream.onRows(rows,meta):undefined).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});},err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}return()=>{const current=messageStreams.get(key);if(current!==stream||current.token!==token)return;current.closeTimer=setTimeout(()=>{const latest=messageStreams.get(key);if(latest!==stream||latest.token!==token)return;latest.unsub();messageStreams.delete(key);},250);};}
 
+// Central read-only live display-name subscription. Callers provide the exact
+// UIDs already discovered by their owned conversation lifecycle; this function
+// never creates a second conversation query or a second Firebase initializer.
+export function subscribeUserDisplayNames(uids,onNames,onError){
+  let active=true;
+  const stops=[];
+  const names=new Map();
+  const wanted=[...new Set((uids||[]).map(x=>String(x||"").trim()).filter(Boolean))];
+  const emit=()=>{if(active)onNames?.(Object.fromEntries(names));};
+  ensureServices().then(s=>{
+    if(!active)return;
+    if(!authUser)throw new Error("Sign in first.");
+    if(!wanted.length){emit();return;}
+    for(const uid of wanted){
+      const stop=s.fsSdk.onSnapshot(s.fsSdk.doc(s.db,"users",uid),snap=>{
+        if(!active)return;
+        if(snap.exists()){
+          const name=String(snap.data()?.displayName||snap.data()?.email||"").trim();
+          if(name)names.set(uid,name);else names.delete(uid);
+        }else names.delete(uid);
+        emit();
+      },err=>{if(active)onError?.(err);});
+      stops.push(stop);
+    }
+  }).catch(err=>{if(active)onError?.(err);});
+  return()=>{active=false;for(const stop of stops.splice(0))try{stop();}catch{}names.clear();};
+}
+
 // BEGIN ACCOUNT E2EE V1 CENTRAL FIREBASE API
 // Durable account-E2EE persistence remains owned by this already-initialized Firebase module.
 export async function readCloudAccountE2EEIdentity(uid){
