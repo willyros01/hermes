@@ -18,6 +18,13 @@ PERMANENT E2EE DEVICE-IDENTITY INVARIANT — SEPTEMBER 4, 2026
 - 0.9.5.5 automatic quarantine identity restoration is disabled during ordinary startup because it could replace a valid current identity. Recovery/reset must be explicit.
 - Historical vault/message data is test data and need not be recovered. After 0.9.5.7 identity stability passes, perform one deliberate cleanup of stale cloud device registrations and obsolete local vault/history/Outbox test data, then establish a fresh baseline.
 
+0.9.5.7 IDENTITY VALIDATION / CONTROLLED CLEANUP — SEPTEMBER 4, 2026
+- 0.9.5.7 passed on iPad Safari: repeated reloads preserved device `459975be-e...0933c1` and its fingerprint; bidirectional iPad/iPhone E2EE messaging decrypted correctly and reached Read; sign-out/sign-in preserved the same device identity.
+- Protected checkpoint: `checkpoint-0.9.5.7-identity-pass`.
+- 0.9.5.8 introduces a separate explicit development cleanup page. It preserves the current live E2EE identity/keypair and installation-local PIN/security, deactivates other active cloud device registrations for the signed-in account, clears local test app-state/history/Outbox, and deletes obsolete v1/v2/v3 account-vault databases.
+- Cleanup is never automatic at startup. It requires inspect + explicit confirmation and aborts if the current device ID changes between inspection and execution.
+- Cloud conversations/messages are deliberately NOT deleted in this first cleanup increment; remote message deletion requires separate ownership/rules review.
+
 CURRENT CRITICAL ARCHITECTURAL DISCOVERY — SEPTEMBER 4, 2026
 - The repository currently has a hidden dual-code runtime.
 - Raw `app.js` still contains prototype-era runtime state/UI, including Maria Santos, John Cruz, Family Group, sample contacts, local numeric IDs, and prototype group assumptions.
