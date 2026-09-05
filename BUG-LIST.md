@@ -7,13 +7,15 @@ This file is the durable working bug list for current development. Keep it conci
 ### Fire HD 8 / Account Isolation
 - **Account-local data is not isolated when different FIDUNIO users sign in on the same browser/device.**
   - Reported on Fire HD 8 after signing out of Alpha Account/Willy Rosales and signing in as Kyrie Rosales.
-  - The new account could still see remnants of the previous account's conversation state, and messages appeared as encrypted/unreadable remnants.
-  - Root cause: installation-wide `fidunio-local` contained application state, Outbox, history, peer trust, and E2EE/device material without authenticated-account ownership.
-  - **0.9.5.2 TEST BUILD:** adds `account-storage.js` as the single serialized account-storage activation owner. Authentication determines the UID first; account-local state is switched/restored before `app.js` imports and restores local state.
-  - Local PIN/config and the local encryption-at-rest key remain installation-wide; application state, Outbox/history, and E2EE/device identity are account-owned.
-  - Existing legacy local data is assigned only when its E2EE public identity uniquely matches one FIDUNIO profile. Ambiguous/unowned legacy data is quarantined rather than exposed to the newly signed-in account.
-  - Bootstrap no longer rewrites account-owned `app-state` before authentication determines the UID.
-  - Status: **awaiting Fire HD 8 A → B → A validation.**
+  - 0.9.5.2 still showed duplicate/misnamed conversation rows and mixed content from other accounts. Some old messages were plain text and some displayed as encrypted/unavailable.
+  - The old Maria Santos / John Cruz / Family Group prototype conversations also reappeared on a fresh account boundary.
+  - Additional root cause found: when no persisted `app-state` exists, legacy `app.js` starts from hard-coded prototype conversations/messages. The old bootstrap cleanup only cleaned persisted data, so a newly isolated empty account could expose those defaults again.
+  - Additional migration problem found: 0.9.5.2 could faithfully preserve an already-contaminated pre-isolation `app-state`/history snapshot. Once mixed data exists, it cannot be safely assigned to one UID.
+  - **0.9.5.3 TEST BUILD:** starts a new v3 account vault boundary. Pre-v3 app-state, Outbox, and history are treated as mixed/untrusted and quarantined instead of assigned to any account. Only a uniquely attributable E2EE identity/keypair may be preserved for its matching UID.
+  - Each v3 account with no trusted snapshot receives an encrypted empty `app-state` before `app.js` loads, preventing the hard-coded prototype conversations from becoming the visible starting state.
+  - Once an account is active under v3, subsequent UID switches save/restore that account's own app-state, Outbox, history, and E2EE/device identity normally.
+  - Local PIN/config and the local encryption-at-rest key remain installation-wide.
+  - Status: **awaiting Fire HD 8 validation on 0.9.5.3.**
   - Must preserve validated 0.9.5.1 Settings lifecycle; do not reuse the rejected 0.9.4.12 implementation.
 
 ### PIN / Local Security
