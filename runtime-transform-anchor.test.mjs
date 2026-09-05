@@ -18,7 +18,6 @@ exactlyOne('function renderGroupName(){','group UI middle anchor');
 exactlyOne('function renderChat(){','group UI end anchor');
 
 presentInSw('const helperNeedle=`async function resolvePeerUidForConversation(conversationId){`;','device-envelope helper transform');
-presentInSw('const newGroupStart=source.indexOf(`function renderNewGroup(){`)','group UI transform');
 
 for(const forbidden of ['Maria Santos','John Cruz','Family Group','Sample local contacts']){
   if(app.includes(forbidden))throw new Error(`prototype marker remains in authoritative app.js: ${forbidden}`);
@@ -46,4 +45,16 @@ for(const forbidden of [
   "source=source.replace(`  const cloud=!!c?.cloud;`"
 ]){if(sw.includes(forbidden))throw new Error(`obsolete SW group foundation transform remains: ${forbidden}`);}
 
-console.log('PASS runtime transform anchors remain deterministic with materialized group foundation');
+
+// Group creation UI is now authoritative raw source and absent from service-worker semantics.
+for(const required of [
+  "Search FIDUNIO users",
+  "Select at least 2 people for the group.",
+  "function renderGroupName(){",
+  "Create Group",
+  "Real group messaging remains disabled until group E2EE is implemented."
+]){if(!app.includes(required))throw new Error(`materialized group UI missing: ${required}`);}
+if(app.includes("Group setup is not available yet"))throw new Error("obsolete raw group placeholder remains");
+if(sw.includes("const newGroupStart=source.indexOf(`function renderNewGroup(){`)"))throw new Error("service-worker group UI transform remains");
+
+console.log('PASS runtime transform anchors remain deterministic with group UI fully materialized');
