@@ -4,6 +4,14 @@ This file is the durable working bug list for current development. Keep it conci
 
 ## Open bugs
 
+### Fire HD 8 / Account Isolation
+- **Account-local data is not isolated when different FIDUNIO users sign in on the same browser/device.**
+  - Reported on Fire HD 8 after signing out of Alpha Account/Willy Rosales and signing in as Kyrie Rosales.
+  - The new account could still see remnants of the previous account's conversation state, and messages appeared as encrypted/unreadable remnants.
+  - Current local persistence uses shared installation-wide IndexedDB storage (`fidunio-local`) for application state, Outbox, history, and E2EE/device material without a UID/account namespace.
+  - Treat this as an ownership/isolation defect, not a display-only bug.
+  - Fix must preserve the validated 0.9.5.1 Settings lifecycle and must not reuse the rejected 0.9.4.12 account-isolation implementation.
+
 ### PIN / Local Security
 - **Remove Local PIN does not work.**
   - Reported on FIDUNIO 0.9.5.1.
