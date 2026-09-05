@@ -1,0 +1,39 @@
+name: Materialize Auth Firebase Owner
+
+on:
+  push:
+    branches: [fidunio-rebuild-baseline-2026-09-05]
+    paths:
+      - 'materialize-auth-firebase-owner.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Centralize auth Firebase ownership
+        run: node materialize-auth-firebase-owner.mjs
+      - name: Validate sole Firebase SDK ownership
+        run: |
+          node --check firebase.js
+          node --check auth-ui-clean.js
+          npm run test:firebase-e2ee-adapter
+          npm run test:runtime-transform-anchors
+          npm run test:runtime-authority
+          ! grep -q 'gstatic.com/firebasejs/' auth-ui-clean.js
+          ! grep -q 'settings-lifecycle-bridge' auth-ui-clean.js
+          git diff --check
+      - name: Commit centralized auth Firebase API
+        run: |
+          git config user.name 'willyros01'
+          git config user.email 'willyros01@gmail.com'
+          git add firebase.js auth-ui-clean.js runtime-authority-gate.test.mjs
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Make firebase.js sole Firebase SDK owner'
+          git push
