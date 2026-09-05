@@ -1,0 +1,23 @@
+name: Account E2EE Auth Lifecycle Gate
+
+on:
+  push:
+    branches: [fidunio-rebuild-baseline-2026-09-05]
+    paths:
+      - 'e2ee-account-lifecycle.js'
+      - 'e2ee-account-lifecycle.test.mjs'
+      - '.github/workflows/e2ee-account-lifecycle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node e2ee-account-lifecycle.test.mjs
