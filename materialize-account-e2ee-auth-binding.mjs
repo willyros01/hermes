@@ -1,4 +1,4 @@
-// One-shot rebuild materializer: bind account-E2EE lookup/reset to the existing Firebase auth callback.
+// One-shot rebuild materializer: bind account-E2EE lookup/reset to the existing Firebase auth callback. Trigger after workflow registration.
 import fs from "node:fs";
 
 const appPath="app.js",gatePath="runtime-authority-gate.test.mjs";
