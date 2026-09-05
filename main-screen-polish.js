@@ -1,18 +1,11 @@
-/* FIDUNIO main-screen account control and live peer display-name overlay. */
-const SDK_VERSION="12.18.0";
-let signOutFn=null;
+/* FIDUNIO main-screen account control and live peer display-name overlay.
+ * TEMPORARY compatibility layer: DOM observer remains until app.js owns
+ * these projections directly. Firebase/Auth ownership stays in firebase.js.
+ */
+import { signOutFidunio } from "./firebase.js";
+
 let names={};
 
-async function getSignOut(){
-  if(signOutFn)return signOutFn;
-  const [appSdk,authSdk]=await Promise.all([
-    import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),
-    import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`)
-  ]);
-  const auth=authSdk.getAuth(appSdk.getApp());
-  signOutFn=()=>authSdk.signOut(auth);
-  return signOutFn;
-}
 function setTextIfChanged(el,value){if(el&&el.textContent!==value)el.textContent=value;}
 function applyPeerNames(){
   document.querySelectorAll(".conversation,.tablet-conversation").forEach(row=>{
@@ -35,7 +28,7 @@ function addMainSignOut(){
   const header=document.querySelector(".tablet-brand-actions")||document.querySelector(".topbar");if(!header)return;
   const btn=document.createElement("button");btn.id="fidunioMainSignOutBtn";btn.className="secondary";btn.type="button";btn.textContent="Sign Out";btn.setAttribute("aria-label","Sign Out");
   btn.style.width="auto";btn.style.margin="0 6px";btn.style.padding="8px 12px";
-  btn.onclick=async()=>{btn.disabled=true;btn.textContent="Signing Out…";try{const fn=await getSignOut();await fn();location.reload();}catch(err){btn.disabled=false;btn.textContent="Sign Out";alert(err?.message||String(err));}};
+  btn.onclick=async()=>{btn.disabled=true;btn.textContent="Signing Out…";try{await signOutFidunio();location.reload();}catch(err){btn.disabled=false;btn.textContent="Sign Out";alert(err?.message||String(err));}};
   header.appendChild(btn);
 }
 function polish(){addMainSignOut();applyPeerNames();}
