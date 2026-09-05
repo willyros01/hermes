@@ -36,6 +36,20 @@ Multiple active device records are allowed only when they represent genuinely di
 
 Stale device cleanup is an explicit maintenance/reset operation. Normal startup never guesses that another registered device is stale and never revokes another installation automatically.
 
+## Safari tab vs installed Home Screen PWA — September 5, 2026
+
+On iOS/iPadOS, the same physical device may legitimately host more than one FIDUNIO browser installation context. A normal Safari tab and an installed Home Screen PWA can have separate local storage/security state and must therefore be treated as separate installations for local PIN and E2EE identity purposes.
+
+Consequences:
+
+- Safari FIDUNIO and Home Screen FIDUNIO may each have their own local PIN state.
+- Safari FIDUNIO and Home Screen FIDUNIO may each have their own E2EE device ID/keypair.
+- Seeing two device registrations for one physical iPad is legitimate only if both Safari and the installed PWA are intentionally used as separate FIDUNIO installations.
+- For controlled multi-device testing, use the installed Home Screen PWA as the authoritative iPad/iPhone messaging installation and use Safari only for diagnostics/admin/maintenance unless a separate Safari installation is intentionally under test.
+- Do not diagnose every additional cloud device record as identity churn until the browser-installation context is known.
+
+This distinction explains why the iPad Safari copy had no local PIN while the installed Home Screen PWA still required its PIN: local security is installation-scoped rather than account-cloud-scoped.
+
 ## Race-condition precedent discovered September 4, 2026
 
 The 0.9.5.6 audit found a concrete identity race in `app.js`:
