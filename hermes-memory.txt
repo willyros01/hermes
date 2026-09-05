@@ -4,73 +4,75 @@ CUMULATIVE PROJECT MEMORY
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat, sub-chat, assistant instance, coding session, or developer continuing Hermes/FIDUNIO MUST begin by reading the supporting documentation in the repository. Do not rely on conversational memory alone.
 - At minimum read: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, and `BUG-LIST.md`.
-- When touching E2EE/device code, also read `E2EE-IDENTITY-LIFECYCLE.md`; it now records the superseded device-based design and migration history.
-- Inspect any other root supporting document relevant to the feature before implementation.
-- `CODING-GUIDELINES.md` is the binding coding/architecture contract.
-- `RUNTIME-CONSOLIDATION-PLAN.md` is the binding runtime/source consolidation plan.
-- `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` is the binding messaging/E2EE/storage authority architecture as of September 5, 2026.
-- `DETERMINISTIC-UI-LIFECYCLE.md` is the binding UI lifecycle direction as of September 5, 2026.
-- No implementation begins until ownership, exact resource scope, lifecycle trigger, and serialized write path are identified for every mutable resource touched.
+- When touching E2EE/device code, also read `E2EE-IDENTITY-LIFECYCLE.md`; it records the superseded device-based design and migration history.
 - Core rule: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
+
+ACCOUNT E2EE RECOVERY DECISIONS — SEPTEMBER 5, 2026
+- Binding normal recovery requirement: PASSWORD + EXISTING 6-DIGIT FIDUNIO PIN MUST BE ENTERED TOGETHER to unlock/recover the durable account E2EE identity on a new/reinstalled context. Neither alone is sufficient.
+- Never store plaintext password or plaintext PIN in Firestore. FIDUNIO app code must not persist the user's plaintext password in IndexedDB/localStorage. Firebase Authentication remains responsible for the authentication-password mechanism.
+- Firestore may store the public account E2EE material plus an encrypted/wrapped private-key package, salts/KDF/wrapping metadata, and a separately designed recovery-wrapped representation or equivalent recovery material. Never plaintext private E2EE key.
+- Password change: unlock existing identity with current valid credentials, change auth password, then re-wrap the SAME E2EE identity using NEW PASSWORD + EXISTING PIN. Verify new wrapper before retiring old valid wrapper. History must remain readable.
+- PIN change: unlock existing identity, then re-wrap SAME E2EE identity using password + NEW PIN. History remains readable.
+- Product requirement for forgotten-password recovery: once FIDUNIO's hardened recovery procedure legitimately establishes the account owner, that user SHOULD regain the SAME E2EE identity and historical messages. Do not silently create a new messaging identity merely because the Firebase password was reset.
+- Agreed simple user recovery flow: Forgot Password -> verify registered recovery channel/email -> enter existing 6-digit PIN -> additional recovery verification -> choose new password -> recover SAME E2EE identity -> re-wrap with new password + PIN -> restore Firestore-authoritative history.
+- DO NOT require another FIDUNIO device, QR transfer, proprietary device ID, or device-to-device approval for normal account recovery. User explicitly rejected another-device recovery as too difficult to implement/manage.
+- Security questions, if retained, are SUPPLEMENTAL evidence only. They must not be the sole proof or the cryptographic secret that releases message history. Current NIST guidance does not consider traditional knowledge-based questions a strong standalone recovery authenticator.
+- Recovery must be hardened: random/short-lived/single-use challenges where applicable; rate limiting/throttling; protection against account enumeration; security notification after successful recovery; session invalidation/review after high-risk recovery; deterministic enhanced verification/hold for suspicious recovery if adopted.
+- Normal password+PIN wrapping cannot mathematically recover an old E2EE key when the old password is forgotten. Therefore a separate explicit recovery capability/recovery wrapper (or equivalent reviewed construction) is required. Identity verification must connect to key recovery through a controlled cryptographic mechanism.
+- No administrator gets a plaintext-key bypass. No plaintext E2EE private key in Firestore.
+- Exact KDF, wrapping algorithm, Firestore schema, recovery-wrapper authority, throttling policy, password/PIN re-wrap transaction, rollback behavior, and Firestore rules MUST be specified/reviewed before application implementation.
+- Binding detailed reference: `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`.
 
 DETERMINISTIC UI REQUIREMENT — SEPTEMBER 5, 2026
 - User's explicit one-word requirement: DETERMINISTIC.
 - All actions' results should be as expected. UI correctness must not depend on timing races, orientation changes, cache warming, repeated observers, asynchronous collision, or one module repairing another module after the fact.
-- Major concern: the current UI has too many moving parts that can crash against each other, including app.js rendering/navigation, feature modules, auth callbacks, Settings lifecycle code, Firestore live events, receipt/message updates, service-worker-injected behavior, responsive/two-pane transitions, and historical DOM repair/re-parenting logic.
-- A screen looking correct is NOT equivalent to the UI architecture being complete. Multiple independent writers can still make the UI nondeterministic.
-- The goal is NOT increasingly masterful synchronization of many writers. The goal is to eliminate unnecessary writers and competing authorities.
-- Authoritative application state comes first; the DOM is a projection of that state.
-- Firestore, E2EE, receipts, auth, local-cache synchronization, and orientation changes should update state or dispatch owned events. They should not independently manipulate arbitrary screen DOM.
-- Every major UI region/screen must have one structural owner and one predefined DOM area. Sibling modules must not move/remove/recreate each other's nodes.
-- Messages owner renders Messages. Settings owner renders Settings. New Message owner renders New Message. Layout owner projects one-pane/two-pane. Auth changes account/auth state rather than rebuilding unrelated screen DOM.
-- Broad MutationObserver repair, timeout settling, orientation rescue, cache-timing rescue, repeated DOM rediscovery/re-parenting, and location.reload synchronization are prohibited as normal architecture.
-- Responsive behavior must be a deterministic projection of the same state, not a second application lifecycle. iPhone single-pane and iPad two-pane remain protected user-facing behavior.
-- The 0.9.5.1 Settings lifecycle repair is the precedent for the whole app: owned hosts, explicit lifecycle, no observer-based resurrection.
-- UI completion was previously overestimated based on visible/functionality completion. Current architectural confidence is closer to ~60-65%, while roughly 85-90% of the visual/user-facing UI design/functionality may still be reusable. Do not wholesale redesign approved screens; consolidate ownership/lifecycle underneath them.
+- The goal is NOT increasingly masterful synchronization of many writers. Eliminate unnecessary writers and competing authorities.
+- Authoritative application state comes first; DOM is a projection.
+- Every major UI region/screen has one structural owner and predefined DOM area.
+- Broad MutationObserver repair, timeout settling, orientation rescue, cache-timing rescue, DOM rediscovery/re-parenting, and location.reload synchronization are prohibited as normal architecture.
+- Responsive behavior is deterministic projection of same state. Preserve iPhone single-pane and iPad two-pane.
+- Settings 0.9.5.1 is the precedent: owned hosts, explicit lifecycle, no observer resurrection.
+- UI architectural confidence ~60-65%; ~85-90% visual/user-facing design/functionality likely reusable. Do not wholesale redesign approved screens.
 - Binding reference: `DETERMINISTIC-UI-LIFECYCLE.md`.
 
 MAJOR ARCHITECTURE CORRECTION — SEPTEMBER 5, 2026
-- The former rule `one account + one browser installation = one E2EE device identity` is SUPERSEDED.
-- User identified the major durability gap: Safari and Home Screen PWA have separate local storage, and local browser storage is not durable enough to be authoritative for conversation continuity or the only copy of cryptographic identity needed to read Firestore history.
+- Former rule `one account + one browser installation = one E2EE device identity` is SUPERSEDED.
 - New binding invariant: ONE ACCOUNT = ONE DURABLE E2EE IDENTITY.
-- Firebase Auth UID is the durable FIDUNIO user identifier. UID identifies the account but is NOT secret and MUST NOT by itself be used to derive the private encryption key.
-- Account E2EE secret/key material must be cryptographically random and generated once. Public material may be stored in Firestore. Private material must never be stored in plaintext in Firestore; it must use a reviewed encrypted/wrapped recovery package so a newly authenticated installation can recover the same account identity.
+- Firebase Auth UID is durable identifier, not secret, and MUST NOT alone derive private key.
+- Account E2EE key material is cryptographically random and generated once.
 - FIRESTORE IS AUTHORITATIVE for encrypted conversations/messages.
-- LOCAL INDEXEDDB/STORAGE IS A REBUILDABLE CACHE for inbox/history performance and offline use. Outbox is a temporary offline queue. Loss of local cache must cause reconstruction, not permanent loss of history.
-- PWA removal/reinstall, Safari-vs-PWA context changes, cache deletion, or replacement device must not by themselves destroy access to authoritative conversation history.
-- Device ID may still be generated/collected as an informational variable for possible future use, but DO NOT use it for E2EE routing, key ownership, message ownership, conversation history, decryptability, or normal delivery.
-- Do not continue the per-device E2EE envelope/fan-out architecture as the target design. Existing code is legacy migration material and must be handled under the runtime-consolidation plan rather than blindly deleted.
-- Future push notification routing should associate FCM registration tokens with authenticated UID. A proprietary FIDUNIO device ID is not required merely for FCM delivery.
-- Existing local PIN remains an installation-local app-lock feature unless deliberately redesigned. It must not become the sole durable source of the permanent account E2EE identity.
-- Current iPhone/iPad messaging/device-ID test is paused. Do not create more baseline messages against the old architecture until durable account-key wrapping/recovery and Firestore-authoritative synchronization are designed/implemented in bounded steps.
+- LOCAL INDEXEDDB/STORAGE IS REBUILDABLE CACHE; Outbox temporary offline queue.
+- PWA reinstall, Safari/PWA context change, cache deletion, replacement device must not by themselves destroy history.
+- Device ID may be collected as informational variable only. DO NOT use for E2EE routing/key ownership/message ownership/history/decryptability/normal delivery.
+- Existing per-device E2EE envelope/fan-out is legacy migration material, not target architecture.
+- Future FCM tokens associated with UID; separate from E2EE.
+- Current old-architecture messaging baseline testing remains paused until new durable account E2EE design is implemented in bounded steps.
 
-SAFARI VS HOME SCREEN PWA FINDING — RETAINED
-- iOS/iPadOS Safari and an installed Home Screen PWA can have separate local storage/security contexts even on the same physical device.
-- They may therefore have different installation-local PIN/cache/device-variable state.
-- Under the NEW architecture this separation must NOT imply separate durable E2EE identities or loss of history. Both contexts, after proper authentication/recovery, must reach the same account E2EE identity and Firestore-authoritative history.
+SAFARI VS HOME SCREEN PWA FINDING
+- Safari and installed Home Screen PWA can have separate local storage/security contexts.
+- Under new architecture this must NOT imply separate durable E2EE identities or history loss. Both contexts after proper auth/recovery reach same account E2EE identity and Firestore history.
 
 CURRENT IMPLEMENTATION ORDER
-1. Read all mandatory repository supporting docs listed above.
-2. Preserve protected checkpoints and validated behavior.
-3. Consolidate UI ownership/lifecycle toward the deterministic model; do not add new repair-after-the-fact UI machinery.
-4. Continue inventory/consolidation of the hidden service-worker source-transform architecture carefully; no new transforms.
-5. Before materializing further per-device E2EE transforms, design the durable account E2EE key generation, secure wrapping, recovery, and rotation/revocation rules.
-6. Implement account E2EE identity creation/recovery with one owner and serialized write path.
-7. Make Firestore -> local synchronization explicitly authoritative/rebuildable.
-8. Replace legacy per-device envelope routing with account-identity encryption in a bounded migration.
-9. Keep device ID informational only.
+1. Read mandatory supporting docs.
+2. Preserve protected checkpoints/validated behavior.
+3. Finish security specification for durable account E2EE: key algorithm, password+PIN KDF, authenticated wrapping, Firestore schema, separate forgotten-password recovery capability, rate limiting, atomic re-wrap/rollback, Firestore rules.
+4. Implement exactly one Account E2EE Identity Manager with one serialized create/unlock/recovery/re-wrap path.
+5. Make Firestore -> local synchronization authoritative/rebuildable.
+6. Replace legacy per-device envelope routing with account-identity encryption in bounded migration.
+7. Keep device ID informational only.
+8. Continue hidden service-worker runtime consolidation carefully; no new transforms and no blind deletion.
+9. Consolidate UI ownership/lifecycle toward deterministic model; no repair-after-the-fact machinery.
 10. Remove service-worker source rewriting only after required behavior exists in authoritative source and equivalence is validated.
-11. Establish true empty production runtime with no Maria/John/Family/sample fallback.
-12. Revalidate send/receive, decrypt, Sent/Delivered/Read, iPad live receipt refresh, Outbox/reconnect, history/re-entry, Settings, deterministic navigation/layout, PWA reinstall/cache-loss recovery, Safari/PWA recovery, and replacement-device account-key recovery.
-13. Resume same-browser/Fire HD 8 account isolation only after one deterministic account-authoritative runtime passes.
-14. Add FCM token registration later as a separate notification concern.
+11. Establish true empty production runtime with no prototype fallback.
+12. Revalidate send/receive, decrypt, receipts, Outbox/reconnect, history, Settings, navigation/layout, PWA reinstall/cache-loss, Safari/PWA recovery, password change, PIN change, forgotten-password recovery, replacement-context recovery.
+13. Resume Fire HD/same-browser account isolation after deterministic account-authoritative runtime passes.
+14. Add FCM later.
 
 CURRENT CRITICAL RUNTIME DISCOVERY
-- Repository still has a hidden dual-code runtime.
-- Raw `app.js` contains prototype-era state/UI including Maria Santos, John Cruz, Family Group, sample contacts, local numeric IDs, and prototype group assumptions.
-- `service-worker.js` rewrites `app.js` source at runtime and injects later production behavior including receipts, legacy per-device E2EE/fan-out, groups, and related functionality.
-- Raw repository source and the application validated under service-worker control are not necessarily the same program.
-- Do NOT simply delete prototype arrays or service-worker replacements. Inventory dependencies and materialize/replace behavior in bounded increments.
+- Repository has hidden dual-code runtime.
+- Raw `app.js` contains prototype-era state/UI (Maria Santos, John Cruz, Family Group, sample contacts, numeric IDs, prototype group assumptions).
+- `service-worker.js` rewrites `app.js` source at runtime and injects later production behavior including receipts, legacy per-device E2EE/fan-out, groups.
+- Do NOT simply delete prototype arrays or service-worker replacements. Inventory/materialize/replace behavior in bounded increments.
 
 PROHIBITED DURING RECOVERY
 - No new service-worker source transforms.
@@ -79,83 +81,80 @@ PROHIBITED DURING RECOVERY
 - No orientation/cache/timing-dependent repair.
 - No second runtime-state owner.
 - No blind deletion of legacy E2EE transforms.
-- No new per-device E2EE fan-out as the target architecture.
+- No new per-device E2EE fan-out as target architecture.
 - No private key derived from Firebase UID alone.
-- No plaintext private key stored in Firestore.
-- No UI module repairing/re-parenting another owner's DOM as normal lifecycle behavior.
+- No plaintext private key in Firestore.
+- No plaintext password/PIN persistence by FIDUNIO.
+- No security questions as sole forgotten-password recovery proof.
+- No mandatory second-device/QR recovery architecture.
+- No UI module repairing/re-parenting another owner's DOM as normal lifecycle.
 - Do not reuse rejected 0.9.4.12 account-isolation architecture.
 
 PROTECTED FUNCTIONAL BASELINES
 - 0.6.5 local-first/offline PASS.
 - 0.7.3 direct E2EE transport/reconnect PASS.
-- 0.8.0 device identity PASS (historical design baseline only).
+- 0.8.0 device identity PASS (historical only).
 - 0.8.1 contact key verification PASS.
 - UI 0.8.1.9 + Group Info tablet fix PASS.
 - 0.8.1.16 receipt/re-entry PASS; rollback `2a6380e26ce969fc95f0a38e29517e48b09b781b`.
-- 0.9.0.2 per-device E2EE two-device + receipts + offline Outbox/reconnect PASS (historical implementation baseline, not new target).
-- 0.9.0.4 three-device per-device E2EE fan-out PASS (historical implementation baseline, not new target).
-- 0.9.3.7 protected pre-PIN baseline `db15b15c92ea476f81a2ccc37e08dde53a2e491e`.
-- 0.9.4.11 protected clean stabilization baseline: commit `1ebc19df498de083f8084e0084c34ced18fc11f0`, built from 0.9.4.10 `51a278b2ac5cc9eeb83a557a64e58417ccc01697`.
-- 0.9.5.1 Settings lifecycle PASS; protected branch `checkpoint-0.9.5.1-settings-pass`.
-- 0.9.5.4 receipt reconciliation materialized into authoritative `app.js`.
-- 0.9.5.7 fixed/validated the legacy per-installation identity race; useful stabilization checkpoint, but ownership model now superseded.
+- 0.9.0.2 per-device E2EE two-device + receipts + Outbox/reconnect PASS (historical).
+- 0.9.0.4 three-device fan-out PASS (historical).
+- 0.9.3.7 pre-PIN baseline `db15b15c92ea476f81a2ccc37e08dde53a2e491e`.
+- 0.9.4.11 stabilization baseline `1ebc19df498de083f8084e0084c34ced18fc11f0`, built from `51a278b2ac5cc9eeb83a557a64e58417ccc01697`.
+- 0.9.5.1 Settings lifecycle PASS; branch `checkpoint-0.9.5.1-settings-pass`.
+- 0.9.5.4 receipt reconciliation materialized.
+- 0.9.5.7 legacy per-installation identity race fixed/validated; ownership model now superseded.
 
 SETTINGS ARCHITECTURE PRECEDENT
-- Profile, User Administration, and Invitations were late bolt-ons outside authoritative Settings render lifecycle.
-- Correct rule: authoritative screen lifecycle creates owned hosts and explicitly mounts/remounts feature owners; no observer rediscovery or cross-owner re-parenting.
-- Settings 0.9.5.1 demonstrates desired ownership and must be protected.
+- Profile, User Administration, Invitations were late bolt-ons outside authoritative Settings lifecycle.
+- Correct rule: authoritative screen creates owned hosts and explicitly mounts owners; no observer rediscovery/cross-owner re-parenting.
 
 PIN / LOCAL SECURITY
-- `app.js state.unlocked` remains the single authoritative local LOCKED/UNLOCKED state.
-- `local-security.js` is helper-only and must not create competing lock state/UI.
-- PIN config is installation-local in IndexedDB; raw PIN never stored; PBKDF2-SHA256 verifier, random salt, 210000 iterations; 4-12 digits.
-- WebAuthn platform authenticator with PIN fallback.
-- Firebase authentication and local unlock remain separate.
-- Known open bug: Remove Local PIN does not work. Change PIN, Lock Now, timeout and existing PIN flows work. Fix later as focused defect.
+- Existing `app.js state.unlocked` is authoritative local LOCKED/UNLOCKED state.
+- Existing local PIN implementation is installation-local, PBKDF2-SHA256 verifier, random salt, 210000 iterations, 4-12 digits, WebAuthn platform authenticator with PIN fallback.
+- The newly agreed six-digit account E2EE PIN requirement must be deliberately reconciled with/migrated from this existing local-security feature; do not accidentally treat current local PIN storage as already implementing durable account E2EE recovery.
+- Known bug: Remove Local PIN does not work. Other PIN flows work. Fix later as focused defect.
 
 FIRE HD 8 / ACCOUNT ISOLATION
-- Same-browser account switching previously showed cross-account local remnants and mixed content among Willy/Alpha, Kyrie, and Jax.
-- 0.9.5.2/0.9.5.3 attempts exposed deeper prototype/runtime problems and are not validated fixes.
-- Fire work remains paused until deterministic runtime + new account-authoritative messaging architecture pass.
-- Future account-sensitive startup: authenticate -> determine UID -> recover durable account E2EE identity -> activate/rebuild UID-owned local cache -> synchronize Firestore -> start live app synchronization.
-- Storage/account changes serialized through owners/mutexes; storage modules may not mutate structural UI or use reload as synchronization.
+- Same-browser account switching previously showed cross-account remnants/mixed content.
+- Fire work paused until deterministic runtime + account-authoritative messaging pass.
+- Future startup: authenticate -> determine UID -> recover durable account E2EE identity -> activate/rebuild UID cache -> sync Firestore -> live synchronization.
 
 LOCKED PROJECT CONVENTIONS
-- Hermes = internal project/repository/release naming; FIDUNIO = public app/product.
+- Hermes internal project/repository/release; FIDUNIO public product.
 - Flat repository-root release packaging.
-- Exactly one cumulative root `hermes-memory.txt` and one reusable root `hermes-setup.txt`; no version-numbered memory/setup TXT.
-- `firebase-config.js` and `config-firestore.js` must NEVER be regenerated, overwritten, or included in update/release ZIPs.
-- `version.js` is authoritative runtime version; every test build distinct visible version.
-- Preserve winged-messenger artwork, navy/teal/gray palette, no gold.
-- Preserve iPhone single-pane and adaptive iPad/two-pane behavior.
-- Accessibility core: large text, strong contrast, visible focus/control states.
-- Preserve established major screen designs; incremental changes unless user explicitly approves redesign.
+- Exactly one cumulative root `hermes-memory.txt` and one reusable root `hermes-setup.txt`.
+- `firebase-config.js` and `config-firestore.js` NEVER regenerated/overwritten/included in update ZIPs.
+- `version.js` authoritative; every test build distinct visible version.
+- Preserve winged-messenger artwork, navy/teal/gray, no gold.
+- Preserve iPhone single-pane and iPad/two-pane.
+- Accessibility: large text, strong contrast, visible focus/control states.
+- Preserve established major screen designs unless user approves redesign.
 - User-facing identity selection uses display name; UID internal.
 
 REJECTED / DO NOT REUSE
-- 0.9.4.12 Fire account isolation architecture (`account-local-isolation.js`, separate vault, independent Firebase init, reloads).
+- 0.9.4.12 Fire account isolation architecture.
 - 0.9.4.13 ui-lock.
 - 0.9.4.14 scoped Settings settle timers.
 - 0.9.4.15 corrected lock with competing auth/admin writers.
 - Rejected invite-install commits `8b05b185...`, `12cc391d...`, `881e8f1e...`, `b79aaf32...`, `a70abf8e...`.
-- Never adapt rejected invite-install implementation; rebuild from scratch later.
 
 RELEASE / SAFEKEEPING
-- FIDUNIO 0.9.4.11 ZIP: `hermes-ux-0.9.4.11.zip`; flat/root-only; 35 files; excludes firebase-config.js/config-firestore.js/install-prompt.js; SHA-256 `2c0f47cbfa7b78c80e3c79bf966557b306fa61af8f708445dad659fde9bfcf60`.
+- FIDUNIO 0.9.4.11 ZIP `hermes-ux-0.9.4.11.zip`; flat/root-only; 35 files; excludes firebase-config.js/config-firestore.js/install-prompt.js; SHA-256 `2c0f47cbfa7b78c80e3c79bf966557b306fa61af8f708445dad659fde9bfcf60`.
 
-AUTHORITATIVE / SUPPORTING REFERENCE FILES
-- `hermes-memory.txt` — cumulative durable project memory; mandatory first read.
+AUTHORITATIVE / SUPPORTING REFERENCES
+- `hermes-memory.txt` — cumulative durable memory.
 - `CODING-GUIDELINES.md` — binding coding contract.
-- `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` — binding account E2EE/Firestore authority architecture.
-- `DETERMINISTIC-UI-LIFECYCLE.md` — binding deterministic UI ownership/lifecycle architecture.
-- `RUNTIME-CONSOLIDATION-PLAN.md` — binding runtime/source recovery plan.
-- `RUNTIME-TRANSFORM-INVENTORY.md` — inventory of hidden service-worker transforms.
-- `E2EE-IDENTITY-LIFECYCLE.md` — historical/superseded device-E2EE model and migration context.
-- `architecture-ownership.txt` — ownership/isolation architecture reference.
-- `BUG-LIST.md` — durable active defect list.
+- `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` — binding account E2EE/Firestore/recovery architecture.
+- `DETERMINISTIC-UI-LIFECYCLE.md` — binding UI architecture.
+- `RUNTIME-CONSOLIDATION-PLAN.md` — runtime/source recovery plan.
+- `RUNTIME-TRANSFORM-INVENTORY.md` — hidden SW transforms.
+- `E2EE-IDENTITY-LIFECYCLE.md` — historical/superseded device model.
+- `architecture-ownership.txt` — ownership reference.
+- `BUG-LIST.md` — active defects.
 
 FINAL HANDOFF RULE
-Whoever works on Hermes/FIDUNIO next MUST READ THE SUPPORTING DOCS IN THE REPOSITORY BEFORE CHANGING CODE. The repository documentation, not remembered chat context, is the durable handoff authority. If a supporting document conflicts with an older design note, follow the newest explicitly binding/superseding architecture and resolve/document the conflict before implementation.
+Whoever works on Hermes/FIDUNIO next MUST READ THE SUPPORTING DOCS IN THE REPOSITORY BEFORE CHANGING CODE. Repository documentation, not remembered chat context, is durable authority. Follow newest explicitly binding/superseding architecture.
 
 PERMANENT UI HANDOFF RULE
-DETERMINISTIC. All actions' results should be as expected. Do not solve instability by adding more moving parts. Reduce competing authorities until the expected result follows from the architecture itself.
+DETERMINISTIC. All actions' results should be as expected. Do not solve instability by adding more moving parts. Reduce competing authorities until expected behavior follows from architecture itself.
