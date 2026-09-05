@@ -22,6 +22,21 @@ Commit `249eeea1a48a3dcdf9a98e742a29e79b7525395e` then materialized the real New
 
 Group metadata and creation now use central `firebase.js` APIs directly. Group message transport remains intentionally blocked until reviewed account-authoritative group E2EE exists.
 
+### Main-screen peer names and Sign Out — FULLY MATERIALIZED
+Peer display-name synchronization now comes through bounded `firebase.js` subscriptions and is projected explicitly by `app.js`. Sign Out is rendered and bound explicitly by `app.js` through central `signOutFidunio()`.
+
+The former `profile-sync.js` and `main-screen-polish.js` compatibility overlays are deleted. No broad main-screen `MutationObserver` remains.
+
+### Settings lifecycle ownership — FULLY MATERIALIZED
+`app.js` imports and calls `mountSettingsLifecycle()` after `renderSettings()`. The former `settings-lifecycle-bridge.js` observer bridge is deleted.
+
+### Firebase SDK ownership — CONSOLIDATED
+Commit `f837acfc4b88cfacb0358359891110018b4c94ad` moved Settings profile/admin/invitation operations behind bounded `firebase.js` APIs.
+
+Commit `b164a12ab2c2a86c88aaac70cfdf4079114d9243` moved password-reset service access out of `auth-ui-clean.js` and into central `firebase.js`.
+
+`firebase.js` is now the sole runtime Firebase SDK/service owner. The runtime authority gate has no temporary Firebase SDK exceptions and no MutationObserver exceptions.
+
 ## Transforms still present in `service-worker.js`
 
 Only legacy/per-device E2EE compatibility transforms remain.
@@ -46,28 +61,14 @@ Converts cloud send to per-device `e2ee:2` fan-out.
 
 **Treatment:** preserve only as compatibility until account-authoritative encryption/send/outbox replaces it.
 
-## Temporary non-service-worker compatibility modules
-
-### `profile-sync.js`
-Still independently imports Firebase SDK and follows peer profile documents, then emits a global peer-name event. Must be consolidated through `firebase.js`.
-
-### `main-screen-polish.js`
-Still uses a broad `MutationObserver` to add Sign Out and rewrite peer names. Sign Out itself now routes through central `signOutFidunio()`; remaining DOM repair behavior must be materialized into explicit owners.
-
-### `settings-lifecycle.js`
-Deterministic Settings owner, but still has temporary direct Firebase SDK access for profile/admin data. Its service acquisition should eventually move behind bounded `firebase.js` APIs.
-
-### `settings-lifecycle-bridge.js`
-Temporary bridge until `app.js` exposes the final explicit Settings render hook.
-
 ## Current consolidation order
 
 1. **COMPLETE:** dead one-off cleanup and security/recovery checkpoint.
 2. **COMPLETE:** empty Messages state and explicit New Message owner.
 3. **COMPLETE:** all non-cryptographic group service-worker transforms materialized into raw `app.js`; group send remains fail-closed.
-4. **CURRENT:** replace peer-name/main-screen observer projections with central Firebase APIs + explicit `app.js` projection; remove `profile-sync.js` direct SDK access and `main-screen-polish.js` MutationObserver when their behavior is owned explicitly.
-5. Consolidate remaining Settings direct Firebase service access behind bounded central APIs.
-6. Wire validated account-E2EE identity lifecycle through central `firebase.js`.
+4. **COMPLETE:** peer-name/main-screen observer overlays retired; Sign Out and display names are explicit projections.
+5. **COMPLETE:** Settings lifecycle bridge retired and all remaining non-central Firebase SDK ownership consolidated into `firebase.js`.
+6. **CURRENT:** wire the validated account-E2EE identity lifecycle through central Firebase ownership without yet changing direct-message transport.
 7. Replace per-device send/decrypt/fan-out transforms with account-authoritative messaging plus explicit legacy migration handling.
 8. Confirm no semantic source transform remains and reduce service worker to cache/offline only.
 9. Revalidate iPhone/iPad, receipts, Settings, offline reconnect, account switching, reinstall/recovery.
