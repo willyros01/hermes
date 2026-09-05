@@ -124,6 +124,42 @@ service cloud.firestore {
     }
     // END E2EE V1 STAGED HELPERS
 
+    // BEGIN ACCOUNT DIRECT-MESSAGE E2EE V3 HELPERS — repository gate only
+    function conversationDoc(conversationId){return get(/databases/$(database)/documents/conversations/$(conversationId));}
+    function directRecipientUid(conversationId){
+      return conversationDoc(conversationId).data.members[0] == request.auth.uid
+        ? conversationDoc(conversationId).data.members[1]
+        : conversationDoc(conversationId).data.members[0];
+    }
+    function accountPublicKey(uid){return get(/databases/$(database)/documents/e2eePublicKeys/$(uid));}
+    function validAccountDirectMessage(conversationId,d){
+      return conversationDoc(conversationId).data.type == "direct"
+        && conversationDoc(conversationId).data.members is list
+        && conversationDoc(conversationId).data.members.size() == 2
+        && request.auth.uid in conversationDoc(conversationId).data.members
+        && exists(/databases/$(database)/documents/e2eePublicKeys/$(request.auth.uid))
+        && exists(/databases/$(database)/documents/e2eePublicKeys/$(directRecipientUid(conversationId)))
+        && d.keys().hasAll(["senderUid","senderName","timeLabel","state","createdAt","text","e2ee","kdfVersion","senderKeyId","recipientKeyId","ciphertext","iv"])
+        && d.keys().hasOnly(["senderUid","senderName","timeLabel","state","createdAt","text","e2ee","kdfVersion","senderKeyId","recipientKeyId","ciphertext","iv"])
+        && d.senderUid == request.auth.uid
+        && d.senderName is string && d.senderName.size() > 0 && d.senderName.size() <= 120
+        && d.timeLabel is string && d.timeLabel.size() <= 80
+        && d.state == "sent"
+        && d.createdAt == request.time
+        && d.text == ""
+        && d.e2ee == 3
+        && d.kdfVersion == 1
+        && d.senderKeyId is string && d.senderKeyId.size() >= 16 && d.senderKeyId.size() <= 128
+        && d.recipientKeyId is string && d.recipientKeyId.size() >= 16 && d.recipientKeyId.size() <= 128
+        && d.senderKeyId == accountPublicKey(request.auth.uid).data.keyId
+        && d.recipientKeyId == accountPublicKey(directRecipientUid(conversationId)).data.keyId
+        && d.ciphertext is string && d.ciphertext.size() >= 22 && d.ciphertext.size() <= 20000
+        && d.ciphertext.matches('^[A-Za-z0-9_-]+$')
+        && d.iv is string && d.iv.size() == 16
+        && d.iv.matches('^[A-Za-z0-9_-]+$');
+    }
+    // END ACCOUNT DIRECT-MESSAGE E2EE V3 HELPERS
+
     match /system/access {
       allow read: if enrolled();
       allow create: if signedIn()
@@ -232,6 +268,8 @@ service cloud.firestore {
             (request.resource.data.e2ee == 1 && request.resource.data.ciphertext is string && request.resource.data.ciphertext.size() > 0 && request.resource.data.ciphertext.size() <= 20000 && request.resource.data.iv is string && request.resource.data.iv.size() > 0 && request.resource.data.iv.size() <= 128 && request.resource.data.text == "")
             ||
             (request.resource.data.e2ee == 2 && request.resource.data.ciphertext == "" && request.resource.data.iv == "" && request.resource.data.text == "" && request.resource.data.envelopes is map && request.resource.data.envelopes.size() > 0 && request.resource.data.envelopes.size() <= 32 && request.resource.data.recipientDeviceIds is list && request.resource.data.recipientDeviceIds.size() > 0 && request.resource.data.recipientDeviceIds.size() <= 32)
+            ||
+            validAccountDirectMessage(conversationId,request.resource.data)
           );
         allow update: if isConversationMember(conversationId) && request.resource.data.senderUid == resource.data.senderUid && request.resource.data.createdAt == resource.data.createdAt && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state"]) && request.resource.data.state in ["delivered","read"];
         allow delete: if false;
