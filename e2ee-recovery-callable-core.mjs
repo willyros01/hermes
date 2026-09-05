@@ -42,6 +42,10 @@ function encodeRuk(value) { return Buffer.from(value).toString("base64url"); }
 function requireRepo(repo, names, label) {
   for (const name of names) if (!repo || typeof repo[name] !== "function") throw new Error(`Missing ${label} method: ${name}`);
 }
+async function ownedMasterSecret(masterSecretProvider) {
+  const supplied = await masterSecretProvider();
+  return Buffer.from(supplied ?? []);
+}
 
 export function createRecoveryCallableCore({
   masterSecretProvider,
@@ -61,12 +65,12 @@ export function createRecoveryCallableCore({
     const keyId = requireText(data?.keyId, "keyId");
     const pin = requirePin(data?.pin);
     const ruk = decodeRuk(data?.recoveryUnlockKey);
-    const masterSecret = await masterSecretProvider();
+    const masterSecret = await ownedMasterSecret(masterSecretProvider);
     try {
       return protectRecoveryUnlockKey({ masterSecret, uid, keyId, pin, recoveryUnlockKey: ruk });
     } finally {
       ruk.fill(0);
-      if (Buffer.isBuffer(masterSecret)) masterSecret.fill(0);
+      masterSecret.fill(0);
     }
   }
 
@@ -120,7 +124,7 @@ export function createRecoveryCallableCore({
     }
 
     let ruk;
-    const masterSecret = await masterSecretProvider();
+    const masterSecret = await ownedMasterSecret(masterSecretProvider);
     try {
       ruk = recoverRecoveryUnlockKey({
         masterSecret,
@@ -138,7 +142,7 @@ export function createRecoveryCallableCore({
       });
       throw fail("RECOVERY_DENIED", "Recovery authorization failed.", cause);
     } finally {
-      if (Buffer.isBuffer(masterSecret)) masterSecret.fill(0);
+      masterSecret.fill(0);
     }
 
     const consumed = consumeRecoverySession({ session, nowMs: now() });
