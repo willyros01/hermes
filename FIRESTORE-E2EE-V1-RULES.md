@@ -1,26 +1,35 @@
 # FIDUNIO Firestore E2EE v1 Rules — Bounded Integration Specification
 
-**STATUS: READY FOR EMULATOR VALIDATION; DO NOT DEPLOY BLINDLY**
+**STATUS: REPOSITORY RULE SOURCE VALIDATED IN LOCAL EMULATOR; NOT CLAIMED DEPLOYED TO LIVE FIREBASE**
 
-This specification defines the new account-E2EE paths without replacing unrelated existing invitation/user/conversation/group rules.
+This specification defines the account-E2EE paths added without replacing unrelated invitation/user/conversation/group rules. The repository `firestore.rules` source has passed the local Emulator gate; live Firebase deployment is a separate later action.
 
-## New paths
+## Paths
 
-Private:
+Private account identity:
 
 ```text
 users/{uid}/e2ee/identity
 ```
 
-Public:
+Public correspondent key:
 
 ```text
 e2eePublicKeys/{uid}
 ```
 
-## Intended rule helpers
+Server-owned recovery state (Admin/Cloud Functions only; no client rule match):
 
-The following helpers are designed to be added inside the existing `/databases/{database}/documents` scope:
+```text
+recoverySessions/{sessionId}
+e2eeRecoveryState/{uid}
+```
+
+Unmatched recovery collections remain client-denied by default. Admin SDK access bypasses client Security Rules and must be controlled with IAM.
+
+## Binding helper rules
+
+The current validated repository rule source uses the following account-E2EE constraints.
 
 ```text
 function validNormalWrapper(w) {
@@ -38,13 +47,21 @@ function validNormalWrapper(w) {
 
 function validRecoveryWrapper(w) {
   return w is map
-    && w.keys().hasAll(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion"])
-    && w.keys().hasOnly(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion","metadata"])
+    && w.keys().hasAll([
+      "version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm",
+      "recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm"
+    ])
+    && w.keys().hasOnly([
+      "version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm",
+      "recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm","metadata"
+    ])
     && w.version == 1
     && w.ciphertext is string && w.ciphertext.size() > 0 && w.ciphertext.size() <= 4096
     && w.iv is string && w.iv.size() > 0 && w.iv.size() <= 128
     && w.wrappedRecoveryKey is string && w.wrappedRecoveryKey.size() > 0 && w.wrappedRecoveryKey.size() <= 8192
+    && w.recoveryKeyIv is string && w.recoveryKeyIv.size() > 0 && w.recoveryKeyIv.size() <= 128
     && w.wrappingAlgorithm == "AES-256-GCM"
+    && w.recoveryKeyWrappingAlgorithm == "HMAC-SHA256+A256GCM"
     && w.recoveryAuthorityVersion == 1
     && (!("metadata" in w) || w.metadata is map);
 }
@@ -86,6 +103,8 @@ function validPublicIdentity(uid, d) {
     && d.keyId is string && d.keyId.size() >= 16 && d.keyId.size() <= 128
     && d.keyAlgorithm == "ECDH-P256"
     && d.publicJwk is map
+    && d.publicJwk.keys().hasAll(["kty","crv","x","y"])
+    && d.publicJwk.keys().hasOnly(["kty","crv","x","y","ext","key_ops"])
     && d.publicJwk.kty == "EC"
     && d.publicJwk.crv == "P-256"
     && d.publicJwk.x is string && d.publicJwk.x.size() > 0 && d.publicJwk.x.size() <= 128
@@ -95,9 +114,9 @@ function validPublicIdentity(uid, d) {
 }
 ```
 
-## Intended bounded match additions
+## Binding matches
 
-Inside the existing `match /users/{uid}` block:
+Inside `match /users/{uid}`:
 
 ```text
 match /e2ee/{docId} {
@@ -115,7 +134,7 @@ match /e2ee/{docId} {
 }
 ```
 
-At top document scope alongside other top-level collections:
+Top-level public key path:
 
 ```text
 match /e2eePublicKeys/{uid} {
@@ -129,41 +148,22 @@ match /e2eePublicKeys/{uid} {
 }
 ```
 
-### Why public client update is denied in v1
+## Why public client update is denied in v1
 
-Ordinary password/PIN re-wrap does not change the account public key, so no public-key update is required. Denying client update prevents a compromised ordinary client path from silently replacing an established public identity. A future reviewed identity migration/key rotation must use an explicit migration protocol rather than relaxing this rule casually.
+Ordinary password/PIN re-wrap does not change the durable account public key. Denying public-key update prevents a compromised ordinary client from silently replacing an established public identity. Rotation/migration requires a separate reviewed protocol.
 
-### Recovery server behavior
+## Recovery server behavior
 
-The Cloud Function/Admin SDK bypasses these client Security Rules and therefore is governed by IAM. Recovery server changes must still preserve stable `keyId` and must not casually rewrite the public key. Recovery IAM is intentionally separate from client rule authorization.
+`recoveryKeyIv` and `recoveryKeyWrappingAlgorithm` are required because the server protects the random 256-bit RUK independently from the client recovery ciphertext. The current v1 server construction is `HMAC-SHA256+A256GCM`, binding master secret + UID + keyId + six-digit PIN. Firestore never stores plaintext PIN, RUK, private key, derived recovery key, or recovery master secret.
 
-## Emulator test matrix — mandatory before merging these snippets into deployed rules
+Cloud Functions/Admin SDK bypasses these client rules. Recovery server code therefore uses separate server-only `recoverySessions` and `e2eeRecoveryState` collections governed by IAM and narrow function capabilities.
 
-1. unauthenticated get private identity -> DENY.
-2. authenticated owner get own private identity -> ALLOW.
-3. authenticated other UID get private identity -> DENY.
-4. owner list private `/e2ee` subcollection -> DENY.
-5. owner create valid identity revision 1 -> ALLOW.
-6. other UID create identity under owner -> DENY.
-7. owner create with plaintext-like unexpected field -> DENY by field allowlist.
-8. owner create with wrong algorithm/KDF/iterations -> DENY.
-9. owner normal re-wrap changing only normalWrapper + revision + updatedAt -> ALLOW.
-10. owner normal re-wrap revision not exactly old+1 -> DENY.
-11. owner update changing keyId -> DENY.
-12. owner update changing recoveryWrapper -> DENY.
-13. owner update changing state -> DENY.
-14. owner delete private identity -> DENY.
-15. registered user get public key -> ALLOW.
-16. registered user list public keys -> ALLOW only as deliberately accepted for correspondent lookup.
-17. unauthenticated public-key read -> DENY.
-18. owner create valid public record -> ALLOW.
-19. other UID create public record for owner -> DENY.
-20. public JWK containing private `d` -> DENY.
-21. public record with unexpected field -> DENY.
-22. client update established public key -> DENY.
-23. client delete public key -> DENY.
-24. existing invitations/users/conversations/groups/receipts regression tests -> unchanged PASS.
+## Validation status
 
-## Important deployment rule
+The staged account-E2EE rules passed 40/40 Local Emulator assertions covering private/public access, field allowlists, algorithms, revision discipline, immutable recovery wrapper, atomic private+public creation, no partial residue, and regressions for invitations/profiles/direct conversations/messages/legacy devices/groups.
 
-Do not replace `firestore.rules` wholesale with the snippets in this document. Merge only the bounded helper/match additions into the existing rules after Emulator tests pass. Existing legacy `/users/{uid}/devices/{deviceId}` rules remain until the account-E2EE messaging migration is complete and validated.
+After materialization into repository `firestore.rules`, the exact repository source was re-tested. The later recovery RUK metadata correction was also tested through the same 40-assertion gate before being materialized.
+
+**Important:** repository-source validation is not the same as deploying rules to the live Firebase project. Do not claim live deployment until an explicit Firebase deploy succeeds.
+
+Existing legacy `/users/{uid}/devices/{deviceId}` rules remain until the account-E2EE messaging migration is complete and validated.
