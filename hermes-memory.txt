@@ -114,3 +114,5 @@ AUTHORITATIVE REFERENCE FILES
 - `architecture-ownership.txt` — ownership/isolation architecture reference.
 - `BUG-LIST.md` — durable active defect list.
 - `hermes-memory.txt` — cumulative durable project memory.
+
+- 0.9.5.8 cleanup inspection correctly protected device 459975be-e986-4dc4-8fad-8f47630933c1 and found 7 stale active devices plus fidunio-account-vault-v3. First execution deactivated the 7 stale cloud devices, then stopped on a return-value typo (`keptDeviceId` vs `keepDeviceId`) before local test-data/vault cleanup ran. 0.9.5.9 fixes only that return typo; rerun is idempotent and should report 0 remaining stale active devices before finishing local cleanup.
