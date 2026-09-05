@@ -47,6 +47,7 @@ if(!/const contacts=\[\]/.test(app))throw new Error("Prototype contact seed must
 if(!/subscribeUserDisplayNames/.test(app))throw new Error("app.js must use central peer display-name subscription.");
 if(!/mainSignOutMarkup/.test(app)||!/bindMainSignOut/.test(app))throw new Error("main-screen Sign Out must remain an explicit app projection.");
 if(!/mountSettingsLifecycle/.test(app))throw new Error("app.js must call the explicit Settings lifecycle owner.");
+if(!/bindAuthenticatedAccountE2EE/.test(app)||!/resetAccountE2EEForSignOut/.test(app))throw new Error("app.js must bind/reset account E2EE from the Firebase auth lifecycle.");
 
 console.log("Runtime authority gate passed.");
 console.log("Known temporary Firebase SDK exceptions:",[...firebaseSdkAllow].filter(x=>x!=="firebase.js").join(", "));

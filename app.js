@@ -30,6 +30,7 @@ import {
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
+import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -757,12 +758,14 @@ async function initializeFirebaseLayer(){
       firebaseUser=user;
       firebaseReady=true;
       if(user){
+        bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
         beginCloudGroupSubscription();
         ensureActiveCloudMessageSubscription(true);
         if(state.online) scheduleReconnectRecovery();
       }else{
+        resetAccountE2EEForSignOut();
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
         stopPeerDisplayNameSubscription();
         if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
