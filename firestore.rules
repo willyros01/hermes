@@ -80,12 +80,14 @@ service cloud.firestore {
     }
     function validRecoveryWrapper(w) {
       return w is map
-        && w.keys().hasAll(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion"])
-        && w.keys().hasOnly(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion","metadata"])
+        && w.keys().hasAll(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm"])
+        && w.keys().hasOnly(["version","ciphertext","iv","wrappedRecoveryKey","wrappingAlgorithm","recoveryAuthorityVersion","recoveryKeyIv","recoveryKeyWrappingAlgorithm","metadata"])
         && w.version == 1
         && w.ciphertext is string && w.ciphertext.size() > 0 && w.ciphertext.size() <= 4096
         && w.iv is string && w.iv.size() > 0 && w.iv.size() <= 128
         && w.wrappedRecoveryKey is string && w.wrappedRecoveryKey.size() > 0 && w.wrappedRecoveryKey.size() <= 8192
+        && w.recoveryKeyIv is string && w.recoveryKeyIv.size() > 0 && w.recoveryKeyIv.size() <= 128
+        && w.recoveryKeyWrappingAlgorithm == "HMAC-SHA256+A256GCM"
         && w.wrappingAlgorithm == "AES-256-GCM"
         && w.recoveryAuthorityVersion == 1
         && (!("metadata" in w) || w.metadata is map);
