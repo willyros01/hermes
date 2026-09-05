@@ -7,6 +7,14 @@ Current validated stabilization baseline on main: FIDUNIO 0.9.4.11
 Internal project/repo name: Hermes
 Public app/product name: FIDUNIO — Private Messaging
 
+MANDATORY FIRST READ BEFORE ANY CODE CHANGE
+- `CODING-GUIDELINES.md` is a binding project architecture contract and MUST be read before writing, editing, moving, or deleting application code.
+- No implementation may begin until ownership, exact resource scope, lifecycle trigger, and serialized write path are identified for every mutable resource touched.
+- Core rule: ONE RESOURCE → ONE OWNER → ONE PREDEFINED AREA → ONE SERIALIZED WRITE PATH.
+- New broad/global MutationObservers, random DOM appends, cross-module re-parenting, competing state authorities, independent auth/Firebase lifecycle decisions, fire-and-forget shared writes, and loose global busy flags are prohibited unless explicitly reviewed and approved.
+- If a future chat, sub-chat, assistant instance, or coding session continues this project, it must read `CODING-GUIDELINES.md` and this `hermes-memory.txt` before changing code.
+- The Settings failure is the canonical precedent: Profile, User Administration, and Invitations were late additions outside the authoritative Settings render lifecycle and survived only because observer-based bolt-ons recreated/rearranged them. Future repair must use explicit hosts and deterministic remounting from the authoritative screen lifecycle, not observer rediscovery.
+
 LOCKED CONVENTIONS
 - Hermes = internal project/repository/release ZIP naming; FIDUNIO = public app/product.
 - Keep release files flat in repository root.
@@ -137,15 +145,13 @@ PROTECTED 0.9.4.11 UI/FUNCTIONAL BEHAVIOR
 
 CURRENT EXECUTION PLAN — ONE ISSUE/FEATURE AT A TIME
 1. Freeze and preserve 0.9.4.11 as the clean rollback/restart checkpoint.
-2. Fire HD 8 account isolation: audit and fix account switching/local IndexedDB state, history, Outbox, selected conversation and cryptographic/local-key ownership so one user's local state cannot appear under another account.
-3. Re-test account A -> sign out -> account B and reverse on the same Fire browser/device; no local cross-account data may appear.
-4. Design invite-install from scratch. Do not reuse/adapt the rejected implementation. Installation guidance must be independent of Settings DOM and must not add Settings MutationObserver/layout behavior.
-5. Implement the install module with one narrow trigger and safe no-op/fallback behavior where native install prompting is unavailable.
-6. Test install guidance manually in isolation before connecting it to invited-account creation.
-7. Only after the isolated test passes, connect it to successful invited-account creation and test iPhone/iPad, Mac browsers, then Fire.
-8. Re-test all protected areas after install integration: Settings, Settings buttons, iPhone wrap, Back button, live Sent→Read, New Message, PIN/lock behavior, messaging and account switching.
-9. Keep the Web Clip/configuration-profile experiment separate from the rebuilt install-guidance feature.
-10. Mac Settings/PWA verification follows once the above passes.
+2. Repair Settings ownership/lifecycle by making the authoritative Settings renderer create permanent hosts and explicitly remount Profile, User Administration, and Invitations. Do not use observer-based rediscovery or cross-module re-parenting.
+3. Prove Settings stability on iPad before moving on.
+4. Fire HD 8 account isolation: audit and fix account switching/local IndexedDB state, history, Outbox, selected conversation and cryptographic/local-key ownership so one user's local state cannot appear under another account.
+5. Re-test account A -> sign out -> account B and reverse on the same Fire browser/device; no local cross-account data may appear.
+6. PIN/biometric serialization follows Fire account-isolation work even though current behavior is largely stable.
+7. Design invite-install from scratch later. Do not reuse/adapt the rejected implementation.
+8. Re-test all protected areas after each architecture change.
 
 RELEASE ZIP / LOCAL SAFEKEEPING RULES
 - Release ZIP naming remains hermes-ux-X.Y.Z.zip.
