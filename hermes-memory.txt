@@ -3,14 +3,31 @@ CUMULATIVE PROJECT MEMORY
 
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat, sub-chat, assistant instance, coding session, or developer continuing Hermes/FIDUNIO MUST begin by reading the supporting documentation in the repository. Do not rely on conversational memory alone.
-- At minimum read: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, and `BUG-LIST.md`.
+- At minimum read: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, and `BUG-LIST.md`.
 - When touching E2EE/device code, also read `E2EE-IDENTITY-LIFECYCLE.md`; it now records the superseded device-based design and migration history.
 - Inspect any other root supporting document relevant to the feature before implementation.
 - `CODING-GUIDELINES.md` is the binding coding/architecture contract.
 - `RUNTIME-CONSOLIDATION-PLAN.md` is the binding runtime/source consolidation plan.
 - `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` is the binding messaging/E2EE/storage authority architecture as of September 5, 2026.
+- `DETERMINISTIC-UI-LIFECYCLE.md` is the binding UI lifecycle direction as of September 5, 2026.
 - No implementation begins until ownership, exact resource scope, lifecycle trigger, and serialized write path are identified for every mutable resource touched.
 - Core rule: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
+
+DETERMINISTIC UI REQUIREMENT — SEPTEMBER 5, 2026
+- User's explicit one-word requirement: DETERMINISTIC.
+- All actions' results should be as expected. UI correctness must not depend on timing races, orientation changes, cache warming, repeated observers, asynchronous collision, or one module repairing another module after the fact.
+- Major concern: the current UI has too many moving parts that can crash against each other, including app.js rendering/navigation, feature modules, auth callbacks, Settings lifecycle code, Firestore live events, receipt/message updates, service-worker-injected behavior, responsive/two-pane transitions, and historical DOM repair/re-parenting logic.
+- A screen looking correct is NOT equivalent to the UI architecture being complete. Multiple independent writers can still make the UI nondeterministic.
+- The goal is NOT increasingly masterful synchronization of many writers. The goal is to eliminate unnecessary writers and competing authorities.
+- Authoritative application state comes first; the DOM is a projection of that state.
+- Firestore, E2EE, receipts, auth, local-cache synchronization, and orientation changes should update state or dispatch owned events. They should not independently manipulate arbitrary screen DOM.
+- Every major UI region/screen must have one structural owner and one predefined DOM area. Sibling modules must not move/remove/recreate each other's nodes.
+- Messages owner renders Messages. Settings owner renders Settings. New Message owner renders New Message. Layout owner projects one-pane/two-pane. Auth changes account/auth state rather than rebuilding unrelated screen DOM.
+- Broad MutationObserver repair, timeout settling, orientation rescue, cache-timing rescue, repeated DOM rediscovery/re-parenting, and location.reload synchronization are prohibited as normal architecture.
+- Responsive behavior must be a deterministic projection of the same state, not a second application lifecycle. iPhone single-pane and iPad two-pane remain protected user-facing behavior.
+- The 0.9.5.1 Settings lifecycle repair is the precedent for the whole app: owned hosts, explicit lifecycle, no observer-based resurrection.
+- UI completion was previously overestimated based on visible/functionality completion. Current architectural confidence is closer to ~60-65%, while roughly 85-90% of the visual/user-facing UI design/functionality may still be reusable. Do not wholesale redesign approved screens; consolidate ownership/lifecycle underneath them.
+- Binding reference: `DETERMINISTIC-UI-LIFECYCLE.md`.
 
 MAJOR ARCHITECTURE CORRECTION — SEPTEMBER 5, 2026
 - The former rule `one account + one browser installation = one E2EE device identity` is SUPERSEDED.
@@ -35,17 +52,18 @@ SAFARI VS HOME SCREEN PWA FINDING — RETAINED
 CURRENT IMPLEMENTATION ORDER
 1. Read all mandatory repository supporting docs listed above.
 2. Preserve protected checkpoints and validated behavior.
-3. Continue inventory/consolidation of the hidden service-worker source-transform architecture carefully; no new transforms.
-4. Before materializing further per-device E2EE transforms, design the durable account E2EE key generation, secure wrapping, recovery, and rotation/revocation rules.
-5. Implement account E2EE identity creation/recovery with one owner and serialized write path.
-6. Make Firestore -> local synchronization explicitly authoritative/rebuildable.
-7. Replace legacy per-device envelope routing with account-identity encryption in a bounded migration.
-8. Keep device ID informational only.
-9. Remove service-worker source rewriting only after required behavior exists in authoritative source and equivalence is validated.
-10. Establish true empty production runtime with no Maria/John/Family/sample fallback.
-11. Revalidate send/receive, decrypt, Sent/Delivered/Read, iPad live receipt refresh, Outbox/reconnect, history/re-entry, Settings, responsive UI, PWA reinstall/cache-loss recovery, Safari/PWA recovery, and replacement-device account-key recovery.
-12. Resume same-browser/Fire HD 8 account isolation only after one deterministic account-authoritative runtime passes.
-13. Add FCM token registration later as a separate notification concern.
+3. Consolidate UI ownership/lifecycle toward the deterministic model; do not add new repair-after-the-fact UI machinery.
+4. Continue inventory/consolidation of the hidden service-worker source-transform architecture carefully; no new transforms.
+5. Before materializing further per-device E2EE transforms, design the durable account E2EE key generation, secure wrapping, recovery, and rotation/revocation rules.
+6. Implement account E2EE identity creation/recovery with one owner and serialized write path.
+7. Make Firestore -> local synchronization explicitly authoritative/rebuildable.
+8. Replace legacy per-device envelope routing with account-identity encryption in a bounded migration.
+9. Keep device ID informational only.
+10. Remove service-worker source rewriting only after required behavior exists in authoritative source and equivalence is validated.
+11. Establish true empty production runtime with no Maria/John/Family/sample fallback.
+12. Revalidate send/receive, decrypt, Sent/Delivered/Read, iPad live receipt refresh, Outbox/reconnect, history/re-entry, Settings, deterministic navigation/layout, PWA reinstall/cache-loss recovery, Safari/PWA recovery, and replacement-device account-key recovery.
+13. Resume same-browser/Fire HD 8 account isolation only after one deterministic account-authoritative runtime passes.
+14. Add FCM token registration later as a separate notification concern.
 
 CURRENT CRITICAL RUNTIME DISCOVERY
 - Repository still has a hidden dual-code runtime.
@@ -64,6 +82,7 @@ PROHIBITED DURING RECOVERY
 - No new per-device E2EE fan-out as the target architecture.
 - No private key derived from Firebase UID alone.
 - No plaintext private key stored in Firestore.
+- No UI module repairing/re-parenting another owner's DOM as normal lifecycle behavior.
 - Do not reuse rejected 0.9.4.12 account-isolation architecture.
 
 PROTECTED FUNCTIONAL BASELINES
@@ -128,6 +147,7 @@ AUTHORITATIVE / SUPPORTING REFERENCE FILES
 - `hermes-memory.txt` — cumulative durable project memory; mandatory first read.
 - `CODING-GUIDELINES.md` — binding coding contract.
 - `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` — binding account E2EE/Firestore authority architecture.
+- `DETERMINISTIC-UI-LIFECYCLE.md` — binding deterministic UI ownership/lifecycle architecture.
 - `RUNTIME-CONSOLIDATION-PLAN.md` — binding runtime/source recovery plan.
 - `RUNTIME-TRANSFORM-INVENTORY.md` — inventory of hidden service-worker transforms.
 - `E2EE-IDENTITY-LIFECYCLE.md` — historical/superseded device-E2EE model and migration context.
@@ -136,3 +156,6 @@ AUTHORITATIVE / SUPPORTING REFERENCE FILES
 
 FINAL HANDOFF RULE
 Whoever works on Hermes/FIDUNIO next MUST READ THE SUPPORTING DOCS IN THE REPOSITORY BEFORE CHANGING CODE. The repository documentation, not remembered chat context, is the durable handoff authority. If a supporting document conflicts with an older design note, follow the newest explicitly binding/superseding architecture and resolve/document the conflict before implementation.
+
+PERMANENT UI HANDOFF RULE
+DETERMINISTIC. All actions' results should be as expected. Do not solve instability by adding more moving parts. Reduce competing authorities until the expected result follows from the architecture itself.
