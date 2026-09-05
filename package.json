@@ -9,7 +9,8 @@
     "test:recovery-session": "node e2ee-recovery-session-policy.test.mjs",
     "test:recovery-callable-core": "node e2ee-recovery-callable-core.test.mjs",
     "test:recovery-firestore": "node e2ee-recovery-firestore-admin-adapter.test.mjs",
-    "test:firebase-e2ee-adapter": "node e2ee-account-firebase-adapter.test.mjs"
+    "test:firebase-e2ee-adapter": "node e2ee-account-firebase-adapter.test.mjs",
+    "test:functions-scaffold": "npm --prefix functions install --ignore-scripts && node --input-type=module -e \"import('./functions/index.mjs').then(m=>{for(const n of ['enrollRecoveryV1','startE2EERecoveryV1','completeE2EERecoveryV1'])if(typeof m[n]!=='function')throw new Error('missing '+n);console.log('Cloud Functions recovery scaffold imports successfully')})\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
