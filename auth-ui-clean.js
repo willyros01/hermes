@@ -88,10 +88,7 @@ async function startApp(){
     catch(err){console.warn("FIDUNIO could not uniquely identify legacy local-data ownership; legacy data will be quarantined",err);}
   }
   await activateAccountStorage(user.uid,{legacyOwnerUid});
-  try{
-    const recovery=await recoverVerifiedQuarantinedIdentity(user.uid);
-    if(recovery?.recovered)console.info("FIDUNIO restored the verified pre-v3 E2EE device identity",recovery.deviceId);
-  }catch(err){console.warn("FIDUNIO could not recover the quarantined E2EE identity",err);}
+  // Stable-identity invariant: ordinary startup never overwrites the active E2EE identity from quarantine.
   appStarted=true;
   clearInviteFromUrl();
   await import("./app.js");

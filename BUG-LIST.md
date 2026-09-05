@@ -18,6 +18,14 @@ This file is the durable working bug list for current development. Keep it conci
   - Status: **awaiting Fire HD 8 validation on 0.9.5.3.**
   - Must preserve validated 0.9.5.1 Settings lifecycle; do not reuse the rejected 0.9.4.12 implementation.
 
+### E2EE device identity proliferation / startup race
+- **Root cause confirmed in 0.9.5.6 audit:** `initializeFirebaseLayer()` can request E2EE publication from both the auth-state callback and again after Firebase initialization resolves. The old keypair and device-ID create-if-missing functions were not protected by one initialization mutex, so concurrent first-start callers could generate competing ECDH keypairs/device IDs.
+- This explains the large number of historical device IDs/envelopes seen in the diagnostic.
+- **0.9.5.7 focused prevention build:** creates the keypair + device ID as one serialized pair, blocks silent repair of partial identity state, and serializes duplicate cloud publication. Ordinary startup no longer restores/replaces the active identity from quarantine.
+- Cloud publication remains idempotent for the same device ID; stale historical device cleanup will be a separate explicit reset step after stability validation.
+- Test gate: record the current diagnostic device ID, refresh/reopen several times and sign out/in once; the device ID and fingerprint must remain exactly unchanged and new messages must still send/decrypt/transition to Read.
+- Status: **awaiting iPad/iPhone validation before cleanup/reset.**
+
 ### E2EE historical identity continuity
 - **0.9.5.5 focused recovery build:** older E2EE-v2 messages can show `[Encrypted message — not available on this device]` after the v3 account-storage migration even though the same messages previously decrypted and retained correct Read receipts.
 - Root cause under repair: the pre-v3 device keypair/identity may have been quarantined because account-level `e2eePublicJwk` is not a reliable ownership signal in a multi-device account; another device can overwrite that compatibility field.

@@ -181,3 +181,4 @@ This plan supersedes any earlier assumption that prototype UI/data can be remove
 ## Consolidation progress
 
 - **0.9.5.4 — Increment 1:** live direct-message receipt reconciliation/read promotion has been copied verbatim from the service-worker transform into authoritative `app.js`; the corresponding service-worker source transform has been removed. Validation is required before materializing E2EE v2 transforms.
+- **0.9.5.7 — E2EE identity safety gate before further transformation:** fixed the startup race that could create multiple device identities and disabled automatic quarantine overwrite. Historical test keys are no longer a recovery requirement; after identity stability validation, perform a controlled test-data/device-registry reset before continuing E2EE-v2 materialization.

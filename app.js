@@ -421,19 +421,48 @@ function ensureActiveCloudMessageSubscription(force=false){
 /* FIDUNIO direct-message E2EE foundation */
 const E2EE_VERSION=1;
 let deviceKeyPair=null;
+let e2eePublishPromise=null;
 const peerKeyCache=new Map();
 function b64(bytes){ let s=""; const u8=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes); for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode(...u8.subarray(i,i+0x8000)); return btoa(s); }
 function unb64(s){ const bin=atob(s),out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i); return out; }
+let deviceIdentityMaterialPromise=null;
+async function ensureStableDeviceIdentityMaterial(){
+  if(deviceIdentityMaterialPromise)return deviceIdentityMaterialPromise;
+  deviceIdentityMaterialPromise=(async()=>{
+    const db=await openDb();
+    const store=db.transaction("meta","readonly").objectStore("meta");
+    const keyReq=store.get("e2ee-device-keypair-v1");
+    const identityReq=store.get("e2ee-device-identity-v1");
+    const [existingKeyPair,existingIdentity]=await Promise.all([idbRequest(keyReq),idbRequest(identityReq)]);
+    const hasKeyPair=!!(existingKeyPair?.privateKey&&existingKeyPair?.publicKey&&existingKeyPair?.publicJwk);
+    const hasIdentity=!!existingIdentity?.deviceId;
+    if(hasKeyPair!==hasIdentity){
+      throw new Error("FIDUNIO E2EE identity is incomplete. A deliberate device reset is required; automatic key rotation is blocked.");
+    }
+    if(hasKeyPair){
+      deviceKeyPair=existingKeyPair;
+      return{keyPair:existingKeyPair,identity:existingIdentity};
+    }
+    const kp=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]);
+    const publicJwk=await crypto.subtle.exportKey("jwk",kp.publicKey);
+    const createdAt=Date.now();
+    const keyPair={privateKey:kp.privateKey,publicKey:kp.publicKey,publicJwk,createdAt};
+    const identity={
+      deviceId:crypto.randomUUID ? crypto.randomUUID() : `dev-${createdAt}-${b64(crypto.getRandomValues(new Uint8Array(12))).replace(/[^a-zA-Z0-9]/g,"")}`,
+      createdAt
+    };
+    const tx=db.transaction("meta","readwrite");
+    const writeStore=tx.objectStore("meta");
+    writeStore.put(keyPair,"e2ee-device-keypair-v1");
+    writeStore.put(identity,"e2ee-device-identity-v1");
+    await txDone(tx);
+    deviceKeyPair=keyPair;
+    return{keyPair,identity};
+  })().catch(err=>{deviceIdentityMaterialPromise=null;throw err;});
+  return deviceIdentityMaterialPromise;
+}
 async function getOrCreateDeviceKeyPair(){
-  if(deviceKeyPair)return deviceKeyPair;
-  const db=await openDb();
-  const existing=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get("e2ee-device-keypair-v1"));
-  if(existing?.privateKey&&existing?.publicKey){deviceKeyPair=existing;return existing;}
-  const kp=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},false,["deriveBits"]);
-  const publicJwk=await crypto.subtle.exportKey("jwk",kp.publicKey);
-  const stored={privateKey:kp.privateKey,publicKey:kp.publicKey,publicJwk,createdAt:Date.now()};
-  const tx=db.transaction("meta","readwrite"); tx.objectStore("meta").put(stored,"e2ee-device-keypair-v1"); await txDone(tx);
-  deviceKeyPair=stored; return stored;
+  return (await ensureStableDeviceIdentityMaterial()).keyPair;
 }
 function canonicalPublicJwk(jwk){
   return JSON.stringify({kty:jwk?.kty||"",crv:jwk?.crv||"",x:jwk?.x||"",y:jwk?.y||""});
@@ -507,19 +536,7 @@ function currentConversationSecurityStatus(c=currentConversation()){
   return peerTrustStatus(c.peerUid);
 }
 async function getOrCreateDeviceIdentity(){
-  const kp=await getOrCreateDeviceKeyPair();
-  const db=await openDb();
-  const store=db.transaction("meta","readonly").objectStore("meta");
-  let identity=await idbRequest(store.get("e2ee-device-identity-v1"));
-  if(!identity?.deviceId){
-    identity={
-      deviceId:crypto.randomUUID ? crypto.randomUUID() : `dev-${Date.now()}-${b64(crypto.getRandomValues(new Uint8Array(12))).replace(/[^a-zA-Z0-9]/g,"")}`,
-      createdAt:Date.now()
-    };
-    const tx=db.transaction("meta","readwrite");
-    tx.objectStore("meta").put(identity,"e2ee-device-identity-v1");
-    await txDone(tx);
-  }
+  const {keyPair:kp,identity}=await ensureStableDeviceIdentityMaterial();
   const fingerprint=await publicKeyFingerprint(kp.publicJwk);
   deviceSecurityInfo={
     ...identity,
@@ -583,26 +600,29 @@ async function peerPublicKeyForConversation(conversationId,{refresh=false}={}){
 }
 async function publishMyE2EEKey(){
   if(!firebaseUser)return;
-  const identity=await getOrCreateDeviceIdentity();
+  if(e2eePublishPromise)return e2eePublishPromise;
+  const publishingUid=firebaseUser.uid;
+  e2eePublishPromise=(async()=>{
+    const identity=await getOrCreateDeviceIdentity();
+    if(!firebaseUser||firebaseUser.uid!==publishingUid)return;
 
-  // Keep the 0.7.x account-level public key current as a compatibility
-  // bridge. Existing direct-message E2EE continues to use this key, so the
-  // stable 0.7.3 transport and ciphertext format are not disturbed.
-  await publishCloudE2EEPublicKey(firebaseUser.uid,identity.publicJwk);
+    // Compatibility publication updates the same authenticated account only.
+    await publishCloudE2EEPublicKey(publishingUid,identity.publicJwk);
 
-  // 0.8.0 additionally registers this installation as its own device.
-  // If the new device collection is not available yet, messaging still works
-  // through the compatibility key above; Settings will report the registry
-  // error instead of breaking E2EE transport.
-  try{
-    await publishCloudE2EEDevice(firebaseUser.uid,identity);
-    myRegisteredDevices=await getCloudUserDevices(firebaseUser.uid);
-    deviceRegistryStatus="registered";
-  }catch(err){
-    deviceRegistryStatus=err?.message||String(err);
-    console.warn("Device registry publication failed",err);
-  }
-  if(state.route==="settings") renderSettings();
+    // Device registration is idempotent because the stable deviceId is the
+    // Firestore document ID. App restarts/updates update this record; they do
+    // not create a replacement device identity.
+    try{
+      await publishCloudE2EEDevice(publishingUid,identity);
+      myRegisteredDevices=await getCloudUserDevices(publishingUid);
+      deviceRegistryStatus="registered";
+    }catch(err){
+      deviceRegistryStatus=err?.message||String(err);
+      console.warn("Device registry publication failed",err);
+    }
+    if(state.route==="settings")renderSettings();
+  })().finally(()=>{e2eePublishPromise=null;});
+  return e2eePublishPromise;
 }
 
 function beginCloudMessageSubscription(conversationId,{force=false}={}){

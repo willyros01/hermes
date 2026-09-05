@@ -8,6 +8,16 @@ MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - No implementation may begin until ownership, exact resource scope, lifecycle trigger, and serialized write path are identified for every mutable resource touched.
 - Core rule: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 
+PERMANENT E2EE DEVICE-IDENTITY INVARIANT — SEPTEMBER 4, 2026
+- Mandatory reference: `E2EE-IDENTITY-LIFECYCLE.md`.
+- One authenticated FIDUNIO account on one browser installation has one stable E2EE device ID + ECDH keypair.
+- App updates, refreshes, logout/login, reconnects, service-worker updates, and normal account switching MUST NOT rotate or regenerate that identity.
+- A fresh identity is created only when BOTH identity and keypair are absent, or after an explicit user-approved reset/revocation. Partial identity state must fail safely; never silently manufacture a replacement half.
+- Concrete race found in 0.9.5.6: `initializeFirebaseLayer()` can call `publishMyE2EEKey()` twice during startup, while keypair/device creation previously had no shared mutex. Concurrent first-start calls could therefore create competing keys/device IDs.
+- 0.9.5.7 serializes keypair+device-ID creation as one pair and serializes cloud publication. Duplicate startup callers join the same promise.
+- 0.9.5.5 automatic quarantine identity restoration is disabled during ordinary startup because it could replace a valid current identity. Recovery/reset must be explicit.
+- Historical vault/message data is test data and need not be recovered. After 0.9.5.7 identity stability passes, perform one deliberate cleanup of stale cloud device registrations and obsolete local vault/history/Outbox test data, then establish a fresh baseline.
+
 CURRENT CRITICAL ARCHITECTURAL DISCOVERY — SEPTEMBER 4, 2026
 - The repository currently has a hidden dual-code runtime.
 - Raw `app.js` still contains prototype-era runtime state/UI, including Maria Santos, John Cruz, Family Group, sample contacts, local numeric IDs, and prototype group assumptions.
