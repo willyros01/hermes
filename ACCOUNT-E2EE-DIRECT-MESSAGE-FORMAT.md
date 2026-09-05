@@ -1,16 +1,20 @@
 # FIDUNIO Account E2EE Direct-Message Format
 
-**STATUS: ISOLATED REPOSITORY CANDIDATE — NOT YET WIRED TO RUNTIME OR LIVE FIREBASE**
+**STATUS: VALIDATED REPOSITORY PRE-HANDOFF CANDIDATE — NOT YET WIRED TO NORMAL RUNTIME OR DEPLOYED TO LIVE FIREBASE**
 
-This document defines the first account-authoritative replacement for the legacy per-device direct-message envelopes still injected by `service-worker.js`. It is deliberately isolated behind tests before any transport migration occurs.
+This document defines the account-authoritative replacement for the legacy per-device direct-message envelopes still injected by `service-worker.js`. Crypto, repository Firestore rules and a fail-closed service layer are validated before any transport migration occurs.
 
 ## Ownership and boundary
 
-`e2ee-account-message-crypto.js` owns only direct-message cryptographic transformation. It does not initialize Firebase, write Firestore, mutate UI/local storage, select recipients, create account identities, unlock account identities, or modify Outbox state.
+- `e2ee-account-message-crypto.js` owns only direct-message cryptographic transformation.
+- `e2ee-account-message-service.js` owns only fail-closed resolution of READY local account identity + peer authoritative public account identity into crypto calls.
+- `e2ee-account-identity-manager.js` remains sole owner of the durable local runtime private identity.
+- peer public key material comes from authoritative `e2eePublicKeys/{uid}` through central `firebase.js` ownership.
+- `firestore.rules` is the exact repository rule candidate; passing emulator tests does not deploy it.
 
-The runtime account private key must come from the validated `e2ee-account-identity-manager.js` owner. Peer public key material must come from the authoritative `e2eePublicKeys/{uid}` account record through central `firebase.js` ownership.
+These modules do not initialize Firebase independently, create identities, unlock identities, mutate UI/local storage, choose recipients, own Outbox, or silently fall back to per-device E2EE.
 
-No service-worker transform is removed by introducing this isolated module.
+No service-worker transform is removed by this isolated candidate.
 
 ## Version
 
@@ -21,7 +25,7 @@ e2ee: 3
 kdfVersion: 1
 ```
 
-Legacy `e2ee: 1` and per-device `e2ee: 2` remain migration formats and must stay readable until a deliberate compatibility retirement gate is passed.
+Legacy `e2ee:1` and per-device `e2ee:2` remain explicit migration formats and must stay readable until a deliberate compatibility retirement gate passes.
 
 ## Key agreement
 
@@ -29,14 +33,14 @@ For a direct conversation between two different authenticated accounts:
 
 1. sender/recipient use their durable account ECDH P-256 identities;
 2. Web Crypto ECDH derives 256 shared-secret bits;
-3. the raw shared secret is imported as HKDF key material;
-4. HKDF-SHA-256 derives a non-extractable AES-256-GCM message key scoped to the direct conversation and the two durable account key identities.
+3. the shared secret is imported as HKDF key material;
+4. HKDF-SHA-256 derives a non-extractable AES-256-GCM message key scoped to the conversation and exact durable account key identities.
 
-Device ID is not part of key agreement, routing, AAD, or decryptability.
+Device ID is not part of key agreement, routing, AAD or decryptability.
 
 ### Canonical account pair
 
-The KDF uses the two `[uid,keyId]` tuples sorted by UID then keyId. This makes key derivation direction-independent while still binding the derived key to the exact durable account identities.
+The KDF uses the two `[uid,keyId]` tuples sorted by UID then keyId. This makes derivation direction-independent while binding the key to the exact durable identities.
 
 ### HKDF salt
 
@@ -63,15 +67,15 @@ JSON.stringify([
 ])
 ```
 
-The derived key is AES-GCM 256-bit, non-extractable, with encrypt/decrypt usages.
+Derived key: AES-GCM 256-bit, non-extractable, encrypt/decrypt usages.
 
 ## Message encryption
 
-- AES-256-GCM
-- fresh random 12-byte IV per message
-- 128-bit authentication tag
-- plaintext is exact UTF-8 message text
-- serialized binary fields are base64url without padding
+- AES-256-GCM;
+- fresh random 12-byte IV per message;
+- 128-bit authentication tag;
+- plaintext is exact UTF-8 message text;
+- serialized binary fields are base64url without padding.
 
 ### Exact authenticated additional data
 
@@ -90,9 +94,9 @@ JSON.stringify([
 ])
 ```
 
-This binds ciphertext to its conversation, stable message ID, direction, and durable sender/recipient key identities. Copying ciphertext to another conversation/message/direction or substituting a key identity must fail.
+This binds ciphertext to its conversation, stable message ID, direction and exact durable sender/recipient key identities. Copying ciphertext to another context or substituting a key identity fails authentication/format validation.
 
-## Exact isolated envelope
+## Exact crypto envelope
 
 The crypto module returns exactly:
 
@@ -105,13 +109,46 @@ ciphertext
 iv
 ```
 
-No plaintext `text`, device ID, device envelope map, sender device public key, or recipient device list is part of this account-authoritative crypto envelope.
+No plaintext `text`, device ID, device envelope map, sender device public key or recipient device list is part of the account-authoritative crypto envelope.
 
-The eventual Firestore transport row may contain separately authorized non-cryptographic message metadata such as `senderUid`, timestamps, and receipt state, but that integration is a later bounded step and must be validated against exact Security Rules before deployment.
+## Exact repository Firestore v3 row
+
+The validated repository rule candidate accepts v3 direct-message creation only when the row contains exactly:
+
+```text
+senderUid
+senderName
+timeLabel
+state
+createdAt
+text
+e2ee
+kdfVersion
+senderKeyId
+recipientKeyId
+ciphertext
+iv
+```
+
+Requirements include:
+- direct conversation with exactly two members;
+- authenticated sender is a member and equals `senderUid`;
+- both account public identities exist;
+- sender/recipient keyIds equal the authoritative `e2eePublicKeys/{uid}.keyId` records;
+- `state == "sent"`;
+- `createdAt == request.time`;
+- `text == ""`;
+- `e2ee == 3`, `kdfVersion == 1`;
+- ciphertext and IV use the expected base64url-only shape;
+- no per-device envelope fields or unexpected fields.
+
+The older plaintext branch now explicitly requires no `e2ee` field. This was added after the dedicated rules matrix found that a mixed E2EE + non-empty plaintext row could otherwise be accepted by the legacy plaintext OR-clause.
+
+Legacy valid plaintext, `e2ee:1` and `e2ee:2` creation remain accepted for migration compatibility. Receipt updates remain state-only.
 
 ## Public-key validation
 
-The peer JWK accepted by this module must contain exactly:
+The peer JWK accepted by v3 crypto/service must contain exactly:
 
 ```text
 kty
@@ -120,32 +157,63 @@ x
 y
 ```
 
-with `kty="EC"` and `crv="P-256"`. Extra JWK fields, including `d`, `ext`, `key_ops`, `alg`, or `use`, are rejected in this format.
+with `kty="EC"`, `crv="P-256"`. Extra fields including `d`, `ext`, `key_ops`, `alg` or `use` are rejected.
 
-## Failure behavior
+The service also requires peer record metadata:
+- matching UID;
+- schemaVersion 1;
+- identityVersion 1;
+- keyAlgorithm `ECDH-P256`;
+- state `ACTIVE`;
+- valid stable keyId.
 
-- malformed/mismatched structure: `FORMAT_ERROR`
-- missing runtime material/context: `INVALID_INPUT`
-- unavailable Web Crypto: `UNSUPPORTED_CRYPTO`
-- encryption failure: `ENCRYPT_FAILED`
-- authenticated decryption failure: `DECRYPT_FAILED`
+## Fail-closed service behavior
 
-A decryption failure never creates or rotates an identity.
+`e2ee-account-message-service.js` refuses operation unless:
+- local runtime identity exists for the exact authenticated UID;
+- it contains the durable account keyId and non-extractable runtime private key;
+- peer authoritative account public identity is available and exact.
 
-## Migration rule
+Important service errors:
+- `ACCOUNT_E2EE_NOT_READY` — local durable account identity not unlocked/ready;
+- `PEER_IDENTITY_UNAVAILABLE` — peer authoritative account identity could not be obtained;
+- `PEER_IDENTITY_INVALID` — peer account identity metadata/JWK invalid;
+- `UNSUPPORTED_MESSAGE_FORMAT` — incoming row is not v3.
 
-This module is not permission to delete the legacy service-worker transforms. Runtime replacement must later establish all of the following before removing per-device send/decrypt behavior:
+There is no automatic device-key fallback and no identity generation on any failure.
 
-1. authenticated account E2EE identity is `READY` with a non-extractable private key;
-2. peer account public identity is loaded and validated from `e2eePublicKeys/{uid}`;
-3. Firestore message rules accept the exact reviewed account-message schema without weakening legacy compatibility prematurely;
-4. Outbox writes stable message IDs and retries the same logical message idempotently;
-5. receive path can read `e2ee:3` while retaining explicit legacy `e2ee:1/2` migration readability;
-6. Sent/Delivered/Read behavior remains unchanged;
-7. iPhone/iPad/offline/account-switch/reinstall tests pass.
+Crypto-layer errors remain deterministic (`INVALID_INPUT`, `FORMAT_ERROR`, `UNSUPPORTED_CRYPTO`, `ENCRYPT_FAILED`, `DECRYPT_FAILED`).
 
-## Repository test gate
+## Validation state
 
-`e2ee-account-message-crypto.test.mjs` covers directional round trips, exact envelope shape, no plaintext, AAD context substitution, wrong account keys, ciphertext/IV tampering, keyId substitution, strict base64url, exact public JWK shape, empty payload, and Unicode payload.
+The rebuild security gate includes:
+- `e2ee-account-message-crypto.test.mjs` — directional round trips, exact shape/no plaintext, AAD substitutions, wrong keys, ciphertext/IV tamper, keyId substitution, strict base64url/JWK, empty/Unicode payloads;
+- `firestore-account-message-v3.rules.test.mjs` — valid bidirectional rows, nonmember/spoof/key mismatch/missing public identity/plaintext/device-field/unexpected-field/KDF/ciphertext/IV/timestamp rejection, receipt update constraints and legacy compatibility;
+- `e2ee-account-message-service.test.mjs` — READY operation and fail-closed local/peer identity behavior.
 
-No live Firebase project action is required for this isolated crypto gate.
+The complete expanded gate passed at commit:
+
+```text
+ca9222bdb7171ae60de5b2b9c08bf5b9327f52c9
+```
+
+Protected checkpoint:
+
+```text
+checkpoint-rebuild-account-dm-v3-crypto-rules
+```
+
+## Migration rule / live-project boundary
+
+This candidate is **not** permission to delete legacy service-worker transforms or switch normal runtime transport.
+
+Before runtime replacement/removal:
+1. the reviewed account-E2EE Firestore rules/recovery boundary must be deployed and verified in the actual Firebase project under explicit handoff;
+2. a real authenticated account must safely reach identity READY using the same durable keyId, with no silent replacement;
+3. normal six-digit account-E2EE PIN enrollment/unlock must be explicitly wired;
+4. Outbox must preserve stable message IDs/idempotent retry;
+5. receive path must support v3 while retaining explicit `e2ee:1/2` readability;
+6. Sent/Delivered/Read behavior must remain unchanged;
+7. iPhone/iPad/PWA/offline/account-switch/reinstall tests must pass.
+
+No live Firebase project action has been performed by this repository candidate.
