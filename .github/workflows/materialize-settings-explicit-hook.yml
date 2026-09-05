@@ -30,7 +30,7 @@ jobs:
         run: |
           git config user.name 'willyros01'
           git config user.email 'willyros01@gmail.com'
-          git add app.js runtime-authority-gate.test.mjs
+          git add -A app.js runtime-authority-gate.test.mjs settings-lifecycle-bridge.js
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Materialize explicit Settings lifecycle hook'
           git push
