@@ -6,6 +6,8 @@ on:
     paths:
       - 'firestore.rules'
       - 'firestore-e2ee-v1-staged-rules.mjs'
+      - 'firestore-e2ee-v1-recovery-fields-candidate.mjs'
+      - 'firestore-e2ee-v1-schema-tightening-candidate.mjs'
       - 'firestore-e2ee-v1.rules.test.mjs'
       - 'package.json'
       - '.github/workflows/e2ee-rules-emulator.yml'
