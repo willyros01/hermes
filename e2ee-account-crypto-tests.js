@@ -24,7 +24,16 @@ async function sharedSecret(privateKey, publicKey) {
   return new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: publicKey }, privateKey, 256));
 }
 function same(a, b) { return a.length === b.length && a.every((v, i) => v === b[i]); }
-function tamper(s) { const i = Math.max(0, s.length - 1); const c = s[i] === "A" ? "B" : "A"; return s.slice(0, i) + c; }
+function tamper(s) {
+  const padded = s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4);
+  const raw = atob(padded);
+  const bytes = Uint8Array.from(raw, c => c.charCodeAt(0));
+  if (!bytes.length) throw new Error("Cannot tamper empty value.");
+  bytes[bytes.length - 1] ^= 0x01;
+  let changed = "";
+  bytes.forEach(b => changed += String.fromCharCode(b));
+  return btoa(changed).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
 
 async function run() {
   rows.length = 0; render();
