@@ -2,7 +2,12 @@ import fs from "node:fs";
 
 const base = fs.readFileSync("firestore.rules", "utf8");
 
-const helpers = `
+// Once the validated E2EE v1 rules have been materialized into firestore.rules,
+// the gate must test that exact production file rather than injecting a second copy.
+if (base.includes("BEGIN E2EE V1 STAGED HELPERS") && base.includes("BEGIN E2EE V1 STAGED PUBLIC MATCH")) {
+  exportDefault(base);
+} else {
+  const helpers = `
     // BEGIN E2EE V1 STAGED HELPERS — emulator candidate only
     function validNormalWrapper(w) {
       return w is map
@@ -63,7 +68,7 @@ const helpers = `
     // END E2EE V1 STAGED HELPERS
 `;
 
-const privateMatch = `
+  const privateMatch = `
       // BEGIN E2EE V1 STAGED PRIVATE MATCH — emulator candidate only
       match /e2ee/{docId} {
         allow get: if docId == "identity" && registered() && request.auth.uid == uid;
@@ -75,7 +80,7 @@ const privateMatch = `
       // END E2EE V1 STAGED PRIVATE MATCH
 `;
 
-const publicMatch = `
+  const publicMatch = `
     // BEGIN E2EE V1 STAGED PUBLIC MATCH — emulator candidate only
     match /e2eePublicKeys/{uid} {
       allow get, list: if registered();
@@ -86,14 +91,22 @@ const publicMatch = `
     // END E2EE V1 STAGED PUBLIC MATCH
 `;
 
-const helperAnchor = "    match /system/access {";
-const deviceAnchor = "      match /devices/{deviceId} {";
-const publicAnchor = "    match /conversations/{conversationId} {";
-for (const anchor of [helperAnchor, deviceAnchor, publicAnchor]) {
-  if (!base.includes(anchor)) throw new Error(`Staged rules anchor missing: ${anchor}`);
+  const helperAnchor = "    match /system/access {";
+  const deviceAnchor = "      match /devices/{deviceId} {";
+  const publicAnchor = "    match /conversations/{conversationId} {";
+  for (const anchor of [helperAnchor, deviceAnchor, publicAnchor]) {
+    if (!base.includes(anchor)) throw new Error(`Staged rules anchor missing: ${anchor}`);
+  }
+  let staged = base.replace(helperAnchor, helpers + "\n" + helperAnchor);
+  staged = staged.replace(deviceAnchor, privateMatch + "\n" + deviceAnchor);
+  staged = staged.replace(publicAnchor, publicMatch + "\n" + publicAnchor);
+  if (staged === base) throw new Error("Staged E2EE rules were not injected.");
+  exportDefault(staged);
 }
-let staged = base.replace(helperAnchor, helpers + "\n" + helperAnchor);
-staged = staged.replace(deviceAnchor, privateMatch + "\n" + deviceAnchor);
-staged = staged.replace(publicAnchor, publicMatch + "\n" + publicAnchor);
-if (staged === base) throw new Error("Staged E2EE rules were not injected.");
-export default staged;
+
+function exportDefault(value) {
+  globalThis.__FIDUNIO_STAGED_RULES__ = value;
+}
+
+const stagedRules = globalThis.__FIDUNIO_STAGED_RULES__;
+export default stagedRules;
