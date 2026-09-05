@@ -4,7 +4,7 @@
 
 This plan exists because the September 4, 2026 audit established that the repository currently has a hidden dual-code architecture: the raw `app.js` still contains substantial prototype-era state/UI, while `service-worker.js` rewrites `app.js` source at runtime to inject later production behavior. Therefore the raw source in the repository is not always the same program that users have been validating.
 
-This is now a project-level architectural defect. Do not continue Fire account-isolation work or remove prototype data until this plan reaches the appropriate validation checkpoints.
+**September 5 architecture amendment:** the former per-device E2EE ownership model has also been superseded. `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` is now binding: one account owns one durable E2EE identity; Firestore is authoritative for encrypted conversations/messages; local storage is rebuildable cache; device ID is informational only for now. This changes the target of E2EE consolidation, but does not permit blind deletion of existing service-worker transforms or legacy code.
 
 ## Non-negotiable objective
 
@@ -24,14 +24,14 @@ authoritative production source in repository
         -> same FIDUNIO code executes on cold load, refresh, and controlled load
 ```
 
-No validated behavior may be intentionally redesigned during this consolidation.
+At the same time, migrate messaging ownership toward the binding account-authoritative model without allowing local browser/device identity to remain the only durable key to conversation history.
 
 ## Protected starting points
 
 - `checkpoint-0.9.5.1-settings-pass` protects the validated Settings ownership/lifecycle work.
 - `checkpoint-0.9.5.3-before-runtime-cleanup` protects the exact state before runtime consolidation begins.
 - FIDUNIO 0.9.4.11 remains the clean stabilization rollback baseline.
-- FIDUNIO 0.9.0.4 remains the validated messaging/E2EE development baseline.
+- FIDUNIO 0.9.0.4 remains the validated historical per-device messaging/E2EE development baseline, not the new target architecture.
 
 ## Core discovery
 
@@ -45,140 +45,93 @@ The old Maria Santos / John Cruz / Family Group data is embedded directly in the
 
 ### Phase 1 — Inventory the runtime transformation
 
-Before changing behavior:
+Before changing behavior, enumerate every transformation performed by `service-worker.js` against `app.js`, classify it, identify fragile source-string matching, and record dependencies. Do not delete a transformation merely because its old architecture is superseded; first identify what validated behavior it also carries.
 
-1. Enumerate every transformation performed by `service-worker.js` against `app.js`.
-2. Classify each transformation as production-critical, compatibility-only, UI, group foundation, receipt behavior, E2EE, or obsolete.
-3. Identify the exact validated release/checkpoint that originally introduced each behavior when practical.
-4. Record any transformation whose replacement depends on fragile source-string matching.
-5. Do not delete or simplify a transformation until its resulting behavior exists in authoritative source and is tested.
+### Phase 2 — Establish the account-authoritative E2EE target
 
-### Phase 2 — Materialize the transformed production behavior into normal source
+Before materializing further per-device E2EE transforms, follow `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`:
 
-Move the behavior currently injected by the service worker into normal repository source in controlled increments.
+1. Firebase Auth UID is the durable user identifier.
+2. One account owns one durable randomly generated E2EE identity.
+3. Design a reviewed method for storing the public portion in Firestore and the private portion only as a secure encrypted/wrapped package.
+4. Firestore is authoritative for encrypted conversation/message data.
+5. Local IndexedDB/storage is a rebuildable cache and temporary Outbox.
+6. Device ID may be collected but is not used for E2EE routing/history ownership.
+7. Future FCM registration tokens are a separate UID-associated notification concern.
 
-Rules:
+Do not derive private keys from UID alone. Do not store plaintext private keys in Firestore. Do not make the installation-local PIN the sole durable source of the permanent account identity without an explicit reviewed redesign.
 
-- Preserve the existing validated messaging path.
-- Preserve per-device E2EE fan-out and legacy E2EE compatibility.
-- Preserve Sent/Delivered/Read behavior, including iPad live Sent -> Read refresh.
-- Preserve encrypted local history and Outbox/reconnect behavior.
-- Preserve real group metadata foundation; do not enable group message writes before group E2EE/key rotation is ready.
-- Preserve New Message display-name selection.
-- Preserve Settings 0.9.5.1 behavior.
-- Preserve approved message bubbles, Back button, iPhone overflow containment, and iPad two-pane behavior.
-- Do not perform unrelated cleanup while materializing a transformation.
-- Each mutable resource follows `CODING-GUIDELINES.md`: one owner, one scope, one lifecycle, one serialized write path.
+### Phase 3 — Materialize/replace transformed production behavior in bounded increments
 
-After each materialized increment, verify that controlled and uncontrolled/cold startup execute equivalent behavior.
+Move required behavior currently injected by the service worker into authoritative repository source, while replacing obsolete per-device E2EE ownership with the new account model in controlled units.
 
-### Phase 3 — Reduce the service worker to a normal service worker
+Preserve user-visible validated behavior: direct messaging, Sent/Delivered/Read including iPad live refresh, Outbox/reconnect, Settings, New Message display-name selection, responsive UI, Back button, and group safety gates. Existing per-device envelope code is legacy migration material, not a behavior that must remain the final architecture.
 
-Only after all required runtime transformations have been materialized and validated:
+Each mutable resource follows `CODING-GUIDELINES.md`: one owner, one scope, one lifecycle, one serialized write path.
 
-1. Remove source-code rewriting from `service-worker.js`.
-2. Keep only normal shell caching/offline lifecycle behavior that is still required.
-3. Firebase Auth/Firestore data must remain outside inappropriate service-worker caching.
-4. Verify first load, refresh, service-worker update, private/new browser context, and offline/reconnect behavior.
-5. Confirm that repository source is now the authoritative running program.
+### Phase 4 — Reduce the service worker to a normal service worker
 
-This phase is not complete merely because the app appears visually correct. Messaging, receipts, E2EE, Outbox, group metadata, Settings, and responsive behavior must all be checked.
+Only after required runtime behavior exists in authoritative source and is validated, remove source-code rewriting from `service-worker.js`. Keep only appropriate shell caching/offline behavior. Verify first load, refresh, service-worker update, private/new browser context, and offline/reconnect behavior.
 
-### Phase 4 — Establish true empty production runtime state
+### Phase 5 — Establish true empty production runtime state
 
-Only after Phase 3 passes:
+Replace prototype-seeded runtime initialization with explicit production defaults including `conversations: []`, `messages: {}`, `selectedId: null`, and no Maria/John/Family/sample fallback. Harden empty-state rendering, tablet two-pane behavior, missing selection, navigation assumptions, numeric prototype IDs, and old sample-contact group assumptions first.
 
-1. Replace prototype-seeded runtime initialization with an explicit production initializer.
-2. Production defaults must include:
-   - `conversations: []`
-   - `messages: {}`
-   - `selectedId: null`
-   - `peerTrust: {}`
-   - legitimate Settings and quick-phrase defaults only.
-3. Remove Maria Santos, John Cruz, Family Group, and other prototype/sample conversations from the production runtime path.
-4. Remove sample local contacts from production New Message behavior unless they are intentionally retained in a separately owned development-only harness that cannot execute in production.
-5. Do not let an empty account fall back to prototype data.
+### Phase 6 — Firestore-authoritative cache synchronization
 
-Before making the runtime empty, explicitly harden:
+After authentication determines UID and account E2EE recovery succeeds:
 
-- Messages empty-state rendering.
-- iPad/tablet two-pane behavior with zero conversations.
-- `currentConversation()` and `renderChat()` against a missing selection.
-- Any navigation that assumes `state.conversations[0]` exists.
-- Numeric prototype conversation-ID assumptions.
-- Old local group creation assumptions that depend on sample contacts or `Math.max()` numeric IDs.
+1. synchronize authoritative conversation metadata/messages from Firestore;
+2. rebuild/update local inbox/message cache;
+3. maintain live synchronization;
+4. keep Outbox as temporary offline queue only;
+5. ensure deleting local cache causes reconstruction rather than loss of account history or cryptographic identity.
 
-### Phase 5 — Revalidate the messaging round trip
+### Phase 7 — Revalidate the messaging round trip and durability
 
-Before returning to Fire account isolation, test the production runtime on the established devices:
+Test:
 
 - real conversation discovery only;
-- send and receive;
-- E2EE decrypt on intended devices;
-- legacy encrypted history compatibility where applicable;
-- Sent -> Delivered -> Read behavior;
-- iPad live Sent -> Read without navigation/refresh;
-- offline Outbox and reconnect;
-- conversation re-entry/history restore;
+- send/receive and decrypt;
+- Sent -> Delivered -> Read;
+- iPad live Sent -> Read;
+- offline Outbox/reconnect;
+- history/re-entry;
 - New Message display-name flow;
-- iPad two-pane layout;
-- iPhone layout/overflow;
-- Settings Profile/User Administration/Invitations lifecycle;
-- Back-button visibility.
+- iPad/iPhone layouts and Back button;
+- Settings lifecycle;
+- PWA reinstall recovery;
+- local-cache deletion recovery;
+- Safari/PWA access without dependence on the old installation device ID;
+- replacement-device recovery of the same account E2EE identity through the approved secure recovery path.
 
-If a protected behavior fails, stop at that phase and diagnose it. Do not continue to account isolation.
+### Phase 8 — Resume same-browser account isolation
 
-### Phase 6 — Resume Fire HD 8 account isolation
-
-Only after one authoritative runtime exists and Phase 5 passes:
-
-1. Re-audit exact account-owned IndexedDB resources.
-2. Keep installation-local PIN/config separate from account-owned messaging state unless a later explicit design changes that rule.
-3. Scope account-owned state by authenticated UID: conversations, messages/history, Outbox, peer trust, and account/device cryptographic material as appropriate.
-4. Authentication must determine UID before account-owned state is activated/restored.
-5. Serialize account/storage switching through the designated owner/mutex.
-6. No storage module may mutate structural UI or call `location.reload()` as an account-switch mechanism.
-7. Treat ambiguous pre-isolation mixed data as untrusted; never guess ownership.
-8. Test A -> sign out -> B -> sign out -> A on the same Fire browser. No account may display another account's local data.
+After one authoritative runtime and account-authoritative messaging path pass, re-audit account-owned IndexedDB resources. Authentication must determine UID before account-owned cache is activated. Installation-local PIN/config remains separate unless explicitly redesigned. Test A -> sign out -> B -> sign out -> A with no cross-account cache exposure.
 
 ## Explicitly prohibited shortcuts
 
-Until this plan is complete, do not:
-
-- patch Maria/John/Family visibility with CSS;
-- simply delete prototype arrays without auditing their framework dependencies;
-- add another MutationObserver to repair runtime lifecycle;
-- add another service-worker source transform;
-- depend on orientation changes, refresh timing, or cache warming to make functionality appear;
-- create a second competing runtime state owner;
-- reuse rejected 0.9.4.12 account-isolation architecture;
-- broadly rewrite messaging/E2EE while doing consolidation;
-- assume a UI element is merely cosmetic without tracing its state/event dependencies.
+Do not patch prototype visibility with CSS, blindly delete prototype arrays or service-worker transforms, add broad MutationObservers, add new service-worker source transforms, depend on timing/orientation/cache warming, create competing state owners, reuse rejected 0.9.4.12 account-isolation architecture, derive E2EE private keys from UID alone, store plaintext private keys in Firestore, or continue building new per-device E2EE fan-out as the target design.
 
 ## Definition of success
 
-Runtime consolidation is successful only when:
-
-1. GitHub source is the authoritative application implementation.
-2. The service worker does not rewrite application source code.
-3. Cold and warm loads execute the same application logic.
-4. Empty accounts are genuinely empty and never seed prototype conversations.
-5. All protected messaging/E2EE/receipt/Outbox/UI/Settings behaviors still pass.
-6. Fire account-isolation work can then proceed against one deterministic runtime.
+Runtime consolidation and the architecture correction succeed only when GitHub source is authoritative, the service worker no longer rewrites source, empty accounts are genuinely empty, Firestore is authoritative for encrypted conversations/messages, local cache is disposable/rebuildable, one account has one durable recoverable E2EE identity, device ID is not required for decryptability, and protected messaging/UI behavior passes.
 
 ## Development gate
 
-Before every implementation step in this plan:
+Before every implementation step:
 
-1. Read `CODING-GUIDELINES.md`.
-2. Read this file.
-3. State the owner, exact resource scope, lifecycle trigger, and serialized write path for resources being changed.
-4. Make one bounded change.
-5. Validate before moving to the next phase.
-
-This plan supersedes any earlier assumption that prototype UI/data can be removed independently from `app.js` without first consolidating service-worker-injected runtime behavior.
+1. Read `hermes-memory.txt`.
+2. Read `CODING-GUIDELINES.md`.
+3. Read `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`.
+4. Read this file and `RUNTIME-TRANSFORM-INVENTORY.md`.
+5. Read `E2EE-IDENTITY-LIFECYCLE.md` for historical/migration context when touching E2EE/device code.
+6. Read other supporting root documentation relevant to the change, including `architecture-ownership.txt` and `BUG-LIST.md`.
+7. State owner, resource scope, lifecycle trigger, and serialized write path.
+8. Make one bounded change and validate it before proceeding.
 
 ## Consolidation progress
 
-- **0.9.5.4 — Increment 1:** live direct-message receipt reconciliation/read promotion has been copied verbatim from the service-worker transform into authoritative `app.js`; the corresponding service-worker source transform has been removed. Validation is required before materializing E2EE v2 transforms.
-- **0.9.5.7 — E2EE identity safety gate before further transformation:** fixed the startup race that could create multiple device identities and disabled automatic quarantine overwrite. Historical test keys are no longer a recovery requirement; after identity stability validation, perform a controlled test-data/device-registry reset before continuing E2EE-v2 materialization.
+- **0.9.5.4:** live direct-message receipt reconciliation/read promotion copied from service-worker transform into authoritative `app.js`; corresponding transform removed.
+- **0.9.5.7:** legacy per-installation E2EE identity race fixed and validated. This remains a useful stabilization checkpoint but its device-based ownership model is now superseded.
+- **September 5, 2026:** production direction changed to account-authoritative E2EE/Firestore authority. Further per-device E2EE materialization is paused until the new durable account-key wrapping/recovery design is defined.
