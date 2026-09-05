@@ -8,12 +8,18 @@ import {
   initFirebase,
   getFirebaseUser,
   getFidunioAccessInfo,
+  listCloudUsers,
   validateInvitation,
   redeemFidunioInvitation,
   signInFidunio
 } from "./firebase.js";
 import {markSuccessfulAuthBypass} from "./local-security.js";
 import {installSettingsLifecycleBridge} from "./settings-lifecycle-bridge.js";
+import {
+  getAccountStorageStatus,
+  inspectLegacyAccountIdentity,
+  activateAccountStorage
+} from "./account-storage.js";
 
 const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
 let appStarted=false;
@@ -34,9 +40,29 @@ async function resetApi(){
   return resetApiPromise;
 }
 async function sendPasswordReset(email){const s=await resetApi();await s.authSdk.sendPasswordResetEmail(s.auth,email);}
+function canonicalJwk(jwk){return JSON.stringify({kty:jwk?.kty||"",crv:jwk?.crv||"",x:jwk?.x||"",y:jwk?.y||""});}
+async function resolveLegacyOwnerUid(){
+  const legacy=await inspectLegacyAccountIdentity();
+  if(!legacy.hasLegacyData||!legacy.publicJwk)return null;
+  const current=await getFidunioAccessInfo();
+  const others=await listCloudUsers();
+  const wanted=canonicalJwk(legacy.publicJwk);
+  const candidates=[current.profile,...others].filter(Boolean).filter(p=>canonicalJwk(p.e2eePublicJwk)===wanted);
+  const unique=[...new Set(candidates.map(p=>p.uid).filter(Boolean))];
+  return unique.length===1?unique[0]:null;
+}
 
 async function startApp(){
   if(appStarted)return;
+  const user=getFirebaseUser();
+  if(!user)throw new Error("Authenticated account is required before FIDUNIO can start.");
+  const storageStatus=await getAccountStorageStatus();
+  let legacyOwnerUid=null;
+  if(!storageStatus.activeUid){
+    try{legacyOwnerUid=await resolveLegacyOwnerUid();}
+    catch(err){console.warn("FIDUNIO could not uniquely identify legacy local-data ownership; legacy data will be quarantined",err);}
+  }
+  await activateAccountStorage(user.uid,{legacyOwnerUid});
   appStarted=true;
   clearInviteFromUrl();
   await import("./app.js");
