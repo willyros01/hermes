@@ -1,0 +1,28 @@
+name: E2EE Recovery Crypto Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e2ee-recovery-server-crypto.mjs'
+      - 'e2ee-recovery-server-crypto.test.mjs'
+      - 'package.json'
+      - '.github/workflows/e2ee-recovery-crypto.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovery-crypto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run recovery crypto unit gate
+        run: npm run test:recovery-crypto
