@@ -44,3 +44,5 @@ jobs:
         run: npm run test:functions-scaffold
       - name: Runtime transform anchor gate
         run: npm run test:runtime-transform-anchors
+      - name: Runtime authority gate
+        run: npm run test:runtime-authority
