@@ -1,0 +1,26 @@
+name: Add E2EE diagnostics
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/add-e2ee-diagnostics.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python .github/scripts/add_e2ee_diagnostics.py
+      - run: |
+          grep -q 'getCloudE2EEDiagnosticSnapshot' firebase.js
+          grep -q 'Read-only E2EE inventory' e2ee-diagnostics.js
+          grep -q 'version: "0.9.5.6"' version.js
+          git diff --check
+          test -z "$(git diff --name-only | grep -E '^(app.js|service-worker.js|account-storage.js|settings-lifecycle.js)$' || true)"
+      - run: |
+          git config user.name 'willyros01'
+          git config user.email 'willyros01@gmail.com'
+          git add firebase.js e2ee-diagnostics.html e2ee-diagnostics.js version.js BUG-LIST.md
+          git commit -m 'Add read-only E2EE identity diagnostics'
+          git push
