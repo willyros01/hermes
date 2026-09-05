@@ -8,16 +8,27 @@
  * Lifecycle trigger: authenticated UID is known, before app.js is imported.
  * Serialized write path: every activation/switch runs through one module mutex.
  *
+ * 0.9.5.3 migration rule:
+ * - 0.9.5.2 snapshots may already contain mixed-account app-state/history/outbox.
+ * - Never assign those mixed caches to an authenticated account.
+ * - Preserve only a uniquely attributable E2EE identity/keypair.
+ * - Quarantine old mixed live data and start each v3 account cache clean.
+ * - Once an account is active under v3, subsequent snapshots are trusted and are
+ *   switched normally by UID.
+ *
  * This module does NOT initialize Firebase, reload the page, or mutate UI.
  */
 const LIVE_DB="fidunio-local";
 const LIVE_VERSION=2;
-const VAULT_DB="fidunio-account-vault-v2";
+const VAULT_DB="fidunio-account-vault-v3";
 const VAULT_VERSION=1;
-const ACTIVE_UID_KEY="account-storage-active-uid-v2";
-const TRANSITION_KEY="account-storage-transition-v2";
-const QUARANTINE_KEY="__legacy-unassigned-v2";
-const ACCOUNT_META_KEYS=["app-state","e2ee-device-keypair-v1","e2ee-device-identity-v1"];
+const ACTIVE_UID_KEY="account-storage-active-uid-v3";
+const TRANSITION_KEY="account-storage-transition-v3";
+const QUARANTINE_KEY="__legacy-mixed-v3";
+const STATE_KEY="app-state";
+const LOCAL_KEY="local-key";
+const ACCOUNT_META_KEYS=[STATE_KEY,"e2ee-device-keypair-v1","e2ee-device-identity-v1"];
+const IDENTITY_META_KEYS=["e2ee-device-keypair-v1","e2ee-device-identity-v1"];
 let storageTail=Promise.resolve();
 
 function idbRequest(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
@@ -38,6 +49,11 @@ async function readLiveSnapshot(db){
   return{meta,outbox,history:historyKeys.map((key,i)=>({key,value:historyValues[i]})),savedAt:Date.now()};
 }
 function snapshotHasData(snapshot){return !!(snapshot&&(Object.keys(snapshot.meta||{}).length||(snapshot.outbox||[]).length||(snapshot.history||[]).length));}
+function identityOnly(snapshot){
+  const meta={};
+  for(const key of IDENTITY_META_KEYS){if(snapshot?.meta?.[key]!==undefined)meta[key]=snapshot.meta[key];}
+  return{meta,outbox:[],history:[],savedAt:Date.now(),identityOnly:true};
+}
 async function clearLiveAccountData(db){
   for(const key of ACCOUNT_META_KEYS)await deleteMeta(db,key);
   let tx=db.transaction("outbox","readwrite");tx.objectStore("outbox").clear();await txDone(tx);
@@ -52,6 +68,21 @@ async function restoreLiveSnapshot(db,snapshot){
 }
 async function saveVault(uid,snapshot){const db=await openVault();const tx=db.transaction("snapshots","readwrite");tx.objectStore("snapshots").put(snapshot,String(uid));await txDone(tx);db.close();}
 async function loadVault(uid){const db=await openVault();const value=await idbRequest(db.transaction("snapshots","readonly").objectStore("snapshots").get(String(uid)));db.close();return value||null;}
+
+function bytesToB64(bytes){let s="";bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s);}
+async function ensureBlankAppState(db){
+  const existing=await readMeta(db,STATE_KEY);
+  if(existing)return;
+  let key=await readMeta(db,LOCAL_KEY);
+  if(!key){
+    key=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+    await writeMeta(db,LOCAL_KEY,key);
+  }
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const data=new TextEncoder().encode(JSON.stringify({conversations:[],messages:{},selectedId:null}));
+  const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,data);
+  await writeMeta(db,STATE_KEY,{iv:bytesToB64(iv),ciphertext:bytesToB64(new Uint8Array(cipher))});
+}
 
 export async function getAccountStorageStatus(){
   const db=await openLive();
@@ -84,33 +115,45 @@ export function activateAccountStorage(uid,{legacyOwnerUid=null}={}){
   return serializeStorage(async()=>{
     const live=await openLive();
     const currentUid=await readMeta(live,ACTIVE_UID_KEY)||null;
-    if(currentUid===targetUid){live.close();return{activeUid:targetUid,switched:false};}
+    if(currentUid===targetUid){
+      await ensureBlankAppState(live);
+      live.close();
+      return{activeUid:targetUid,switched:false};
+    }
 
     const transition={fromUid:currentUid,toUid:targetUid,startedAt:Date.now()};
     await writeMeta(live,TRANSITION_KEY,transition);
 
     try{
       if(currentUid){
+        // v3-active data is trusted because it started from a clean account boundary.
         const currentSnapshot=await readLiveSnapshot(live);
         await saveVault(currentUid,currentSnapshot);
       }else{
+        // Pre-v3 live data may already mix multiple accounts. Preserve it only as
+        // quarantine evidence; never assign its app-state/history/outbox to a UID.
         const legacySnapshot=await readLiveSnapshot(live);
         if(snapshotHasData(legacySnapshot)){
-          if(legacyOwnerUid){await saveVault(String(legacyOwnerUid),legacySnapshot);}
-          else{await saveVault(QUARANTINE_KEY,legacySnapshot);}
+          await saveVault(QUARANTINE_KEY,legacySnapshot);
+          if(legacyOwnerUid){
+            const identity=identityOnly(legacySnapshot);
+            if(snapshotHasData(identity))await saveVault(String(legacyOwnerUid),identity);
+          }
         }
       }
 
-      const keepLegacyInPlace=!currentUid&&legacyOwnerUid&&String(legacyOwnerUid)===targetUid;
-      if(!keepLegacyInPlace){
-        const targetSnapshot=await loadVault(targetUid);
-        await restoreLiveSnapshot(live,targetSnapshot);
-      }
-
+      const targetSnapshot=await loadVault(targetUid);
+      await restoreLiveSnapshot(live,targetSnapshot);
+      await ensureBlankAppState(live);
       await writeMeta(live,ACTIVE_UID_KEY,targetUid);
       await deleteMeta(live,TRANSITION_KEY);
       live.close();
-      return{activeUid:targetUid,switched:true,legacyAssignedTo:legacyOwnerUid||null,legacyQuarantined:!currentUid&&!legacyOwnerUid};
+      return{
+        activeUid:targetUid,
+        switched:true,
+        legacyIdentityAssignedTo:legacyOwnerUid||null,
+        legacyMixedDataQuarantined:!currentUid
+      };
     }catch(err){
       try{await deleteMeta(live,TRANSITION_KEY);}catch{}
       live.close();
