@@ -15,14 +15,11 @@ async function migratePrototypeData(){const db=await openDb(),key=await getOrCre
 function scrubPrototypeUi(){document.querySelectorAll(".direct-contact").forEach(el=>el.remove());document.querySelectorAll(".section-title").forEach(el=>{if(el.textContent.trim()!=="Sample local contacts")return;const next=el.nextElementSibling;el.remove();if(next?.classList.contains("choice-list")&&!next.children.length)next.remove();});}
 const observer=new MutationObserver(()=>scrubPrototypeUi());observer.observe(document.documentElement,{subtree:true,childList:true});
 try{await migratePrototypeData();}catch(err){console.warn("FIDUNIO prototype cleanup failed safely; continuing startup",err);}
-await import("./settings-polish.js");
 await import("./new-message-polish.js");
 const {startAccountGuard}=await import("./account-guard.js");
 await startAccountGuard();
-const {runAuthGate}=await import("./auth-ui.js");
+const {runAuthGate}=await import("./auth-ui-clean.js");
 await runAuthGate();
 await import("./profile-sync.js");
 await import("./main-screen-polish.js");
-await import("./admin-ui.js");
-await import("./invite-modal.js");
 scrubPrototypeUi();
