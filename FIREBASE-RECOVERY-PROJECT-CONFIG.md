@@ -1,38 +1,59 @@
 # FIDUNIO Firebase Recovery Project Configuration Gate
 
-**STATUS: PREPARED — DO NOT APPLY TO LIVE PROJECT UNTIL REBUILD BRANCH IS READY FOR DEPLOYMENT**
+**STATUS: REPOSITORY PRE-HANDOFF READY — LIVE PROJECT STILL UNTOUCHED**
 
-This document is the handoff from repository-only recovery work to Firebase/Google project configuration. None of these live-project actions has been performed by the rebuild branch.
+This document is the controlled handoff from repository-only account-E2EE/recovery/message preparation to Firebase/Google project configuration. None of the live-project actions below has been performed by the rebuild branch.
 
 For the user's planned Gemini-assisted Google/Firebase workflow, use `GEMINI-FIREBASE-HANDOFF.md`. Gemini is an operator/navigation assistant only; ChatGPT remains the FIDUNIO architecture/security authority and releases one prompt at a time after reviewing the prior result.
 
-## Repository prerequisites already prepared
+## Repository prerequisites already prepared and validated
 
 - `functions/` is registered as Firebase Functions codebase `recovery` in `firebase.json`.
 - Node.js 22 runtime is declared in `functions/package.json`.
 - Firebase Functions v2 callable scaffold exists in `functions/index.mjs`.
 - Firebase Admin persistence is server-only under `functions/recovery/`.
-- `FIDUNIO_RECOVERY_MASTER_V1` is declared with `defineSecret()` and is bound only to enrollment/completion callables.
-- App Check enforcement is enabled in callable options.
-- recovery completion consumes a limited-use App Check token in the scaffold.
-- completion is intentionally fail-closed until supplemental recovery verification is implemented.
-- repository CI validates rules, recovery crypto/session/callable/persistence, Firebase adapter, Functions scaffold import, runtime transform anchors, and runtime authority regression rules.
+- `FIDUNIO_RECOVERY_MASTER_V1` is declared with `defineSecret()` and bound only to enrollment/completion callables.
+- App Check enforcement is declared in callable options; completion is marked for limited-use token consumption.
+- recovery completion remains intentionally fail-closed until supplemental recovery verification is implemented/reviewed.
+- exact account-E2EE private/public Firestore rules pass the original 42-assertion emulator gate.
+- account direct-message `e2ee:3` crypto is validated in isolation.
+- exact repository Firestore acceptance for v3 account messages passes a dedicated emulator-only matrix while preserving legacy plaintext/e2ee:1/e2ee:2 migration compatibility.
+- `e2ee-account-message-service.js` fails closed unless the local durable account identity is READY and the peer exact public account identity is available.
+- the full expanded `Rebuild Baseline Security Gate` passed at `ca9222bdb7171ae60de5b2b9c08bf5b9327f52c9`.
+- protected checkpoint: `checkpoint-rebuild-account-dm-v3-crypto-rules`.
 
-## Live project actions that will require the project owner
+Repository validation does **not** imply any live Firebase rule/function configuration has changed.
 
-### 1. Confirm Firebase project and billing state
+## Why the live-project boundary is now required
 
-Cloud Functions 2nd gen and Secret Manager require the actual Firebase/Google Cloud project to be selected. Confirm the correct FIDUNIO project before any command or console change. If required by Firebase for deployment, the project must use the appropriate billing plan.
+The next architecture step cannot be completed safely by repository code alone:
 
-No billing change should be made merely to test repository code.
+1. normal account identity enrollment must atomically establish both normal and recovery wrappers, so the recovery enrollment callable/secret boundary must actually exist before enrollment is enabled;
+2. an existing durable identity must be readable/unlockable under the exact reviewed client rules in the actual project;
+3. direct-message runtime must not cut over from the last working legacy per-device compatibility path until a real authenticated account can reach account E2EE `READY` without generating a replacement identity;
+4. legacy service-worker E2EE transforms therefore remain intentionally in place until the live account-E2EE boundary is proven.
 
-The first Google-side action should be the **read-only inventory** in `GEMINI-FIREBASE-HANDOFF.md`; no project change is authorized during that step.
+The first Google-side action is **read-only inventory only**. No deploy/change is implied by reaching this boundary.
 
-### 2. Review function region
+## Live project actions that require project-owner/operator intervention
 
-The scaffold currently uses `us-central1`. Before production deployment, confirm the Firestore/project location and decide whether that region is appropriate. Changing region after deployment creates a new function location, so this is a pre-deployment decision.
+### 1. Confirm exact Firebase project and billing state — READ ONLY FIRST
 
-### 3. Create the recovery master secret
+Confirm the correct FIDUNIO Firebase/Google Cloud project before any command or console change. Report exact project ID, billing plan, Firestore location, Web App registration, current Functions/Secret Manager/App Check state and any existing related resources.
+
+The first operator action must be Prompt 1 in `GEMINI-FIREBASE-HANDOFF.md`. It makes no changes.
+
+### 2. Review final function region
+
+The scaffold currently uses `us-central1`. Before first deployment, compare this with the actual Firestore/project location and choose deliberately. Changing a function region later creates a different deployed location.
+
+### 3. Confirm billing/API readiness without enabling anything automatically
+
+Cloud Functions 2nd gen / Secret Manager and their build/runtime dependencies may require billing and APIs. Inventory/report first. Missing services must be listed and approved individually before enabling.
+
+No billing change should be made merely to run repository tests.
+
+### 4. Create recovery master secret only when explicitly authorized
 
 Secret name:
 
@@ -42,21 +63,13 @@ FIDUNIO_RECOVERY_MASTER_V1
 
 Required value: exactly 32 cryptographically random bytes encoded base64url without padding.
 
-The value must never be placed in GitHub, Firebase client config, Firestore, Notes, screenshots, Gemini, or ChatGPT.
-
-The secret should be generated/entered directly in Google's protected environment only when deployment is authorized.
-
-### 4. Enable required Google/Firebase services
-
-Deployment may require enabling the services used by Cloud Functions 2nd gen, Cloud Build/Artifact Registry, Eventarc infrastructure, Secret Manager, and Firebase App Check. Enable only what the Firebase deployment flow actually requires for this project.
-
-The Gemini operator must report missing services first rather than enabling them without an explicit ChatGPT-approved prompt.
+The value must never be placed in GitHub, Firebase client config, Firestore, Notes, screenshots, Gemini or ChatGPT. Generate/enter it only in Google's protected environment during the approved secret-provisioning step.
 
 ### 5. IAM least privilege
 
-Only recovery functions that bind `FIDUNIO_RECOVERY_MASTER_V1` should receive access to that secret. Do not grant browser users, normal messaging code, or unrelated service accounts access to the recovery secret.
+Only recovery functions that bind `FIDUNIO_RECOVERY_MASTER_V1` receive access to that secret. Never grant browser users, normal messaging code or unrelated service accounts secret access.
 
-The function service account needs only the Firestore/Admin capabilities required for:
+Recovery server data scope is limited to what the reviewed implementation requires, including:
 
 ```text
 users/{uid}/e2ee/identity
@@ -64,48 +77,57 @@ recoverySessions/{sessionId}
 e2eeRecoveryState/{uid}
 ```
 
-The exact IAM review occurs before deployment because Firebase Admin bypasses client Firestore Security Rules.
+Firebase Admin bypasses client Security Rules, so service-account/IAM review is a real security boundary.
 
-### 6. Configure App Check for the FIDUNIO web app
+### 6. Configure/test App Check for FIDUNIO Web/PWA
 
-Production callables are defined with App Check enforcement. Before enabling live recovery use, the FIDUNIO web/PWA client must be registered with an appropriate Firebase App Check provider and tested on the target Safari/PWA environments.
+Production callables are declared with App Check enforcement. Verify the actual FIDUNIO Web App registration/provider and target Safari/Home Screen PWA compatibility before recovery is enabled.
 
-`completeE2EERecoveryV1` is designed as the highest-risk endpoint and uses limited-use/replay-protected App Check tokens in the Functions scaffold.
+`completeE2EERecoveryV1` is the highest-risk endpoint and is designed for limited-use/replay-protected App Check token consumption.
 
-### 7. Implement supplemental recovery verification
+### 7. Supplemental recovery verification remains intentionally unresolved/fail-closed
 
-This is the remaining code/security gate before RUK release is enabled.
+The current `completeE2EERecoveryV1` export intentionally refuses RUK release until an approved supplemental recovery verifier is specified, implemented and tested.
 
-The current `completeE2EERecoveryV1` export intentionally throws a failed-precondition response. It cannot release the RUK. Replace that fail-closed boundary only after the approved supplemental verifier is specified, implemented, and tested.
+No temporary `return true`, bypass flag, test PIN, client-supplied boolean or weak security-question-only substitute is acceptable.
 
-No temporary `return true`, bypass flag, test PIN, security question alone, or client-supplied authorization boolean is acceptable.
+This decision may be completed after read-only project inventory because available Google/Firebase account-verification capabilities can affect the best implementation. Until then, completion stays fail-closed.
 
-### 8. Deploy in controlled order
+### 8. Controlled deployment/rehearsal order
 
-When all gates are satisfied, use a controlled sequence:
+No blanket deployment should be the first production action. The intended staged sequence is:
 
 ```text
-A. verify current Firebase project
-B. provision secret / IAM / App Check
-C. deploy recovery functions only
-D. run non-production recovery integration tests
-E. deploy validated Firestore rules explicitly
-F. verify live rule/function versions
-G. only then wire normal FIDUNIO UI to the recovery callables
+A. read-only project inventory
+B. confirm exact project ID / Firestore location / final region / billing and API readiness
+C. finalize supplemental recovery verifier design and repository tests
+D. provision recovery secret + least-privilege IAM + App Check
+E. deploy recovery functions only while completion remains verified fail-closed if supplemental verification is not yet enabled
+F. verify function names/regions/App Check/secret bindings
+G. deploy the exact validated Firestore rules explicitly
+H. verify live account-E2EE private/public permissions and v3 message-rule behavior with controlled test accounts/data
+I. prove existing/empty account identity lifecycle without replacement
+J. wire normal six-digit account-E2EE enrollment/unlock in rebuild runtime
+K. only then cut over direct send/receive/Outbox to v3 and retire matching legacy transforms after device validation
 ```
 
-Do not use a blanket deployment as the first production action.
+Whether step E is useful before supplemental verifier completion will be decided after the read-only inventory; no deployment is pre-authorized here.
 
-## Stop condition
+## Explicit non-actions to preserve
 
-Repository work may continue without the project owner until one of these becomes necessary:
+Until the project-owner handoff begins:
+- do not deploy `firestore.rules`;
+- do not deploy Functions;
+- do not create/update `FIDUNIO_RECOVERY_MASTER_V1`;
+- do not change IAM;
+- do not enable/enforce App Check;
+- do not enable APIs;
+- do not change billing;
+- do not switch normal FIDUNIO transport to v3;
+- do not remove the remaining legacy per-device service-worker transforms.
 
-- selecting/confirming the actual Firebase project;
-- changing billing;
-- choosing the final Cloud Functions region when project location must be confirmed;
-- creating the Secret Manager value;
-- changing IAM;
-- registering/enforcing App Check;
-- executing a live Firebase deploy.
+## Stop condition reached
 
-At that point, stop and guide the project owner one console/CLI/Gemini action at a time.
+Repository work has now reached the first genuine project-owner dependency: identifying the actual live Firebase/Google project state. The next permitted handoff action is the **read-only Prompt 1 inventory** in `GEMINI-FIREBASE-HANDOFF.md` when the user is ready.
+
+After each Google/Firebase operator step, return the result to ChatGPT before advancing. Do not let the console operator improvise architecture/security changes.
