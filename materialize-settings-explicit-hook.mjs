@@ -1,3 +1,4 @@
+// One-shot rebuild materializer: explicit Settings lifecycle ownership.
 import fs from "node:fs";
 
 const appPath="app.js",gatePath="runtime-authority-gate.test.mjs";
