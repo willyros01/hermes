@@ -3,15 +3,17 @@ CUMULATIVE PROJECT MEMORY
 
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
-- At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-E2EE-V1-EMULATOR-TESTS.md`, `E2EE-RECOVERY-PROTOCOL.md`, `FIREBASE-RECOVERY-PROJECT-CONFIG.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `REBUILD-BASELINE-AUDIT.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md`.
+- At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-E2EE-V1-EMULATOR-TESTS.md`, `E2EE-RECOVERY-PROTOCOL.md`, `FIREBASE-RECOVERY-PROJECT-CONFIG.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `RUNTIME-AUTHORITY-MAP.md`, `REBUILD-BASELINE-AUDIT.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md`.
 - Core: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 
 REBUILD BASELINE — SEPTEMBER 5, 2026
 - User authorized moving from security proving into repository cleanup/rebuild and asked to keep working until actual input is needed.
 - Protected working branch: `fidunio-rebuild-baseline-2026-09-05`, created from `main` commit `246c524abc78404d9bc744b272ce08244a35cc3f`. `main` remains rollback/reference while rebuild proceeds.
-- `REBUILD-BASELINE-AUDIT.md` is the authoritative keep/remove/rebuild map.
-- Removed confirmed dead/superseded one-off artifacts from rebuild branch only: baseline cleanup/reset pages/scripts, E2EE diagnostics, one-shot cleanup workflow, superseded `auth-ui.js`, old standalone admin/invite/settings-polish modules, and historical `test-0.9.0/` snapshot.
-- Do NOT blindly delete legacy per-device E2EE, service-worker transforms, prototype startup state, current display-name overlays, or Settings bridge until their validated behavior is materialized/replaced.
+- `REBUILD-BASELINE-AUDIT.md` is the authoritative keep/remove/rebuild map; `RUNTIME-AUTHORITY-MAP.md` records current resource owners and temporary ownership violations.
+- Protected checkpoints:
+  - `checkpoint-rebuild-baseline-recovery-pass` -> `e2d2e10031182781f6887b2cd1a971701aa21e3a`
+  - `checkpoint-rebuild-new-message-owner` -> `b4731926432af3a986af991d2f51db86acea0fd1`
+- Removed confirmed dead/superseded one-off artifacts from rebuild branch only: baseline cleanup/reset pages/scripts, E2EE diagnostics, one-shot cleanup workflow, superseded auth/admin/invite/settings-polish modules, historical `test-0.9.0/`, and observer-based `new-message-polish.js` after its behavior was materialized.
 - Rebuild target is forward consolidation, not historical rollback.
 
 FIRESTORE E2EE V1 GATE — EXACT SCHEMA
@@ -20,7 +22,7 @@ FIRESTORE E2EE V1 GATE — EXACT SCHEMA
 - Exact public JWK is `{kty,crv,x,y}` only.
 - Exact recovery wrapper fields are: `version,ciphertext,iv,wrappedRecoveryKey,wrappingAlgorithm,recoveryAuthorityVersion,recoveryKeyIv,recoveryKeyWrappingAlgorithm`; generic metadata forbidden.
 - Main rules run `33974521992` at commit `246c524abc78404d9bc744b272ce08244a35cc3f` succeeded.
-- Rebuild branch security gate also re-runs the same emulator test. Repository validation does NOT mean live Firebase rules are deployed.
+- Rebuild branch security gate re-runs the same emulator test. Repository validation does NOT mean live Firebase rules are deployed.
 
 ACCOUNT E2EE IDENTITY MANAGER — VALIDATED
 - `e2ee-account-identity-manager.js` is sole proposed account identity lifecycle owner/state machine and remains isolated from normal production UI/runtime.
@@ -43,7 +45,7 @@ RECOVERY SERVER — VALIDATED REPOSITORY IMPLEMENTATION
 - Recovery crypto/session/callable/persistence tests pass in `Rebuild Baseline Security Gate`.
 
 CLOUD FUNCTIONS RECOVERY SCAFFOLD — PREPARED, NOT DEPLOYED
-- Authoritative server source now lives under `functions/recovery/`. Root `e2ee-recovery-*.mjs` files are compatibility re-exports so existing tests exercise the deployable source rather than a duplicate implementation.
+- Authoritative server source lives under `functions/recovery/`. Root `e2ee-recovery-*.mjs` files are compatibility re-exports so existing tests exercise deployable source rather than a duplicate implementation.
 - `functions/package.json`: Node.js 22, `firebase-functions` 7.3.2, `firebase-admin` 14.3.0.
 - `firebase.json` registers Functions codebase `recovery` with source `functions`.
 - `functions/index.mjs` exports v2 callables `enrollRecoveryV1`, `startE2EERecoveryV1`, `completeE2EERecoveryV1`.
@@ -51,8 +53,6 @@ CLOUD FUNCTIONS RECOVERY SCAFFOLD — PREPARED, NOT DEPLOYED
 - Secret `FIDUNIO_RECOVERY_MASTER_V1` is declared with `defineSecret` and bound only to enrollment/completion.
 - Master secret format expected by scaffold: exactly 32 random bytes represented base64url without padding.
 - `completeE2EERecoveryV1` is intentionally FAIL-CLOSED until supplemental recovery verification is implemented/reviewed; accidental scaffold deployment cannot release a RUK.
-- Rebuild security run `33976547303` at head `4ed1b1cf7beb8763dac0c7798ccd1e16cf7e67c2` SUCCEEDED including: Firestore E2EE rules, recovery crypto, session policy, callable core, Firestore admin adapter, central Firebase adapter, and Cloud Functions scaffold import.
-- Main recovery workflow was updated on rebuild branch to watch `functions/recovery/**`, Functions package/index/firebase config and validate scaffold after merge.
 - No Cloud Function, Secret Manager secret, IAM change, App Check setting, billing change, or Firebase production deploy has occurred.
 
 FIREBASE PROJECT CONFIGURATION GATE
@@ -60,32 +60,40 @@ FIREBASE PROJECT CONFIGURATION GATE
 - Project-owner input is not needed until actual project confirmation/billing/region/Secret Manager/IAM/App Check/live deployment is required.
 - Current scaffold region is `us-central1`; confirm final region against actual Firebase/Firestore project before first deployment.
 - Supplemental recovery verifier remains the only intentional fail-closed server-code gap before enabling RUK release.
+- User plans to use Gemini as a Google/Firebase console operator while ChatGPT remains in the loop and supplies exact prompts/commands; no Gemini-side project changes should occur until repo-side handoff is ready.
+
+DETERMINISTIC UI / CURRENT RUNTIME
+- `bootstrap.js` is now startup sequencing only and contains no broad MutationObserver scrub path.
+- Raw `app.js` now starts from `contacts=[]`, supports a genuine empty Messages state, and calls explicit `new-message-owner.js` for recipient selection.
+- Superseded observer-based `new-message-polish.js` has been deleted.
+- `main-screen-polish.js` remains a TEMPORARY MutationObserver compatibility layer for Sign Out + peer-name projection, but its Sign Out now routes through central `signOutFidunio()` instead of independently importing Firebase Auth.
+- `profile-sync.js` remains a TEMPORARY independent Firebase SDK reader for live peer profile names; consolidate through `firebase.js` before removal.
+- `settings-lifecycle-bridge.js` remains temporary until `app.js` exposes final Settings render ownership.
+- `runtime-authority-gate.test.mjs` now prevents new direct Firebase SDK ownership or new MutationObserver repair paths outside the explicit temporary allowlist and checks that New Message/empty-state materialization does not regress.
+
+SERVICE WORKER / HIDDEN DUAL CODE
+- `service-worker.js` still rewrites `app.js` at runtime.
+- Remaining transforms are now explicitly classified in `RUNTIME-TRANSFORM-INVENTORY.md`.
+- Non-cryptographic group imports/state/subscriptions/UI/send guard are the next safe materialization target.
+- Per-device E2EE v2 helper/receive/trust/send transforms are legacy compatibility and MUST NOT simply become the target architecture. They remain until account-authoritative send/receive replaces them with deliberate legacy migration support.
+- Final service worker must perform shell/network/offline caching only and never alter JavaScript semantics.
 
 OFFLINE MESSAGING TARGET
 - Firestore = durable encrypted authority; UID-scoped local cache = rebuildable offline copy; Outbox = temporary pending-send authority.
 - Reconnect is serialized/idempotent with stable message IDs.
 
-DETERMINISTIC UI
-- DETERMINISTIC. One owner/resource/region; one serialized write path; state authoritative, DOM projection.
-- Preserve iPhone single-pane/iPad two-pane, Settings 0.9.5.1, receipts, Back behavior, accessible text sizing.
-
 CURRENT REBUILD ORDER
 1. COMPLETE — crypto/identity-manager/Firestore/recovery security proving.
 2. COMPLETE — initial repository dead-code cleanup and recovery Cloud Functions scaffold/documentation.
-3. CURRENT — freeze the rebuild branch as a tested rollback checkpoint and continue runtime authority consolidation.
-4. Replace prototype source/defaults plus broad bootstrap scrub observer in one bounded empty-state ownership change.
-5. Materialize display-name/New Message/main-screen overlays into explicit owners, then remove observer-based repair modules.
-6. Materialize/replace remaining `service-worker.js` source transforms one bounded unit at a time; service worker must end cache/offline only.
-7. Wire validated account E2EE through central `firebase.js` ownership.
-8. Build Firestore-authoritative encrypted history + UID-scoped rebuildable cache + Outbox.
-9. Replace legacy per-device envelope ownership boundedly; device ID informational only.
+3. COMPLETE — deterministic empty Messages state + explicit New Message owner + rollback checkpoint; observer-based New Message polish removed.
+4. CURRENT — materialize group metadata/subscription/UI/send guard from service-worker transform into authoritative source as one bounded non-cryptographic unit.
+5. Replace peer-name/main-screen observer projections with central Firebase APIs + explicit app projection; remove remaining temporary observer/SDK ownership.
+6. Wire validated account E2EE through central `firebase.js` ownership.
+7. Replace legacy per-device E2EE send/decrypt/fan-out transforms boundedly with account-authoritative messaging and explicit migration support; device ID remains informational target data only.
+8. Reduce service worker to cache/offline only.
+9. Build/finish Firestore-authoritative encrypted history + UID-scoped rebuildable cache + Outbox.
 10. Revalidate iPhone/iPad/PWA receipts/offline/Settings/account switching/reinstall/recovery.
-11. Live Firebase Functions/Secret Manager/App Check/IAM/rules deployment stops for user input only when the actual project action is required.
-
-CRITICAL RUNTIME
-- Raw `app.js` still contains prototype-era state.
-- `service-worker.js` still rewrites `app.js` and injects legacy per-device E2EE/group behavior. Hidden dual-code runtime remains the principal rebuild target.
-- `bootstrap.js` still contains prototype cleanup logic and a broad MutationObserver; remove only together with real empty-state ownership.
+11. Live Firebase Functions/Secret Manager/App Check/IAM/rules deployment stops for user input only when actual project action is required.
 
 PIN / LOCAL SECURITY
 - Existing local installation PIN remains 4–12 digits with its current local-security design. New account E2EE PIN is exactly six digits. Reconcile deliberately later.
