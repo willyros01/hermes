@@ -1,7 +1,7 @@
 // One-shot rebuild materializer: explicit Settings lifecycle ownership.
 import fs from "node:fs";
 
-const appPath="app.js",gatePath="runtime-authority-gate.test.mjs";
+const appPath="app.js",gatePath="runtime-authority-gate.test.mjs",bridgePath="settings-lifecycle-bridge.js";
 let app=fs.readFileSync(appPath,"utf8");
 let gate=fs.readFileSync(gatePath,"utf8");
 
@@ -32,6 +32,8 @@ const appCheck='if(!/mainSignOutMarkup/.test(app)||!/bindMainSignOut/.test(app))
 if(!gate.includes(appCheck))throw new Error("runtime authority app check anchor missing");
 gate=gate.replace(appCheck,appCheck+'\nif(!/mountSettingsLifecycle/.test(app))throw new Error("app.js must call the explicit Settings lifecycle owner.");');
 
+if(!fs.existsSync(bridgePath))throw new Error("Settings lifecycle bridge missing before retirement; refusing ambiguous cleanup");
+fs.unlinkSync(bridgePath);
 fs.writeFileSync(appPath,app);
 fs.writeFileSync(gatePath,gate);
-console.log("Materialized explicit Settings lifecycle hook; observer bridge can now be retired.");
+console.log("Materialized explicit Settings lifecycle hook and retired observer bridge.");
