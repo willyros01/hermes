@@ -13,35 +13,14 @@
 import {
   getFidunioAccessInfo,
   claimLegacyOwner,
-  createFidunioInvitation
+  createFidunioInvitation,
+  updateFidunioProfile,
+  changeFidunioPassword,
+  listFidunioUsersForAdmin,
+  updateFidunioUserLifecycle,
+  listPendingFidunioInvitations,
+  revokeFidunioInvitation
 } from "./firebase.js";
-
-const SDK_VERSION="12.18.0";
-let apiPromise=null;
-let generation=0;
-let mutationTail=Promise.resolve();
-
-function esc(s=""){return String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Admin":"User";}
-function initials(name){return String(name||"U").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();}
-function profileStatus(p){if(p?.active===false)return p.status||"suspended";return p?.status||"active";}
-function dateText(ts){const d=ts?.toDate?.();return d?d.toLocaleString():"Unknown";}
-function guideUrl(){return new URL("quick-start.html",location.href).href;}
-function inviteSubject(){return "You're invited to join FIDUNIO";}
-function inviteMessage(invite){const inviter=invite.invitedByName||"A FIDUNIO administrator";return `You're invited to FIDUNIO — Private Messaging\n\n${inviter} has invited you to join FIDUNIO, an invitation-only private messaging app for one-to-one and group conversations.\n\nYour role: ${prettyRole(invite.role)}\nInvitation expires: ${invite.expiresAt.toLocaleString()}\n\nJOIN FIDUNIO\n${invite.link}\n\nThis invitation is personal and can be used only once. After your account is created, the invitation becomes invalid. Please do not forward the invitation link.\n\nQUICK START GUIDE\n${guideUrl()}\n\nThe guide explains account setup, privacy and security basics, messaging, device identity, and PIN/biometric unlocking.\n\nFIDUNIO • Private Messaging`;}
-
-function api(){
-  if(apiPromise)return apiPromise;
-  apiPromise=Promise.all([
-    import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),
-    import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),
-    import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`)
-  ]).then(([appSdk,authSdk,fsSdk])=>{
-    const app=appSdk.getApp();
-    return{auth:authSdk.getAuth(app),db:fsSdk.getFirestore(app),authSdk,fsSdk};
-  });
-  return apiPromise;
-}
 
 function serializeSettingsMutation(label,work){
   const run=mutationTail.then(()=>work());
@@ -125,27 +104,8 @@ function placeBaseCards(settings,shell){
 function host(shell,id){return shell.querySelector(`#fidunioSettingsHost-${id}`);}
 function current(g,shell){return g===generation&&shell?.isConnected&&document.querySelector("#fidunioSettingsShell")===shell;}
 
-async function saveProfile(values){
-  const s=await api(),user=s.auth.currentUser;if(!user)throw new Error("Sign in first.");
-  const name=String(values.displayName||"").trim(),mail=String(values.email||"").trim(),phone=String(values.telephone||"").trim(),photo=String(values.photoURL||"").trim();
-  if(!name)throw new Error("Display name is required.");
-  if(mail&&mail!==user.email){
-    if(!values.currentPassword)throw new Error("Enter your current password to change your email address.");
-    const credential=s.authSdk.EmailAuthProvider.credential(user.email,values.currentPassword);
-    await s.authSdk.reauthenticateWithCredential(user,credential);
-    await s.authSdk.updateEmail(user,mail);
-  }
-  await s.authSdk.updateProfile(user,{displayName:name,photoURL:photo||null});
-  await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"users",user.uid),{displayName:name,email:user.email||mail,telephone:phone,photoURL:photo,profileUpdatedAt:s.fsSdk.serverTimestamp()});
-}
-async function changePassword(currentPassword,newPassword){
-  const s=await api(),user=s.auth.currentUser;if(!user)throw new Error("Sign in first.");
-  if(!currentPassword)throw new Error("Enter your current password.");
-  if(String(newPassword||"").length<6)throw new Error("New password must be at least 6 characters.");
-  const credential=s.authSdk.EmailAuthProvider.credential(user.email,currentPassword);
-  await s.authSdk.reauthenticateWithCredential(user,credential);
-  await s.authSdk.updatePassword(user,newPassword);
-}
+async function saveProfile(values){return updateFidunioProfile(values);}
+async function changePassword(currentPassword,newPassword){return changeFidunioPassword(currentPassword,newPassword);}
 function renderProfile(profileHost,info){
   const p=info.profile;
   profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><div style="text-align:center;margin-bottom:12px">${p.photoURL?`<img src="${esc(p.photoURL)}" alt="Profile" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="avatar" style="width:72px;height:72px;margin:auto;font-size:24px">${esc(initials(p.displayName||"U"))}</div>`}<div class="small-note">System role: ${esc(prettyRole(info.role))}</div></div><label class="form-label" for="profileName">Display name</label><input class="text-input" id="profileName" maxlength="80" value="${esc(p.displayName||info.user.displayName||"")}"><label class="form-label" for="profileEmail">Email address</label><input class="text-input" id="profileEmail" type="email" value="${esc(info.user.email||p.email||"")}"><label class="form-label" for="profilePhone">Telephone number</label><input class="text-input" id="profilePhone" type="tel" autocomplete="tel" value="${esc(p.telephone||"")}" placeholder="Optional"><label class="form-label" for="profilePhoto">Profile picture URL</label><input class="text-input" id="profilePhoto" type="url" value="${esc(p.photoURL||"")}" placeholder="https://…"><label class="form-label" for="profileCurrentPassword">Current password</label><input class="text-input" id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required only for email/password changes"><button class="primary" id="saveProfileBtn" style="margin-top:14px">Save Profile</button><div id="profileNote"></div><hr style="margin:22px 0"><h2>Change Password</h2><label class="form-label" for="newPassword">New password</label><input class="text-input" id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><label class="form-label" for="newPassword2">Confirm new password</label><input class="text-input" id="newPassword2" type="password" autocomplete="new-password" placeholder="Repeat new password"><button class="secondary" id="changePasswordBtn" style="margin-top:14px">Change Password</button><div id="passwordNote"></div></div>`;
@@ -166,16 +126,8 @@ function renderProfile(profileHost,info){
   };
 }
 
-async function listUsers(){const s=await api(),snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users"));return snap.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.displayName||a.email||a.uid).localeCompare(String(b.displayName||b.email||b.uid)));}
-async function updateLifecycle(target,status,expiryDays=undefined){
-  const s=await api(),me=s.auth.currentUser;if(!me)throw new Error("Sign in first.");
-  const now=s.fsSdk.serverTimestamp(),ref=s.fsSdk.doc(s.db,"users",target.uid),row={status,active:status==="active",adminUpdatedAt:now,adminUpdatedByUid:me.uid};
-  if(expiryDays!==undefined)row.expiresAt=expiryDays===null?null:s.fsSdk.Timestamp.fromDate(new Date(Date.now()+Number(expiryDays)*86400000));
-  if(status==="suspended"){row.suspendedAt=now;row.suspendedByUid=me.uid;row.restoredAt=null;row.restoredByUid=null;}
-  if(status==="active"){row.restoredAt=now;row.restoredByUid=me.uid;row.suspendedAt=null;row.suspendedByUid=null;row.deactivatedAt=null;row.deactivatedByUid=null;}
-  if(status==="deactivated"){row.deactivatedAt=now;row.deactivatedByUid=me.uid;}
-  await s.fsSdk.updateDoc(ref,row);
-}
+async function listUsers(){return listFidunioUsersForAdmin();}
+async function updateLifecycle(target,status,expiryDays=undefined){return updateFidunioUserLifecycle(target?.uid,status,expiryDays);}
 function canManageUser(u,info){const role=info.profile.systemRole,isSelf=u.uid===info.user.uid;return !isSelf&&u.systemRole!=="owner"&&(u.systemRole!=="admin"||role==="owner");}
 function userRow(u,info){
   const status=profileStatus(u),manageable=canManageUser(u,info),name=u.displayName||u.email||"FIDUNIO user";
@@ -204,8 +156,8 @@ function renderUserAdmin(usersHost,info){
   usersHost.querySelector("#manageUsersBtn").onclick=e=>{e.preventDefault();e.stopPropagation();openAdmin(info);};
 }
 
-async function pendingInvites(){const s=await api(),snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"invitations"));return snap.docs.map(d=>({id:d.id,...d.data()})).filter(i=>i.status==="pending").sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));}
-async function revokeInvite(id){const s=await api();await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"invitations",id),{status:"revoked",revokedAt:s.fsSdk.serverTimestamp()});}
+async function pendingInvites(){return listPendingFidunioInvitations();}
+async function revokeInvite(id){return revokeFidunioInvitation(id);}
 async function refreshPending(card){
   const box=card.querySelector("#pendingInviteList");if(!box)return;box.innerHTML='<p class="small-note">Loading invitations…</p>';
   try{const rows=await pendingInvites();if(!box.isConnected)return;box.innerHTML=rows.length?rows.map(i=>`<div class="admin-invite-row"><div><strong>${esc(prettyRole(i.role))} invitation</strong><span>${esc(i.invitedByName||"Administrator")} • Expires ${esc(dateText(i.expiresAt))}</span></div><button class="row-action invitationRevokeBtn" type="button" data-id="${esc(i.id)}">Revoke</button></div>`).join(""):'<p class="small-note">No pending invitations.</p>';box.querySelectorAll(".invitationRevokeBtn").forEach(btn=>btn.onclick=async e=>{e.preventDefault();e.stopPropagation();btn.disabled=true;btn.textContent="Revoking…";try{await serializeSettingsMutation("revoke invitation",()=>revokeInvite(btn.dataset.id));await refreshPending(card);}catch(err){btn.disabled=false;btn.textContent="Revoke";alert(err?.message||String(err));}});}catch(err){box.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}

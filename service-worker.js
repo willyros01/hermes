@@ -81,54 +81,6 @@ async function resolvePeerUidForConversation(conversationId){`;
         await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",ciphertext:"",iv:"",e2ee:2,envelopes:fanout.envelopes,recipientDeviceIds:fanout.recipientDeviceIds,senderDeviceId:fanout.identity.deviceId,senderDevicePublicJwk:fanout.identity.publicJwk,timeLabel:payload.time,state:"sent"});`);
 
   // 0.9.1.1 group metadata harness. These replacements deliberately contain real newlines.
-  source=source.replace(`  getCloudUserDevices
-} from "./firebase.js";`,`  getCloudUserDevices,
-  listCloudUsers,
-  createCloudGroup,
-  subscribeMyGroups
-} from "./firebase.js";`);
-  source=source.replace(`let cloudConversationUnsub = null;`,`let cloudConversationUnsub = null;
-let cloudGroupUnsub = null;
-let groupCandidates = [];`);
-  source=source.replace(`function stopCloudMessageSubscription(){`,`function mergeCloudGroup(remote){
-  const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
-  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Group • messaging pending E2EE",time:remote.time||existing?.time||""};
-  if(existing)Object.assign(existing,item);else state.conversations.unshift(item);
-  if(!state.messages[item.id])state.messages[item.id]=[];
-  return existing||item;
-}
-function beginCloudGroupSubscription(){
-  if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
-  if(!firebaseUser)return;
-  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{firebaseError=err?.message||String(err);});
-}
-function stopCloudMessageSubscription(){`);
-  source=source.replace(`        beginCloudConversationSubscription();`,`        beginCloudConversationSubscription();
-        beginCloudGroupSubscription();`);
-  source=source.replace(`        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}`,`        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
-        if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}`);
-
-  const newGroupStart=source.indexOf(`function renderNewGroup(){`),groupNameStart=source.indexOf(`function renderGroupName(){`),chatStart=source.indexOf(`function renderChat(){`);
-  if(newGroupStart>=0&&groupNameStart>newGroupStart&&chatStart>groupNameStart){
-    const groupUi=`function renderNewGroup(){
-  if(!firebaseUser){alert("Sign in to a FIDUNIO account before creating a real group.");state.route="newConversation";return render();}
-  app.innerHTML=\`<main class="app-shell">\${shellTop("New Group",'<button class="back-btn" id="backBtn">‹</button>','<button class="text-btn" id="nextBtn">Next</button>')}<section class="content"><input class="search" id="memberSearch" placeholder="Search FIDUNIO users" /><div class="chip-row" id="selectedChips"></div><div class="choice-list" id="memberChoices"><p class="small-note">Loading FIDUNIO users…</p></div></section></main>\`;
-  document.querySelector("#backBtn").onclick=()=>{state.route="newConversation";render()};
-  const draw=(term="")=>{const selected=new Set(state.newGroupMembers),choices=document.querySelector("#memberChoices"),chips=document.querySelector("#selectedChips");if(!choices||!chips)return;chips.innerHTML=state.newGroupMembers.length?groupCandidates.filter(p=>selected.has(p.uid)).map(p=>\`<span class="person-chip">\${esc(p.displayName||p.email||p.uid)}</span>\`).join(""):'<span class="small-note">Select at least 2 people for the group.</span>';choices.innerHTML=groupCandidates.filter(p=>String(p.displayName||p.email||p.uid).toLowerCase().includes(term.toLowerCase())).map(p=>\`<button class="member-option \${selected.has(p.uid)?"selected":""}" data-id="\${p.uid}"><div class="avatar">\${initials(p.displayName||p.email||"U")}</div><div><strong>\${esc(p.displayName||p.email||"FIDUNIO user")}</strong><div class="preview">FIDUNIO account</div></div><div class="checkmark">\${selected.has(p.uid)?"✓":""}</div></button>\`).join("")||'<p class="small-note">No matching FIDUNIO users.</p>';document.querySelectorAll("#memberChoices .member-option").forEach(btn=>btn.onclick=()=>{const id=btn.dataset.id;state.newGroupMembers=selected.has(id)?state.newGroupMembers.filter(x=>x!==id):[...state.newGroupMembers,id];draw(document.querySelector("#memberSearch").value);});document.querySelector("#nextBtn").disabled=state.newGroupMembers.length<2;};
-  draw();listCloudUsers().then(rows=>{groupCandidates=rows||[];draw(document.querySelector("#memberSearch")?.value||"");}).catch(err=>{firebaseError=err?.message||String(err);document.querySelector("#memberChoices").innerHTML=\`<p class="warning-note">\${esc(firebaseError)}</p>\`;});document.querySelector("#memberSearch").oninput=e=>draw(e.target.value);document.querySelector("#nextBtn").onclick=()=>{if(state.newGroupMembers.length>=2){state.route="groupName";render();}};
-}
-
-function renderGroupName(){
-  const selected=groupCandidates.filter(p=>state.newGroupMembers.includes(p.uid));
-  app.innerHTML=\`<main class="app-shell">\${shellTop("Group Details",'<button class="back-btn" id="backBtn">‹</button>')}<section class="content"><div class="card"><label class="form-label" for="groupNameInput">Group name</label><input class="text-input" id="groupNameInput" maxlength="120" placeholder="Enter a group name" value="\${esc(state.newGroupName)}" /><div class="section-title">Members</div><div class="chip-row">\${selected.map(p=>\`<span class="person-chip">\${esc(p.displayName||p.email||p.uid)}</span>\`).join("")}</div><p class="small-note">New members begin at join time. Real group messaging remains disabled until group E2EE is implemented.</p></div><button class="primary" id="createGroupBtn">Create Group</button></section></main>\`;
-  document.querySelector("#backBtn").onclick=()=>{state.route="newGroup";render()};const input=document.querySelector("#groupNameInput"),btn=document.querySelector("#createGroupBtn");const validate=()=>{state.newGroupName=input.value;btn.disabled=!input.value.trim()||state.newGroupMembers.length<2;};input.oninput=validate;validate();btn.onclick=async()=>{btn.disabled=true;btn.textContent="Creating…";try{const group=await createCloudGroup(state.newGroupName.trim(),state.newGroupMembers);mergeCloudGroup(group);state.selectedId=group.id;state.newGroupMembers=[];state.newGroupName="";state.route="groupInfo";await persistState();render();}catch(err){alert("Could not create group: "+(err?.message||err));btn.disabled=false;btn.textContent="Create Group";}};
-}
-
-`;
-    source=source.slice(0,newGroupStart)+groupUi+source.slice(chatStart);
-  }
-  source=source.replace(`  const cloud=!!c?.cloud;`,`  const cloud=!!c?.cloud;
-  if(c?.cloudGroup){alert("Group messaging is intentionally disabled in FIDUNIO 0.9.1.1 until group E2EE is implemented.");return;}`);
 
   const headers=new Headers(response.headers);headers.set("content-type","text/javascript; charset=utf-8");headers.delete("content-length");
   return new Response(source,{status:response.status,statusText:response.statusText,headers});

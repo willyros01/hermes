@@ -1,202 +1,238 @@
 # FIDUNIO E2EE Recovery Protocol v1
 
-**STATUS: BINDING SECURITY DESIGN — SEPTEMBER 5, 2026**
+**STATUS: BINDING SECURITY DESIGN — EXACT SERVER FORMAT FROZEN SEPTEMBER 5, 2026**
 
-This document closes an important recovery gap: the user's existing six-digit FIDUNIO PIN must be a real required recovery factor, not merely a screen prompt that the server cannot verify.
+FIDUNIO recovery preserves the same durable account E2EE identity. The existing six-digit FIDUNIO PIN is a real cryptographic recovery factor, not merely a UI prompt.
 
-## 1. Product invariant
+## 1. Core invariant
 
-Forgotten-password recovery must require all of the approved recovery authorization AND the user's existing six-digit FIDUNIO PIN before the Recovery Unlock Key (RUK) can be released.
+Forgotten-password recovery requires:
 
-The PIN is never stored plaintext. It is also never used alone to protect the account private key.
+- authenticated Firebase account context;
+- a valid App Check token when production enforcement is enabled;
+- a short-lived server-owned recovery session;
+- the existing six-digit FIDUNIO PIN;
+- approved supplemental recovery verification;
+- the unchanged authoritative keyId/revision for the account identity.
 
-## 2. PIN-gated RUK protection
+The PIN is never stored plaintext and never protects the private key by itself.
 
-During E2EE identity enrollment the browser already creates a random 256-bit RUK and uses it to encrypt the account private PKCS#8 bytes into the recovery wrapper.
+## 2. Recovery Unlock Key model
 
-The recovery enrollment callable receives, over authenticated TLS/callable transport:
+During initial account-E2EE enrollment:
 
-- authenticated Firebase UID from server-verified Auth context;
-- keyId and protocol versions;
-- 32-byte RUK;
-- six-digit FIDUNIO PIN.
+1. the browser generates one random 256-bit Recovery Unlock Key (RUK);
+2. the browser encrypts the same account private PKCS#8 under the RUK with AES-256-GCM;
+3. the browser sends the transient RUK plus keyId and six-digit PIN to the authenticated recovery enrollment callable;
+4. the recovery function protects the RUK using the server master recovery secret;
+5. Firestore stores only the client recovery ciphertext plus the protected RUK fields;
+6. transient plaintext RUK/private-key bytes are discarded as soon as practical.
 
-The function MUST NOT trust a client-supplied UID in place of authenticated context.
-
-The recovery service has a 256-bit random master recovery secret (`FIDUNIO_RECOVERY_MASTER_V1`) bound only to the recovery functions through Google Secret Manager/KMS/IAM.
-
-The function derives a per-account/PIN recovery wrapping key using a reviewed server-side KDF construction that binds:
+The recovery master secret is named:
 
 ```text
-protocol version + UID + keyId + six-digit PIN + server master recovery secret
+FIDUNIO_RECOVERY_MASTER_V1
 ```
 
-Implementation direction for v1 server code: HMAC-SHA-256 keyed by the 256-bit server master secret over an unambiguous canonical ordered context containing protocol label/version, UID, keyId and PIN. The 256-bit HMAC output is used/imported as the AES-256-GCM RUK-wrapping key.
+It must be 32 random bytes represented to the function as base64url without padding and stored only in Google Secret Manager. It must never be committed to GitHub, sent to the browser, or stored in Firestore.
 
-The function then:
+## 3. Exact server cryptography
 
-1. generates a random 96-bit AES-GCM IV;
-2. encrypts the 32-byte RUK using AES-256-GCM and server recovery AAD binding UID/keyId/version;
-3. returns only `wrappedRecoveryKey`, IV and protocol metadata;
-4. never stores/logs plaintext PIN, plaintext RUK, derived wrapping key or master recovery secret.
+The implementation in `functions/recovery/e2ee-recovery-server-crypto.mjs` is authoritative for v1.
 
-Firestore stores the protected RUK blob with the client-created recovery ciphertext. The plaintext PIN and RUK are discarded after enrollment.
+### Recovery KDF context
 
-## 3. Why this is necessary
+The exact bytes are UTF-8 of:
 
-A six-digit PIN has only about one million possible values and therefore cannot safely protect the durable E2EE identity by itself. The normal wrapper already combines password + PIN with a strong KDF.
+```js
+JSON.stringify([
+  "FIDUNIO-E2EE-RECOVERY-KDF",
+  1,
+  uid,
+  keyId,
+  pin
+])
+```
 
-For forgotten-password recovery, the server master secret makes the protected RUK unusable from Firestore alone, while the PIN remains a required user-held input. Strict online retry limits are mandatory because the PIN is low entropy.
+The wrapping key is:
 
-If the trusted recovery service and its master secret are fully compromised, the provider-assisted recovery boundary is compromised. This is the already accepted tradeoff of history-preserving recovery without a second device or user-held recovery phrase/code.
+```text
+HMAC-SHA-256(key = 32-byte FIDUNIO_RECOVERY_MASTER_V1,
+            data = exact KDF context above)
+```
 
-## 4. Password reset / E2EE recovery sequence
+The 32-byte HMAC result is used directly as the AES-256-GCM RUK-wrapping key.
 
-FIDUNIO uses Firebase Authentication's password-reset email mechanism for the password account itself. The E2EE recovery operation is separate but linked deterministically.
+### Recovery RUK AAD
 
-User-facing sequence:
+The exact AES-GCM additional authenticated data is UTF-8 of:
+
+```js
+JSON.stringify([
+  "FIDUNIO-E2EE-RECOVERY-RUK",
+  1,
+  uid,
+  keyId
+])
+```
+
+### RUK wrapping
+
+- AES-256-GCM;
+- fresh random 12-byte IV for every wrap;
+- 16-byte GCM authentication tag;
+- plaintext is exactly the 32-byte RUK;
+- stored `wrappedRecoveryKey` is base64url(no padding) of `ciphertext || tag`;
+- stored `recoveryKeyIv` is base64url(no padding) of the 12-byte IV.
+
+Exact returned server fields:
+
+```text
+recoveryAuthorityVersion: 1
+recoveryKeyWrappingAlgorithm: "HMAC-SHA256+A256GCM"
+recoveryKeyIv
+wrappedRecoveryKey
+```
+
+Wrong PIN, UID, keyId, master secret, IV, ciphertext, tag, authority version, or wrapping algorithm fails recovery.
+
+## 4. Exact Firestore recovery wrapper
+
+The private identity recovery wrapper is exactly:
+
+```text
+version: 1
+ciphertext                 // client: private PKCS#8 encrypted under RUK
+iv                         // client AES-GCM IV
+wrappedRecoveryKey         // server: RUK ciphertext || tag, base64url
+wrappingAlgorithm: "AES-256-GCM"
+recoveryAuthorityVersion: 1
+recoveryKeyIv              // server AES-GCM IV
+recoveryKeyWrappingAlgorithm: "HMAC-SHA256+A256GCM"
+```
+
+No generic `metadata` field is allowed.
+
+## 5. Password-reset / E2EE-recovery sequence
 
 ```text
 Forgot Password
- -> request Firebase password-reset email
- -> user opens valid one-time Firebase reset link
+ -> Firebase password-reset email
+ -> valid Firebase reset link
  -> choose new Firebase password
- -> sign in with the new password
- -> FIDUNIO detects durable E2EE identity cannot be normal-unlocked with old wrapper
- -> start restricted E2EE recovery session
+ -> sign in
+ -> account E2EE identity remains locked under its old normal wrapper
+ -> startE2EERecoveryV1
+ -> server creates short-lived recovery session bound to UID/keyId/revision
  -> enter EXISTING six-digit FIDUNIO PIN
- -> complete any approved supplemental recovery verification
- -> recovery function verifies authorized session + UID/keyId/revision + retry policy
- -> PIN-derived server recovery key successfully unwraps RUK
- -> client receives RUK only in the authorized recovery response
- -> client decrypts SAME account private key
- -> client creates/verifies new normal wrapper using NEW password + EXISTING PIN
- -> compare-and-update commits new normal wrapper/revision
- -> recovery session is consumed
- -> security notification/session review
- -> Firestore history decrypts with SAME identity
+ -> complete approved supplemental recovery verification
+ -> completeE2EERecoveryV1 verifies session + UID/keyId/revision + retry policy
+ -> PIN/master-derived wrapping key unwraps RUK
+ -> authorized client receives RUK once
+ -> client decrypts/imports SAME account private key
+ -> client creates and verifies new normal wrapper using new password + existing PIN
+ -> revision-checked Firestore normal-wrapper update
+ -> session remains consumed
+ -> history remains decryptable with same keyId/private identity
 ```
 
-The password may therefore be changed by Firebase before the E2EE wrapper is re-wrapped. This is safe because the independent recovery wrapper remains intact until the new normal wrapper is proven and committed.
+No recovery failure may cause automatic creation of a replacement account identity.
 
-## 5. Recovery session state
+## 6. Recovery sessions
 
-Recovery session records are server-owned and MUST NOT be client-writable. Recommended server collection:
+Server-owned paths:
 
 ```text
-recoverySessions/{randomSessionId}
+recoverySessions/{sessionId}
+e2eeRecoveryState/{uid}
 ```
 
-Non-secret fields may include:
+Session fields are non-secret and include:
 
-- uid
-- keyId
-- identityRevisionAtStart
-- status: `PENDING` | `AUTHORIZED` | `CONSUMED` | `LOCKED` | `EXPIRED`
-- createdAt
-- expiresAt
-- failedPinAttempts
-- failedSupplementalAttempts
-- authorizedAt
-- consumedAt
-- coarse abuse/risk metadata that does not contain secrets
+```text
+sessionVersion: 1
+sessionId
+uid
+keyId
+identityRevisionAtStart
+status: PENDING | AUTHORIZED | CONSUMED | LOCKED | EXPIRED
+createdAtMs
+expiresAtMs
+failedPinAttempts
+failedSupplementalAttempts
+authorizedAtMs
+consumedAtMs
+```
 
-Do not store PIN, RUK, password, private key, derived recovery key or email reset code in this record.
+Account state tracks consecutive PIN failures and account hold state. Client Firestore access to these collections is denied by default.
 
-## 6. v1 retry / lifetime policy
+Never store PIN, password, RUK, private key, master secret, derived recovery key, or reset-email code in a session document.
 
-Because a six-digit PIN is low entropy, use a deliberately strict policy:
+## 7. Retry/lifetime policy
 
-- recovery session lifetime: 10 minutes once PIN-entry authorization begins;
-- maximum PIN failures in one recovery session: 5;
-- after 5 PIN failures: session becomes `LOCKED` and cannot be revived;
-- account-level recovery PIN failures: maximum 10 consecutive failures across sessions before a security hold requiring a fresh email recovery cycle and delayed retry;
-- starting a new session does NOT reset the account-level failure count;
-- successful legitimate recovery resets the consecutive recovery-PIN failure counter;
-- recovery endpoint also applies per-account and per-network abuse throttling; exact infrastructure quotas may be tightened without weakening these limits;
-- generic failure wording to reduce account enumeration and PIN oracle detail.
+- session lifetime: 10 minutes;
+- maximum PIN failures per session: 5;
+- after 5 PIN failures: session locks;
+- maximum consecutive account-level PIN failures across sessions: 10;
+- a new session does not reset the account counter;
+- successful recovery resets the account PIN-failure counter;
+- generic client-visible recovery failures are used to reduce oracle detail;
+- infrastructure-level account/network throttling may be stricter, never weaker.
 
-These limits are intentionally below NIST's upper bounds for short activation secrets and are consistent with treating recovery endpoints as high-risk authentication surfaces.
-
-## 7. Callable function boundaries
-
-Separate narrow functions/capabilities rather than one all-powerful endpoint:
+## 8. Callable boundaries
 
 ### `enrollRecoveryV1`
 
-Purpose: protect a newly generated RUK during initial identity enrollment.
-
-Requirements:
-- authenticated user required;
-- App Check required when production enforcement is enabled;
-- consumes/validates UID from Auth context;
-- accepts keyId/version/RUK/PIN only for own account;
-- may access recovery master secret;
-- returns protected RUK blob/metadata;
+- authenticated caller required;
+- App Check required in production;
+- UID comes only from verified Auth context;
+- accepts keyId, exact six-digit PIN, and transient base64url 32-byte RUK;
+- has access to `FIDUNIO_RECOVERY_MASTER_V1`;
+- returns only protected-RUK fields;
 - cannot read ordinary messages.
 
 ### `startE2EERecoveryV1`
 
-Purpose: create restricted short-lived recovery session after the user has completed the required Firebase/email recovery stage and is authenticated again.
-
-Requirements:
-- authenticated user required;
-- App Check;
-- reads own identity metadata only;
-- creates server-owned session;
-- no RUK release.
+- authenticated caller and App Check;
+- reads authoritative private identity metadata and account failure count;
+- creates short-lived server-owned session;
+- does not need or receive the recovery master secret;
+- never releases RUK.
 
 ### `completeE2EERecoveryV1`
 
-Purpose: verify authorized recovery session, PIN and supplemental policy; unwrap/release RUK once.
+- authenticated caller and App Check;
+- sensitive endpoint intended to consume a limited-use App Check token;
+- validates session UID/keyId/revision and retry limits;
+- requires approved supplemental recovery verification;
+- uses the master secret only after authorization reaches the recovery-unwrapping stage;
+- atomically consumes session state before returning successful recovery material as implemented by the reviewed server core;
+- never acts as a general message-decryption service.
 
-Requirements:
-- authenticated user and App Check;
-- strict session/account retry counters;
-- session UID must equal Auth UID;
-- session keyId/revision must still match authoritative identity;
-- accesses recovery master secret;
-- successful release atomically consumes session before/with response semantics as safely implementable;
-- no plaintext secrets in logs;
-- returns RUK only to the authorized client response;
-- cannot be used as normal message-decryption service.
+## 9. Current Cloud Functions scaffold status
 
-## 8. App Check
+The rebuild branch now contains a deployable-source layout under `functions/`, using Node.js 22, Firebase Functions v2 callables, Firebase Admin, `defineSecret("FIDUNIO_RECOVERY_MASTER_V1")`, and App Check enforcement.
 
-Recovery callables should use Firebase App Check. For low-volume security-critical completion operations, App Check limited-use/replay protection should be evaluated/enabled where supported. App Check is abuse defense, not proof of account ownership and not a substitute for Auth/PIN/recovery authorization.
+The completion callable is intentionally **fail-closed** in the scaffold. It does not release a RUK until the separate supplemental recovery verifier is implemented and reviewed. This makes accidental scaffold deployment safer.
 
-## 9. IAM / secret boundary
+No Cloud Function, secret, IAM role, App Check setting, or production rule has been deployed by this repository change.
 
-- `FIDUNIO_RECOVERY_MASTER_V1` exists only in Google Secret Manager/KMS boundary.
-- Only enrollment/completion recovery functions that actually need it receive secret access.
-- `startE2EERecoveryV1` does not need master-secret access.
-- Normal messaging functions/code have no recovery-secret permission.
-- Browser/GitHub/Firestore never receive the master secret.
-- Admin SDK/server libraries bypass client Firestore Rules; IAM and narrow code capability are therefore mandatory.
+## 10. IAM / secret boundary
 
-## 10. Deterministic failure behavior
+- only enrollment and completion functions bind `FIDUNIO_RECOVERY_MASTER_V1`;
+- start-session does not bind the secret;
+- browser code and normal messaging code receive no secret access;
+- Admin SDK bypasses client Firestore Rules, so server service-account IAM is part of the security boundary;
+- production deployment must use least privilege and must not grant broad project-level secret access unnecessarily.
 
-- Wrong PIN -> increment counters, generic recovery failure, no RUK.
-- Expired session -> `EXPIRED`, no RUK.
-- Too many attempts -> `LOCKED`, no RUK.
-- keyId/revision changed since session start -> abort session and restart from authoritative identity state; no RUK.
-- function/network failure before RUK release -> existing recovery wrapper remains valid; retry only under same still-valid session policy.
-- RUK successfully recovered but client new-wrapper commit fails -> do NOT rotate identity or delete recovery wrapper. Client enters explicit retry/recovery state.
-- successful normal-wrapper commit -> consume recovery session, security notification, session review/invalidation policy.
+## 11. Logging
 
-## 11. Security notification
+Allowed operational logs may record coarse success/failure categories, protocol version, session status and protected identifiers where operationally necessary.
 
-Successful forgotten-password/E2EE recovery produces a notification to the registered recovery email/channel stating that account recovery occurred. Notification contains no PIN, password, RUK, private key or cryptographic secret.
+Never log request bodies containing PIN, RUK, password, private PKCS#8, recovery master secret, derived recovery key, or raw protected-key plaintext.
 
-## 12. Logging
+## 12. Validation
 
-Allowed audit examples:
+Repository CI tests cover server recovery crypto, session policy, callable core and Firestore Admin persistence behavior. The rebuild baseline CI additionally validates that the Cloud Functions scaffold imports successfully with its declared dependencies.
 
-- recovery enrollment success/failure category;
-- recovery session created;
-- recovery attempt failed/succeeded;
-- session locked/expired/consumed;
-- uid represented only where operationally required and protected by normal Firebase/Google logging access controls;
-- keyId/revision/protocol version where useful.
-
-Never log request bodies containing password, PIN, RUK, private PKCS#8, wrapped-key plaintext, master secret or derived AES key.
+Passing repository CI does not imply production deployment or production IAM/App Check correctness; those remain explicit project-configuration steps.

@@ -1,11 +1,15 @@
 // FIDUNIO E2EE v1 Firestore Security Rules gate.
 // Run ONLY with Firebase Local Emulator Suite. Never points at production.
+import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, writeBatch, serverTimestamp } from "firebase/firestore";
-import stagedRules from "./firestore-e2ee-v1-schema-tightening-candidate.mjs";
 
+// SECURITY GATE RULE: test the exact repository source that would later be
+// deployed. No candidate/staged transform is allowed between firestore.rules
+// and the emulator gate.
+const rules=readFileSync(new URL("./firestore.rules",import.meta.url),"utf8");
 const PROJECT_ID="demo-fidunio-e2ee-rules";
-const env=await initializeTestEnvironment({projectId:PROJECT_ID,firestore:{rules:stagedRules}});
+const env=await initializeTestEnvironment({projectId:PROJECT_ID,firestore:{rules}});
 const A="ownerA",B="ownerB",DISABLED="disabled";
 const ctxA=env.authenticatedContext(A),ctxB=env.authenticatedContext(B),ctxD=env.authenticatedContext(DISABLED),anon=env.unauthenticatedContext();
 const dbA=ctxA.firestore(),dbB=ctxB.firestore(),dbD=ctxD.firestore(),dbN=anon.firestore();

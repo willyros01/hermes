@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
     paths:
+      - 'functions/recovery/**'
+      - 'functions/index.mjs'
+      - 'functions/package.json'
       - 'e2ee-recovery-server-crypto.mjs'
       - 'e2ee-recovery-server-crypto.test.mjs'
       - 'e2ee-recovery-session-policy.mjs'
@@ -12,6 +15,7 @@ on:
       - 'e2ee-recovery-callable-core.test.mjs'
       - 'e2ee-recovery-firestore-admin-adapter.mjs'
       - 'e2ee-recovery-firestore-admin-adapter.test.mjs'
+      - 'firebase.json'
       - 'package.json'
       - '.github/workflows/e2ee-recovery-crypto.yml'
   workflow_dispatch:
@@ -22,14 +26,14 @@ permissions:
 jobs:
   recovery-security:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Run recovery crypto unit gate
         run: npm run test:recovery-crypto
       - name: Run recovery session policy gate
@@ -38,3 +42,5 @@ jobs:
         run: npm run test:recovery-callable-core
       - name: Run recovery Firestore persistence gate
         run: npm run test:recovery-firestore
+      - name: Validate Cloud Functions scaffold
+        run: npm run test:functions-scaffold

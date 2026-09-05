@@ -1,0 +1,56 @@
+name: Rebuild Baseline Security Gate
+
+on:
+  push:
+    branches: [fidunio-rebuild-baseline-2026-09-05]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install test dependencies
+        run: npm install --ignore-scripts
+      - name: Firestore E2EE rules gate
+        run: npm run emulator:test:e2ee-rules
+      - name: Account direct-message rules gate
+        run: npm run emulator:test:account-message-rules
+      - name: Recovery server crypto
+        run: npm run test:recovery-crypto
+      - name: Recovery session policy
+        run: npm run test:recovery-session
+      - name: Recovery callable core
+        run: npm run test:recovery-callable-core
+      - name: Recovery Firestore admin adapter
+        run: npm run test:recovery-firestore
+      - name: Central Firebase E2EE adapter
+        run: npm run test:firebase-e2ee-adapter
+      - name: Account E2EE auth lifecycle
+        run: npm run test:e2ee-account-lifecycle
+      - name: Account direct-message crypto
+        run: npm run test:e2ee-account-message-crypto
+      - name: Account direct-message service
+        run: npm run test:e2ee-account-message-service
+      - name: Cloud Functions recovery scaffold
+        run: npm run test:functions-scaffold
+      - name: Runtime transform anchor gate
+        run: npm run test:runtime-transform-anchors
+      - name: Runtime authority gate
+        run: npm run test:runtime-authority

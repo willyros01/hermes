@@ -27,6 +27,61 @@ export async function redeemFidunioInvitation(token,email,password,displayName){
 export async function createFidunioAccount(){throw new Error("FIDUNIO account creation is invitation-only. Use a valid invitation link or code.");}
 export async function signInFidunio(email,password){const s=await ensureServices();const cred=await s.authSdk.signInWithEmailAndPassword(s.auth,email,password);const profileSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",cred.user.uid));if(!profileSnap.exists()){await s.authSdk.signOut(s.auth);authUser=null;throw new Error("This Firebase login is not enrolled in FIDUNIO. A valid invitation is required.");}authUser=cred.user;return cred.user;}
 export async function signOutFidunio(){const s=await ensureServices();await s.authSdk.signOut(s.auth);authUser=null;}
+export async function sendFidunioPasswordReset(email){const s=await ensureServices();const mail=String(email||"").trim();if(!mail)throw new Error("Enter your email address first.");await s.authSdk.sendPasswordResetEmail(s.auth,mail);}
+// Settings account/admin APIs. firebase.js is the sole Firebase SDK/service owner;
+// Settings owns only its DOM lifecycle and serialized user actions.
+export async function updateFidunioProfile(values={}){
+  const s=await ensureServices(),user=s.auth.currentUser;
+  if(!user)throw new Error("Sign in first.");
+  const name=String(values.displayName||"").trim(),mail=String(values.email||"").trim(),phone=String(values.telephone||"").trim(),photo=String(values.photoURL||"").trim();
+  if(!name)throw new Error("Display name is required.");
+  if(mail&&mail!==user.email){
+    if(!values.currentPassword)throw new Error("Enter your current password to change your email address.");
+    const credential=s.authSdk.EmailAuthProvider.credential(user.email,values.currentPassword);
+    await s.authSdk.reauthenticateWithCredential(user,credential);
+    await s.authSdk.updateEmail(user,mail);
+  }
+  await s.authSdk.updateProfile(user,{displayName:name,photoURL:photo||null});
+  authUser=user;
+  await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"users",user.uid),{displayName:name,email:user.email||mail,telephone:phone,photoURL:photo,profileUpdatedAt:s.fsSdk.serverTimestamp()});
+  return{uid:user.uid,displayName:user.displayName||name,email:user.email||mail,photoURL:user.photoURL||photo};
+}
+export async function changeFidunioPassword(currentPassword,newPassword){
+  const s=await ensureServices(),user=s.auth.currentUser;
+  if(!user)throw new Error("Sign in first.");
+  if(!currentPassword)throw new Error("Enter your current password.");
+  if(String(newPassword||"").length<6)throw new Error("New password must be at least 6 characters.");
+  const credential=s.authSdk.EmailAuthProvider.credential(user.email,currentPassword);
+  await s.authSdk.reauthenticateWithCredential(user,credential);
+  await s.authSdk.updatePassword(user,newPassword);
+}
+export async function listFidunioUsersForAdmin(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users"));
+  return snap.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.displayName||a.email||a.uid).localeCompare(String(b.displayName||b.email||b.uid)));
+}
+export async function updateFidunioUserLifecycle(targetUid,status,expiryDays=undefined){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const uid=String(targetUid||"").trim();if(!uid)throw new Error("Target user is required.");
+  if(!["active","suspended","deactivated"].includes(status))throw new Error("Unsupported account status.");
+  const now=s.fsSdk.serverTimestamp(),ref=s.fsSdk.doc(s.db,"users",uid),row={status,active:status==="active",adminUpdatedAt:now,adminUpdatedByUid:authUser.uid};
+  if(expiryDays!==undefined)row.expiresAt=expiryDays===null?null:s.fsSdk.Timestamp.fromDate(new Date(Date.now()+Number(expiryDays)*86400000));
+  if(status==="suspended"){row.suspendedAt=now;row.suspendedByUid=authUser.uid;row.restoredAt=null;row.restoredByUid=null;}
+  if(status==="active"){row.restoredAt=now;row.restoredByUid=authUser.uid;row.suspendedAt=null;row.suspendedByUid=null;row.deactivatedAt=null;row.deactivatedByUid=null;}
+  if(status==="deactivated"){row.deactivatedAt=now;row.deactivatedByUid=authUser.uid;}
+  await s.fsSdk.updateDoc(ref,row);
+}
+export async function listPendingFidunioInvitations(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"invitations"));
+  return snap.docs.map(d=>({id:d.id,...d.data()})).filter(i=>i.status==="pending").sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+}
+export async function revokeFidunioInvitation(id){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const clean=String(id||"").trim();if(!clean)throw new Error("Invitation is required.");
+  await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"invitations",clean),{status:"revoked",revokedAt:s.fsSdk.serverTimestamp()});
+}
+
 function dmId(a,b){return "dm_"+[a,b].sort().join("_");}
 export async function startDirectConversation(peerUid){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const peerSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",peerUid));if(!peerSnap.exists())throw new Error("Recipient FIDUNIO ID was not found.");const peer=peerSnap.data();const meSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",authUser.uid));const me=meSnap.exists()?meSnap.data():{displayName:authUser.displayName||authUser.email||"User"};const id=dmId(authUser.uid,peerUid),ref=s.fsSdk.doc(s.db,"conversations",id);await s.fsSdk.setDoc(ref,{type:"direct",members:[authUser.uid,peerUid],memberNames:{[authUser.uid]:me.displayName||"User",[peerUid]:peer.displayName||"User"},updatedAt:s.fsSdk.serverTimestamp(),createdAt:s.fsSdk.serverTimestamp()},{merge:true});return{id,cloud:true,peerUid,name:peer.displayName||"FIDUNIO contact",preview:"Cloud conversation",time:""};}
 export async function getCloudUserProfile(uid){const s=await ensureServices();const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",uid));return snap.exists()?{uid,...snap.data()}:null;}
@@ -45,6 +100,34 @@ export async function updateCloudMessageState(conversationId,messageId,state){co
 export async function markCloudConversationRead(conversationId){const s=await ensureServices();if(!authUser)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));const snap=await s.fsSdk.getDocs(q);const pending=snap.docs.filter(d=>{const x=d.data();return x.senderUid!==authUser.uid&&(x.state||"sent")!=="read";});await Promise.allSettled(pending.map(d=>s.fsSdk.updateDoc(d.ref,{state:"read"})));}
 export function subscribeMyConversations(uid,onRows,onError){let active=true,unsub=()=>{};ensureServices().then(s=>{if(!active)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations"),s.fsSdk.where("members","array-contains",uid));unsub=s.fsSdk.onSnapshot(q,snap=>onRows(snap.docs.map(d=>{const x=d.data(),other=(x.members||[]).find(m=>m!==uid);return{id:d.id,cloud:true,type:"direct",peerUid:other,name:x.memberNames?.[other]||"FIDUNIO contact",preview:"Cloud conversation",time:""};})),onError);}).catch(onError);return()=>{active=false;unsub();};}
 export function subscribeConversationMessages(conversationId,myUid,onRows,onError){const key=String(conversationId),token=Symbol(key);let stream=messageStreams.get(key);if(stream){if(stream.closeTimer){clearTimeout(stream.closeTimer);stream.closeTimer=null;}stream.token=token;stream.onRows=onRows;stream.onError=onError;ensureServices().then(async s=>{if(messageStreams.get(key)!==stream||stream.token!==token)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));const snap=await s.fsSdk.getDocs(q);if(messageStreams.get(key)!==stream||stream.token!==token)return;const rows=snap.docs.map(d=>({id:d.id,...d.data()}));stream.delivery=stream.delivery.then(()=>messageStreams.get(key)===stream&&stream.token===token?stream.onRows(rows,{fromCache:false,hasPendingWrites:false}):undefined).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}).catch(err=>{if(messageStreams.get(key)===stream&&stream.token===token)stream.onError?.(err);});}else{stream={token,onRows,onError,delivery:Promise.resolve(),unsub:()=>{},closeTimer:null};messageStreams.set(key,stream);ensureServices().then(s=>{if(messageStreams.get(key)!==stream)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));stream.unsub=s.fsSdk.onSnapshot(q,snap=>{if(messageStreams.get(key)!==stream)return;const rows=snap.docs.map(d=>({id:d.id,...d.data()})),meta={fromCache:!!snap.metadata?.fromCache,hasPendingWrites:!!snap.metadata?.hasPendingWrites};stream.delivery=stream.delivery.then(()=>messageStreams.get(key)===stream?stream.onRows(rows,meta):undefined).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});},err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}return()=>{const current=messageStreams.get(key);if(current!==stream||current.token!==token)return;current.closeTimer=setTimeout(()=>{const latest=messageStreams.get(key);if(latest!==stream||latest.token!==token)return;latest.unsub();messageStreams.delete(key);},250);};}
+
+// Central read-only live display-name subscription. Callers provide the exact
+// UIDs already discovered by their owned conversation lifecycle; this function
+// never creates a second conversation query or a second Firebase initializer.
+export function subscribeUserDisplayNames(uids,onNames,onError){
+  let active=true;
+  const stops=[];
+  const names=new Map();
+  const wanted=[...new Set((uids||[]).map(x=>String(x||"").trim()).filter(Boolean))];
+  const emit=()=>{if(active)onNames?.(Object.fromEntries(names));};
+  ensureServices().then(s=>{
+    if(!active)return;
+    if(!authUser)throw new Error("Sign in first.");
+    if(!wanted.length){emit();return;}
+    for(const uid of wanted){
+      const stop=s.fsSdk.onSnapshot(s.fsSdk.doc(s.db,"users",uid),snap=>{
+        if(!active)return;
+        if(snap.exists()){
+          const name=String(snap.data()?.displayName||snap.data()?.email||"").trim();
+          if(name)names.set(uid,name);else names.delete(uid);
+        }else names.delete(uid);
+        emit();
+      },err=>{if(active)onError?.(err);});
+      stops.push(stop);
+    }
+  }).catch(err=>{if(active)onError?.(err);});
+  return()=>{active=false;for(const stop of stops.splice(0))try{stop();}catch{}names.clear();};
+}
 
 // BEGIN ACCOUNT E2EE V1 CENTRAL FIREBASE API
 // Durable account-E2EE persistence remains owned by this already-initialized Firebase module.
