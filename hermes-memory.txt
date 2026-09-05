@@ -25,6 +25,15 @@ PERMANENT E2EE DEVICE-IDENTITY INVARIANT — SEPTEMBER 4, 2026
 - Cleanup is never automatic at startup. It requires inspect + explicit confirmation and aborts if the current device ID changes between inspection and execution.
 - Cloud conversations/messages are deliberately NOT deleted in this first cleanup increment; remote message deletion requires separate ownership/rules review.
 
+0.9.5.12 MASTER TEST RESET — SEPTEMBER 4, 2026
+- User explicitly decided all historical messaging/E2EE data is disposable test data and requested one-shot reset rather than preserving historical keys/vaults.
+- `master-reset-09512.html/js` is the single maintenance entry point for the reset.
+- Owner-only cloud reset deletes all `conversations` and their `messages`, all `groups` plus `members/messages`, every `users/{uid}/devices/*` registration, and old account-level E2EE fields on user profiles.
+- Cloud reset PRESERVES Firebase Authentication accounts, `users/{uid}` profile documents and roles, invitations, and `system/access`.
+- Current-browser local reset clears FIDUNIO app-state/history/Outbox and deletes local E2EE identity/keypair while preserving installation-wide `local-key` and `local-security-v1`; old account vault DBs are deleted.
+- The reset also unregisters service workers scoped to `/hermes/` and deletes only caches named `fidunio-shell-*`; it must not touch other GitHub Pages projects on the same origin.
+- Because browser storage is physically isolated per device, cloud data can be reset once from the Owner device, but the same master-reset page must still be opened/run once on each other device to clear that device's local FIDUNIO storage. Afterward each device creates one fresh stable E2EE identity under the 0.9.5.7+ invariant.
+
 CURRENT CRITICAL ARCHITECTURAL DISCOVERY — SEPTEMBER 4, 2026
 - The repository currently has a hidden dual-code runtime.
 - Raw `app.js` still contains prototype-era runtime state/UI, including Maria Santos, John Cruz, Family Group, sample contacts, local numeric IDs, and prototype group assumptions.
