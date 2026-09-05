@@ -6,16 +6,20 @@ MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-E2EE-V1-EMULATOR-TESTS.md`, `E2EE-RECOVERY-PROTOCOL.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md`.
 - Core: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 
+FIRESTORE E2EE V1 EMULATOR GATE — SEPTEMBER 5, 2026
+- Added CI-only Local Emulator Suite workflow `E2EE Rules Emulator Gate`; it uses demo project `demo-fidunio-e2ee-rules`, never production.
+- Initial workflow failed only because setup-node npm caching required a lockfile. This was CI setup, not rules logic. Fixed by removing npm cache requirement.
+- Second CI run SUCCEEDED. Firestore emulator explicitly reported demo configuration and non-emulated service access disabled. Core staged rules gate passed 24/24 assertions.
+- Passed private owner/other/anon/disabled access, create, read, list deny, delete deny, stable keyId, immutable recovery wrapper, exact normal re-wrap, revision jump deny, unexpected plaintext field deny, wrong KDF deny, public create/read/list, anon/disabled deny, update/delete deny, owner binding, private JWK `d` deny, unexpected field deny, and atomic invalid-public/no-private-residue.
+- Expanded test suite to full 40 assertions including wrong versions/algorithm/state/timestamps, atomic valid/invalid symmetry, duplicate create, and regressions for invitations/profiles/direct conversation/message/legacy devices/groups. Commit `023f264d696a80152b3d2b0e384a664a45079a7b`; CI run is the current gate before production rule merge.
+- Production `firestore.rules` remains UNCHANGED. New account-E2EE rules are still staged only.
+
 ACCOUNT E2EE IDENTITY MANAGER — VALIDATED SEPTEMBER 5, 2026
 - `e2ee-account-identity-manager.js` is the sole proposed account identity lifecycle owner/state machine. It remains isolated from production UI/runtime.
-- iPad Safari isolated manager validation PASSED: ALL 15 TESTS PASSED at approximately 10:09 AM Sep 5, 2026.
+- iPad Safari isolated manager validation PASSED: ALL 15 TESTS PASSED.
 - Passed create-once, public-key privacy, recovery PIN handoff, locked reload, wrong-PIN rejection, normal unlock, exact revision increment, keyId/public/recovery continuity, old-credential rejection, new-credential unlock, cross-account refusal and serialized state behavior.
-- This clears the identity-manager logic gate for bounded Firestore adapter/rules work.
-- New `e2ee-account-firestore-adapter.js` commit `f920aca120d7f5f6d4145a480af7b81f51361646`. It owns only `users/{uid}/e2ee/identity` and `e2eePublicKeys/{uid}` persistence and receives already initialized Firebase services; it NEVER initializes Firebase independently.
-- Adapter enforces auth UID equality, create-once transaction across private+public documents, fails closed on either pre-existing half, and compare-and-update normal wrapper by stable keyId + expected revision.
-- No crypto generation/UI side effects occur inside Firestore transaction callbacks.
-- New `FIRESTORE-E2EE-V1-EMULATOR-TESTS.md` commit `53bf1919ded4e1bc9c00aff1babeee340320dcc8` defines 40 mandatory Rules/atomicity/regression assertions before production `firestore.rules` merge.
-- Production `firestore.rules`, firebase.js, auth UI, app.js, service-worker.js and visible app version remain untouched. No production E2EE identity documents have been created yet.
+- `e2ee-account-firestore-adapter.js` commit `f920aca120d7f5f6d4145a480af7b81f51361646`; it receives already initialized Firebase services and never initializes Firebase independently.
+- Adapter enforces auth UID equality, atomic create-once private+public identity, fails closed on partial state, compare-and-update by stable keyId + expected revision, and no crypto/UI inside transaction callbacks.
 
 E2EE V1 CRYPTO TARGET VALIDATION
 - iPad Safari crypto validation PASSED: all 15 isolated E2EE v1 crypto tests passed after correcting test-harness base64url tampering. Harness fix commit `90746a242279bc5da85773ac9e86b25407f0b949` flips decoded binary bytes.
@@ -26,6 +30,7 @@ E2EE PUBLIC/PRIVATE + RECOVERY
 - ONE ACCOUNT = ONE durable random E2EE identity. Device ID informational only.
 - Recovery uses random 256-bit RUK; client recovery wrapper + PIN/server-master protected RUK. No plaintext password/PIN/RUK/private key/master secret in Firestore.
 - `E2EE-RECOVERY-PROTOCOL.md` binding: Firebase password reset; restricted recovery session; existing six-digit PIN cryptographically required; 10-minute session; max 5 PIN failures/session; max 10 consecutive account failures before hold; App Check; least privilege IAM; notification; no secret logging. Provider-assisted, not zero-knowledge.
+- Next isolated server step: implement/test pure Node recovery wrapping primitive (HMAC-SHA256 master-secret keyed derivation + AES-256-GCM RUK wrap) before Firebase Functions scaffolding. No deployment or secret creation until local/CI tests pass.
 
 OFFLINE MESSAGING
 - Firestore master encrypted history; local UID-isolated rebuildable cache; one owned Outbox. Pending offline, automatic serialized reconnect, stable IDs prevent duplicates.
@@ -36,13 +41,14 @@ DETERMINISTIC UI
 CURRENT IMPLEMENTATION ORDER
 1. COMPLETE crypto primitive iPad Safari 15/15.
 2. COMPLETE isolated identity manager iPad Safari 15/15.
-3. CURRENT: validate bounded Firestore rules/adapter with emulator/test environment; do not deploy rule snippets before gate passes.
-4. Then expose adapter through existing central `firebase.js` ownership only and build isolated Firebase integration test page, still not normal app UI.
-5. Server recovery functions + Secret Manager/KMS/App Check/IAM require Firebase/Google project configuration and deployment; stop for user input only when console/project action is actually needed.
-6. Wire account E2EE lifecycle into auth/PIN UI in bounded versioned release.
-7. Firestore-authoritative sync/cache/Outbox.
-8. Replace legacy per-device envelopes boundedly; device ID informational.
-9. SW consolidation; deterministic UI consolidation; full revalidation; Fire HD isolation; FCM later.
+3. CURRENT: full 40-assertion Firestore staged-rules CI gate; merge production rules only after full pass.
+4. Build/test isolated recovery server crypto primitive and session logic before cloud deployment.
+5. Then expose Firestore adapter through existing central `firebase.js` ownership only and build isolated Firebase integration test page, still not normal app UI.
+6. Firebase Functions + Secret Manager/KMS/App Check/IAM deployment requires project configuration; stop for user input only when console/project action is actually required.
+7. Wire account E2EE lifecycle into auth/PIN UI in bounded versioned release.
+8. Firestore-authoritative sync/cache/Outbox.
+9. Replace legacy per-device envelopes boundedly; device ID informational.
+10. SW consolidation; deterministic UI consolidation; full revalidation; Fire HD isolation; FCM later.
 
 CRITICAL RUNTIME
 - Raw app.js prototype-era state; service-worker.js source rewriting injects legacy per-device E2EE/groups. Do not blindly delete transforms/prototype arrays.
