@@ -177,3 +177,7 @@ Before every implementation step in this plan:
 5. Validate before moving to the next phase.
 
 This plan supersedes any earlier assumption that prototype UI/data can be removed independently from `app.js` without first consolidating service-worker-injected runtime behavior.
+
+## Consolidation progress
+
+- **0.9.5.4 — Increment 1:** live direct-message receipt reconciliation/read promotion has been copied verbatim from the service-worker transform into authoritative `app.js`; the corresponding service-worker source transform has been removed. Validation is required before materializing E2EE v2 transforms.

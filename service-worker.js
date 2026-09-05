@@ -14,22 +14,6 @@ async function transformApp(request,response){
   if(url.origin!==self.location.origin||!url.pathname.endsWith("/app.js"))return response;
   let source=await response.text();
 
-  const receiptNeedle=`      const existing=state.messages[conversationId] || [];
-      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
-  const receiptReplacement=`      const existing=state.messages[conversationId] || [];
-      if(!meta.fromCache){
-        const rawStateById=new Map(rows.map(r=>[r.id,r.state||"sent"]));
-        let receiptChanged=false;
-        for(const local of existing){if(!local?.mine)continue;const next=rawStateById.get(local.id);if(next&&next!==local.state){local.state=next;receiptChanged=true;}}
-        if(receiptChanged&&state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
-        if(state.route==="chat"&&String(state.selectedId)===String(conversationId)){
-          const unreadRows=rows.filter(r=>r.senderUid!==firebaseUser.uid&&(r.state||"sent")!=="read");
-          if(unreadRows.length)await Promise.allSettled(unreadRows.map(r=>updateCloudMessageState(conversationId,r.id,"read")));
-        }
-      }
-      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});`;
-  source=source.replace(receiptNeedle,receiptReplacement);
-
   const helperNeedle=`async function resolvePeerUidForConversation(conversationId){`;
   const helperReplacement=`async function deriveDeviceEnvelopeKey(peerPublicJwk,conversationId){
   const mine=await getOrCreateDeviceKeyPair();

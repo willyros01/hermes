@@ -6,7 +6,7 @@ This inventory records the source-code transformations currently performed by `s
 
 ## Current transformations
 
-1. **Live receipt reconciliation / read promotion — production-critical**
+1. **Live receipt reconciliation / read promotion — MATERIALIZED IN AUTHORITATIVE SOURCE IN 0.9.5.4 — VALIDATION PENDING**
    - Injects server-backed outgoing message-state reconciliation before message decryption.
    - Updates local outgoing Sent/Delivered/Read state from Firestore rows.
    - Marks unread incoming rows Read when the active conversation is open.
