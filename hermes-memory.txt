@@ -6,6 +6,12 @@ MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md`.
 - Core: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 
+E2EE V1 CRYPTO TARGET VALIDATION — SEPTEMBER 5, 2026
+- iPad Safari validation PASSED: all 15 isolated E2EE v1 crypto tests passed after correcting the test harness tamper helper.
+- The first run showed false failures for ciphertext/salt tamper because the test changed the last base64url character; that can alter only unused encoding bits and leave decoded bytes unchanged. This was a TEST HARNESS defect, not an AES-GCM defect.
+- Test harness commit `90746a242279bc5da85773ac9e86b25407f0b949` now decodes base64url, flips an actual binary bit, then re-encodes. Retest on iPad Safari: ALL 15 TESTS PASSED.
+- This validates the frozen v1 normal/recovery wrapping format on the primary iPad Safari target and clears the crypto-format gate for the next bounded implementation stage.
+
 E2EE V1 EXACT WIRE FORMAT + IMPLEMENTATION PROGRESS — SEPTEMBER 5, 2026
 - Exact binding format is now in `E2EE-V1-CRYPTO-FORMAT.md`.
 - Account key remains ECDH P-256. Public key serialized as Web Crypto JWK. Private wrapper plaintext serialized as DER PKCS#8 bytes, never plaintext-persisted. PKCS#8 avoids JWK property-order dependence for encrypted private-key plaintext.
@@ -80,7 +86,7 @@ MAJOR ARCHITECTURE CORRECTION
 
 CURRENT IMPLEMENTATION ORDER
 1. Read mandatory docs/preserve checkpoints.
-2. Run/validate isolated v1 crypto tests on target browsers; correct crypto module only if tests expose a real defect.
+2. COMPLETE: isolated v1 crypto tests passed 15/15 on iPad Safari.
 3. Convert `FIRESTORE-E2EE-V1-RULES.md` staging snippets into bounded `firestore.rules` changes only after Emulator/Rules validation; do not disturb unrelated rules.
 4. Specify recovery callable challenge/session lifecycle, exact rate limits, IAM/Secret Manager/KMS and notification/session policy.
 5. Implement sole Account E2EE Identity Manager using isolated crypto primitives and central Firebase service APIs.
