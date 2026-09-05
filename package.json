@@ -7,6 +7,7 @@
     "emulator:test:e2ee-rules": "firebase emulators:exec --only firestore --project demo-fidunio-e2ee-rules \"npm run test:e2ee-rules\"",
     "test:recovery-crypto": "node e2ee-recovery-server-crypto.test.mjs",
     "test:recovery-session": "node e2ee-recovery-session-policy.test.mjs",
+    "test:recovery-callable-core": "node e2ee-recovery-callable-core.test.mjs",
     "test:firebase-e2ee-adapter": "node e2ee-account-firebase-adapter.test.mjs"
   },
   "devDependencies": {
