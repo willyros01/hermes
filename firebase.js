@@ -45,3 +45,50 @@ export async function updateCloudMessageState(conversationId,messageId,state){co
 export async function markCloudConversationRead(conversationId){const s=await ensureServices();if(!authUser)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));const snap=await s.fsSdk.getDocs(q);const pending=snap.docs.filter(d=>{const x=d.data();return x.senderUid!==authUser.uid&&(x.state||"sent")!=="read";});await Promise.allSettled(pending.map(d=>s.fsSdk.updateDoc(d.ref,{state:"read"})));}
 export function subscribeMyConversations(uid,onRows,onError){let active=true,unsub=()=>{};ensureServices().then(s=>{if(!active)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations"),s.fsSdk.where("members","array-contains",uid));unsub=s.fsSdk.onSnapshot(q,snap=>onRows(snap.docs.map(d=>{const x=d.data(),other=(x.members||[]).find(m=>m!==uid);return{id:d.id,cloud:true,type:"direct",peerUid:other,name:x.memberNames?.[other]||"FIDUNIO contact",preview:"Cloud conversation",time:""};})),onError);}).catch(onError);return()=>{active=false;unsub();};}
 export function subscribeConversationMessages(conversationId,myUid,onRows,onError){const key=String(conversationId),token=Symbol(key);let stream=messageStreams.get(key);if(stream){if(stream.closeTimer){clearTimeout(stream.closeTimer);stream.closeTimer=null;}stream.token=token;stream.onRows=onRows;stream.onError=onError;ensureServices().then(async s=>{if(messageStreams.get(key)!==stream||stream.token!==token)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));const snap=await s.fsSdk.getDocs(q);if(messageStreams.get(key)!==stream||stream.token!==token)return;const rows=snap.docs.map(d=>({id:d.id,...d.data()}));stream.delivery=stream.delivery.then(()=>messageStreams.get(key)===stream&&stream.token===token?stream.onRows(rows,{fromCache:false,hasPendingWrites:false}):undefined).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}).catch(err=>{if(messageStreams.get(key)===stream&&stream.token===token)stream.onError?.(err);});}else{stream={token,onRows,onError,delivery:Promise.resolve(),unsub:()=>{},closeTimer:null};messageStreams.set(key,stream);ensureServices().then(s=>{if(messageStreams.get(key)!==stream)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));stream.unsub=s.fsSdk.onSnapshot(q,snap=>{if(messageStreams.get(key)!==stream)return;const rows=snap.docs.map(d=>({id:d.id,...d.data()})),meta={fromCache:!!snap.metadata?.fromCache,hasPendingWrites:!!snap.metadata?.hasPendingWrites};stream.delivery=stream.delivery.then(()=>messageStreams.get(key)===stream?stream.onRows(rows,meta):undefined).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});},err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});}return()=>{const current=messageStreams.get(key);if(current!==stream||current.token!==token)return;current.closeTimer=setTimeout(()=>{const latest=messageStreams.get(key);if(latest!==stream||latest.token!==token)return;latest.unsub();messageStreams.delete(key);},250);};}
+
+// BEGIN ACCOUNT E2EE V1 CENTRAL FIREBASE API
+// Durable account-E2EE persistence remains owned by this already-initialized Firebase module.
+export async function readCloudAccountE2EEIdentity(uid){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Authenticated account does not match E2EE identity owner.");
+  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",uid,"e2ee","identity"));
+  return snap.exists()?{...snap.data()}:null;
+}
+export async function createCloudAccountE2EEIdentity(uid,privateIdentity,publicIdentity){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Authenticated account does not match E2EE identity owner.");
+  if(!privateIdentity||!publicIdentity)throw new Error("Account E2EE identity material is incomplete.");
+  const privateRef=s.fsSdk.doc(s.db,"users",uid,"e2ee","identity");
+  const publicRef=s.fsSdk.doc(s.db,"e2eePublicKeys",uid);
+  return s.fsSdk.runTransaction(s.db,async tx=>{
+    const privateSnap=await tx.get(privateRef);
+    const publicSnap=await tx.get(publicRef);
+    if(privateSnap.exists()||publicSnap.exists())throw new Error("Durable E2EE identity already exists or is partially established; automatic replacement is forbidden.");
+    const now=s.fsSdk.serverTimestamp();
+    tx.set(privateRef,{...privateIdentity,createdAt:now,updatedAt:now});
+    tx.set(publicRef,{...publicIdentity,createdAt:now,updatedAt:now});
+    return{revision:1};
+  });
+}
+export async function updateCloudAccountE2EENormalWrapper(uid,keyId,expectedRevision,normalWrapper){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Authenticated account does not match E2EE identity owner.");
+  const ref=s.fsSdk.doc(s.db,"users",uid,"e2ee","identity");
+  return s.fsSdk.runTransaction(s.db,async tx=>{
+    const snap=await tx.get(ref);
+    if(!snap.exists())throw new Error("Durable E2EE identity is missing.");
+    const current=snap.data();
+    if(current.keyId!==keyId)throw new Error("E2EE identity keyId changed; update aborted.");
+    if(current.revision!==expectedRevision)throw new Error("E2EE identity revision changed; reload before retrying.");
+    tx.update(ref,{normalWrapper,revision:expectedRevision+1,updatedAt:s.fsSdk.serverTimestamp()});
+    return{revision:expectedRevision+1};
+  });
+}
+export async function getCloudAccountE2EEPublicKey(uid){
+  const s=await ensureServices();
+  if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"e2eePublicKeys",uid));
+  return snap.exists()?{uid:snap.id,...snap.data()}:null;
+}
+// END ACCOUNT E2EE V1 CENTRAL FIREBASE API
+
