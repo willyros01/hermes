@@ -2,126 +2,137 @@ HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
+- Every future chat, sub-chat, assistant instance, coding session, or developer continuing Hermes/FIDUNIO MUST begin by reading the supporting documentation in the repository. Do not rely on conversational memory alone.
+- At minimum read: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, and `BUG-LIST.md`.
+- When touching E2EE/device code, also read `E2EE-IDENTITY-LIFECYCLE.md`; it now records the superseded device-based design and migration history.
+- Inspect any other root supporting document relevant to the feature before implementation.
 - `CODING-GUIDELINES.md` is the binding coding/architecture contract.
-- `RUNTIME-CONSOLIDATION-PLAN.md` is the binding current recovery/action plan and MUST be read before any runtime, messaging, storage, service-worker, prototype-cleanup, or Fire account-isolation change.
-- This requirement applies to every future chat, sub-chat, assistant instance, or coding session continuing Hermes/FIDUNIO.
-- No implementation may begin until ownership, exact resource scope, lifecycle trigger, and serialized write path are identified for every mutable resource touched.
+- `RUNTIME-CONSOLIDATION-PLAN.md` is the binding runtime/source consolidation plan.
+- `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` is the binding messaging/E2EE/storage authority architecture as of September 5, 2026.
+- No implementation begins until ownership, exact resource scope, lifecycle trigger, and serialized write path are identified for every mutable resource touched.
 - Core rule: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 
-PERMANENT E2EE DEVICE-IDENTITY INVARIANT — SEPTEMBER 4, 2026
-- Mandatory reference: `E2EE-IDENTITY-LIFECYCLE.md`.
-- One authenticated FIDUNIO account on one browser installation has one stable E2EE device ID + ECDH keypair.
-- App updates, refreshes, logout/login, reconnects, service-worker updates, and normal account switching MUST NOT rotate or regenerate that identity.
-- A fresh identity is created only when BOTH identity and keypair are absent, or after an explicit user-approved reset/revocation. Partial identity state must fail safely; never silently manufacture a replacement half.
-- Concrete race found in 0.9.5.6: `initializeFirebaseLayer()` can call `publishMyE2EEKey()` twice during startup, while keypair/device creation previously had no shared mutex. Concurrent first-start calls could therefore create competing keys/device IDs.
-- 0.9.5.7 serializes keypair+device-ID creation as one pair and serializes cloud publication. Duplicate startup callers join the same promise.
-- 0.9.5.5 automatic quarantine identity restoration is disabled during ordinary startup because it could replace a valid current identity. Recovery/reset must be explicit.
-- Historical vault/message data is test data and need not be recovered. After 0.9.5.7 identity stability passes, perform one deliberate cleanup of stale cloud device registrations and obsolete local vault/history/Outbox test data, then establish a fresh baseline.
+MAJOR ARCHITECTURE CORRECTION — SEPTEMBER 5, 2026
+- The former rule `one account + one browser installation = one E2EE device identity` is SUPERSEDED.
+- User identified the major durability gap: Safari and Home Screen PWA have separate local storage, and local browser storage is not durable enough to be authoritative for conversation continuity or the only copy of cryptographic identity needed to read Firestore history.
+- New binding invariant: ONE ACCOUNT = ONE DURABLE E2EE IDENTITY.
+- Firebase Auth UID is the durable FIDUNIO user identifier. UID identifies the account but is NOT secret and MUST NOT by itself be used to derive the private encryption key.
+- Account E2EE secret/key material must be cryptographically random and generated once. Public material may be stored in Firestore. Private material must never be stored in plaintext in Firestore; it must use a reviewed encrypted/wrapped recovery package so a newly authenticated installation can recover the same account identity.
+- FIRESTORE IS AUTHORITATIVE for encrypted conversations/messages.
+- LOCAL INDEXEDDB/STORAGE IS A REBUILDABLE CACHE for inbox/history performance and offline use. Outbox is a temporary offline queue. Loss of local cache must cause reconstruction, not permanent loss of history.
+- PWA removal/reinstall, Safari-vs-PWA context changes, cache deletion, or replacement device must not by themselves destroy access to authoritative conversation history.
+- Device ID may still be generated/collected as an informational variable for possible future use, but DO NOT use it for E2EE routing, key ownership, message ownership, conversation history, decryptability, or normal delivery.
+- Do not continue the per-device E2EE envelope/fan-out architecture as the target design. Existing code is legacy migration material and must be handled under the runtime-consolidation plan rather than blindly deleted.
+- Future push notification routing should associate FCM registration tokens with authenticated UID. A proprietary FIDUNIO device ID is not required merely for FCM delivery.
+- Existing local PIN remains an installation-local app-lock feature unless deliberately redesigned. It must not become the sole durable source of the permanent account E2EE identity.
+- Current iPhone/iPad messaging/device-ID test is paused. Do not create more baseline messages against the old architecture until durable account-key wrapping/recovery and Firestore-authoritative synchronization are designed/implemented in bounded steps.
 
-0.9.5.7 IDENTITY VALIDATION / CONTROLLED CLEANUP — SEPTEMBER 4, 2026
-- 0.9.5.7 passed on iPad Safari: repeated reloads preserved device `459975be-e...0933c1` and its fingerprint; bidirectional iPad/iPhone E2EE messaging decrypted correctly and reached Read; sign-out/sign-in preserved the same device identity.
-- Protected checkpoint: `checkpoint-0.9.5.7-identity-pass`.
-- 0.9.5.8 introduces a separate explicit development cleanup page. It preserves the current live E2EE identity/keypair and installation-local PIN/security, deactivates other active cloud device registrations for the signed-in account, clears local test app-state/history/Outbox, and deletes obsolete v1/v2/v3 account-vault databases.
-- Cleanup is never automatic at startup. It requires inspect + explicit confirmation and aborts if the current device ID changes between inspection and execution.
-- Cloud conversations/messages are deliberately NOT deleted in this first cleanup increment; remote message deletion requires separate ownership/rules review.
+SAFARI VS HOME SCREEN PWA FINDING — RETAINED
+- iOS/iPadOS Safari and an installed Home Screen PWA can have separate local storage/security contexts even on the same physical device.
+- They may therefore have different installation-local PIN/cache/device-variable state.
+- Under the NEW architecture this separation must NOT imply separate durable E2EE identities or loss of history. Both contexts, after proper authentication/recovery, must reach the same account E2EE identity and Firestore-authoritative history.
 
-0.9.5.12 MASTER TEST RESET — SEPTEMBER 4, 2026
-- User explicitly decided all historical messaging/E2EE data is disposable test data and requested one-shot reset rather than preserving historical keys/vaults.
-- `master-reset-09512.html/js` is the single maintenance entry point for the reset.
-- Owner-only cloud reset deletes all `conversations` and their `messages`, all `groups` plus `members/messages`, every `users/{uid}/devices/*` registration, and old account-level E2EE fields on user profiles.
-- Cloud reset PRESERVES Firebase Authentication accounts, `users/{uid}` profile documents and roles, invitations, and `system/access`.
-- Current-browser local reset clears FIDUNIO app-state/history/Outbox and deletes local E2EE identity/keypair while preserving installation-wide `local-key` and `local-security-v1`; old account vault DBs are deleted.
-- The reset also unregisters service workers scoped to `/hermes/` and deletes only caches named `fidunio-shell-*`; it must not touch other GitHub Pages projects on the same origin.
-- Because browser storage is physically isolated per device, cloud data can be reset once from the Owner device, but the same master-reset page must still be opened/run once on each other device to clear that device's local FIDUNIO storage. Afterward each device creates one fresh stable E2EE identity under the 0.9.5.7+ invariant.
+CURRENT IMPLEMENTATION ORDER
+1. Read all mandatory repository supporting docs listed above.
+2. Preserve protected checkpoints and validated behavior.
+3. Continue inventory/consolidation of the hidden service-worker source-transform architecture carefully; no new transforms.
+4. Before materializing further per-device E2EE transforms, design the durable account E2EE key generation, secure wrapping, recovery, and rotation/revocation rules.
+5. Implement account E2EE identity creation/recovery with one owner and serialized write path.
+6. Make Firestore -> local synchronization explicitly authoritative/rebuildable.
+7. Replace legacy per-device envelope routing with account-identity encryption in a bounded migration.
+8. Keep device ID informational only.
+9. Remove service-worker source rewriting only after required behavior exists in authoritative source and equivalence is validated.
+10. Establish true empty production runtime with no Maria/John/Family/sample fallback.
+11. Revalidate send/receive, decrypt, Sent/Delivered/Read, iPad live receipt refresh, Outbox/reconnect, history/re-entry, Settings, responsive UI, PWA reinstall/cache-loss recovery, Safari/PWA recovery, and replacement-device account-key recovery.
+12. Resume same-browser/Fire HD 8 account isolation only after one deterministic account-authoritative runtime passes.
+13. Add FCM token registration later as a separate notification concern.
 
-CURRENT CRITICAL ARCHITECTURAL DISCOVERY — SEPTEMBER 4, 2026
-- The repository currently has a hidden dual-code runtime.
-- Raw `app.js` still contains prototype-era runtime state/UI, including Maria Santos, John Cruz, Family Group, sample contacts, local numeric IDs, and prototype group assumptions.
-- `service-worker.js` is not merely caching the application: it rewrites `app.js` source at runtime and injects later production behavior, including important receipt, E2EE/per-device fan-out, group, and related functionality.
-- Therefore raw repository `app.js` and the application actually validated under service-worker control are not necessarily the same program.
-- This explains why prototype UI/data and apparently removed behavior can reappear on cold/uncontrolled loads and why direct cleanup of raw `app.js` is dangerous.
-- Do NOT simply delete prototype arrays or service-worker replacements. Some string-replacement anchors currently carry validated production behavior.
-
-CURRENT MANDATORY RECOVERY ORDER
-1. Preserve checkpoints; `checkpoint-0.9.5.3-before-runtime-cleanup` protects the state before consolidation. `checkpoint-0.9.5.1-settings-pass` protects validated Settings ownership/lifecycle.
-2. Inventory every `service-worker.js` transformation of `app.js` and classify the injected behavior.
-3. Materialize each required transformed behavior into normal authoritative repository source in bounded increments, preserving validated messaging/E2EE/receipts/Outbox/groups/UI/Settings.
-4. Only after equivalence is proven, remove source-code rewriting from the service worker and leave it as a normal cache/offline worker.
-5. Verify cold and warm loads execute the same authoritative application.
-6. Then establish a true empty production runtime: conversations [], messages {}, selectedId null, no Maria/John/Family/sample fallback.
-7. Before empty runtime goes live, harden zero-conversation rendering, tablet two-pane behavior, missing-current-conversation handling, navigation assumptions, numeric prototype IDs, and old sample-contact group assumptions.
-8. Revalidate the full real messaging round trip: send/receive, per-device E2EE, legacy compatibility, Sent/Delivered/Read, iPad live Sent->Read, Outbox/reconnect, history/re-entry, New Message display-name flow, responsive UI, Settings, and Back button.
-9. Only after that passes, resume Fire HD 8 account isolation against the single deterministic runtime.
-10. Fire account isolation must scope account-owned local state to authenticated UID while keeping installation-local PIN/config separate unless explicitly redesigned; ambiguous mixed legacy data must never be guessed into an account.
+CURRENT CRITICAL RUNTIME DISCOVERY
+- Repository still has a hidden dual-code runtime.
+- Raw `app.js` contains prototype-era state/UI including Maria Santos, John Cruz, Family Group, sample contacts, local numeric IDs, and prototype group assumptions.
+- `service-worker.js` rewrites `app.js` source at runtime and injects later production behavior including receipts, legacy per-device E2EE/fan-out, groups, and related functionality.
+- Raw repository source and the application validated under service-worker control are not necessarily the same program.
+- Do NOT simply delete prototype arrays or service-worker replacements. Inventory dependencies and materialize/replace behavior in bounded increments.
 
 PROHIBITED DURING RECOVERY
 - No new service-worker source transforms.
-- No CSS hiding of prototype state as a substitute for removing it from runtime.
+- No CSS hiding prototype state instead of removing it from runtime.
 - No broad MutationObserver repair.
 - No orientation/cache/timing-dependent repair.
 - No second runtime-state owner.
-- No broad messaging/E2EE rewrite during consolidation.
+- No blind deletion of legacy E2EE transforms.
+- No new per-device E2EE fan-out as the target architecture.
+- No private key derived from Firebase UID alone.
+- No plaintext private key stored in Firestore.
 - Do not reuse rejected 0.9.4.12 account-isolation architecture.
-- Do not assume visible UI is merely cosmetic without tracing its state/event dependencies.
 
 PROTECTED FUNCTIONAL BASELINES
 - 0.6.5 local-first/offline PASS.
 - 0.7.3 direct E2EE transport/reconnect PASS.
-- 0.8.0 device identity PASS.
+- 0.8.0 device identity PASS (historical design baseline only).
 - 0.8.1 contact key verification PASS.
 - UI 0.8.1.9 + Group Info tablet fix PASS.
-- 0.8.1.16 receipt/re-entry PASS; rollback commit `2a6380e26ce969fc95f0a38e29517e48b09b781b`.
-- 0.9.0.2 per-device E2EE two-device + receipts + offline Outbox/reconnect PASS.
-- 0.9.0.4 three-device bidirectional per-device E2EE fan-out PASS and remains validated messaging baseline.
+- 0.8.1.16 receipt/re-entry PASS; rollback `2a6380e26ce969fc95f0a38e29517e48b09b781b`.
+- 0.9.0.2 per-device E2EE two-device + receipts + offline Outbox/reconnect PASS (historical implementation baseline, not new target).
+- 0.9.0.4 three-device per-device E2EE fan-out PASS (historical implementation baseline, not new target).
 - 0.9.3.7 protected pre-PIN baseline `db15b15c92ea476f81a2ccc37e08dde53a2e491e`.
-- 0.9.4.11 protected clean stabilization baseline. It includes approved message bubbles, prominent Back button, iPhone overflow containment, New Message display-name picker, PIN/local unlock architecture, iPad two-pane behavior, and live Sent->Read behavior.
-- 0.9.5.1 Settings lifecycle PASS: Profile, User Administration, Invitations present and functional without orientation rescue. Protected branch `checkpoint-0.9.5.1-settings-pass`.
-- 0.9.5.3 is NOT a validated account-isolation solution. Protected branch `checkpoint-0.9.5.3-before-runtime-cleanup` exists only to preserve the pre-consolidation state.
+- 0.9.4.11 protected clean stabilization baseline: commit `1ebc19df498de083f8084e0084c34ced18fc11f0`, built from 0.9.4.10 `51a278b2ac5cc9eeb83a557a64e58417ccc01697`.
+- 0.9.5.1 Settings lifecycle PASS; protected branch `checkpoint-0.9.5.1-settings-pass`.
+- 0.9.5.4 receipt reconciliation materialized into authoritative `app.js`.
+- 0.9.5.7 fixed/validated the legacy per-installation identity race; useful stabilization checkpoint, but ownership model now superseded.
 
 SETTINGS ARCHITECTURE PRECEDENT
-- Profile, User Administration, and Invitations were late bolt-ons outside the authoritative Settings render lifecycle.
-- Old broad MutationObservers recreated/reparented them after `app.js` rebuilt Settings.
-- Correct rule: authoritative screen lifecycle creates owned hosts and explicitly mounts/remounts feature owners; no observer rediscovery and no cross-owner re-parenting.
-- Settings 0.9.5.1 currently demonstrates the desired ownership direction and must be protected during runtime consolidation.
+- Profile, User Administration, and Invitations were late bolt-ons outside authoritative Settings render lifecycle.
+- Correct rule: authoritative screen lifecycle creates owned hosts and explicitly mounts/remounts feature owners; no observer rediscovery or cross-owner re-parenting.
+- Settings 0.9.5.1 demonstrates desired ownership and must be protected.
 
 PIN / LOCAL SECURITY
 - `app.js state.unlocked` remains the single authoritative local LOCKED/UNLOCKED state.
-- `local-security.js` is helper-only and must not create a competing lock state/UI.
-- PIN config is installation-local in IndexedDB; raw PIN is never stored; PBKDF2-SHA256 verifier, random salt, 210000 iterations; 4-12 digits.
+- `local-security.js` is helper-only and must not create competing lock state/UI.
+- PIN config is installation-local in IndexedDB; raw PIN never stored; PBKDF2-SHA256 verifier, random salt, 210000 iterations; 4-12 digits.
 - WebAuthn platform authenticator with PIN fallback.
 - Firebase authentication and local unlock remain separate.
-- Lock Now and inactivity use the same lock authority.
-- Known open bug: Remove Local PIN does not work. Change PIN, Lock Now, timeout and existing PIN flows are working. Fix later as a focused local-security defect; do not redesign the working architecture.
+- Known open bug: Remove Local PIN does not work. Change PIN, Lock Now, timeout and existing PIN flows work. Fix later as focused defect.
 
-FIRE HD 8 ACCOUNT-ISOLATION DEFECT
-- Same-browser account switching has shown cross-account local conversation remnants and mixed plain/encrypted content among Willy/Alpha, Kyrie, and Jax.
-- Earlier 0.9.5.2/0.9.5.3 attempts exposed the deeper prototype/runtime problem and are not considered validated fixes.
-- Fire work is paused until runtime consolidation and messaging revalidation complete.
-- Future account-sensitive startup order: authenticate -> determine UID -> activate UID-owned local state -> restore state/Outbox/history/E2EE -> start app synchronization.
-- Account/storage changes must be serialized through owned mutexes and may not mutate structural UI or call reload as a synchronization mechanism.
+FIRE HD 8 / ACCOUNT ISOLATION
+- Same-browser account switching previously showed cross-account local remnants and mixed content among Willy/Alpha, Kyrie, and Jax.
+- 0.9.5.2/0.9.5.3 attempts exposed deeper prototype/runtime problems and are not validated fixes.
+- Fire work remains paused until deterministic runtime + new account-authoritative messaging architecture pass.
+- Future account-sensitive startup: authenticate -> determine UID -> recover durable account E2EE identity -> activate/rebuild UID-owned local cache -> synchronize Firestore -> start live app synchronization.
+- Storage/account changes serialized through owners/mutexes; storage modules may not mutate structural UI or use reload as synchronization.
 
 LOCKED PROJECT CONVENTIONS
 - Hermes = internal project/repository/release naming; FIDUNIO = public app/product.
-- Keep release files flat in repository root.
-- Keep exactly one cumulative root `hermes-memory.txt` and one reusable root `hermes-setup.txt`; no version-numbered memory/setup TXT.
+- Flat repository-root release packaging.
+- Exactly one cumulative root `hermes-memory.txt` and one reusable root `hermes-setup.txt`; no version-numbered memory/setup TXT.
 - `firebase-config.js` and `config-firestore.js` must NEVER be regenerated, overwritten, or included in update/release ZIPs.
-- `version.js` is the single authoritative runtime version source; every test build gets a distinct visible version.
+- `version.js` is authoritative runtime version; every test build distinct visible version.
 - Preserve winged-messenger artwork, navy/teal/gray palette, no gold.
 - Preserve iPhone single-pane and adaptive iPad/two-pane behavior.
-- Accessibility is a core requirement: large text, strong contrast, visible focus/control states.
-- Once a major screen design is established, preserve it and make incremental changes unless the user explicitly approves redesign.
-- User-facing identity selection uses display name; UID remains internal.
+- Accessibility core: large text, strong contrast, visible focus/control states.
+- Preserve established major screen designs; incremental changes unless user explicitly approves redesign.
+- User-facing identity selection uses display name; UID internal.
+
+REJECTED / DO NOT REUSE
+- 0.9.4.12 Fire account isolation architecture (`account-local-isolation.js`, separate vault, independent Firebase init, reloads).
+- 0.9.4.13 ui-lock.
+- 0.9.4.14 scoped Settings settle timers.
+- 0.9.4.15 corrected lock with competing auth/admin writers.
+- Rejected invite-install commits `8b05b185...`, `12cc391d...`, `881e8f1e...`, `b79aaf32...`, `a70abf8e...`.
+- Never adapt rejected invite-install implementation; rebuild from scratch later.
 
 RELEASE / SAFEKEEPING
-- FIDUNIO 0.9.4.11 checkpoint ZIP: `hermes-ux-0.9.4.11.zip`; flat/root-only; 35 files; excludes firebase-config.js/config-firestore.js/install-prompt.js; SHA-256 `2c0f47cbfa7b78c80e3c79bf966557b306fa61af8f708445dad659fde9bfcf60`.
-- Never reuse/adapt rejected 0.9.4.12-0.9.4.20 implementations.
-- Rejected invite-install implementation must be rebuilt from scratch later, after higher-priority architecture work.
+- FIDUNIO 0.9.4.11 ZIP: `hermes-ux-0.9.4.11.zip`; flat/root-only; 35 files; excludes firebase-config.js/config-firestore.js/install-prompt.js; SHA-256 `2c0f47cbfa7b78c80e3c79bf966557b306fa61af8f708445dad659fde9bfcf60`.
 
-AUTHORITATIVE REFERENCE FILES
-- `CODING-GUIDELINES.md` — mandatory coding contract.
-- `RUNTIME-CONSOLIDATION-PLAN.md` — mandatory current recovery plan.
+AUTHORITATIVE / SUPPORTING REFERENCE FILES
+- `hermes-memory.txt` — cumulative durable project memory; mandatory first read.
+- `CODING-GUIDELINES.md` — binding coding contract.
+- `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` — binding account E2EE/Firestore authority architecture.
+- `RUNTIME-CONSOLIDATION-PLAN.md` — binding runtime/source recovery plan.
+- `RUNTIME-TRANSFORM-INVENTORY.md` — inventory of hidden service-worker transforms.
+- `E2EE-IDENTITY-LIFECYCLE.md` — historical/superseded device-E2EE model and migration context.
 - `architecture-ownership.txt` — ownership/isolation architecture reference.
 - `BUG-LIST.md` — durable active defect list.
-- `hermes-memory.txt` — cumulative durable project memory.
 
-- 0.9.5.8 cleanup inspection correctly protected device 459975be-e986-4dc4-8fad-8f47630933c1 and found 7 stale active devices plus fidunio-account-vault-v3. First execution deactivated the 7 stale cloud devices, then stopped on a return-value typo (`keptDeviceId` vs `keepDeviceId`) before local test-data/vault cleanup ran. 0.9.5.9 fixes only that return typo; rerun is idempotent and should report 0 remaining stale active devices before finishing local cleanup.
+FINAL HANDOFF RULE
+Whoever works on Hermes/FIDUNIO next MUST READ THE SUPPORTING DOCS IN THE REPOSITORY BEFORE CHANGING CODE. The repository documentation, not remembered chat context, is the durable handoff authority. If a supporting document conflicts with an older design note, follow the newest explicitly binding/superseding architecture and resolve/document the conflict before implementation.
