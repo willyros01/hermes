@@ -1,0 +1,58 @@
+from pathlib import Path
+
+p = Path("firebase.js")
+text = p.read_text()
+marker = "// BEGIN ACCOUNT E2EE V1 CENTRAL FIREBASE API"
+if marker in text:
+    print("Account E2EE Firebase API already present.")
+else:
+    snippet = r'''
+
+// BEGIN ACCOUNT E2EE V1 CENTRAL FIREBASE API
+// Durable account-E2EE persistence remains owned by this already-initialized Firebase module.
+export async function readCloudAccountE2EEIdentity(uid){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Authenticated account does not match E2EE identity owner.");
+  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",uid,"e2ee","identity"));
+  return snap.exists()?{...snap.data()}:null;
+}
+export async function createCloudAccountE2EEIdentity(uid,privateIdentity,publicIdentity){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Authenticated account does not match E2EE identity owner.");
+  if(!privateIdentity||!publicIdentity)throw new Error("Account E2EE identity material is incomplete.");
+  const privateRef=s.fsSdk.doc(s.db,"users",uid,"e2ee","identity");
+  const publicRef=s.fsSdk.doc(s.db,"e2eePublicKeys",uid);
+  return s.fsSdk.runTransaction(s.db,async tx=>{
+    const privateSnap=await tx.get(privateRef);
+    const publicSnap=await tx.get(publicRef);
+    if(privateSnap.exists()||publicSnap.exists())throw new Error("Durable E2EE identity already exists or is partially established; automatic replacement is forbidden.");
+    const now=s.fsSdk.serverTimestamp();
+    tx.set(privateRef,{...privateIdentity,createdAt:now,updatedAt:now});
+    tx.set(publicRef,{...publicIdentity,createdAt:now,updatedAt:now});
+    return{revision:1};
+  });
+}
+export async function updateCloudAccountE2EENormalWrapper(uid,keyId,expectedRevision,normalWrapper){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==uid)throw new Error("Authenticated account does not match E2EE identity owner.");
+  const ref=s.fsSdk.doc(s.db,"users",uid,"e2ee","identity");
+  return s.fsSdk.runTransaction(s.db,async tx=>{
+    const snap=await tx.get(ref);
+    if(!snap.exists())throw new Error("Durable E2EE identity is missing.");
+    const current=snap.data();
+    if(current.keyId!==keyId)throw new Error("E2EE identity keyId changed; update aborted.");
+    if(current.revision!==expectedRevision)throw new Error("E2EE identity revision changed; reload before retrying.");
+    tx.update(ref,{normalWrapper,revision:expectedRevision+1,updatedAt:s.fsSdk.serverTimestamp()});
+    return{revision:expectedRevision+1};
+  });
+}
+export async function getCloudAccountE2EEPublicKey(uid){
+  const s=await ensureServices();
+  if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"e2eePublicKeys",uid));
+  return snap.exists()?{uid:snap.id,...snap.data()}:null;
+}
+// END ACCOUNT E2EE V1 CENTRAL FIREBASE API
+'''
+    p.write_text(text.rstrip() + snippet + "\n")
+    print("Account E2EE Firebase API appended.")
