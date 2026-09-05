@@ -2,108 +2,82 @@
 
 **STATUS: REBUILD INVENTORY — AUTHORITATIVE FOR SOURCE-CONSOLIDATION WORK**
 
-This inventory records JavaScript behavior that is still injected into raw `app.js` by `service-worker.js`. A transform may be deleted only after its behavior is either materialized in source or deliberately superseded by the account-authoritative rebuild architecture.
+This inventory records JavaScript behavior still injected into raw `app.js` by `service-worker.js`. A transform may be deleted only after its behavior is materialized in source or deliberately superseded by the account-authoritative rebuild architecture.
 
 ## Already materialized / no longer a transform target
 
 ### Live receipt reconciliation / read promotion
-The validated receipt reconciliation path is already present in raw `app.js`. It remains a protected behavior and must stay green during later runtime cleanup.
+Validated receipt reconciliation is already present in raw `app.js` and remains protected.
 
 ### New Message recipient picker
-The recipient picker is now owned by `new-message-owner.js` and called explicitly by `app.js` from `renderNewConversation()`. It is not a service-worker transform and uses no observer or independent Firebase initializer.
+`new-message-owner.js` owns the recipient-picker region and is called explicitly by `app.js`. The old observer-based New Message polish layer is removed.
 
-### Prototype top-level contact seed
-Raw `app.js` now uses an empty `contacts` compatibility array instead of named prototype identities. The current Messages route also has a real empty-conversation state.
+### Empty production state
+Raw `app.js` uses an empty compatibility contact array, empty conversations/messages, and a real no-conversations projection rather than named prototype identities.
+
+### Group runtime foundation — MATERIALIZED
+Commit `bcfdebbc64477f4c2ed50ea77f4572322ba63abd` moved these behaviors into authoritative `app.js`:
+- central Firebase imports `listCloudUsers`, `createCloudGroup`, `subscribeMyGroups`;
+- `cloudGroupUnsub` and `groupCandidates` state;
+- `mergeCloudGroup()` and `beginCloudGroupSubscription()`;
+- authenticated start/sign-out cleanup of group subscription;
+- fail-closed cloud-group send guard.
+
+The matching service-worker transforms were removed. The group send guard is now authoritative source and continues to block group message transport until reviewed group E2EE exists.
 
 ## Transforms still present in `service-worker.js`
 
 ### 1. Per-device E2EE v2 helper functions — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
-The service worker injects:
-- `deriveDeviceEnvelopeKey()`
-- `encryptDeviceEnvelope()`
-- `buildDeviceEnvelopes()`
-- `decryptDeviceEnvelope()`
+Injects `deriveDeviceEnvelopeKey()`, `encryptDeviceEnvelope()`, `buildDeviceEnvelopes()`, and `decryptDeviceEnvelope()` based on per-installation device identity.
 
-These depend on the per-installation device identity in raw `app.js` and legacy `/users/{uid}/devices/{deviceId}` registry data.
-
-**Rebuild treatment:** do not blindly materialize this as the final architecture. Device-owned E2EE is being superseded by the validated account-authoritative identity manager. Preserve the current behavior only until account-authoritative send/receive is ready to replace it.
+**Treatment:** do not materialize as target architecture. Keep only until account-authoritative send/receive plus deliberate legacy migration replaces it.
 
 ### 2. E2EE v2 receive/decrypt branch — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
-The service worker changes message receive/decrypt so `e2ee===2` resolves a device envelope and legacy `e2ee:1` remains readable.
+Adds `e2ee===2` per-device envelope decrypt while preserving legacy `e2ee:1` readability.
 
-**Rebuild treatment:** keep until account-authoritative message decrypt plus legacy migration behavior is deliberately implemented.
+**Treatment:** keep until account-authoritative decrypt/migration is implemented.
 
 ### 3. Direct-send trust-gate change — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
-The service worker removes the old account-level changed-key send block because the current transformed runtime relies on per-device envelopes.
+Changes the older account-key trust behavior for the per-device transformed runtime.
 
-**Rebuild treatment:** do not copy this policy forward automatically. Account-authoritative key verification policy must be defined by the account identity path.
+**Treatment:** do not copy forward automatically; account-authoritative verification policy must own the target behavior.
 
 ### 4. Outbox cloud-send conversion to per-device fan-out — LEGACY/COMPATIBILITY, SECURITY-SENSITIVE
-The service worker replaces the legacy single-recipient ciphertext path with per-device `e2ee:2` fan-out and sender-device metadata.
+Converts cloud send to per-device `e2ee:2` fan-out.
 
-**Rebuild treatment:** preserve until account-authoritative encryption/send/outbox replaces it. Do not make device fan-out the target design.
+**Treatment:** preserve only as compatibility until account-authoritative encryption/send/outbox replaces it.
 
-### 5. Group Firebase imports — GROUP FOUNDATION
-Adds `listCloudUsers`, `createCloudGroup`, and `subscribeMyGroups` imports to transformed `app.js`.
+### 5. Real New Group / Group Details UI replacement — NON-CRYPTOGRAPHIC, REMAINING GROUP TRANSFORM
+The service worker still replaces raw group placeholder functions with FIDUNIO-user selection and real group metadata creation UI.
 
-**Rebuild treatment:** safe candidate for direct source materialization because these are already central `firebase.js` APIs and are unrelated to device-E2EE ownership.
-
-### 6. Group runtime variables — GROUP FOUNDATION
-Adds `cloudGroupUnsub` and `groupCandidates`.
-
-**Rebuild treatment:** materialize with the group subscription/UI unit.
-
-### 7. Cloud group merge/subscription functions — GROUP FOUNDATION
-Injects `mergeCloudGroup()` and `beginCloudGroupSubscription()` so real Firestore group metadata appears in the conversation list.
-
-**Rebuild treatment:** materialize directly in `app.js`; keep Firebase ownership in `firebase.js`.
-
-### 8. Start/stop cloud group subscription on auth lifecycle — GROUP FOUNDATION
-Adds authenticated start and sign-out cleanup for the group subscription.
-
-**Rebuild treatment:** materialize as part of the same bounded group unit.
-
-### 9. Real New Group / Group Details UI replacement — GROUP FOUNDATION
-The service worker replaces raw group placeholder functions with FIDUNIO-user selection and real group metadata creation.
-
-**Rebuild treatment:** materialize after preserving a rollback checkpoint. Group transport must stay disabled until reviewed group E2EE exists.
-
-### 10. Block cloud-group message send — SAFETY-CRITICAL
-The service worker injects an early send guard for `cloudGroup` conversations.
-
-**Rebuild treatment:** materialize together with the group UI. This guard must exist in authoritative source before the group transform is removed.
+**Treatment:** this is now the next bounded group materialization. The data/subscription APIs and fail-closed send guard it depends on are already authoritative raw source.
 
 ## Temporary non-service-worker compatibility modules
 
-These are not source transforms but still violate the target one-owner runtime and must be retired deliberately:
-
 ### `profile-sync.js`
-Independently imports Firebase SDK and follows conversation/profile documents, then emits a global event containing peer names.
+Still independently imports Firebase SDK and follows peer profile documents, then emits a global peer-name event. Must be consolidated through `firebase.js`.
 
 ### `main-screen-polish.js`
-Independently imports Firebase Auth for Sign Out and uses a broad `MutationObserver` to add Sign Out and rewrite rendered peer names.
+Still uses a broad `MutationObserver` to add Sign Out and rewrite peer names. Sign Out itself now routes through central `signOutFidunio()`; remaining DOM repair behavior must be materialized into explicit owners.
+
+### `settings-lifecycle.js`
+Deterministic Settings owner, but still has temporary direct Firebase SDK access for profile/admin data. Its service acquisition should eventually move behind bounded `firebase.js` APIs.
 
 ### `settings-lifecycle-bridge.js`
-Temporary deterministic bridge until `app.js` exposes the final explicit Settings render hook.
+Temporary bridge until `app.js` exposes the final explicit Settings render hook.
 
 ## Current consolidation order
 
 1. **COMPLETE:** dead one-off cleanup and security/recovery checkpoint.
-2. **COMPLETE:** real empty Messages state and New Message recipient owner.
-3. **CURRENT:** materialize group metadata/subscription/UI/send guard from the service worker as one bounded non-cryptographic unit.
-4. Replace profile-name and Sign Out overlays with central Firebase APIs + explicit `app.js` projection; remove `main-screen-polish.js` observer path.
-5. Wire validated account-E2EE identity lifecycle through central `firebase.js`.
-6. Replace per-device send/decrypt/fan-out transforms with account-authoritative messaging plus explicit legacy migration handling.
-7. Confirm no semantic source transform remains.
-8. Reduce service worker to network/cache/offline only.
+2. **COMPLETE:** empty Messages state and explicit New Message owner.
+3. **PARTIAL COMPLETE:** group imports/state/subscription/auth lifecycle/send guard materialized; matching SW transforms removed.
+4. **CURRENT:** materialize the remaining New Group / Group Details UI transform into raw `app.js`, then remove that final non-cryptographic group transform.
+5. Replace peer-name/main-screen observer projections with central Firebase APIs + explicit `app.js` projection.
+6. Wire validated account-E2EE identity lifecycle through central `firebase.js`.
+7. Replace per-device send/decrypt/fan-out transforms with account-authoritative messaging plus explicit legacy migration handling.
+8. Confirm no semantic source transform remains and reduce service worker to cache/offline only.
 9. Revalidate iPhone/iPad, receipts, Settings, offline reconnect, account switching, reinstall/recovery.
 
 ## Rule
 
-For every bounded unit:
-
-1. preserve a rollback checkpoint;
-2. add the behavior to authoritative source or intentionally supersede it;
-3. remove only the corresponding service-worker transform/compatibility module;
-4. run the repository security/runtime gates;
-5. never weaken account isolation, E2EE continuity, group-send safety, or deterministic UI ownership merely to simplify code.
+For every bounded unit: preserve rollback, materialize/supersede behavior, remove only its matching transform, run gates, and never weaken account isolation, E2EE continuity, group-send safety, or deterministic UI ownership.
