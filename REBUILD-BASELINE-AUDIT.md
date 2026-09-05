@@ -8,14 +8,17 @@
 
 This branch was created from `main` at commit `246c524abc78404d9bc744b272ce08244a35cc3f`. Cleanup and consolidation occur here first. `main` remains the rollback/reference source until the rebuild branch passes its own validation gates.
 
-A protected recovery/scaffold checkpoint now exists at:
+Protected checkpoints now include:
 
 ```text
 checkpoint-rebuild-baseline-recovery-pass
 commit e2d2e10031182781f6887b2cd1a971701aa21e3a
+
+checkpoint-rebuild-new-message-owner
+commit b4731926432af3a986af991d2f51db86acea0fd1
 ```
 
-That checkpoint corresponds to a successful `Rebuild Baseline Security Gate` run `33976715187` covering Firestore rules, recovery crypto/session/callable/persistence, central Firebase E2EE adapter, and Cloud Functions scaffold import.
+The first checkpoint corresponds to successful `Rebuild Baseline Security Gate` run `33976715187` covering Firestore rules, recovery crypto/session/callable/persistence, central Firebase E2EE adapter, and Cloud Functions scaffold import. The second checkpoint preserves the later deterministic empty Messages state and explicit New Message recipient owner before further runtime consolidation.
 
 ## What is authoritative and must be kept
 
@@ -24,8 +27,8 @@ That checkpoint corresponds to a successful `Rebuild Baseline Security Gate` run
 - `version.js`
 - `styles.css`, `styles-0.9.0.css`, active focused CSS files
 - `app.js` — temporarily retained because it still carries validated runtime behavior and is still transformed by the service worker
-- `bootstrap.js` — retained temporarily, but must be simplified because it still contains legacy prototype cleanup and a broad MutationObserver
-- `service-worker.js` — retained temporarily only until all behavior still injected into `app.js` is materialized or replaced
+- `bootstrap.js` — now reduced to startup sequencing; no broad bootstrap scrub observer remains
+- `service-worker.js` — retained temporarily only until all behavior still injected into `app.js` is materialized or deliberately superseded
 - `firebase.js`
 - `firebase-config.js` — protected; never regenerate or replace
 - `manifest.json` and current artwork/icons
@@ -36,11 +39,13 @@ That checkpoint corresponds to a successful `Rebuild Baseline Security Gate` run
 - `account-storage.js`
 - `settings-lifecycle.js`
 - `settings-lifecycle-bridge.js`
-- `new-message-polish.js` — LIVE today; temporary display-name recipient overlay that should ultimately be materialized into the New Message owner
-- `profile-sync.js` — LIVE today; read-only peer display-name synchronization
-- `main-screen-polish.js` — LIVE today; temporary sign-out/display-name overlay and broad observer; behavior must be materialized before removal
-- `quick-start.html` — LIVE dependency of Settings invitation sharing; keep
+- `new-message-owner.js` — authoritative recipient-picker region owner called explicitly by `app.js`; no MutationObserver
+- `profile-sync.js` — TEMPORARY read-only peer display-name synchronization; currently still initializes Firebase SDK access independently and must be consolidated through `firebase.js`
+- `main-screen-polish.js` — TEMPORARY sign-out/display-name overlay and broad MutationObserver; behavior must be materialized before removal
+- `quick-start.html` — live dependency of Settings invitation sharing; keep
 - current responsive/back-button/message-bubble styling
+
+The superseded observer-based `new-message-polish.js` has now been removed from the rebuild branch after its behavior was materialized into `new-message-owner.js` + `app.js`.
 
 ### New account-authoritative E2EE foundation
 - `e2ee-account-crypto.js` and browser tests
@@ -74,6 +79,7 @@ The `functions/recovery/` copies are the sole authoritative recovery server impl
 - `DETERMINISTIC-UI-LIFECYCLE.md`
 - `RUNTIME-CONSOLIDATION-PLAN.md`
 - `RUNTIME-TRANSFORM-INVENTORY.md`
+- `RUNTIME-AUTHORITY-MAP.md`
 - `architecture-ownership.txt`
 - `BUG-LIST.md`
 - `E2EE-IDENTITY-LIFECYCLE.md` as migration/history context
@@ -99,6 +105,7 @@ These files were not part of the live bootstrap path or were superseded by a val
 - `admin-ui.js`
 - `invite-modal.js`
 - `settings-polish.js`
+- `new-message-polish.js`
 - `test-0.9.0/`
 
 ## Retain for now pending dependency removal
@@ -107,13 +114,21 @@ The following are old architecture or temporary compatibility layers, but cannot
 
 - legacy per-device E2EE code in `app.js`, `firebase.js`, and `service-worker.js`
 - service-worker source transforms for E2EE v2 and group behavior
-- prototype cleanup code in `bootstrap.js`
-- hard-coded prototype state in `app.js`
 - legacy device Firestore rules
-- `new-message-polish.js`, `profile-sync.js`, `main-screen-polish.js` until their behavior is moved into explicit owners
+- `profile-sync.js` and `main-screen-polish.js` until display-name/sign-out behavior is moved into explicit owners
 - `settings-lifecycle-bridge.js` until `app.js` exposes an explicit Settings post-render hook
 
 These are migration/compatibility material, not the target architecture.
+
+## Runtime authority map
+
+`RUNTIME-AUTHORITY-MAP.md` is now the detailed source-of-truth for current resource ownership and temporary ownership violations. In particular:
+
+- `firebase.js` is the sole target Firebase service owner;
+- `app.js` is the structural UI owner;
+- `new-message-owner.js` owns only its explicit recipient-picker region;
+- `profile-sync.js` and `main-screen-polish.js` are temporary compatibility modules that must be retired without replacing them with new observers or competing Firebase access paths;
+- `service-worker.js` must end as cache/offline infrastructure only, never a JavaScript semantic transform layer.
 
 ## Rebuild validation
 
@@ -131,8 +146,9 @@ It executes:
 - recovery Firestore admin-adapter tests
 - central Firebase E2EE adapter tests
 - Cloud Functions recovery scaffold import test
+- runtime transform anchor gate
 
-Latest protected pass before runtime consolidation:
+Latest protected recovery pass:
 
 ```text
 commit: e2d2e10031182781f6887b2cd1a971701aa21e3a
@@ -140,7 +156,7 @@ run:    33976715187
 result: SUCCESS
 ```
 
-The workflow has read-only repository permissions and performs no Firebase production deployment.
+Subsequent rebuild commits continue to trigger the same non-deploying gate. The workflow has read-only repository permissions and performs no Firebase production deployment.
 
 ## Recovery / Firebase live-project boundary
 
@@ -173,17 +189,19 @@ index.html
 1. **COMPLETE** — remove confirmed dead one-off/superseded files from this branch only.
 2. **COMPLETE** — exact Firestore/recovery documentation and non-deploying Cloud Functions scaffold.
 3. **COMPLETE** — rebuild security gate green and checkpoint `checkpoint-rebuild-baseline-recovery-pass` created.
-4. **CURRENT** — remove prototype source/defaults and the broad bootstrap scrub observer as one bounded empty-state ownership change, after auditing all empty-state assumptions.
-5. Materialize the display-name/New Message/main-screen overlays into explicit owners, then remove their observer repair paths.
-6. Materialize or replace every remaining `service-worker.js` source transform; delete transforms one bounded unit at a time.
+4. **COMPLETE** — prototype top-level contact seed removed, real empty Messages state established, explicit `new-message-owner.js` materialized, superseded New Message observer removed, checkpoint `checkpoint-rebuild-new-message-owner` created.
+5. **CURRENT** — materialize group metadata/subscription/UI/send guard from service-worker transform into authoritative source as one bounded non-cryptographic unit.
+6. Replace profile-name and Sign Out overlays with central `firebase.js` APIs + explicit `app.js` projection; delete `main-screen-polish.js` observer path when empty.
 7. Wire validated account E2EE through central `firebase.js` ownership without reviving device-owned E2EE as the target.
-8. Build Firestore-authoritative sync/cache/Outbox.
-9. Revalidate iPhone/iPad UI, receipts, offline reconnect, Settings, account switching, PWA reinstall/recovery.
-10. Only after rebuild branch validation decide whether to merge/advance `main`.
+8. Replace per-device send/decrypt/fan-out service-worker transforms with account-authoritative messaging plus deliberate legacy migration handling.
+9. Reduce service worker to cache/offline only.
+10. Build/finish Firestore-authoritative sync/cache/Outbox and revalidate iPhone/iPad UI, receipts, offline reconnect, Settings, account switching, PWA reinstall/recovery.
+11. Only after rebuild branch validation decide whether to merge/advance `main`.
 
 ## Non-negotiable rollback points
 
 - `checkpoint-rebuild-baseline-recovery-pass` at `e2d2e10031182781f6887b2cd1a971701aa21e3a`
+- `checkpoint-rebuild-new-message-owner` at `b4731926432af3a986af991d2f51db86acea0fd1`
 - `main` at rebuild origin `246c524abc78404d9bc744b272ce08244a35cc3f`
 - historical stable 0.9.4.11 baseline
 - Settings checkpoint 0.9.5.1
