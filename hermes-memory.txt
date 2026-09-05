@@ -6,31 +6,37 @@ MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-E2EE-V1-EMULATOR-TESTS.md`, `E2EE-RECOVERY-PROTOCOL.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md`.
 - Core: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 
+REBUILD BASELINE — SEPTEMBER 5, 2026
+- User authorized moving from security proving into a repository cleanup/rebuild phase and asked to keep working until actual input is needed.
+- Created protected working branch `fidunio-rebuild-baseline-2026-09-05` from `main` commit `246c524abc78404d9bc744b272ce08244a35cc3f`. `main` is intentionally left as the rollback/reference source while cleanup proceeds.
+- Added `REBUILD-BASELINE-AUDIT.md` as the authoritative branch cleanup map.
+- Removed confirmed one-off/obsolete artifacts from the rebuild branch only: old baseline-cleanup pages/scripts, 0.9.5.12/0.9.5.13 reset pages/scripts, old E2EE diagnostics page/script, the one-shot `fix-cleanup-return` workflow, superseded `auth-ui.js`, and the historical `test-0.9.0/` snapshot.
+- Do NOT delete legacy per-device E2EE, service-worker transforms, or prototype startup state blindly. They remain entangled with validated behavior and must be replaced/materialized in bounded steps before removal.
+- Rebuild target is a forward-consolidated baseline, not a historical checkout: preserve validated Settings/auth/UI behavior plus validated account-authoritative E2EE/security modules, then eliminate hidden service-worker source rewriting and prototype-era state.
+
 FIRESTORE E2EE V1 EMULATOR GATE — SEPTEMBER 5, 2026
-- Added CI-only Local Emulator Suite workflow `E2EE Rules Emulator Gate`; it uses demo project `demo-fidunio-e2ee-rules`, never production.
-- Initial workflow failed only because setup-node npm caching required a lockfile. This was CI setup, not rules logic. Fixed by removing npm cache requirement.
-- Second CI run SUCCEEDED. Firestore emulator explicitly reported demo configuration and non-emulated service access disabled. Core staged rules gate passed 24/24 assertions.
-- Passed private owner/other/anon/disabled access, create, read, list deny, delete deny, stable keyId, immutable recovery wrapper, exact normal re-wrap, revision jump deny, unexpected plaintext field deny, wrong KDF deny, public create/read/list, anon/disabled deny, update/delete deny, owner binding, private JWK `d` deny, unexpected field deny, and atomic invalid-public/no-private-residue.
-- Expanded test suite to full 40 assertions including wrong versions/algorithm/state/timestamps, atomic valid/invalid symmetry, duplicate create, and regressions for invitations/profiles/direct conversation/message/legacy devices/groups. Commit `023f264d696a80152b3d2b0e384a664a45079a7b`; CI run is the current gate before production rule merge.
-- Production `firestore.rules` remains UNCHANGED. New account-E2EE rules are still staged only.
+- CI-only Local Emulator Suite workflow `E2EE Rules Emulator Gate` uses demo project `demo-fidunio-e2ee-rules`, never production.
+- Latest main run `33974521992` at commit `246c524abc78404d9bc744b272ce08244a35cc3f` SUCCEEDED.
+- The current security suite contains 42 assertions: the original 40 access/atomic/regression cases plus exact-schema rejection of generic recovery metadata and JWK `ext`/`key_ops`.
+- Exact public JWK shape is `{kty,crv,x,y}` only. Exact recovery wrapper forbids generic metadata and includes dedicated recovery-key IV/wrapping fields.
+- The repository `firestore.rules` source now contains the exact account-E2EE candidate sections marked as staged/candidate. Passing CI proves the rule source under the emulator; it does NOT mean the rules were deployed to the production Firebase project.
 
 ACCOUNT E2EE IDENTITY MANAGER — VALIDATED SEPTEMBER 5, 2026
-- `e2ee-account-identity-manager.js` is the sole proposed account identity lifecycle owner/state machine. It remains isolated from production UI/runtime.
-- iPad Safari isolated manager validation PASSED: ALL 15 TESTS PASSED.
-- Passed create-once, public-key privacy, recovery PIN handoff, locked reload, wrong-PIN rejection, normal unlock, exact revision increment, keyId/public/recovery continuity, old-credential rejection, new-credential unlock, cross-account refusal and serialized state behavior.
-- `e2ee-account-firestore-adapter.js` commit `f920aca120d7f5f6d4145a480af7b81f51361646`; it receives already initialized Firebase services and never initializes Firebase independently.
-- Adapter enforces auth UID equality, atomic create-once private+public identity, fails closed on partial state, compare-and-update by stable keyId + expected revision, and no crypto/UI inside transaction callbacks.
+- `e2ee-account-identity-manager.js` is the sole proposed account identity lifecycle owner/state machine and remains isolated from the normal production UI/runtime.
+- Latest user-reported iPad/Safari browser gate PASSED: ALL 24 TESTS PASSED.
+- `e2ee-account-firestore-adapter.js` receives already initialized Firebase services and never initializes Firebase independently.
+- Adapter/manager design enforces authenticated UID binding, create-once durable identity, atomic private+public establishment, stable keyId, revision-checked normal rewrap, preserved recovery wrapper, and fail-closed partial-state handling.
 
 E2EE V1 CRYPTO TARGET VALIDATION
-- iPad Safari crypto validation PASSED: all 15 isolated E2EE v1 crypto tests passed after correcting test-harness base64url tampering. Harness fix commit `90746a242279bc5da85773ac9e86b25407f0b949` flips decoded binary bytes.
+- iPad Safari crypto validation PASSED: all isolated E2EE v1 crypto tests passed.
 - Frozen: ECDH P-256 identity; PKCS#8 private plaintext only transiently; AES-256-GCM wrappers; PBKDF2-HMAC-SHA256 600000; random 16-byte salt; random 12-byte IV; exact six-digit PIN; canonical JSON KDF/AAD context; base64url no padding.
 
 E2EE PUBLIC/PRIVATE + RECOVERY
 - Private `users/{uid}/e2ee/identity`; public `e2eePublicKeys/{uid}`. Public key create-once; ordinary client update/delete denied.
 - ONE ACCOUNT = ONE durable random E2EE identity. Device ID informational only.
 - Recovery uses random 256-bit RUK; client recovery wrapper + PIN/server-master protected RUK. No plaintext password/PIN/RUK/private key/master secret in Firestore.
-- `E2EE-RECOVERY-PROTOCOL.md` binding: Firebase password reset; restricted recovery session; existing six-digit PIN cryptographically required; 10-minute session; max 5 PIN failures/session; max 10 consecutive account failures before hold; App Check; least privilege IAM; notification; no secret logging. Provider-assisted, not zero-knowledge.
-- Next isolated server step: implement/test pure Node recovery wrapping primitive (HMAC-SHA256 master-secret keyed derivation + AES-256-GCM RUK wrap) before Firebase Functions scaffolding. No deployment or secret creation until local/CI tests pass.
+- Recovery protocol binding: Firebase password reset; restricted recovery session; existing six-digit PIN cryptographically required; 10-minute session; max 5 PIN failures/session; max 10 consecutive account failures before hold; App Check; least privilege IAM; notification; no secret logging. Provider-assisted, not zero-knowledge.
+- Isolated Node recovery server crypto/session/callable/admin-adapter modules and tests now exist in repo; cloud deployment/secret provisioning remains a later project configuration step.
 
 OFFLINE MESSAGING
 - Firestore master encrypted history; local UID-isolated rebuildable cache; one owned Outbox. Pending offline, automatic serialized reconnect, stable IDs prevent duplicates.
@@ -38,27 +44,30 @@ OFFLINE MESSAGING
 DETERMINISTIC UI
 - DETERMINISTIC. One owner/resource/region; one serialized write path; state authoritative, DOM projection. No broad observer/timer/orientation/reload repair architecture. Preserve iPhone single-pane/iPad two-pane and Settings 0.9.5.1.
 
-CURRENT IMPLEMENTATION ORDER
-1. COMPLETE crypto primitive iPad Safari 15/15.
-2. COMPLETE isolated identity manager iPad Safari 15/15.
-3. CURRENT: full 40-assertion Firestore staged-rules CI gate; merge production rules only after full pass.
-4. Build/test isolated recovery server crypto primitive and session logic before cloud deployment.
-5. Then expose Firestore adapter through existing central `firebase.js` ownership only and build isolated Firebase integration test page, still not normal app UI.
-6. Firebase Functions + Secret Manager/KMS/App Check/IAM deployment requires project configuration; stop for user input only when console/project action is actually required.
-7. Wire account E2EE lifecycle into auth/PIN UI in bounded versioned release.
-8. Firestore-authoritative sync/cache/Outbox.
-9. Replace legacy per-device envelopes boundedly; device ID informational.
-10. SW consolidation; deterministic UI consolidation; full revalidation; Fire HD isolation; FCM later.
+CURRENT REBUILD ORDER
+1. COMPLETE security proving: crypto, identity-manager browser gate, exact Firestore emulator gate.
+2. CURRENT: clean the rebuild branch of dead one-off code while preserving all validated runtime dependencies.
+3. Audit/import-map the live runtime and identify which modules are truly authoritative versus compatibility/migration material.
+4. Replace/materialize service-worker `app.js` source transforms in bounded units; service worker must end as cache/offline only.
+5. Remove hard-coded prototype Maria Santos / John Cruz / Family Group state and the broad bootstrap scrub observer together with a real empty-state owner.
+6. Wire validated account E2EE through central `firebase.js` ownership only.
+7. Firestore-authoritative encrypted history + UID-scoped rebuildable cache + Outbox.
+8. Replace legacy per-device envelopes boundedly; device ID remains informational.
+9. Revalidate iPhone/iPad UI, receipts, offline reconnect, Settings, account switching, reinstall/recovery.
+10. Only after rebuild branch gates pass decide whether to merge/advance `main`.
+11. Firebase Functions + Secret Manager/KMS/App Check/IAM production setup stops for user input only when actual console/project action is required.
 
 CRITICAL RUNTIME
-- Raw app.js prototype-era state; service-worker.js source rewriting injects legacy per-device E2EE/groups. Do not blindly delete transforms/prototype arrays.
+- Raw `app.js` still contains prototype-era state; `service-worker.js` still rewrites `app.js` and injects legacy per-device E2EE/group behavior. This hidden dual-code architecture is the main rebuild target.
+- `bootstrap.js` still contains legacy prototype cleanup helpers and a broad MutationObserver; removing it before prototype state/UI ownership is corrected would re-expose the old defaults, so it is retained temporarily.
 
 PIN / LOCAL SECURITY
 - Existing local PIN is installation-local 4-12 digit PBKDF2-SHA256 210000 + WebAuthn fallback. New account E2EE PIN exactly six digits. Reconcile deliberately later. Remove Local PIN bug remains open.
 
 PROTECTED BASELINES / CONVENTIONS
-- Preserve validated historical baselines, especially 0.9.4.11, 0.9.5.1 Settings, 0.9.5.4 receipts, 0.9.5.7 identity race fix. Rejected 0.9.4.12-.15 and rejected invite-install work remain forbidden.
-- Hermes internal/FIDUNIO public; flat root; cumulative memory; never overwrite/package firebase-config.js/config-firestore.js; version.js authoritative; preserve artwork/navy-teal-gray/no gold/accessibility/display-name UX.
+- Preserve validated historical baselines, especially 0.9.4.11, 0.9.5.1 Settings, 0.9.5.4 receipts, 0.9.5.7 identity race fix.
+- Rejected 0.9.4.12-.15 and rejected invite-install work remain forbidden.
+- Hermes internal/FIDUNIO public; flat root; cumulative memory; never overwrite/package `firebase-config.js`/`config-firestore.js`; `version.js` authoritative; preserve artwork/navy-teal-gray/no gold/accessibility/display-name UX.
 
 FINAL HANDOFF
 Read supporting repo docs before code. Repository docs are durable authority. DETERMINISTIC: reduce competing authorities; do not add repair machinery.
