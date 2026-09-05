@@ -24,6 +24,7 @@ import {
   setLockTimeoutMs, consumeSuccessfulAuthBypass, noteLocalUnlock,
   installInactivityMonitor
 } from "./local-security.js";
+import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -998,8 +999,9 @@ function renderNewConversation(){
           <button class="big-choice" id="newGroupBtn"><span class="choice-icon">👥</span><span><strong>New Group</strong><span>Create a group and choose its members</span></span></button>
         </div>
         <div class="card">
-          <h2>Start a Conversation</h2>
-          ${cloudEnabled?`<p class="small-note">Choose another FIDUNIO user.</p><label class="form-label" for="peerUid">Recipient FIDUNIO ID</label><input class="text-input" id="peerUid" autocomplete="off" placeholder="Recipient UID" /><button class="primary" id="cloudDirectBtn">Start Conversation</button><p class="warning-note">Private one-to-one messages are end-to-end encrypted.</p>`:`<p class="small-note">Sign in to FIDUNIO before starting a conversation.</p>`}
+          <h2>Choose a Person</h2>
+          <div id="fidunioRecipientPickerHost"></div>
+          ${cloudEnabled?`<p class="small-note">Select a FIDUNIO user by display name.</p><label class="form-label" for="peerUid">Recipient FIDUNIO ID</label><input class="text-input" id="peerUid" autocomplete="off" placeholder="Recipient UID" /><button class="primary" id="cloudDirectBtn">Start Conversation</button><p class="warning-note">Private one-to-one messages are end-to-end encrypted.</p>`:`<p class="small-note">Sign in to FIDUNIO before starting a conversation.</p>`}
         </div>
       </section>
     </main>`;
@@ -1018,6 +1020,13 @@ function renderNewConversation(){
       beginCloudMessageSubscription(remote.id,{force:true});persistSoon();render();
     }catch(err){alert("Could not create the conversation: "+(err?.message||err));cloudBtn.disabled=false;cloudBtn.textContent="Start Conversation";}
   };
+  if(cloudEnabled&&cloudBtn){
+    mountNewMessageRecipientPicker({
+      host:document.querySelector("#fidunioRecipientPickerHost"),
+      uidInput:document.querySelector("#peerUid"),
+      startButton:cloudBtn
+    }).catch(err=>console.warn("New Message recipient picker unavailable",err));
+  }
 }
 
 function renderNewGroup(){
