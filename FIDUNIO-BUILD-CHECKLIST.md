@@ -106,13 +106,28 @@ Provider limitation: this trace-free rule governs all data FIDUNIO controls thro
 | Remove remaining simulated local message-state timers | NOT DONE | Real product must not simulate sent/delivered/read. |
 | Remove remaining tool-button alert placeholders | NOT DONE | Replace with real supported functions or deliberately remove unsupported tools. |
 
-## Notifications
+## FCM / notifications
+
+**Required architecture:** Firebase Cloud Messaging (FCM) is part of the complete FIDUNIO notification system wherever the installed PWA/browser platform supports it. FCM is an endpoint wake/notification mechanism, not message authority. Firestore remains authoritative for conversations/messages. Device registrations/tokens are replaceable endpoints associated with an authenticated account; they do not own account history or E2EE identity. FIDUNIO must not rely on FCM alone for platforms where FCM is unavailable or unreliable, including the Fire OS target.
+
+**Privacy rule:** push payloads must not contain plaintext message or attachment content by default. A notification may signal that new encrypted content is available and identify only the minimum routing/account information needed to open/synchronize FIDUNIO. Message content is obtained from Firestore and decrypted by the normal account-authoritative E2EE runtime after the app is active/unlocked.
 
 | Area | State | Evidence / notes |
 |---|---|---|
-| Browser/PWA notification architecture | NOT DONE | Inspect existing code/backend before implementation. |
-| Direct-message notifications | NOT DONE | Must respect E2EE/privacy and platform support. |
-| Group-message notifications | NOT DONE | Must respect E2EE/privacy and platform support. |
+| FCM architecture / single owner boundary | NOT DONE | Define one notification owner/service. `firebase.js` remains the sole Firebase SDK owner; UI and message crypto modules must not independently initialize Firebase Messaging. |
+| FCM permission/enrollment UX | NOT DONE | Request notification permission deliberately from supported installed-PWA/browser UX; no hidden permission prompts. |
+| FCM device-token registration | NOT DONE | Register supported device/browser FCM token automatically after permission and authenticated account binding; associate token with UID plus replaceable endpoint/device registration, not E2EE identity ownership. |
+| FCM token refresh/replacement | NOT DONE | Detect/reconcile token changes and retire obsolete registrations so pushes are not sent indefinitely to stale endpoints. |
+| Multi-device notification fan-out | NOT DONE | One UID may have multiple active notification endpoints; send to appropriate active endpoints without changing one-account/one-E2EE-identity authority. |
+| Sign-out/device revocation cleanup | NOT DONE | Remove or deactivate the local endpoint registration when account/device access is revoked; prevent cross-account notification leakage on a reused browser/device. |
+| Direct-message FCM notifications | NOT DONE | New direct messages trigger privacy-preserving notification/wake flow; normal Firestore + direct E2EE v3 path remains authoritative. |
+| Group-message FCM notifications | NOT DONE | Fan out to active group-member account endpoints while respecting membership and group E2EE v4; never expose plaintext group content in push payload. |
+| Attachment FCM notifications | NOT DONE | Notification may indicate new content but must not include attachment plaintext, preview, filename/content details that violate the privacy policy, or decrypted media. |
+| Disappearing-content notification purge | NOT DONE | Application-controlled notification records/payload caches associated with disappearing content must follow the same trace-free purge requirement and must not resurrect expired content. |
+| Notification tap/open routing | NOT DONE | Route to the intended conversation only after authenticated account state is established; then synchronize/decrypt through normal owners. No crypto/private keys in notification code. |
+| Foreground/background behavior | NOT DONE | Define supported behavior for active PWA vs browser/OS background limitations; never assume background execution is guaranteed on iOS/browser suspension. |
+| Fire OS/non-FCM fallback behavior | NOT DONE | FIDUNIO must remain usable and synchronize from Firestore when opened even when push is unavailable; no Google Play Services dependency for core messaging. |
+| FCM privacy/security/rules tests | NOT DONE | Test UID/token ownership, stale/revoked token rejection/cleanup, cross-account isolation, group membership fan-out, no plaintext payloads, and disappearing-content interaction. |
 
 ## Final product gate / deployment
 
@@ -127,7 +142,7 @@ Provider limitation: this trace-free rule governs all data FIDUNIO controls thro
 
 ## Current completion estimate
 
-Approximately **65%** of the complete FIDUNIO acceptance criteria. The restored disappearing-content requirement expands the remaining acceptance criteria; retain 65% as the working estimate until the next meaningful product milestone is completed and the denominator is reconciled. This number must not be advanced for minor cleanup.
+Approximately **65%** of the complete FIDUNIO acceptance criteria. Restored disappearing-content and explicit FCM requirements expand the remaining acceptance criteria; retain 65% as the working estimate until the next meaningful product milestone is completed and the denominator is reconciled. This number must not be advanced for minor cleanup.
 
 ## Build Log
 
@@ -136,4 +151,5 @@ Approximately **65%** of the complete FIDUNIO acceptance criteria. The restored 
 - 2026-09-06 — Group account-authoritative send/read/receipts/Outbox integration is present in the rebuild; group administration remains the next major messaging milestone.
 - 2026-09-06 — Restored disappearing messages and attachments to the complete-product acceptance criteria, including direct/group, attachments, offline/reconnect, multi-device convergence, UI, and security/rules testing.
 - 2026-09-06 — Disappearing-content requirement tightened: all application-controlled traces must be physically purged at expiry, including Firestore message records and attachments; no per-message tombstone/expired record is permitted.
+- 2026-09-06 — Restored FCM as an explicit complete-product requirement: supported endpoint token registration/refresh/revocation, multi-device fan-out, direct/group/attachment notifications, privacy-preserving payloads, disappearing-content interaction, and non-FCM fallback behavior.
 - 2026-09-06 — Reconciled hermes-setup.txt from obsolete 0.8.1.9 instructions to the current complete-rebuild architecture and recovery procedure.
