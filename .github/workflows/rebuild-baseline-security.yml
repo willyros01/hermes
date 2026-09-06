@@ -26,6 +26,9 @@ jobs:
       - {name: Firestore E2EE rules gate, run: npm run emulator:test:e2ee-rules}
       - {name: Account direct-message rules gate, run: npm run emulator:test:account-message-rules}
       - {name: Group E2EE rules baseline gate, run: npm run emulator:test:group-e2ee-rules}
+      - {name: Invitation lifecycle policy, run: npm run test:invitation-policy}
+      - {name: Invitation enrollment rules gate, run: npm run emulator:test:invitation-rules}
+      - {name: Invitation install coexistence closeout, run: npm run test:invitation-install-closeout}
       - {name: Account group-message crypto, run: npm run test:e2ee-account-group-crypto}
       - {name: Account group-history grant crypto, run: npm run test:e2ee-account-group-history-crypto}
       - {name: Account group-message runtime, run: npm run test:e2ee-account-group-runtime}
