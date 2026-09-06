@@ -199,3 +199,9 @@ No destructive reset of `main` is required to rebuild FIDUNIO safely.
 ## Recovery deployment completion — September 6, 2026
 
 The controlled Google/Firebase handoff completed. All three Recovery Functions are ACTIVE in us-central1 with the dedicated runtime service account and exact secret-binding boundary. Artifact Registry cleanup is configured. App Check remains OFF. Repository continuation may now wire and test the client recovery/enrollment lifecycle; normal e2ee:3 transport remains gated until account identity READY is proven.
+
+## Account-E2EE v3 repository checkpoint — September 6, 2026
+
+Version 0.9.6.3 has the account-authoritative client/runtime cutover materialized on the rebuild branch. The full security gate passed Firestore rules, recovery server/client boundaries, account lifecycle, v3 crypto/service, App Check integration, Functions scaffold, raw-runtime transform anchors, and sole-authority checks. service-worker.js is now cache/transport only.
+
+This is deliberately NOT yet a live-app deployment. The remaining gate is a real authenticated-device proof of enrollment, unlock, recovery preserving the same keyId/history, and two-device e2ee:3/Outbox behavior. Repository CI cannot safely substitute for the user's Firebase account credentials and chosen six-digit E2EE PIN. App Check enforcement remains OFF.

@@ -205,3 +205,7 @@ Future Hermes/FIDUNIO work must remember the user's explicit requirement:
 > **Deterministic. All actions' results should be as expected.**
 
 Do not solve UI instability by adding more moving parts. Reduce competing authorities until the expected result follows from the architecture itself.
+
+## Account Encryption Settings owner — September 6, 2026
+
+settings-lifecycle.js owns the named Account Encryption Settings host and serializes account/profile mutations. Enrollment/unlock/recovery inputs are ephemeral DOM values only; the six-digit account E2EE PIN is not persisted by the UI. The installation-local 4–12 digit app-lock PIN remains a separate resource and lifecycle.

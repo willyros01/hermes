@@ -242,3 +242,12 @@ ACCOUNT E2EE CLIENT/RUNTIME CUTOVER — SEPTEMBER 6, 2026
 - Raw app.js now sends/decrypts direct-message e2ee:3 via the account-authoritative message service. New sends fail closed unless the durable account identity is READY.
 - service-worker.js no longer transforms app.js or owns E2EE semantics; it is cache/transport only. Legacy e2ee:1/e2ee:2 receive compatibility remains in raw app.js for history.
 - App Check enforcement remains OFF pending real legitimate-device validation and metrics.
+
+V3 REPOSITORY CHECKPOINT — SECURITY GATE GREEN — SEPTEMBER 6, 2026
+- Version 0.9.6.3 is the branch test checkpoint.
+- Full Rebuild Baseline Security Gate passed all substantive steps after the account-E2EE runtime cutover: Firestore E2EE rules, account-message rules, recovery crypto/session/callable/Firestore adapter, central Firebase adapter, account auth lifecycle, recovery client boundary, direct-message crypto/service, App Check integration, Functions scaffold, transform gate, and runtime authority gate.
+- Recovery Functions remain live/ACTIVE from the verified console handoff; this repository work did not redeploy them.
+- Account Encryption UI, callable recovery client, coordinated password rewrap, e2ee:3 direct send/receive, Outbox send path, and service-worker transform retirement are materialized on fidunio-rebuild-baseline-2026-09-05.
+- App Check enforcement remains OFF.
+- STOP BOUNDARY: do not merge/deploy this v3 transport to the live app until a legitimate signed-in account performs the first real Account Encryption enrollment/unlock/recovery proof on a test device. That proof necessarily needs the user's authenticated browser and chosen six-digit account E2EE PIN; it cannot be completed by repository CI without exposing credentials or fabricating a user identity.
+- Required first live proof: enroll -> READY -> record stable keyId -> sign out/reset runtime -> unlock same keyId -> controlled recovery after password-reset test -> same keyId/history -> two-device e2ee:3 send/read/offline-Outbox test. Only after that proof may the branch be merged/deployed and later App Check metrics evaluated for enforcement.

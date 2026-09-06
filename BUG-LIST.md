@@ -51,3 +51,7 @@ This file is the durable working bug list for current development. Keep it conci
 
 ## Development rule
 - Before fixing any item in this list, read `CODING-GUIDELINES.md` and identify the owner, scope, lifecycle trigger, and serialized write path for the resource being changed.
+
+## 0.9.6.3 validation boundary
+
+No repository-gate failure is open for the account-E2EE v3 materialization. The remaining item is a required live-device validation gate, not a known code defect: first authenticated enrollment/unlock/recovery with stable keyId/history, followed by two-device e2ee:3 send/read/offline-Outbox verification. App Check remains OFF until that succeeds.

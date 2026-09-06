@@ -268,3 +268,7 @@ The current user-facing runtime still contains legacy per-device envelope behavi
 ## Recovery rollback invariant
 
 **Never remove the last usable recovery path before its replacement is proven. Never respond to failed unlock, rewrap, cache loss, or recovery by generating a new account identity.**
+
+## Runtime implementation checkpoint — September 6, 2026
+
+The rebuild branch now wires account-authoritative enrollment/unlock/recovery and e2ee:3 direct-message send/receive. The raw runtime is authoritative and the service worker no longer performs semantic source transforms. All repository security gates are green. Live cutover remains blocked until the first real authenticated account proves READY, stable-keyId recovery, history preservation, and two-device messaging/Outbox behavior.
