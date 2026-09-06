@@ -6,12 +6,9 @@ const jsFiles=entries
   .map(e=>e.name)
   .filter(name=>!name.endsWith(".test.mjs"));
 
-// Firebase resource ownership is explicit and bounded: firebase.js owns the
-// default Firebase app/Auth/Firestore; firebase-app-check.js owns App Check only
-// and is forbidden by its own gate from creating another Firebase app.
+// firebase.js is the sole runtime Firebase SDK/service owner, including App Check.
 const firebaseSdkAllow=new Set([
   "firebase.js",
-  "firebase-app-check.js",
 ]);
 const observerAllow=new Set([
 ]);
@@ -37,9 +34,15 @@ if(unexpectedObservers.length){
   throw new Error(`Unexpected MutationObserver repair path outside allowlist: ${unexpectedObservers.join(", ")}`);
 }
 
-const appCheck=await readFile("firebase-app-check.js","utf8");
-if(/initializeApp\s*\(/.test(appCheck))throw new Error("firebase-app-check.js must never initialize a second Firebase app.");
-if(!/getApps\s*\(\)/.test(appCheck)||!/getApp\s*\(\)/.test(appCheck))throw new Error("firebase-app-check.js must bind only to the existing default Firebase app.");
+const firebase=await readFile("firebase.js","utf8");
+if(!/firebase-app-check\.js/.test(firebase)||!/initializeAppCheck\s*\(/.test(firebase)||!/ReCaptchaEnterpriseProvider/.test(firebase))throw new Error("firebase.js must own App Check initialization.");
+const appAt=firebase.indexOf("initializeApp(firebaseConfig)");
+const appCheckAt=firebase.indexOf("initializeAppCheck(app");
+const authAt=firebase.indexOf("getAuth(app)");
+const firestoreAt=firebase.indexOf("getFirestore(app)");
+if(appAt<0||appCheckAt<=appAt||authAt<=appCheckAt||firestoreAt<=appCheckAt)throw new Error("Central App Check must initialize after the single app and before Auth/Firestore services.");
+
+if(jsFiles.includes("firebase-app-check.js"))throw new Error("firebase-app-check.js second Firebase owner must remain deleted.");
 
 const bootstrap=await readFile("bootstrap.js","utf8");
 if(/MutationObserver/.test(bootstrap))throw new Error("bootstrap.js must remain observer-free.");
