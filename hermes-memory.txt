@@ -285,3 +285,13 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Version checkpoint advanced to 0.9.6.5.
 - Overall first complete rebuild estimate remains approximately 65%; do not inflate it for this isolated foundation.
 - Reporting rule reinforced by user: after every substantive build run report the overall rebuild percentage even when unchanged, and reconcile all affected durable docs.
+
+
+2026-09-06 — GROUP ADMINISTRATION BRIDGE REPAIR / 0.9.6.6
+- Before extending earlier-history persistence, repository-first source audit found a concrete bounded regression in `e2ee-account-group-app-integration.js`: its four Group Info administration wrappers referenced controller delegates that were not imported.
+- Repaired the import surface without changing ownership: app integration -> app controller -> group service/runtime -> Firebase adapter -> firebase.js remains authoritative.
+- Strengthened `e2ee-account-group-app-integration.test.mjs` so rename/add/remove/leave must all be imported from the controller and delegated through the bounded bridge.
+- Version checkpoint advanced to 0.9.6.6.
+- The prior full Rebuild Baseline Security Gate run `34046083575` completed green including the new group-history grant crypto test. A fresh gate is required for this wiring repair before treating the checkpoint as validated.
+- Earlier-history Firestore schema/rules/runtime/UI/purge linkage remain unfinished; do not enable the Group Info history-sharing control yet.
+- Overall first complete rebuild estimate remains approximately 65%.
