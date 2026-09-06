@@ -7,6 +7,7 @@
     "test:group-e2ee-rules":"node firestore-group-e2ee-v1.rules.test.mjs",
     "emulator:test:group-e2ee-rules":"firebase emulators:exec --only firestore --project demo-fidunio-group-e2ee-rules \"npm run test:group-e2ee-rules\"",
     "test:e2ee-account-group-crypto":"node e2ee-account-group-crypto.test.mjs",
+    "test:e2ee-account-group-history-crypto":"node e2ee-account-group-history-crypto.test.mjs",
     "test:e2ee-account-group-runtime":"node e2ee-account-group-runtime.test.mjs",
     "test:e2ee-account-group-service":"node e2ee-account-group-service.test.mjs",
     "test:e2ee-account-group-outbox":"node e2ee-account-group-outbox.test.mjs",
