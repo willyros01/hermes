@@ -49,12 +49,17 @@ This file is the durable working bug list for current development. Keep it conci
 - On first cold load, Invitations may briefly show a loading state before data appears; subsequent opens are immediate. This is currently considered normal data-fetch latency, not a Settings lifecycle failure.
 - Protected checkpoint branch: `checkpoint-0.9.5.1-settings-pass`.
 
-
 ### Group administration bounded bridge — resolved 2026-09-06
 - Repository-first audit found `e2ee-account-group-app-integration.js` exported `renameGroupForApp`, `addGroupMemberForApp`, `removeGroupMemberForApp`, and `leaveGroupForApp` but did not import the delegated controller functions.
 - Root cause: the earlier source-presence gate verified wrapper text/ownership boundaries but did not verify that each delegate was actually imported.
 - Fixed in commit `8b72f00744cc4b882c7fb1df0ce48d3959f563ec`; `e2ee-account-group-app-integration.test.mjs` now gates all four controller imports and delegation paths.
 - No Firebase, crypto, UI, or ownership boundary was moved. This is a bounded wiring repair.
+
+### Disappearing restart/reconnect crash ambiguity — resolved 2026-09-06
+- FIDUNIO 0.9.6.25 closes the post-commit/pre-observation replay ambiguity with the user-approved fail-closed policy.
+- The local Outbox records `sendAttempted` before cloud transmission; an attempted message that is later absent from an authoritative server read is never auto-replayed.
+- This prevents accepted-then-expired content from being resurrected after a browser crash without introducing a server tombstone or accepted-ID registry.
+- Full baseline security gate `34060880885` passed; 0.9.6.25 is repository-validated.
 
 ## Development rule
 - Before fixing any item in this list, read `CODING-GUIDELINES.md` and identify the owner, scope, lifecycle trigger, and serialized write path for the resource being changed.
