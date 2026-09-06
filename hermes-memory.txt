@@ -382,3 +382,13 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - 0.9.6.11 adds policy/test coverage only. Direct/group Firestore message schema persistence and rules for `disappearAfterSeconds`, purge execution, local/offline anti-resurrection, attachments, and final UI remain IN PROGRESS.
 - Live Firebase and htest remain untouched. App Check enforcement remains OFF; FCM remains deferred to 1.1.
 - Overall first complete rebuild estimate remains approximately 65%.
+
+2026-09-06 — 0.9.6.12 IMMUTABLE OUTER DISAPPEARING METADATA
+- User-selected duration is now threaded through current direct/group send authorities as optional outer `disappearAfterSeconds` message metadata, never inside E2EE v3/v4 crypto envelopes.
+- `firebase.js` remains sole Firebase writer and normalizes the metadata through the pure disappearing policy owner before Firestore persistence.
+- Direct encrypted Outbox payloads retain the resolved duration through reconnect. Group encrypted Outbox -> controller -> service -> serialized runtime -> Firebase adapter preserves the same resolved duration while current epoch revalidation may re-encrypt only ciphertext.
+- Firestore rules allow the optional integer only in range 1..31536000 seconds. Existing receipt update diff rules make duration immutable after create.
+- Direct/group emulator tests and `disappearing-message-metadata-authority.test.mjs` cover the new boundary; crypto modules remain exact and unaware of disappearing metadata.
+- Physical trace-free purge, server purge authority, grant-copy/attachment purge, local/offline convergence and stale-client anti-resurrection remain unfinished and must be completed before exposing disappearing controls.
+- No live Firebase or htest deployment; App Check enforcement remains OFF; FCM deferred to 1.1.
+- Overall first complete rebuild estimate remains approximately 65%.

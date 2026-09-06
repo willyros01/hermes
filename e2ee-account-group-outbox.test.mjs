@@ -3,6 +3,8 @@ const src=await fs.readFile(new URL("./e2ee-account-group-outbox.js",import.meta
 const checks=[
   ["encrypted-local payload discriminator",src.includes('kind:"group-e2ee-v1"')],
   ["captures expected epoch",src.includes("expectedKeyEpoch:Number(epoch.keyEpoch)")],
+  ["persists normalized disappearing duration in encrypted Outbox payload",src.includes("disappearAfterSeconds:duration")],
+  ["forwards immutable duration on retry",src.includes("disappearAfterSeconds:payload.disappearAfterSeconds??null")],
   ["revalidates queued epoch",src.includes("revalidateQueuedAccountGroupMessage")],
   ["sends through group E2EE service",src.includes("sendAccountGroupMessage")],
   ["serialized write path",src.includes("tail.then(task,task)")],

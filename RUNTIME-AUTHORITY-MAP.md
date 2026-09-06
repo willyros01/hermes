@@ -140,3 +140,12 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Firestore Rules: recipient/account authorization plus immutable `readAt == request.time` boundary.
 - Existing direct app/group conversation owners request receipt state only. They do not supply a disappearance timestamp.
 - Physical purge/anti-resurrection remains a separate future serialized resource owner and is not implemented by this checkpoint.
+
+## Disappearing outer message metadata — 0.9.6.12
+- `disappearing-content-policy.js`: sole duration normalization/schema-name policy owner.
+- Direct/group UI/controller callers provide intent only; resolved duration is stored as outer `disappearAfterSeconds` metadata.
+- Encrypted Outbox records preserve the resolved duration across offline retry.
+- Direct/group crypto modules do not own or authenticate this metadata and remain exact-envelope owners only.
+- `firebase.js` is the sole Firestore persistence owner and writes the bounded optional metadata alongside ciphertext.
+- Firestore Rules enforce bounds and immutability through exact create schemas plus receipt-only update diffs.
+- Physical deletion remains a separate not-yet-materialized serialized resource owner.

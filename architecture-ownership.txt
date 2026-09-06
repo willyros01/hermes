@@ -142,3 +142,12 @@ DISAPPEARING FIRST-READ AUTHORITY — 0.9.6.10
 - Firestore Rules enforce recipient/account ownership and immutable first-Read timestamps.
 - app.js and the group conversation owner may request Delivered/Read transitions but do not choose or persist authoritative timestamps.
 - Future physical purge is a separate mutable resource and must have one dedicated serialized deletion owner; do not scatter deletes among UI/subscription modules.
+
+DISAPPEARING OUTER MESSAGE METADATA — 0.9.6.12
+- Resource: resolved per-message disappearing duration.
+- Policy owner: `disappearing-content-policy.js`.
+- Pending-send authority: encrypted Outbox preserves the resolved duration; reconnect must not recompute it from a changed user preference.
+- Cloud write owner: `firebase.js`; current direct/group ciphertext rows may carry optional `disappearAfterSeconds`.
+- Crypto owners remain unchanged and must not absorb disappearing metadata into their exact envelopes.
+- Firestore Rules bound and freeze the metadata.
+- Physical purge is a different resource and still requires one dedicated serialized deletion owner.

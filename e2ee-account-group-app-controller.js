@@ -16,8 +16,8 @@ export function removeGroupMember(groupId,targetUid){return serial(()=>removeAcc
 export function leaveGroup(groupId){return serial(()=>leaveAccountGroup(groupId));}
 export function grantGroupHistory(groupId,targetUid,boundary){return serial(()=>createAccountGroupHistoryGrant({groupId,targetUid,boundary}));}
 
-export function prepareGroupSend({groupId,messageId,text}){
-  return serial(()=>prepareQueuedAccountGroupMessage({groupId,messageId,text}));
+export function prepareGroupSend({groupId,messageId,text,disappearAfterSeconds=null}){
+  return serial(()=>prepareQueuedAccountGroupMessage({groupId,messageId,text,disappearAfterSeconds}));
 }
 
 export function flushGroupSend(payload){

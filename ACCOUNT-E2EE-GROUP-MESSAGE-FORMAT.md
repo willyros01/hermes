@@ -132,3 +132,6 @@ For disappearing group messages, expiry is account-recipient specific. The first
 
 ### Group first-Read receipt authority — 0.9.6.10
 Group receipt persistence is account-specific. A Delivered receipt has exact fields `uid,state,updatedAt`. A Read receipt additionally has `readAt`; both `updatedAt` and first `readAt` are server-backed. A member may mutate only that member's own receipt. The first Delivered -> Read transition may add `readAt`; repeat Read is a no-op in the central Firebase writer and Rules reject timestamp movement. This `readAt` is the authoritative input to the disappearing-content policy for that recipient and does not start any other group member's timer.
+
+### Disappearing-message outer metadata — 0.9.6.12
+Current `e2ee:4` group messages may include optional outer `disappearAfterSeconds` metadata, integer 1..31,536,000. The group crypto envelope remains unchanged. The encrypted group Outbox preserves the resolved value while queued epoch revalidation may replace only the ciphertext envelope. Each recipient still starts an independent expiry window at immutable server-backed first Read. Final shared-source deletion remains blocked until every applicable recipient window has elapsed and the dedicated purge owner can remove all related traces.

@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.10**
+- Current checkpoint version: **0.9.6.12**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -326,4 +326,17 @@ Release transition: **0.9.6.10 -> 0.9.6.11**.
 - Expiry still starts from the recipient account's immutable server-backed first `readAt` established in 0.9.6.10. In groups, each recipient has an independent first-Read clock.
 - This checkpoint defines and gates duration-selection semantics only. Message-schema persistence/rules, physical purge, local/offline convergence, attachment purge, anti-resurrection, and final UI remain unfinished.
 - No live Firebase deployment, no `htest` deployment, no FCM activation, and no App Check enforcement change.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.12 — immutable outer disappearing-message metadata
+
+Release transition: **0.9.6.11 -> 0.9.6.12**.
+
+- `disappearAfterSeconds` is now carried as optional outer message metadata for current account-authoritative direct (`e2ee:3`) and group (`e2ee:4`) sends. It is deliberately not part of either exact cryptographic envelope.
+- The central `firebase.js` owner normalizes the user-selected duration and writes it only when disappearing content is enabled. The accepted range remains 1..31,536,000 seconds; absence means off.
+- Direct encrypted Outbox records preserve the resolved duration across offline/reconnect. Group Outbox/runtime/service/controller/integration similarly preserve and forward the resolved duration while re-encrypting only ciphertext when epochs change.
+- Firestore Rules accept only the bounded optional integer and receipt transitions cannot mutate it because existing receipt diff constraints remain authoritative.
+- Direct/group emulator matrices now cover valid duration, zero/over-max/non-integer rejection, and direct receipt mutation denial. A dedicated source gate verifies metadata ownership and that crypto-envelope modules remain untouched.
+- This checkpoint still does not implement physical deletion. Purge ownership, deletion authorization, grant-copy/attachment/local-cache purge, and stale-client anti-resurrection remain prerequisites before user-facing disappearing controls or earlier-history controls are enabled.
+- Repository rules changed but are not deployed to live Firebase. `htest` remains untouched; FCM remains deferred to 1.1; App Check enforcement remains OFF/deferred to 1.2.
 - Overall first-rebuild estimate remains approximately 65%.

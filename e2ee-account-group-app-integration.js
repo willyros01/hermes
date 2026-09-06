@@ -11,9 +11,9 @@ export function removeGroupMemberForApp(groupId,targetUid){return removeGroupMem
 export function leaveGroupForApp(groupId){return leaveGroup(groupId);}
 export function grantGroupHistoryForApp(groupId,targetUid,boundary){return grantGroupHistory(groupId,targetUid,boundary);}
 
-export async function queueGroupTextForApp({groupId,messageId,text,time,persistEncryptedOutbox}){
+export async function queueGroupTextForApp({groupId,messageId,text,time,disappearAfterSeconds=null,persistEncryptedOutbox}){
   if(typeof persistEncryptedOutbox!=="function")throw new Error("Encrypted Outbox persistence callback is required.");
-  const queued=await prepareGroupSend({groupId,messageId,text});
+  const queued=await prepareGroupSend({groupId,messageId,text,disappearAfterSeconds});
   const payload={...queued,time:String(time||"")};
   // The plaintext is persisted only through app.js's AES-GCM encrypted Outbox.
   await persistEncryptedOutbox(payload);

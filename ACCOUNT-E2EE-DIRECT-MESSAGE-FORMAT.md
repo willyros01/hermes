@@ -224,3 +224,6 @@ The raw application runtime now prepares and decrypts direct-message e2ee:3 enve
 
 ## Direct first-Read authority — 0.9.6.10
 For direct messages, only the non-sender recipient account may establish receipt authority. `firebase.js` serializes the transition in a Firestore transaction. `sent -> delivered` changes only state. The first `sent|delivered -> read` writes `readAt` with `serverTimestamp()`. Firestore Rules require `readAt == request.time`, preserve sender/createdAt/ciphertext and all message fields, and reject a second Read mutation that would move the first-read timestamp. Reopening a conversation is therefore a no-op for the disappearance clock. These repository rules are not automatically deployed to live Firebase.
+
+## Disappearing-message outer metadata — 0.9.6.12
+`disappearAfterSeconds` is optional outer Firestore message metadata for account-authoritative v3 direct messages. It is not part of the six-field cryptographic envelope or AAD. When present it must be an integer from 1 through 31,536,000 and is immutable after creation; absence means disappearing is off. The encrypted local Outbox preserves the resolved value across reconnect, and `firebase.js` is the sole persistence owner. First recipient `readAt` remains the start authority. Repository rules are not live-deployed by this checkpoint.

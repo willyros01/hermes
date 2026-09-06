@@ -218,6 +218,7 @@ async function queueOutboxMessage(conversationId,message){
     messageId:message.id,
     text:message.text,
     time:message.time,
+    disappearAfterSeconds:message.disappearAfterSeconds??null,
     cloud:!!message.cloud,
     conversation:c ? {
       id:c.id,
@@ -1349,7 +1350,7 @@ async function flushQueued(){
         const peerUid=await resolvePeerUidForConversation(payload.conversationId);
         if(!peerUid)throw new Error("Recipient account identity is unavailable.");
         const encrypted=await prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text});
-        await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent"});
+        await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null});
 
         m.state="sent";
         // Remove the Outbox item only after Firestore confirms the write.

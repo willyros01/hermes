@@ -66,6 +66,7 @@ GROUP REQUIREMENTS
 DISAPPEARING CONTENT
 - Disappearing messages and attachments are part of the first rebuild release.
 - Duration is user-selected. The resolved per-message authority is `disappearAfterSeconds`; absence means disappearing is off. UI presets/defaults may be convenience only and must not retroactively change already-sent messages.
+- As of 0.9.6.12, current direct/group send and encrypted-Outbox paths preserve that resolved duration as immutable outer metadata; it is deliberately outside the E2EE envelopes. Repository rules supporting the metadata are not yet deployed live.
 - On expiry, all application-controlled traces must be physically purged, including Firestore message documents, receipts/references, ciphertext, attachment metadata/chunks/blobs, thumbnails/previews, local history/cache, decrypted object URLs, Outbox copies, and any application-owned notification records.
 - No soft-delete, expired marker, or per-message tombstone may remain.
 - Offline/stale clients must not resurrect expired content.
