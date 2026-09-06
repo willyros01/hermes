@@ -1,14 +1,15 @@
-import {prepareGroupSend,flushGroupSend,openGroupConversation,closeGroupConversation,isGroupOutboxPayload,resetGroupMessagingForSignOut,renameGroup,addGroupMember,removeGroupMember,leaveGroup} from "./e2ee-account-group-app-controller.js";
+import {prepareGroupSend,flushGroupSend,openGroupConversation,closeGroupConversation,isGroupOutboxPayload,resetGroupMessagingForSignOut,renameGroup,addGroupMember,removeGroupMember,leaveGroup,grantGroupHistory} from "./e2ee-account-group-app-controller.js";
 
 // Bounded bridge between the legacy app shell and the account-authoritative
 // group messaging owners. This module owns no Firebase, crypto, IndexedDB or
-// DOM. app.js supplies only its existing encrypted Outbox/state callbacks.
+// DOM. app.js supplies only intent and its existing encrypted Outbox/state callbacks.
 let activeGroupId=null;
 
 export function renameGroupForApp(groupId,name){return renameGroup(groupId,name);}
 export function addGroupMemberForApp(groupId,targetUid){return addGroupMember(groupId,targetUid);}
 export function removeGroupMemberForApp(groupId,targetUid){return removeGroupMember(groupId,targetUid);}
 export function leaveGroupForApp(groupId){return leaveGroup(groupId);}
+export function grantGroupHistoryForApp(groupId,targetUid,boundary){return grantGroupHistory(groupId,targetUid,boundary);}
 
 export async function queueGroupTextForApp({groupId,messageId,text,time,persistEncryptedOutbox}){
   if(typeof persistEncryptedOutbox!=="function")throw new Error("Encrypted Outbox persistence callback is required.");
