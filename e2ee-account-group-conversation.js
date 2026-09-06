@@ -1,5 +1,6 @@
 import {getAccountE2EERuntimeIdentity} from "./e2ee-account-runtime.js";
 import {decryptAccountGroupMessage,loadAccountGroupGrantedHistory} from "./e2ee-account-group-service.js";
+import {mergeGroupHistoryProjection} from "./e2ee-account-group-history-projection.js";
 import {readCloudGroupAuthority,subscribeCloudGroupMessages,updateCloudGroupReceipt,subscribeCloudGroupReceipts} from "./firebase.js";
 
 // Read-side group messaging owner. app.js supplies a bounded projection callback;
@@ -39,21 +40,7 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
 
     let granted=[];
     try{granted=await loadAccountGroupGrantedHistory(key);}catch(err){onError?.(err);}
-    const grantsById=new Map((granted||[]).map(row=>[String(row.id),row]));
-    const merged=[];
-    for(const row of live){
-      const grant=grantsById.get(String(row.id));
-      if(grant&&!row.decryptAvailable){
-        merged.push({...row,text:grant.text,createdAt:asDate(grant.createdAt)||row.createdAt,granted:true,historyGrantId:grant.historyGrantId});
-        grantsById.delete(String(row.id));
-      }else{
-        merged.push(row);
-        grantsById.delete(String(row.id));
-      }
-    }
-    for(const grant of grantsById.values())merged.push({id:grant.id,mine:false,senderUid:null,text:grant.text,time:"",state:"sent",cloud:true,e2ee:4,keyEpoch:null,createdAt:asDate(grant.createdAt),decryptAvailable:true,granted:true,historyGrantId:grant.historyGrantId});
-    merged.sort((a,b)=>{const at=a.createdAt?.getTime?.()??Number.MAX_SAFE_INTEGER,bt=b.createdAt?.getTime?.()??Number.MAX_SAFE_INTEGER;return at-bt||String(a.id).localeCompare(String(b.id));});
-    for(const row of merged)delete row.decryptAvailable;
+    const merged=mergeGroupHistoryProjection(live,granted);
     if(!closed)onRows?.(merged);
   };
   readCloudGroupAuthority(key).then(a=>{memberUids=a.memberUids||[];delivery=delivery.then(emit,emit);}).catch(onError);
