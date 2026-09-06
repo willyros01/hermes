@@ -10,11 +10,10 @@ import {
   getFidunioAccessInfo,
   listCloudUsers,
   getCloudUserDevices,
-  validateInvitation,
-  redeemFidunioInvitation,
   signInFidunio,
   sendFidunioPasswordReset
 } from "./firebase.js";
+import {validateFidunioInvitation,redeemInvitationForEnrollment} from "./invitation-owner.js";
 import {markSuccessfulAuthBypass} from "./local-security.js";
 import {
   getAccountStorageStatus,
@@ -120,11 +119,11 @@ async function verifyInvite(){
   if(!token)return;
   if(btn){btn.disabled=true;btn.textContent="Verifying…";}
   try{
-    const invite=await validateInvitation(token);
+    const invite=await validateFidunioInvitation(token);
     box.innerHTML=`<div class="card" style="margin-top:14px;text-align:left"><strong>Invitation verified</strong><p class="small-note">Invited by ${esc(invite.invitedByName)} • Role: ${esc(prettyRole(invite.role))}${invite.expiresAt?` • Expires ${esc(invite.expiresAt.toLocaleDateString())}`:""}</p><label class="form-label" for="joinName">Display name</label><input class="text-input" id="joinName" maxlength="80" placeholder="Your display name"><label class="form-label" for="joinEmail">Email</label><input class="text-input" id="joinEmail" type="email" autocomplete="username" placeholder="name@example.com"><label class="form-label" for="joinPassword">Password</label><input class="text-input" id="joinPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><button class="primary" id="redeemBtn" style="margin-top:14px">Create FIDUNIO Account</button></div>`;
     document.querySelector("#redeemBtn").onclick=async()=>{
       const createBtn=document.querySelector("#redeemBtn");createBtn.disabled=true;createBtn.textContent="Creating account…";
-      try{await redeemFidunioInvitation(token,document.querySelector("#joinEmail").value.trim(),document.querySelector("#joinPassword").value,document.querySelector("#joinName").value.trim());markSuccessfulAuthBypass();await startApp();}
+      try{await redeemInvitationForEnrollment(token,document.querySelector("#joinEmail").value.trim(),document.querySelector("#joinPassword").value,document.querySelector("#joinName").value.trim());markSuccessfulAuthBypass();await startApp();}
       catch(err){renderGate("join",err?.message||String(err));}
     };
   }catch(err){box.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}

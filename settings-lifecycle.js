@@ -13,14 +13,13 @@
 import {
   getFidunioAccessInfo,
   claimLegacyOwner,
-  createFidunioInvitation,
   updateFidunioProfile,
   changeFidunioPassword,
   listFidunioUsersForAdmin,
   updateFidunioUserLifecycle,
-  listPendingFidunioInvitations,
-  revokeFidunioInvitation
 } from "./firebase.js";
+import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";
+import {mountInstallGuidance} from "./install-guidance.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
 
 let mutationTail=Promise.resolve();
@@ -47,10 +46,11 @@ const GROUPS=[
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, and expiration."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
+  {id:"install",label:"Install",icon:"▣",subtitle:"Optional browser and Home Screen installation guidance."},
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","encryption","users","invites","data","about"];
+const PANEL_ORDER=["profile","general","privacy","encryption","users","invites","install","data","about"];
 let activeGroup="profile";
 
 function directCards(settings){return[...settings.querySelectorAll(":scope > .card")];}
@@ -169,8 +169,8 @@ function renderUserAdmin(usersHost,info){
   usersHost.querySelector("#manageUsersBtn").onclick=e=>{e.preventDefault();e.stopPropagation();openAdmin(info);};
 }
 
-async function pendingInvites(){return listPendingFidunioInvitations();}
-async function revokeInvite(id){return revokeFidunioInvitation(id);}
+async function pendingInvites(){return listPendingInvitationsForAdmin();}
+async function revokeInvite(id){return revokeInvitationForAdmin(id);}
 async function refreshPending(card){
   const box=card.querySelector("#pendingInviteList");if(!box)return;box.innerHTML='<p class="small-note">Loading invitations…</p>';
   try{const rows=await pendingInvites();if(!box.isConnected)return;box.innerHTML=rows.length?rows.map(i=>`<div class="admin-invite-row"><div><strong>${esc(prettyRole(i.role))} invitation</strong><span>${esc(i.invitedByName||"Administrator")} • Expires ${esc(dateText(i.expiresAt))}</span></div><button class="row-action invitationRevokeBtn" type="button" data-id="${esc(i.id)}">Revoke</button></div>`).join(""):'<p class="small-note">No pending invitations.</p>';box.querySelectorAll(".invitationRevokeBtn").forEach(btn=>btn.onclick=async e=>{e.preventDefault();e.stopPropagation();btn.disabled=true;btn.textContent="Revoking…";try{await serializeSettingsMutation("revoke invitation",()=>revokeInvite(btn.dataset.id));await refreshPending(card);}catch(err){btn.disabled=false;btn.textContent="Revoke";alert(err?.message||String(err));}});}catch(err){box.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
@@ -187,7 +187,7 @@ function closeInviteModal(){document.querySelector("#fidunioInviteModal")?.remov
 function openInviteModal(card){
   closeInviteModal();const modal=document.createElement("div");modal.id="fidunioInviteModal";modal.className="modal-backdrop";modal.innerHTML=`<div class="modal" style="max-width:640px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 style="margin:0">Create Invitation</h2><button class="text-btn" id="inviteModalX" aria-label="Close" style="font-size:28px;line-height:1">×</button></div><p class="small-note">Choose the new user's role and how long the invitation should remain valid.</p><label class="form-label" for="modalInviteRole">New user's role</label><select class="text-input" id="modalInviteRole"><option value="user">User</option><option value="admin">Admin</option></select><label class="form-label" for="modalInviteDays">Expires</label><select class="text-input" id="modalInviteDays"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option></select><div class="permission-box" style="margin-top:14px"><p class="small-note" style="margin:0">ⓘ The recipient gets the Join link plus a public Quick Start Guide link.</p></div><div class="modal-actions"><button class="modal-cancel" id="inviteModalCancel">Cancel</button><button class="modal-confirm" id="inviteModalCreate">Create Invitation</button></div><div id="inviteModalNote"></div></div>`;document.body.appendChild(modal);
   modal.onclick=e=>{if(e.target===modal)closeInviteModal();};modal.querySelector("#inviteModalX").onclick=closeInviteModal;modal.querySelector("#inviteModalCancel").onclick=closeInviteModal;
-  modal.querySelector("#inviteModalCreate").onclick=async()=>{const btn=modal.querySelector("#inviteModalCreate"),note=modal.querySelector("#inviteModalNote");btn.disabled=true;btn.textContent="Creating…";try{const invite=await serializeSettingsMutation("create invitation",()=>createFidunioInvitation(modal.querySelector("#modalInviteRole").value,Number(modal.querySelector("#modalInviteDays").value)));renderInviteResult(card,invite);closeInviteModal();}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Create Invitation";}};
+  modal.querySelector("#inviteModalCreate").onclick=async()=>{const btn=modal.querySelector("#inviteModalCreate"),note=modal.querySelector("#inviteModalNote");btn.disabled=true;btn.textContent="Creating…";try{const invite=await serializeSettingsMutation("create invitation",()=>createInvitationForEnrollment(modal.querySelector("#modalInviteRole").value,Number(modal.querySelector("#modalInviteDays").value)));renderInviteResult(card,invite);closeInviteModal();}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Create Invitation";}};
 }
 function renderInvitations(invitesHost,info){
   if(!info.system){
@@ -242,5 +242,6 @@ export function mountSettingsLifecycle(){
      the permanent named areas exactly once for this render generation. */
   const shell=createShell(settings);
   placeBaseCards(settings,shell);
+  mountInstallGuidance(host(shell,"install"));
   hydrateAccountPanels(g,shell);
 }
