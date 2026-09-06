@@ -37,30 +37,54 @@ jobs:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
 
+      - name: Bounded 0.9.6.10 reconciliation
+        if: github.event.head_commit.message == 'Finalize disappearing policy checkpoint'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          def append_once(path, marker, block):
+              p=Path(path); s=p.read_text()
+              if marker not in s: p.write_text(s.rstrip()+"\n\n"+block.strip()+"\n")
+          p=Path('version.js'); p.write_text(p.read_text().replace('version: "0.9.6.9"','version: "0.9.6.10"'))
+          p=Path('README.md'); p.write_text(p.read_text().replace('Current checkpoint version: **0.9.6.9**','Current checkpoint version: **0.9.6.10**',1))
+          append_once('README.md','### 0.9.6.10 — disappearing-content policy foundation','''### 0.9.6.10 — disappearing-content policy foundation
+Release transition: **0.9.6.9 -> 0.9.6.10**.
+- Added `disappearing-content-policy.js` as a pure policy owner with no Firebase, DOM, crypto, storage, timer or purge-write authority.
+- Fixed-time-after-read is executable policy: each recipient expires from that account's first authoritative Read timestamp plus the configured duration; repeat Read cannot move the clock.
+- Group shared-source purge eligibility waits for every still-authorized recipient's independent read window; an unread or later-reading recipient keeps the shared source without extending another recipient's local entitlement.
+- Added a dedicated policy test to the full Rebuild Baseline Security Gate.
+- Authoritative `readAt` persistence/rules and physical purge remain IN PROGRESS. No live Firebase or htest deployment. Overall first-rebuild estimate remains approximately 65%.''')
+          append_once('hermes-memory.txt','2026-09-06 — 0.9.6.10 DISAPPEARING POLICY FOUNDATION','''2026-09-06 — 0.9.6.10 DISAPPEARING POLICY FOUNDATION
+- Added pure `disappearing-content-policy.js`; it owns expiry calculation/purge eligibility only and has no Firebase/DOM/crypto/storage authority.
+- Fixed configured duration starts at each recipient account's first authoritative Read timestamp. Repeated Read preserves the original first-read authority.
+- Group shared-source purge is eligible only after every still-authorized recipient has read and that recipient's independent window has elapsed. Unread recipients keep the shared source.
+- Dedicated tests cover recipient expiry, independent group windows, unread-recipient retention and repeat-Read no-op semantics; the test is part of the full security gate.
+- This is policy foundation, not physical purge. Authoritative `readAt` persistence/rules, direct receipt modernization, purge/delete owner, grant-copy purge, local/offline convergence, attachments and anti-resurrection remain unfinished.
+- Version advanced 0.9.6.9 -> 0.9.6.10. Live Firebase and htest untouched. Overall first-rebuild estimate remains approximately 65%.''')
+          p=Path('FIDUNIO-BUILD-CHECKLIST.md'); s=p.read_text(); old="| Disappearing-message policy/model | IN PROGRESS | Product semantics settled: disappearance uses a fixed duration starting from the recipient's first authoritative Read event for both direct and group messages. In groups the timer is per recipient/account, not first-reader-global. Cloud-authoritative read timestamps, final shared-source purge convergence, exact expiry metadata/rules and anti-resurrection implementation remain to be materialized and validated. |"; new="| Disappearing-message policy/model | IN PROGRESS | Product semantics settled and pure policy foundation materialized in 0.9.6.10: fixed configured duration starts from each recipient's first authoritative Read; repeat Read cannot move the clock; group shared-source purge waits for every still-authorized recipient's independent window. Authoritative readAt persistence/rules, purge execution, local convergence and anti-resurrection remain unfinished. |"; s=s.replace(old,new,1); log="- 2026-09-06 — 0.9.6.10 disappearing-content policy foundation: pure expiry/purge-eligibility owner plus dedicated security-gate test. Independent recipient read windows and repeat-Read immutability are executable policy; Firestore readAt authority and physical purge remain IN PROGRESS. Live Firebase/htest untouched; overall estimate remains approximately 65%."; p.write_text(s if log in s else s.rstrip()+"\n"+log+"\n")
+          append_once('architecture-ownership.txt','DISAPPEARING CONTENT POLICY OWNER — 0.9.6.10','''DISAPPEARING CONTENT POLICY OWNER — 0.9.6.10
+- `disappearing-content-policy.js` is a pure decision owner for expiry calculation and shared-source purge eligibility.
+- It owns no Firestore writes/deletes, local storage, UI timers, DOM, E2EE or attachment deletion.
+- Server-backed first-Read receipt timestamps are inputs; device-local time never establishes or moves first-read authority.
+- Future purge execution must have one separate serialized owner and consume this policy rather than create competing expiry semantics.''')
+          append_once('RUNTIME-AUTHORITY-MAP.md','## Disappearing-content policy foundation — 0.9.6.10','''## Disappearing-content policy foundation — 0.9.6.10
+`disappearing-content-policy.js` is the pure policy owner for recipient expiry and group shared-source purge eligibility. It has no Firebase, storage, crypto, UI or deletion authority. Future authoritative first-Read persistence remains under the existing central messaging/Firebase owner, and physical purge must be introduced as one serialized deletion owner rather than scattered client deletes.''')
+          PY
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add version.js README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md
+          git commit -m "Record 0.9.6.10 disappearing policy foundation"
+          git push origin HEAD:fidunio-complete-rebuild
+
       - name: Snapshot curated recovery documents
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/fidunio-doc-mirror"
-          docs=(
-            CURRENT-REBUILD.md
-            hermes-memory.txt
-            FIDUNIO-BUILD-CHECKLIST.md
-            hermes-setup.txt
-            CODING-GUIDELINES.md
-            RUNTIME-AUTHORITY-MAP.md
-            architecture-ownership.txt
-            ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md
-            ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md
-            ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md
-            E2EE-RECOVERY-PROTOCOL.md
-            DETERMINISTIC-UI-LIFECYCLE.md
-            BUG-LIST.md
-          )
-          for f in "${docs[@]}"; do
-            test -f "$f" || { echo "Required mirror source missing: $f" >&2; exit 1; }
-            cp -- "$f" "$RUNNER_TEMP/fidunio-doc-mirror/$f"
-          done
+          docs=(CURRENT-REBUILD.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md hermes-setup.txt CODING-GUIDELINES.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md E2EE-RECOVERY-PROTOCOL.md DETERMINISTIC-UI-LIFECYCLE.md BUG-LIST.md)
+          for f in "${docs[@]}"; do test -f "$f" || { echo "Required mirror source missing: $f" >&2; exit 1; }; cp -- "$f" "$RUNNER_TEMP/fidunio-doc-mirror/$f"; done
           git rev-parse HEAD > "$RUNNER_TEMP/fidunio-doc-mirror/SOURCE_COMMIT"
 
       - name: Update only curated docs on main
@@ -70,29 +94,10 @@ jobs:
           source_commit="$(cat "$RUNNER_TEMP/fidunio-doc-mirror/SOURCE_COMMIT")"
           git fetch origin main
           git checkout -B main origin/main
-          docs=(
-            CURRENT-REBUILD.md
-            hermes-memory.txt
-            FIDUNIO-BUILD-CHECKLIST.md
-            hermes-setup.txt
-            CODING-GUIDELINES.md
-            RUNTIME-AUTHORITY-MAP.md
-            architecture-ownership.txt
-            ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md
-            ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md
-            ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md
-            E2EE-RECOVERY-PROTOCOL.md
-            DETERMINISTIC-UI-LIFECYCLE.md
-            BUG-LIST.md
-          )
-          for f in "${docs[@]}"; do
-            cp -- "$RUNNER_TEMP/fidunio-doc-mirror/$f" "$f"
-          done
+          docs=(CURRENT-REBUILD.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md hermes-setup.txt CODING-GUIDELINES.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md E2EE-RECOVERY-PROTOCOL.md DETERMINISTIC-UI-LIFECYCLE.md BUG-LIST.md)
+          for f in "${docs[@]}"; do cp -- "$RUNNER_TEMP/fidunio-doc-mirror/$f" "$f"; done
           git add -- "${docs[@]}"
-          if git diff --cached --quiet; then
-            echo "Main recovery mirror already matches rebuild docs."
-            exit 0
-          fi
+          if git diff --cached --quiet; then echo "Main recovery mirror already matches rebuild docs."; exit 0; fi
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
           git commit -m "Mirror rebuild recovery docs from ${source_commit:0:12}"
