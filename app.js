@@ -18,7 +18,9 @@ import {
   getCloudUserDevices,
   listCloudUsers,
   createCloudGroup,
-  subscribeMyGroups
+  subscribeMyGroups,
+  readCloudMessageIdsFromServer,
+  readCloudGroupMessageIdsFromServer
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -35,6 +37,7 @@ import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp } from "./e2ee-account-group-app-integration.js";
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
 import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
+import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -67,6 +70,7 @@ let localKeyPromise = null;
 let hydrated = false;
 let persistTimer = null;
 let localPurgeTail=Promise.resolve();
+let reconnectRecoveryTail=Promise.resolve();
 let firebaseReady = false;
 let firebaseError = "";
 let firebaseUser = null;
@@ -847,7 +851,6 @@ async function initApp(){
   render();
 
   initializeFirebaseLayer();
-  if(state.online) flushQueued();
 }
 
 function esc(s=""){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1286,7 +1289,7 @@ async function sendCurrent(){
 
   if(state.online){
     if(cloud || cloudGroup){
-      await flushQueued();
+      await flushQueuedAfterAuthoritativeReconcile();
     }else{
       await removeOutboxMessage(m.id);
       simulateDelivery(conversationId,m.id);
@@ -1307,7 +1310,57 @@ function updateMessageState(conversationId,id,newState){
   persistSoon();
   if(state.route==="chat"&&String(state.selectedId)===String(conversationId)) render();
 }
-async function flushQueued(){
+function serializeReconnectRecovery(work){
+  const run=reconnectRecoveryTail.then(work,work);
+  reconnectRecoveryTail=run.catch(()=>{});
+  return run;
+}
+async function reconcileOutboxBeforeReplay(){
+  if(!state.online||!firebaseUser)return{acceptedOutboxDeleteIds:[],purgeMessageIds:[],replayMessageIds:[],blockedMessageIds:[]};
+  return serializeReconnectRecovery(async()=>{
+    const records=await getOutboxRecords();
+    const decoded=[];
+    const authoritativeRemoteIdsByConversation={};
+    const authorityKind=new Map();
+    for(const record of records){
+      let payload;
+      try{payload=await decryptOutboxRecord(record);}catch(err){console.warn("Reconnect Outbox decrypt failed; replay blocked",record?.id,err);continue;}
+      const conversationId=String(payload.conversationId||"");
+      const isGroup=payload.kind==="group-e2ee-v1";
+      const isCloud=isGroup||payload.cloud===true;
+      if(!isCloud||!conversationId)continue;
+      decoded.push({id:record.id,messageId:payload.messageId||record.id,conversationId,groupId:isGroup?conversationId:null});
+      authorityKind.set(conversationId,isGroup?"group":"direct");
+    }
+    for(const [conversationId,kind] of authorityKind){
+      authoritativeRemoteIdsByConversation[conversationId]=kind==="group"
+        ?await readCloudGroupMessageIdsFromServer(conversationId)
+        :await readCloudMessageIdsFromServer(conversationId,firebaseUser.uid);
+    }
+    const plan=planReconnectOutboxConvergence({messagesByConversation:state.messages,outboxRecords:decoded,authoritativeRemoteIdsByConversation});
+    for(const id of plan.acceptedOutboxDeleteIds){
+      for(const list of Object.values(state.messages)){
+        const row=Array.isArray(list)?list.find(x=>String(x?.id)===String(id)):null;
+        if(row){row.serverBacked=true;if(["queued","sending","failed"].includes(row.state))row.state="sent";}
+      }
+      await removeOutboxMessage(id);
+    }
+    if(plan.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,plan.purgeMessageIds);
+    await persistState();
+    return plan;
+  });
+}
+async function flushQueuedAfterAuthoritativeReconcile(){
+  if(!state.online||!firebaseUser)return;
+  try{
+    const plan=await reconcileOutboxBeforeReplay();
+    return flushQueued({allowedCloudMessageIds:new Set(plan.replayMessageIds)});
+  }catch(err){
+    firebaseError=err?.message||String(err);
+    console.warn("Authoritative reconnect reconciliation failed; cloud Outbox replay blocked",err);
+  }
+}
+async function flushQueued({allowedCloudMessageIds=null}={}){
   if(!state.online) return;
 
   let records=[];
@@ -1332,6 +1385,11 @@ async function flushQueued(){
     const {c,m}=ensureQueuedMessageFromPayload(payload);
     const isGroupPayload=payload.kind==="group-e2ee-v1";
     const isCloud=payload.cloud || !!c?.cloud || isGroupPayload;
+    if(isCloud&&allowedCloudMessageIds instanceof Set&&!allowedCloudMessageIds.has(String(payload.messageId))){
+      m.state="queued";
+      await persistState();
+      continue;
+    }
 
     if(isGroupPayload){
       if(!firebaseUser){m.state="queued";await persistState();continue;}
@@ -1387,16 +1445,16 @@ function scheduleReconnectRecovery(){
   if(reconnectRecoveryTimer1) clearTimeout(reconnectRecoveryTimer1);
   if(reconnectRecoveryTimer2) clearTimeout(reconnectRecoveryTimer2);
 
-  // iOS/Safari may fire "online" slightly before Firebase can complete a
-  // request. Flush now, then make two conservative retries. Outbox
-  // idempotency keeps this safe; successful records are removed only after
-  // Firestore confirms the write.
-  flushQueued();
+  // Every cloud replay first performs an explicit server read. Known
+  // server-accepted rows have their stale Outbox copy removed; known
+  // server-backed disappearing rows that are now absent are purged before
+  // any retry. Cache-only state never authorizes replay or purge.
+  flushQueuedAfterAuthoritativeReconcile();
   reconnectRecoveryTimer1=setTimeout(()=>{
-    if(state.online && firebaseUser) flushQueued();
+    if(state.online && firebaseUser) flushQueuedAfterAuthoritativeReconcile();
   },1500);
   reconnectRecoveryTimer2=setTimeout(()=>{
-    if(state.online && firebaseUser) flushQueued();
+    if(state.online && firebaseUser) flushQueuedAfterAuthoritativeReconcile();
   },4000);
 }
 function recoverForegroundCloudSession(){
