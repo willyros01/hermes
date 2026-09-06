@@ -1170,11 +1170,10 @@ function renderChat(){
           <strong>${esc(c.name)}</strong>
           <span class="secure">● ${c.cloud?"Cloud":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}</span>
         </div>
-        <button class="icon-btn icon-2d" id="infoBtn" aria-label="Info">${icon2d("info",23)}</button>
+        ${(isGroup(c)||c?.cloud)?`<button class="icon-btn icon-2d" id="infoBtn" aria-label="Info">${icon2d("info",23)}</button>`:`<span class="topbar-spacer"></span>`}
         ${isWideLayout()?"":mainSignOutMarkup()}
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE + key verification foundation — test messages only until verified per-device fan-out and forward secrecy are complete.</div>`:""}
       ${c.cloud && currentConversationSecurityStatus(c)==="changed"
         ? '<div class="status-banner">Security warning — this contact\'s previously verified encryption key changed. Verify the new fingerprint before sending.</div>'
         : c.cloud && currentConversationSecurityStatus(c)==="changed-unverified"
@@ -1195,8 +1194,6 @@ function renderChat(){
         <div class="tool-panel ${state.toolsOpen?"open":""}" id="toolPanel">
           ${toolButton("photo","Photo")}${toolButton("file","File")}
           ${toolButton("voice","Audio")}${toolButton("video","Video")}
-          ${toolButton("contact","Contact")}${toolButton("checklist","Checklist")}
-          ${toolButton("schedule","Schedule")}${toolButton("saved","Saved")}
         </div>
       </section>`;
   if(isWideLayout()){
@@ -1221,14 +1218,12 @@ function renderChat(){
   }
   bindMainSignOut();
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
-  document.querySelector("#infoBtn").onclick=async()=>{
+  const infoBtn=document.querySelector("#infoBtn");
+  if(infoBtn)infoBtn.onclick=async()=>{
     if(isGroup(c)){state.route="groupInfo";return render();}
-    if(c?.cloud){
-      await peerPublicKeyForConversation(c.id,{refresh:true});
-      state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId:c.id};
-      return render();
-    }
-    alert("Conversation details remain a UX placeholder.");
+    await peerPublicKeyForConversation(c.id,{refresh:true});
+    state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId:c.id};
+    return render();
   };
   document.querySelector("#moreBtn").onclick=()=>{state.toolsOpen=!state.toolsOpen;render()};
   const disappearSelect=document.querySelector("#disappearSelect");
@@ -1236,7 +1231,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();const map={Photo:["photo","image/*",true],File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};if(map[label])return chooseAndSendAttachment(...map[label]);alert(`${label} is a UX placeholder in FIDUNIO ${FIDUNIO_VERSION}.`);});
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();const map={Photo:["photo","image/*",true],File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -1302,25 +1297,13 @@ async function sendCurrent(){
     if(cloud || cloudGroup){
       await flushQueuedAfterAuthoritativeReconcile();
     }else{
-      await removeOutboxMessage(m.id);
-      simulateDelivery(conversationId,m.id);
+      m.state="failed";
+      await persistState();
+      render();
     }
   }
 }
 
-function simulateDelivery(conversationId,id){
-  setTimeout(()=>updateMessageState(conversationId,id,"sent"),700);
-  setTimeout(()=>updateMessageState(conversationId,id,"delivered"),1500);
-  setTimeout(()=>updateMessageState(conversationId,id,"read"),2600);
-}
-function updateMessageState(conversationId,id,newState){
-  const arr=state.messages[conversationId]||[];
-  const m=arr.find(x=>x.id===id);
-  if(!m) return;
-  m.state=newState;
-  persistSoon();
-  if(state.route==="chat"&&String(state.selectedId)===String(conversationId)) render();
-}
 function serializeReconnectRecovery(work){
   const run=reconnectRecoveryTail.then(work,work);
   reconnectRecoveryTail=run.catch(()=>{});
@@ -1447,12 +1430,8 @@ async function flushQueued({allowedCloudMessageIds=null}={}){
         await persistState();
       }
     }else{
-      m.state="sending";
+      m.state="failed";
       await persistState();
-      await removeOutboxMessage(payload.messageId);
-      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"sent"),500+i*150);
-      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"delivered"),1200+i*150);
-      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"read"),2200+i*150);
     }
   }
 
@@ -1517,7 +1496,7 @@ function renderGroupInfo(){
   if(!c||c.type!=="group"){state.route="chat";return render()}
   const myUid=firebaseUser?.uid||"",isAdmin=Array.isArray(c.adminUids)&&c.adminUids.includes(myUid),isOwner=c.ownerUid===myUid;
   app.innerHTML=`
-    <main class="app-shell">
+    <main class="app-shell group-info-shell">
       ${shellTop("Group Info",'<button class="back-btn" id="backBtn">‹</button>')}
       <section class="content">
         <div class="card" style="text-align:center">
@@ -1542,11 +1521,8 @@ ${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':
         </div>
         <div class="card">
 <h2>Group Controls</h2>
-<div class="row"><div class="row-main"><strong>History policy</strong><span>New members see messages only from the time they join.</span></div><span class="role-tag">From join</span></div>
-<div class="row"><div class="row-main"><strong>Mute notifications</strong><span>Silence alerts for this group</span></div><button class="toggle"></button></div>
-<div class="row"><div class="row-main"><strong>Search messages</strong><span>Find text in this conversation</span></div><button class="row-action placeholderBtn">Open</button></div>
-<div class="row"><div class="row-main"><strong>Shared photos & files</strong><span>View shared attachments</span></div><button class="row-action placeholderBtn">Open</button></div>
-<div class="row"><div class="row-main"><strong>Security information</strong><span>Member keys and group-key status</span></div><button class="row-action placeholderBtn">View</button></div>
+<div class="row"><div class="row-main"><strong>History policy</strong><span>New members see messages only from the time they join. An administrator may deliberately grant earlier history from the beginning or a selected date.</span></div><span class="role-tag">From join</span></div>
+<div class="row"><div class="row-main"><strong>Encryption</strong><span>Account-authoritative group E2EE with membership-bound key epochs.</span></div><span class="role-tag">E2EE</span></div>
         </div>
         ${isOwner?'<p class="small-note">The group owner cannot leave until ownership transfer is deliberately implemented.</p>':'<button class="danger-btn" id="leaveBtn">Leave Group</button>'}
       </section>
@@ -1556,8 +1532,6 @@ ${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':
   const add=document.querySelector("#addMemberBtn");if(add)add.onclick=()=>openAddMemberModal();
   document.querySelectorAll(".historyGrantBtn").forEach(btn=>btn.onclick=()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member)return;state.modal={type:"history",memberId:member.id,historyChoice:"beginning",historyDate:""};render();});
   document.querySelectorAll(".removeMemberBtn").forEach(btn=>btn.onclick=async()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member||!confirm(`Remove ${member.name} from this group?`))return;btn.disabled=true;try{await removeGroupMemberForApp(c.id,member.id);}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}});
-  document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
-  document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
   const leave=document.querySelector("#leaveBtn");if(leave)leave.onclick=async()=>{if(!confirm(`Leave ${c.name}? You will lose access to future messages.`))return;leave.disabled=true;try{await leaveGroupForApp(c.id);state.route="messages";state.selectedId=null;}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
 }
 
@@ -1590,7 +1564,7 @@ function renderModal(){
             <button class="modal-cancel" id="modalCancel">Cancel</button>
             <button class="modal-confirm" id="modalConfirm">Add Member</button>
           </div>`:
-          `<p>No additional sample contacts are available in this prototype.</p><button class="secondary" id="modalCancel">Close</button>`}
+          `<p>No additional FIDUNIO accounts are available to add.</p><button class="secondary" id="modalCancel">Close</button>`}
       </div>`;
     document.body.appendChild(host);
     host.querySelectorAll('input[name="newMember"]').forEach(r=>r.onchange=()=>state.modal.selected=r.value);
