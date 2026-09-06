@@ -20,7 +20,8 @@ import {
   createCloudGroup,
   subscribeMyGroups,
   readCloudMessageIdsFromServer,
-  readCloudGroupMessageIdsFromServer
+  readCloudGroupMessageIdsFromServer,
+  uploadEncryptedAttachment
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -39,6 +40,7 @@ import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan
 import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
 import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisappearSelection } from "./disappearing-compose-policy.js";
+import { createAttachmentSendService } from "./attachment-send-service.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -1192,7 +1194,7 @@ function renderChat(){
         </div>
         <div class="tool-panel ${state.toolsOpen?"open":""}" id="toolPanel">
           ${toolButton("photo","Photo")}${toolButton("file","File")}
-          ${toolButton("voice","Voice")}${toolButton("location","Location")}
+          ${toolButton("voice","Audio")}${toolButton("video","Video")}
           ${toolButton("contact","Contact")}${toolButton("checklist","Checklist")}
           ${toolButton("schedule","Schedule")}${toolButton("saved","Saved")}
         </div>
@@ -1234,7 +1236,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>alert(`${btn.textContent.trim()} is a UX placeholder in FIDUNIO ${FIDUNIO_VERSION}.`));
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();const map={Photo:["photo","image/*",true],File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};if(map[label])return chooseAndSendAttachment(...map[label]);alert(`${label} is a UX placeholder in FIDUNIO ${FIDUNIO_VERSION}.`);});
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
@@ -1254,6 +1256,12 @@ function renderBubble(m,c){
       <div class="msg-meta"><span>${esc(m.time)}</span>${m.mine?`<span class="${cls}">${label}</span>`:""}</div>
     </div>
   </div>`;
+}
+
+async function chooseAndSendAttachment(kind,accept,capture){
+  const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
+  const input=document.createElement("input");input.type="file";input.accept=accept;if(capture)input.setAttribute("capture",kind==="audio"?"user":"environment");
+  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{const bytes=new Uint8Array(await file.arrayBuffer());const descriptor={kind,name:file.name||`${kind}-${Date.now()}`,type:file.type||"application/octet-stream",size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};let stagedMessage=null;const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{const text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage=stampOutgoingDisappearSelection({id:row.messageId,mine:true,text,time:nowTime(),state:"sending",cloud:true,attachment:{kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size}},row.disappearAfterSeconds);if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async()=>{await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});await svc.send(descriptor);}catch(err){alert("Attachment could not be sent: "+(err?.message||err));}};input.click();
 }
 
 async function sendCurrent(){
