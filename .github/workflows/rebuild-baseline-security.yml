@@ -48,6 +48,8 @@ jobs:
         run: npm run test:e2ee-account-message-crypto
       - name: Account direct-message service
         run: npm run test:e2ee-account-message-service
+      - name: Firebase App Check client integration
+        run: npm run test:firebase-app-check
       - name: Cloud Functions recovery scaffold
         run: npm run test:functions-scaffold
       - name: Runtime transform anchor gate
