@@ -52,6 +52,8 @@ jobs:
         run: npm run test:e2ee-account-group-app-integration
       - name: Disappearing content policy
         run: npm run test:disappearing-content-policy
+      - name: Disappearing first-read authority
+        run: npm run test:disappearing-read-authority
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
