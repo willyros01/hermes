@@ -35,6 +35,16 @@ jobs:
           Path('/tmp/group-admin-materialize.sh').write_text(script)
           subprocess.run(['bash','/tmp/group-admin-materialize.sh'],check=True)
           PY
+      - name: Reconcile group ownership assertion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('e2ee-account-group-app-controller.test.mjs');s=p.read_text()
+          old='["legacy app still has explicit disabled marker until bounded wiring",/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]'
+          new='["app uses bounded real group administration bridge",/renameGroupForApp/.test(app)&&/addGroupMemberForApp/.test(app)&&/removeGroupMemberForApp/.test(app)&&/leaveGroupForApp/.test(app)&&!/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]'
+          assert old in s
+          p.write_text(s.replace(old,new,1))
+          PY
       - name: Syntax checks
         run: |
           node --check app.js
@@ -59,6 +69,6 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add app.js firebase.js firestore.rules e2ee-account-group-firebase-adapter.js e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-app-controller.js e2ee-account-group-app-integration.js e2ee-account-group-runtime.test.mjs firestore-group-e2ee-v1.rules.test.mjs ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md FIRESTORE-GROUP-E2EE-V1-RULES.md group-data-model.txt architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md DETERMINISTIC-UI-LIFECYCLE.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md
+          git add app.js firebase.js firestore.rules e2ee-account-group-firebase-adapter.js e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-app-controller.js e2ee-account-group-app-integration.js e2ee-account-group-runtime.test.mjs e2ee-account-group-app-controller.test.mjs firestore-group-e2ee-v1.rules.test.mjs ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md FIRESTORE-GROUP-E2EE-V1-RULES.md group-data-model.txt architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md DETERMINISTIC-UI-LIFECYCLE.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md
           git commit -m "Materialize atomic group administration"
           git push origin HEAD:fidunio-complete-rebuild
