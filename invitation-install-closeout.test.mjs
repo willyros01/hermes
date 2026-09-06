@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+const owner=fs.readFileSync('invitation-owner.js','utf8'),firebase=fs.readFileSync('firebase.js','utf8'),auth=fs.readFileSync('auth-ui-clean.js','utf8'),settings=fs.readFileSync('settings-lifecycle.js','utf8'),install=fs.readFileSync('install-guidance.js','utf8'),manifest=JSON.parse(fs.readFileSync('manifest.json','utf8')),sw=fs.readFileSync('service-worker.js','utf8'),app=fs.readFileSync('app.js','utf8');let bad=0;const ok=(n,v)=>{console.log(v?'PASS':'FAIL',n);if(!v)bad++};
+ok('one invitation mutation owner',owner.includes('let mutationTail=Promise.resolve()')&&owner.includes('serialize('));
+ok('auth uses invitation owner',auth.includes('./invitation-owner.js')&&!/validateInvitation|redeemFidunioInvitation/.test(auth.split('from "./firebase.js"')[0]));
+ok('settings uses invitation owner',settings.includes('./invitation-owner.js'));
+ok('Firebase remains repository not second SDK owner',!owner.includes('gstatic.com/firebasejs')&&firebase.includes('export async function createFidunioInvitation'));
+for(const anchor of ['status!=="pending"','already been used','expired','["owner","admin"]','["user","admin"]'])ok('invite guard '+anchor,firebase.includes(anchor));
+ok('redeem atomically associates profile to invitation',firebase.includes('joinedByInviteId:invite.id')&&firebase.includes('acceptedUid:cred.user.uid')&&firebase.includes('batch.commit()'));
+ok('joined active profiles are discoverable',firebase.includes('listCloudUsers')&&firebase.includes('x.active!==false')&&fs.readFileSync('new-message-owner.js','utf8').includes('listCloudUsers'));
+ok('install owner has no invitation/account mutation',!/(createInvitation|redeemInvitation|revokeInvitation|signIn|signOut|Firestore|firebase)/.test(install));
+ok('no automatic install prompt',!install.includes('beforeinstallprompt')&&!install.includes('.prompt('));
+ok('manifest/icons foundation preserved',manifest.display==='standalone'&&manifest.icons.some(x=>x.sizes==='192x192')&&manifest.icons.some(x=>x.sizes==='512x512'));
+ok('service worker stays semantic-free',!/(invite|invitation|beforeinstallprompt)/i.test(sw));
+ok('Settings deterministic owner preserved',settings.includes('mountSettingsLifecycle')&&settings.includes('fidunioSettingsShell')&&!settings.includes('MutationObserver'));
+ok('iPhone back/wrap assets preserved',fs.readFileSync('index.html','utf8').includes('back-button-visibility.css')&&fs.readFileSync('index.html','utf8').includes('iphone-overflow-fix.css'));
+ok('two-pane architecture not replaced by install code',!app.includes('beforeinstallprompt')&&!app.includes('automaticIconInstall'));
+ok('rejected invite-install implementation not restored',!/(0\.9\.4\.12|0\.9\.4\.13|0\.9\.4\.14|0\.9\.4\.15)/.test(owner+install));
+if(bad)process.exitCode=1;
