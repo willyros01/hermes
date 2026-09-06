@@ -2,37 +2,32 @@ name: Update Rebuild Memory Once
 on:
   push:
     branches: [fidunio-complete-rebuild]
+    paths: ['.github/workflows/update-memory-once.yml']
 permissions:
   contents: write
 jobs:
   update:
-    if: github.event.head_commit.message == 'Queue cumulative rebuild memory update'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fidunio-complete-rebuild
-          fetch-depth: 0
-      - name: Append current rebuild handoff
+      - name: Record validated group administration checkpoint
         run: |
-          cat >> hermes-memory.txt <<'EOF'
-
-COMPLETE REBUILD BRANCH HANDOFF — SEPTEMBER 6, 2026
-- Active forward-build branch is `fidunio-complete-rebuild`. Do not treat older rebuild-order text above as the current execution queue when this section supersedes it.
-- Full product target remains one complete FIDUNIO PWA, not disconnected prototypes/modules. `htest` is intentionally NOT continuously synchronized; its current snapshot is stale/incomplete and must not be used to judge the active rebuild. Final htest replacement is atomic only after a coherent security-gated candidate.
-- Architecture boundary: `app.js` is UI/application coordinator; `firebase.js` is the sole Firebase SDK/service/Firestore transport owner; encryption is owned by dedicated account E2EE runtimes/crypto modules; service worker is cache/transport only.
-- Direct messages use account-authoritative `e2ee:3`, `kdfVersion:1`; group messages use account-authoritative `e2ee:4`, `groupFormat:"fidunio-group-message-v1"`.
-- Group E2EE contract is authoritative in `ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md`: durable account P-256 identity, random 32-byte group epoch key, encrypted per-member epoch envelopes, membership change rotates epoch, device IDs forbidden from derivation/routing/AAD/decryptability, `historyPolicy:"fromJoin"`, per-account receipts, encrypted local Outbox with epoch revalidation.
-- Group implementation now includes crypto, serialized runtime, Firebase opaque transport, Firestore rules/tests, conversation owner, epoch-aware Outbox, receipt aggregation, projection, app integration, and sign-out cleanup. Raw `app.js` now routes cloud-group send/read/receipts through the group integration and preserves pending encrypted Outbox until Firestore confirmation.
-- Attachment foundation exists in `e2ee-account-attachment-crypto.js`: encrypted integrity-checked bounded chunking with tamper/missing-chunk rejection. End-to-end attachment UI/transport/receive/display/play/retention remains unfinished.
-- Local-security writes are serialized in `local-security.js`. Commit `013508078f1cda925a54c99cf7e7ffb3c986f8e7` repaired the remaining Settings callers so inactivity-timeout and device-unlock-disable mutations are awaited. Keep installation-local PIN 4–12 digits distinct from exact six-digit account E2EE PIN.
-- Current broad completion estimate remains about 65%; only update the percentage after a meaningful product milestone, not after minor cleanup.
-- Major remaining product work: real group administration (rename/add/remove/leave/history controls with epoch rotation), complete attachments, notifications, invitations end-to-end, safe PWA install integration rebuilt from scratch, removal of remaining local/demo simulations/placeholders/test banners, final regression/security gate, cumulative docs, and final atomic htest deployment/device-test candidate.
-- Invitation/install landmine: rejected automatic invite-install/icon logic previously broke Settings/two-pane. Do NOT adapt that rejected implementation. Rebuild invitation and PWA-install ownership separately and integrate deterministically only after each is proven.
-- Mandatory responsive behavior remains: iPhone single-pane with prominent back/wrap fixes; iPad/tablet/desktop true two-pane layout.
-EOF
-          git config user.name "FIDUNIO Build"
-          git config user.email "actions@users.noreply.github.com"
-          git add hermes-memory.txt
-          git commit -m "Update cumulative memory for complete rebuild"
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('FIDUNIO-BUILD-CHECKLIST.md');s=p.read_text()
+          s=s.replace('| Group rename | DONE | Cloud-authoritative admin rename through serialized group owner; repository group tests/gate required. |','| Group rename | DONE | Cloud-authoritative admin rename through serialized group owner; group tests and full Rebuild Baseline Security Gate green. |')
+          entry='- 2026-09-06 — Group administration validation checkpoint: materializer group runtime/app/rules/authority tests passed, then full Rebuild Baseline Security Gate run `34045259037` passed on the cleaned authoritative branch. Temporary group-administration materializer/trigger workflows were removed.'
+          if entry not in s:s=s.rstrip()+"\n"+entry+"\n"
+          p.write_text(s)
+          p=Path('hermes-memory.txt');s=p.read_text()
+          entry='''2026-09-06 — GROUP ADMINISTRATION REPOSITORY VALIDATION GREEN\n- Materialized group administration commit: `c62db46bc8646f68beb54fd5038ae0d38bac1170`.\n- Focused materializer validation passed group runtime, group service/controller/integration ownership, Firestore group E2EE rules, and runtime authority tests.\n- Full Rebuild Baseline Security Gate run `34045259037` then passed every substantive step on the cleaned authoritative branch after temporary group-administration workflows were removed.\n- Group rename/add/remove/non-owner leave are therefore repository-validated DONE. Explicit earlier-history grants/admin-role controls remain IN PROGRESS; no `htest` deployment was performed.'''
+          if entry not in s:s=s.rstrip()+"\n\n"+entry+"\n"
+          p.write_text(s)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
+          git commit -m "Record green group administration checkpoint"
           git push origin HEAD:fidunio-complete-rebuild
