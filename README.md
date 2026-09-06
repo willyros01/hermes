@@ -1,502 +1,253 @@
-# FIDUNIO UX Prototype 0.4
-
-Prototype 0.4 is the first version intended for the initial GitHub upload.
-
-## Added in 0.2
-- New Message screen
-- New Group flow
-- Select group members
-- Name and create a group
-- Group conversation UX
-- Sender names on incoming group messages
-- Group Info screen
-- Member list and owner/admin role display
-- Add-member simulation
-- Group history-access controls
-- New-member privacy rule: a new member sees messages only from the time they join
-- Admin may explicitly grant prior-history access
-- Group security/history notes in the interface
-
-## Carried forward from 0.1
-- Simulated unlock screen
-- Conversation list and search
-- Individual chat screen
-- Quick Compose chips
-- Expandable tool tray
-- Message state simulation
-- Offline queue behavior using browser online/offline events
-- Settings and large-text mode
-
-## Important prototype limitations
-This is still a UX prototype. It does NOT yet include:
-- Firebase
-- Real authentication
-- Real WebAuthn/passkeys
-- Real end-to-end encryption
-- Real group key rotation/distribution
-- Real push notifications
-- Real attachments
-- Persistent IndexedDB storage
-- Production-grade offline service-worker queueing
-
-The group-history permission screen demonstrates the intended policy only. Production enforcement must be cryptographic and server-rule aware; it must not rely on hiding old messages in the interface.
-
-## Group history policy
-Default:
-- A new group member can access conversation content only from the time they join.
-- Earlier history is not automatically exposed.
-
-Admin override:
-- An admin can explicitly grant selected prior-history access.
-- Prototype choices shown: last 24 hours, last 7 days, from a selected date, or entire available history.
-
-Planned production design:
-- New member receives current group encryption material, not historical keys by default.
-- If prior history is explicitly granted, only the authorized history/key material is securely shared.
-
-## Run it
-Serve the folder over HTTP/HTTPS rather than opening index.html directly.
-
-Examples:
-- Python: `python3 -m http.server 8080`
-- VS Code: Live Server
-- GitHub Pages: publish the repository and open its HTTPS URL
-
-## Suggested UX test
-1. Unlock the prototype.
-2. Tap + on Messages.
-3. Choose New Group.
-4. Select at least 2 people.
-5. Name the group and create it.
-6. Open Group Info.
-7. Add a member and confirm that the UI marks earlier history hidden.
-8. Tap History beside a member and test the admin history-access choices.
-9. Disable network connectivity, send a message, and verify it shows Queued.
-10. Restore connectivity and verify the message progresses through delivery states.
-
-Prototype 0.4 remains intentionally Firebase-free so the UX can be reviewed before backend and cryptographic implementation.
-
-## Initial GitHub upload
-
-Repository name: `hermes`
-
-Recommended description: `Fidunio private messaging PWA`
-
-For the simplest GitHub Pages workflow on GitHub Free, use a **Public** repository.
-
-When creating the repository:
-1. Choose **New repository**.
-2. Repository name: `hermes`
-3. Description: `Fidunio private messaging PWA`
-4. Visibility: **Public**
-5. Do **not** pre-create a README, `.gitignore`, or license for this first upload, because this package already includes `README.md`.
-6. Create the repository.
-7. Use **Add file → Upload files**.
-8. Upload the extracted files from this package, not the ZIP itself:
-   - `index.html`
-   - `styles.css`
-   - `app.js`
-   - `manifest.json`
-   - `README.md`
-9. Commit message: `Initial FIDUNIO UX Prototype 0.4`
-
-### GitHub Pages
-After the files are uploaded:
-1. Open the repository **Settings**.
-2. Open **Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**.
-4. Branch: `main`
-5. Folder: `/ (root)`
-6. Save.
-7. Wait for GitHub Pages to publish the HTTPS site.
-
-Do not commit private keys, service-account JSON, passwords, encryption keys, server credentials, or other secrets to the repository.
-
-## Added / fixed in 0.3
-- Fixed History Access navigation so saving returns to Group Info
-- Improved Large Text support across Fidunio
-- Added Appearance: Auto / Light / Dark
-- Auto appearance follows the device/browser color-scheme preference and reacts to changes
-- Added visible version information in Settings → About and at the bottom of Settings
-- Version number is synchronized with this package: `0.3`
-
-## 0.3 acceptance checks
-1. Open Settings and confirm `Version 0.4` is visible.
-2. Turn Large Text on and check Messages, Chat, Group Info, History, and Settings.
-3. In Appearance, test Light and Dark manually.
-4. Select Auto, then change the iPad/iPhone appearance between Light and Dark and confirm Fidunio follows it.
-5. Open a group, go to Group Info → History, grant access, and confirm Fidunio returns to Group Info.
-
-## Fidunio branding included in this build
-- Approved flat 2D Fidunio profile with winged helmet
-- Logo shown on the Fidunio unlock screen
-- Logo shown in Settings → About
-- `apple-touch-icon` included for iPhone/iPad Add to Home Screen
-- 192×192 and 512×512 PWA icons included in `manifest.json`
-- Browser favicon included
-
-### Files added
-- `fidunio-logo.png`
-- `icon-180.png`
-- `icon-192.png`
-- `icon-512.png`
-- `favicon.png`
-
-When updating GitHub, upload all files from this package directly into the repository root.
-
-## Flat GitHub layout for iPad
-This build intentionally keeps every file in the repository root. There is no `assets` subfolder.
-
-Upload all files directly to the main `fidunio` repository directory. The image and icon references in the code already point to the root directory.
-
-## FIDUNIO UX Prototype 0.4
-This maintenance build keeps the approved Fidunio graphics and flat single-directory GitHub layout.
-
-Changes:
-- Large Text now scales the major interface text, message text, controls, settings, group screens, labels, and supporting text much more visibly.
-- The fixed chat composer now uses the exact same centered width boundaries as the Fidunio app shell, correcting the iPad/tablet alignment issue.
-- Phone widths continue to use the full available app width.
-- Version display is updated to 0.4.
-
-
-## Fidunio 0.4
-- Fixed History Access Cancel and Grant Access so the modal closes correctly.
-- Replaced the single Large Text toggle with A / A+ / A++.
-- A++ is intentionally much larger for easier reading.
-- History modal buttons stay reachable when larger text is selected.
-- The flat, single-directory GitHub layout is unchanged.
-
-## Fidunio 0.4
-- Preserves the existing Fidunio 0.3.2 color scheme.
-- No gold was added to the interface.
-- Lightens only low-contrast dark-mode text, especially tool labels and secondary information.
-- History Access Save/Cancel behavior from 0.3.2 is retained.
-- A / A+ / A++ text-size controls are retained.
-- Flat, single-directory GitHub layout remains unchanged.
-
-## FIDUNIO 0.5
-- Rebrands the project from Hermes to **FIDUNIO**.
-- Uses the descriptor **Private Messaging**.
-- Keeps the approved winged-messenger artwork unchanged.
-- Keeps the approved 0.3.3 UI color scheme and dark-mode contrast.
-- Keeps A / A+ / A++ text sizing.
-- Keeps the working Group History Access Save/Cancel controls.
-- Keeps the flat, single-directory GitHub layout.
+# FIDUNIO / Hermes
 
-## Hermes 0.5 / FIDUNIO 0.5
+FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
-This is the first functional local build.
+## Current authoritative state
 
-- Fixes Group Info/control overflow so the page no longer requires horizontal scrolling on iPhone/iPad.
-- Adds `service-worker.js` and app-shell caching for the PWA foundation.
-- Adds IndexedDB persistence so conversations, messages, settings, and selected conversation survive reload/relaunch.
-- Local persisted app state is encrypted with AES-GCM using the Web Crypto API.
-- Adds a persistent IndexedDB Outbox. Messages sent while offline remain queued across reloads and are processed after connectivity returns and the PWA gets execution time.
-- Keeps client-generated UUID message IDs.
-- Keeps the approved FIDUNIO graphics, UI palette, A/A+/A++ sizing, group-history controls, and flat repository layout.
-- Firebase/network transport is intentionally not included yet; this release proves the local persistence/offline engine first.
+- Repository: `willyros01/hermes`
+- Product name: **FIDUNIO**
+- Internal/project name: **Hermes**
+- Authoritative development branch: `fidunio-complete-rebuild`
+- Current checkpoint version: **0.9.6.6**
+- Current first-rebuild completion estimate: **approximately 65%**
+- `version.js` is the only authoritative runtime release-number source.
+- `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
+- `htest` is reserved for coherent final-stage testing deployments and is not continuously synchronized with intermediate rebuild work.
+- Firebase Cloud Messaging is deferred to FIDUNIO 1.1.
+- Firebase App Check production enforcement is deferred to FIDUNIO 1.2 and remains OFF during the first rebuild.
 
-Important: local AES-GCM storage in 0.5 is a functional prototype foundation, not the final end-to-end encryption/key-management design. Firebase transport, device identity, production key wrapping/recovery, and multi-device E2EE remain later milestones.
+The rebuild is deliberately conservative: previously validated behavior is preserved unless a replacement is fully integrated and validated. The core architecture rule is:
 
+**ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.**
 
-## Hermes 0.6 / FIDUNIO 0.6
+## README maintenance rule
 
-0.6 adds the Firebase foundation and first real one-to-one, two-account Firestore transport while retaining the 0.5 encrypted IndexedDB Outbox.
+This README is the durable human-readable release/build-history ledger for the repository.
 
-Added:
-- Firebase Web modular SDK bridge using Firebase's browser-module CDN.
-- Firebase Email/Password account creation/sign-in/sign-out.
-- Visible per-account FIDUNIO ID (Firebase UID) for the controlled two-device test.
-- Direct cloud conversation creation by recipient FIDUNIO ID.
-- Real Firestore message transport and live message listeners.
-- Provided Firestore Security Rules.
-- Persistent offline Outbox feeds queued cloud messages to Firestore after reconnect/foreground.
-- Detailed iPad-first setup guide: `hermes-ux-0.6-setup.txt`.
+Whenever the release number is **incremented, reset, rolled back, or otherwise reassigned**, the same work session must update this README. The update must record the old version, new version, reason for the change, significant implementation changes, rollback/rejection status where applicable, validation evidence, and any important follow-on constraints.
 
-Security warning:
-0.6 is a transport prototype and does NOT yet provide end-to-end encryption for Firestore message text. Use only harmless test messages. E2EE/device-key work is the next major security milestone.
+A version-number change is incomplete until all of the following are reconciled:
 
+1. `version.js` contains the intended authoritative release number.
+2. `README.md` records the release/reset/rollback and its significant build history.
+3. `hermes-memory.txt` records the durable project state and consequences.
+4. `FIDUNIO-BUILD-CHECKLIST.md` reflects the true completion state and evidence.
+5. Every additional architecture/security/runtime/UI/setup/bug document affected by the change is updated.
 
-## Hermes 0.6.1 / FIDUNIO 0.6.1
+Do not create version-numbered replacement README, memory, or setup files. Keep one cumulative root `README.md`, one cumulative root `hermes-memory.txt`, and one reusable root `hermes-setup.txt`.
 
-0.6.1 is a reliability correction based on real iPad/iPhone testing.
+## Protected files and release discipline
 
-Confirmed before this fix:
-- Firebase Email/Password authentication worked on iPad and iPhone.
-- iPad -> iPhone Firestore messaging worked.
-- iPhone -> iPad reply worked.
-- Sender status advanced to Read.
-- When the iPad PWA was killed while offline, previously received cloud messages were not visible until connectivity returned.
-- A queued cloud message could disappear after kill/reopen and never reach the other device.
+- Never overwrite or regenerate `firebase-config.js`.
+- Never overwrite or regenerate `config-firestore.js` if present in the user's workflow.
+- Release ZIPs must not include those protected configuration files.
+- Do not restore rejected invite/install/icon code from the 0.9.4.12-.15 line.
+- Preserve established iPhone single-pane behavior, prominent Back behavior, iPhone wrap-around fixes, and iPad/tablet/desktop two-pane layout.
+- Preserve the established navy/teal/gray visual language; do not introduce gold.
+- Do not replace real authorization or lifecycle rules with timing fixes, reloads, broad MutationObservers, source rewriting, or duplicate Firebase owners.
 
-0.6.1 fixes:
-- Encrypted IndexedDB Outbox is now authoritative for unsent messages.
-- IndexedDB writes for critical state and Outbox records wait for transaction completion.
-- Startup reconstructs any missing queued message from the encrypted Outbox.
-- Firestore snapshots preserve local queued/sending/failed messages instead of overwriting them.
-- Downloaded cloud messages are committed immediately to encrypted local storage so they remain readable after an offline relaunch.
-- Firebase authentication completion triggers an Outbox retry, avoiding dependence on a new online event.
-- Outbox records are removed only after Firestore confirms the message write.
-- Missing normal message-cache state can no longer cause an Outbox record to be deleted.
-- Cloud direct conversations display "Connected" instead of the misleading "Secure" status until E2EE exists.
+## Current security/runtime architecture
 
-Configuration protection:
-- This update ZIP intentionally does NOT include `firebase-config.js`.
-- Keep the already configured `firebase-config.js` in the GitHub repository.
-- `config-firestore.js`, if present in the user's repository/workflow, is also protected and must not be overwritten or included in version ZIPs.
+### Firebase ownership
 
-0.6.1 remains a transport prototype. Cloud message content is not yet end-to-end encrypted.
+`firebase.js` is the sole Firebase SDK/service owner. It owns Firebase Auth, Firestore, Functions access, and App Check client initialization. No second Firebase initializer is permitted.
 
+### Account-authoritative E2EE
 
-## Hermes 0.6.2 / FIDUNIO 0.6.2
+The current rebuild uses one durable E2EE identity per Firebase Auth UID rather than treating an installation/device as the durable cryptographic identity.
 
-0.6.2 fixes the foreground receive bug found during the first 0.6.1 online retest. A cloud chat could be opened before Firebase Authentication finished restoring; the message subscription then did not attach. 0.6.2 attaches/re-attaches the active cloud message listener after auth restoration, after Firebase initialization, on reconnect, and when iOS/PWA returns to the foreground. All 0.6.1 encrypted Outbox and offline-cache fixes are retained.
+- Identity algorithm: ECDH P-256.
+- Stable account `keyId` independent of device identity.
+- Private identity stored only through wrapped encrypted account material.
+- Normal wrapper: PBKDF2-HMAC-SHA256, 600,000 iterations, AES-256-GCM.
+- Account E2EE PIN: exactly six digits and separate from the local app-lock PIN.
+- Recovery restores the same durable identity/keyId and must never silently create a replacement identity.
+- Recovery uses exactly three components: verified Firebase account/UID, exact six-digit E2EE PIN, and Google-hosted recovery authority using the protected server recovery secret.
+- There is no supplemental verifier, security question, extra PIN, or fourth recovery factor.
 
-`firebase-config.js` and `config-firestore.js` are intentionally excluded from this ZIP. Preserve the existing configured copies in GitHub.
+### Direct messages
 
+Current account-authoritative direct messages use `e2ee:3` with ECDH P-256, HKDF-SHA256, and AES-256-GCM. Device IDs are excluded from durable decryptability. Legacy `e2ee:1` and `e2ee:2` remain receive/read compatibility only for historical messages.
 
-## Hermes 0.6.3 / FIDUNIO 0.6.3
+### Groups
 
-0.6.3 addresses the failed iPad offline cold-start history test after 0.6.2 passed live two-way foreground messaging.
+Current account-authoritative group messages use `e2ee:4` and versioned key epochs. Membership changes require an epoch rotation before another message is accepted. A removed or leaving member receives no envelope for the replacement epoch.
 
-Observed:
-- 0.6.2 online live receive passed.
-- After Airplane Mode + kill/reopen on iPad, previously downloaded iPhone/cloud messages were absent.
-- The cloud-chat header still displayed Connected because that label represented cloud-conversation type, not verified network reachability. This was misleading.
+Default group history policy is `fromJoin`: a new member receives only the new epoch and cannot decrypt earlier history by default.
 
-0.6.3 corrections:
-- IndexedDB schema v2 adds a dedicated `history` store.
-- Each Firestore snapshot is encrypted and durably saved per conversation in that store.
-- Offline startup restores the dedicated cloud-history cache before Outbox reconstruction and first render.
-- Existing queued/sending/failed local messages are merged with restored history.
-- Safari/iOS CryptoKey creation no longer keeps an IndexedDB transaction open across asynchronous Web Crypto key generation; key read and key write use separate transactions and the write is awaited.
-- Cloud-chat header now says `Cloud` rather than `Connected`, because a static conversation label must not imply verified Internet reachability.
-- All 0.6.1 Outbox safeguards and 0.6.2 live-listener fixes remain.
+Explicit earlier-history sharing is now defined as an administrator-selected starting point/date, including **Beginning of conversation**. The boundary must be enforced cryptographically at message granularity. A grant may not hand the target an old epoch key if that would reveal messages before the chosen boundary.
 
-Protected firebase-config.js and config-firestore.js remain excluded.
+### Offline behavior
 
+- Firestore is the durable encrypted authority.
+- UID-scoped IndexedDB/local cache is rebuildable offline state.
+- The encrypted Outbox is temporary pending-send authority.
+- A pending Outbox record is removed only after Firestore confirms the write.
+- Reconnect/retry paths must be serialized and idempotent.
 
-## Hermes 0.6.4 / FIDUNIO 0.6.4
+### Service worker
 
-0.6.4 corrects a specific Safari/iOS IndexedDB bug in the 0.6.3 offline-history restore path.
+The service worker is now cache/transport only. It must not rewrite `app.js`, inject runtime semantics, own E2EE, or become a second authority.
 
-The 0.6.3 loader opened one read transaction, awaited `getAllKeys()`, and then tried `getAll()` on that same transaction. Safari/iOS is aggressive about auto-closing IndexedDB transactions when JavaScript yields across an `await`, so the second request can fail with an inactive transaction. That prevents the dedicated encrypted history cache from being restored on cold offline startup.
+## Significant build history
 
-0.6.4 performs one `getAll()` request in one transaction and then decrypts the returned records after that transaction is finished. The records already contain their conversation IDs, so the separate key request was unnecessary.
+### 0.1-0.4 — UX prototype phase
 
-All 0.6.1 Outbox safeguards, 0.6.2 live-listener fixes, and 0.6.3 dedicated encrypted history storage remain intact.
+The project began as a Firebase-free UX prototype. Early work established the conversation list, New Message/New Group flows, group member selection, Group Info, quick compose, Settings, A/A+/A++ text sizing, Auto/Light/Dark appearance, initial offline simulation, and the core group-history privacy rule. FIDUNIO branding and the approved winged-messenger artwork were introduced during this period.
 
-Protected `firebase-config.js` and `config-firestore.js` remain excluded from the release ZIP.
+### 0.5 — first durable local build
 
+0.5 moved from pure UI simulation to a functional local PWA foundation. It added IndexedDB persistence, AES-GCM-protected local state, an encrypted persistent Outbox, offline queue survival, app-shell caching, and stable client-generated message IDs.
 
-## Hermes 0.6.5 / FIDUNIO 0.6.5
+### 0.6-0.6.5 — Firebase transport and offline hardening
 
-0.6.5 changes the offline architecture after comparing FIDUNIO with the user's proven JavaScript Scorecard application.
+0.6 introduced Firebase Auth, Firestore direct-conversation transport, real live listeners, and real queued cloud delivery.
 
-The critical finding was not simply "use localStorage." The important Scorecard discipline is:
+0.6.1-0.6.5 were driven by real iPad/iPhone failure testing. Important fixes included authoritative Outbox persistence, transaction-completion waiting, cold-start queue reconstruction, foreground listener reattachment, dedicated encrypted history storage, Safari IndexedDB transaction corrections, and the final local-first rule: remote/cache snapshots must never erase locally durable information. Firebase data transport is never service-worker cached.
 
-1. durable local state is independent from Firebase availability;
-2. Firebase is a synchronization layer, not the sole source of what the user should see;
-3. a failed/unavailable remote read must never erase locally durable information;
-4. Firebase SDK JavaScript may be cached, but Firebase data transport must not be service-worker cached.
+### 0.7.0-0.7.3 — first direct-message E2EE and version centralization
 
-A concrete FIDUNIO issue was also identified:
-Firestore can emit an offline/cache snapshot on cold start. In 0.6.4, the message listener replaced the locally restored message array with whatever Firestore returned. If that cache snapshot was empty, FIDUNIO erased the locally restored conversation in memory and then saved the empty result. When connectivity returned, the server snapshot populated the messages again. That matches the observed iPad behavior.
+0.7.0 introduced the first direct-message E2EE foundation. 0.7.1 established `version.js` as the single version authority and consolidated project memory into one root `hermes-memory.txt`. 0.7.2 repaired peer-UID continuity required for encryption. 0.7.3 stabilized live receive/reconnect behavior and became an important transport checkpoint.
 
-0.6.5 fixes:
-- `firebase.js` now passes Firestore snapshot metadata (`fromCache`, `hasPendingWrites`) to the app.
-- Cached/offline Firestore snapshots MERGE into locally restored history and can never delete locally stored rows.
-- Only a server-backed snapshot is treated as authoritative for server messages.
-- Local queued/sending/failed outbound messages remain preserved until Firestore confirms them.
-- Read receipts are not attempted from an offline/cache-only snapshot.
-- Startup is explicitly local-first: local state -> encrypted cloud history -> Outbox reconstruction -> render -> Firebase synchronization.
-- The service worker uses the Scorecard-style split:
-  * own FIDUNIO files: network-first with offline cache fallback;
-  * versioned `www.gstatic.com` Firebase SDK modules: cache-first/background refresh;
-  * `googleapis.com` / `firebaseio.com` data transport: never service-worker cached.
-- Firebase SDK top-level modules are pre-cached opportunistically during service-worker install.
-- Service-worker installation uses `Promise.allSettled`, so one unavailable optional/remote file does not abort the worker installation.
-- Existing 0.6.1 authoritative encrypted Outbox, 0.6.2 live listener, and 0.6.3/0.6.4 encrypted history work remain.
+### 0.8.0-0.8.1.9 — device identity, security UX, and responsive tablet work
 
-Protected configuration:
-- `firebase-config.js` is NOT included in this ZIP.
-- `config-firestore.js` is NOT included in this ZIP.
-- Keep the configured repository copies untouched.
+0.8.0 added stable installation device IDs and device public-key publication. 0.8.1 added local contact-key verification/key-change detection. The 0.8.1.x line then concentrated on the visual and responsive experience: 2D color-coded icons, compact attachment tools, iPhone overflow corrections, and the iPad/tablet two-pane layout.
 
-0.6.5 is still a transport prototype; Firestore cloud message text is not yet end-to-end encrypted.
+0.8.1.9 was considered essentially complete for that UI generation, with the principal remaining tablet issue being Group Info landscape width treatment.
 
+### 0.9.x — account, settings, receipts, identity continuity, and rebuild preparation
 
-## Hermes 0.7.0 / FIDUNIO 0.7.0
+The 0.9.x line expanded account/invitation/settings behavior and exposed architectural weaknesses that ultimately motivated the controlled rebuild.
 
-First direct-message E2EE foundation. New 0.7.0 direct messages use a per-installation non-exportable ECDH P-256 private key, HKDF-SHA-256 and AES-256-GCM. Firestore receives ciphertext/IV and an empty legacy text field. This build does not yet implement multi-device key fan-out, safety-number verification, forward secrecy/Double Ratchet, or group E2EE. The proven 0.6.5 local-first/offline architecture remains. Protected Firebase config files are excluded.
+Important validated checkpoints preserved from this period include:
 
+- **0.9.4.11** — stable pre-invite/install UI behavior, including the prominent iPhone Back fix and iPhone wrap-around fix.
+- **0.9.5.1** — Settings lifecycle checkpoint.
+- **0.9.5.4** — message receipt checkpoint.
+- **0.9.5.7** — prevention of E2EE device-identity proliferation/startup race.
 
-## Hermes 0.7.1 / FIDUNIO 0.7.1
+## Rollback and rejected-build history
 
-0.7.1 corrects the mixed-version labels in the 0.7.0 test build and centralizes the runtime release number.
+### 0.9.4.12-.15 rollback — rejected invite/install implementation
 
-- `version.js` is now the single authoritative current-version source.
-- `app.js` reads the version from `globalThis.FIDUNIO_RELEASE.version`.
-- `service-worker.js` imports the same version file and derives its cache name from it.
-- Startup/login, Settings/About, warnings, and prototype notices no longer carry stale hard-coded release numbers.
-- The 0.7.0 direct-message E2EE implementation and Firestore rule design are retained.
-- The proven 0.6.5 local-first/offline architecture is retained.
-- `firebase-config.js` and `config-firestore.js` remain protected and excluded.
-- One cumulative `hermes-memory.txt` replaces version-specific memory files.
+The most important product rollback occurred after the stable 0.9.4.10/0.9.4.11 line. Automatic invitation/install/icon work introduced regressions that broke previously working Settings/two-panel iPad behavior and recreated problems that had already been solved.
 
-## Hermes 0.7.2 / FIDUNIO 0.7.2
+The user directed the project to stop adapting that implementation and return to the known-good baseline. The recovery path was:
 
-0.7.2 repairs the direct-E2EE conversation identity problem found during the first 0.7.1 test. Firestore conversation discovery already returned `peerUid`, but the local merge dropped it. Since E2EE needs the recipient UID to retrieve the recipient public key, an older/restored conversation could fail before encryption/send. 0.7.2 preserves `peerUid`, repairs missing peer identity from the authoritative Firestore conversation document, preserves it in Outbox recovery data, and retries queued/failed cloud work after conversation reconciliation. It does not change the 0.7.x cryptographic design or Firestore rule design, and it preserves the proven 0.6.5 local-first/offline architecture.
+- return to the stable 0.9.4.10 foundation;
+- reapply only the small proven iPhone wrap-around correction;
+- reapply the prominent Back-button correction;
+- establish the resulting stable behavior as 0.9.4.11;
+- reject and purge the nonfunctional 0.9.4.12-.15 line;
+- rebuild invitation/install integration later from first principles instead of adapting rejected code.
 
+**0.9.4.12-.15 remain rejected and must never be treated as a source of truth or copied back into the rebuild.**
 
-## Hermes 0.7.3 / FIDUNIO 0.7.3
+### Recovery architecture reversal — supplemental verifier removed
 
-0.7.3 is a focused live-receive/reconnect reliability correction built on the successful 0.7.2 E2EE/offline baseline.
+During the September 2026 rebuild, prototype recovery code/docs had accumulated an additional supplemental verifier. That architecture was explicitly rejected and removed. The durable recovery design is exactly three components: authenticated account/UID, exact six-digit account-E2EE PIN, and Google-hosted recovery authority. Tests and deployment source were reconciled to the three-component design.
 
-- Keeps `version.js` as the only authoritative current release number.
-- Prevents the conversation-list Firestore listener from unnecessarily tearing down and recreating the active message listener whenever `conversation.updatedAt` changes.
-- Tracks the currently subscribed cloud conversation so repeated reconciliation is idempotent.
-- Explicit chat navigation, authentication restoration, reconnect, `pageshow`, and visible `visibilitychange` can still force one clean listener reattach.
-- On reconnect, the Outbox flushes immediately and retries after 1.5 seconds and 4 seconds to tolerate iOS/Safari reporting connectivity before Firebase is fully usable.
-- Keeps the 0.7.2 E2EE design, peerUid repair, encrypted local history, authoritative Outbox, and Firestore rules unchanged.
-- Protected Firebase configuration files remain excluded.
+### Firebase/App Check ownership reversal — duplicate owner removed
 
+A second App Check/Firebase ownership path briefly violated the single-owner architecture. The extra Firebase/App Check owner was removed, `firebase.js` was restored as the sole Firebase SDK/service owner, and the runtime-authority gate was strengthened so this regression is rejected automatically.
 
-## Hermes 0.8.0 / FIDUNIO 0.8.0
+### Hidden service-worker semantics retired
 
-0.8.0 starts the multi-device identity layer while deliberately preserving the stable 0.7.3 transport and E2EE ciphertext path.
+Earlier builds relied on service-worker rewriting of `app.js` to inject E2EE/runtime behavior. The controlled rebuild materialized or superseded those transformations in source and reduced the service worker to cache/transport only. This was not merely cleanup: it removed a hidden second source of application semantics.
 
-- Each installation receives a stable random Device ID stored locally in IndexedDB.
-- The existing non-exportable ECDH P-256 keypair is reused during migration, avoiding an unnecessary key rotation.
-- Settings shows the SHA-256 fingerprint of this installation's public key.
-- The signed-in installation publishes a public device record under `users/{uid}/devices/{deviceId}`.
-- New encrypted message metadata includes `senderDeviceId`.
-- The existing account-level `e2eePublicJwk` remains the encryption compatibility bridge in 0.8.0.
-- Firestore rules add explicit owner-write/authenticated-read access to public device records.
-- Protected Firebase configuration files remain excluded.
+### September 5-6 process-integrity reset
 
-0.8.0 is a foundation only: it does not yet encrypt one message separately to every recipient device. Per-device recipient envelopes, verified device linking/key-change approval, forward secrecy, and group E2EE remain future milestones.
+A rebuild session exposed the risk of changing code from conversational memory instead of rereading the repository authority. That process was corrected by making repository-first recovery mandatory before consequential changes. Current work must reread the authoritative documents, identify the owner/write path, inspect the actual source, and then modify. A green CI result never overrides a published architecture invariant.
 
+## Complete rebuild — September 2026
 
-## Hermes 0.8.1 / FIDUNIO 0.8.1
+The current complete rebuild consolidates the application around deterministic ownership, account-authoritative E2EE, real Firestore authority, serialized writes, and explicit UI lifecycle control.
 
-0.8.1 adds local contact-key verification and key-change detection on top of the stable 0.8.0 device registry.
+### Baseline and authority
 
-- Each contact's observed account compatibility-key fingerprint is stored in the already encrypted local app state.
-- Cloud direct-chat Info now opens Conversation Security.
-- Users can compare a contact fingerprint over a separate trusted channel and explicitly mark the current key verified.
-- A change to a previously verified key becomes a blocking security event for NEW outgoing messages until the new fingerprint is reviewed and verified.
-- An unverified key change is surfaced as a warning but is not falsely described as a verified-key compromise.
-- Peer keys are refreshed on message send/live snapshot so the app can detect changes rather than trusting an indefinite memory cache.
-- The contact device registry count is shown, and FIDUNIO reports when the current compatibility key matches a registered device.
-- No Firestore rules change from 0.8.0.
-- No change to the stable message ciphertext format, Outbox, offline history, or reconnect architecture.
+The initial protected rebuild baseline was created on September 5, 2026. The current authoritative development branch is `fidunio-complete-rebuild`; older baseline branches/checkpoints remain historical rollback references and do not supersede the current branch.
 
+The rebuild deliberately avoids coding from reconstructed memory. `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md`, security contracts, runtime ownership maps, lifecycle docs, and bug ledger are mandatory working references.
 
-## Hermes 0.8.1.1 / FIDUNIO 0.8.1.1
+### Account E2EE and recovery
 
-UI-only refinement built from the fully passed 0.8.1 security baseline.
+The rebuild implemented the durable account identity manager, exact Firestore identity schema/rules, direct-message account E2EE v3, recovery server crypto/session controls, client recovery integration, and three Recovery Functions in `us-central1`.
 
-- Replaces simple text/emoji-style action graphics with cleaner two-dimensional SVG pictograms.
-- Updates Settings, Info, Add/New, Back, Send, and composer tool icons.
-- Composer tools now use consistent 2D pictograms for Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved.
-- Retains the existing navy/teal/gray visual language and does not introduce gold.
-- No Firebase, Firestore rules, E2EE, device-identity, peer-verification, Outbox, local-history, or reconnect logic changes.
-- `version.js` remains the single runtime version source.
-- Stable root-level TXT files are `hermes-memory.txt` and `hermes-setup.txt`.
+The recovery Functions are live and verified ACTIVE under the dedicated recovery runtime service account. The recovery master secret is restricted to enrollment/completion as designed. App Check enforcement remains OFF.
 
+A parallel PIN-guess race discovered during review was fixed by serializing recovery completion through a Firestore `PENDING -> VERIFYING` reservation before PIN cryptography.
 
-## Hermes 0.8.1.2 / FIDUNIO 0.8.1.2
+### Direct-message runtime cutover
 
-Responsive UI correction for the 0.8.1.1 icon refresh.
+Raw `app.js` now sends/decrypts new direct messages through the account-authoritative `e2ee:3` runtime/service path. New sends fail closed unless the account E2EE identity is READY. Legacy v1/v2 receive compatibility remains for historical messages.
 
-- Fixes composer attachment-panel overflow seen on iPad.
-- Uses 4 columns on tablet-width layouts and 2 columns on narrow iPhone layouts.
-- Prevents tool buttons and labels from forcing the grid wider than the viewport.
-- Adds distinct color accents to the 2D tool icons to improve recognition.
-- Keeps all security, Firebase, Firestore, E2EE, verification, Outbox, history, and reconnect logic unchanged.
+### Group E2EE and administration
 
+Group account-authoritative E2EE was materialized with `e2ee:4`, per-account epoch envelopes, membership-aware receipts, epoch-aware Outbox retry, and real group conversation integration.
 
-## Hermes 0.8.1.3 / FIDUNIO 0.8.1.3
+Cloud-backed Group Info administration now includes rename, add member, remove member, and non-owner leave. Membership changes atomically update membership and create the replacement E2EE epoch. Owner removal/leave remains forbidden until a deliberate ownership-transfer design exists.
 
-Responsive UI refinement combining compact colored attachment icons with adaptive tablet presentation.
+### Earlier-history grant work
 
-- Restores a compact 4×2 attachment-icon grid.
-- Keeps recognizable colored 2D icons with complete labels.
-- Adds adaptive two-pane tablet layout at wider viewport sizes: conversation sidebar left, active chat right.
-- Automatically falls back to single-pane at narrow widths.
-- Uses viewport width rather than device-name detection.
-- No Firebase, Firestore rules, E2EE, key verification, device identity, Outbox, local history, or reconnect changes.
+The user approved administrator-selected starting point/date history sharing, including Beginning of conversation. `e2ee-account-group-history-crypto.js` now provides message-granular account-to-account re-encryption so the selected lower boundary cannot be bypassed by disclosure of an old epoch key.
 
+The usable feature is not yet complete. Firestore grant/copy schema, authorization rules, runtime/service/transport integration, Group Info date-selection controls, disappearing-content purge linkage, and emulator tests are still required before the control can be enabled.
 
-## Hermes 0.8.1.4 / FIDUNIO 0.8.1.4
+### 0.9.6.6 bounded wiring repair
 
-UI-only correction to the 0.8.1.3 adaptive tablet release.
+A repository-first audit found that `e2ee-account-group-app-integration.js` exposed Group Info administration wrappers without importing the corresponding controller delegates. The defect was repaired in commit `8b72f00744cc4b882c7fb1df0ce48d3959f563ec`, the integration gate was strengthened to check all four delegates, and the checkpoint advanced to 0.9.6.6.
 
-- Wide Messages route now enters the two-pane tablet shell immediately.
-- Fixes literal `${icon2d(...)}` text appearing in place of the Settings SVG.
-- Adds proper Settings/New controls to the tablet sidebar.
-- Preserves compact 4×2 colored attachment icons and all 0.8.1 security behavior.
-- No Firestore Rules update is required.
+The full Rebuild Baseline Security Gate run **34046337123** passed after that repair. Earlier important green runs include **34011735357** for the hardened recovery/account-E2EE baseline, **34045259037** for real group administration, and **34046083575** for the group-history cryptographic foundation.
 
+## Current first-rebuild completion state
 
-## Hermes 0.8.1.5 / FIDUNIO 0.8.1.5
+Approximately **65%** of the first complete rebuild acceptance criteria are complete. This percentage excludes FCM 1.1 and App Check 1.2 work.
 
-Final iPad UI refinement based on the approved 0.8.1.4 two-pane layout.
+Major completed areas include deterministic runtime ownership, centralized Firebase ownership, account E2EE identity/recovery foundation, direct-message v3 E2EE, encrypted Outbox, group E2EE send/receive/receipts/offline retry, group creation, and real group rename/add/remove/leave administration.
 
-- Wide tablet/iPad attachment tools now appear in ONE horizontal row of eight icons.
-- The row contains Photo, File, Voice, Location, Contact, Checklist, Schedule, and Saved.
-- Icons retain distinct colors and compact labels underneath.
-- The iPad conversation sidebar now includes a compact bottom navigation strip for Messages, Groups, Contacts, and Settings.
-- iPhone/narrow view remains a compact 4×2 attachment grid.
-- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.
+Major unfinished first-release areas include explicit earlier-history grant persistence/UI/purge integration, disappearing-content physical purge, complete attachment send/receive/lifecycle, invitation and safe install integration rebuilt from scratch, remaining Chat/Group Info/tool placeholders and simulated state removal, final complete-repository gate, atomic `htest` deployment, and final real-device validation.
 
+## Disappearing-content requirement
 
-## Hermes 0.8.1.6 / FIDUNIO 0.8.1.6
+Disappearing content is not a soft-delete feature. When content expires, FIDUNIO must physically purge every application-controlled trace: Firestore message document, ciphertext/plaintext copies, receipts/references, attachment metadata and encrypted blobs/chunks, thumbnails/previews, IndexedDB/history/cache copies, decrypted object URLs/cache, Outbox copies, and app-controlled notification payload/cache records. No per-message tombstone or retained `expired:true` message record is permitted. Stale/offline devices must not resurrect expired content.
 
-UI-only correction to the tablet layout.
+History-grant copies are subject to the same rule. If a source message expires, every grant copy/reference that exists only for that message must also be removed.
 
-- Fixes the tablet composer/tool strip being constrained by the old phone `position: fixed` / 520px centering rules.
-- Tablet composer now participates normally inside the right pane and spans the full chat-pane width.
-- Keeps all 8 attachment icons in one compact horizontal row.
-- Lowers the adaptive two-pane threshold to 700 CSS px so iPad portrait/narrow Safari viewports do not unexpectedly fall back to the centered phone layout.
-- Keeps iPhone below 700px single-pane.
-- No backend, Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.
+## Release roadmap
 
+### First complete rebuild
 
-## Hermes 0.8.1.7 / FIDUNIO 0.8.1.7
+The first rebuild release covers core private messaging, account E2EE, groups, attachments, disappearing content, invitations/install, responsive UI, offline behavior, receipts, and final device validation.
 
-Final tablet UI polish release.
+### FIDUNIO 1.1
 
-- Keeps the working two-pane iPad layout from 0.8.1.6.
-- Keeps all 8 attachment tools on one line.
-- Centers the attachment toolbar in the right pane and limits its maximum width so it no longer looks overly stretched on a large iPad.
-- Gives the toolbar a subtle grouped container and slightly larger icons for better visual balance.
-- Centers the quick-reply row and message composer within a comfortable maximum width.
-- New Message, New Group, and Group Name screens now use a wider centered tablet workspace instead of the narrow phone-width column.
-- iPhone remains unchanged.
-- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local-history, or reconnect changes.
+Firebase Cloud Messaging will be added as a privacy-preserving notification/wake transport. Firestore/E2EE remains message authority. Push payloads must not contain plaintext message or attachment content by default, and Fire OS/non-FCM fallback remains required.
 
+### FIDUNIO 1.2
 
-## Hermes 0.8.1.8 / FIDUNIO 0.8.1.8
+Firebase App Check production enforcement will be considered only after legitimate supported-device/client/recovery traffic is validated and rollout testing proves that enforcement will not lock out legitimate users.
 
-Completes the tablet-width treatment for secondary screens.
+## Authoritative project documentation
 
-- Settings now uses the same centered tablet-width presentation as New Message/New Group/Group Name.
-- The first/unlock screen now also adapts to iPad/tablet width instead of looking like a narrow phone screen.
-- Existing 0.8.1.7 two-pane chat, centered one-line attachment toolbar, and phone behavior remain unchanged.
-- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, history, or reconnect changes.
+Before consequential rebuild work, read and reconcile the repository documentation appropriate to the task. The central durable references are:
 
+- `hermes-memory.txt` — cumulative project state, decisions, checkpoints, regressions, and next state.
+- `FIDUNIO-BUILD-CHECKLIST.md` — authoritative first-rebuild completion ledger.
+- `CODING-GUIDELINES.md` — reusable implementation and process rules.
+- `architecture-ownership.txt` — resource/module ownership and write-path boundaries.
+- `RUNTIME-AUTHORITY-MAP.md` — runtime authority boundaries.
+- `DETERMINISTIC-UI-LIFECYCLE.md` — UI navigation/render/lifecycle authority.
+- `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md` — durable account E2EE storage authority.
+- `ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md` — direct-message v3 contract.
+- `ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md` — group-message/history policy contract.
+- `E2EE-IDENTITY-LIFECYCLE.md` and `E2EE-RECOVERY-PROTOCOL.md` — identity and recovery contracts.
+- `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-GROUP-E2EE-V1-RULES.md`, and emulator-test docs — security-rule authority and validation.
+- `BUG-LIST.md` — durable defect ledger.
+- `REBUILD-BASELINE-AUDIT.md` — baseline keep/remove/audit history.
+- `hermes-setup.txt` — reusable setup/deployment/recovery/testing instructions.
 
-## Hermes 0.8.1.9 / FIDUNIO 0.8.1.9
+## Development rule
 
-Orientation-aware tablet UI refinement.
+Do not declare a feature complete because code merely exists. A rebuild item is DONE only when it is integrated into the real application and its applicable tests/security gates pass. If a regression is found, the checklist must move backward rather than preserve a false green state.
 
-- iPad/tablet portrait preserves the centered single-column secondary-screen design.
-- iPad/tablet landscape now uses the available width instead of leaving a large empty area.
-- Settings uses a two-column card layout on wide landscape tablets.
-- Unlock/first screen becomes a wider centered card in landscape.
-- New Message/New Group/Group Name use a broader centered workspace in landscape.
-- Messages/chat retains the established two-pane tablet layout.
-- iPhone/narrow layouts remain unchanged.
-- No Firebase, Firestore Rules, E2EE, verification, device identity, Outbox, local history, or reconnect changes.
+The README must likewise tell the truth about release history: successful versions, rejected versions, resets, rollbacks, protected checkpoints, and significant architecture changes must remain visible rather than being rewritten out of history.
