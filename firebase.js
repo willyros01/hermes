@@ -1,14 +1,17 @@
 import { firebaseConfig } from "./firebase-config.js";
 
 const SDK_VERSION="12.18.0";
+// Public reCAPTCHA Enterprise site key registered for FIDUNIO Web / willyros01.github.io.
+// This key is intentionally public and constrained by its Google Cloud configuration.
+export const FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY="6LfLaqstAAAAANNkEghVZ26a4vv8hXwC7KDI9rma";
 let sdkPromise=null;
 let services=null;
 let authUser=null;
 const messageStreams=new Map();
 
 export function isFirebaseConfigured(){return firebaseConfig&&!String(firebaseConfig.apiKey||"").includes("PASTE_")&&!String(firebaseConfig.projectId||"").includes("PASTE_")&&!String(firebaseConfig.appId||"").includes("PASTE_");}
-async function loadSdk(){if(sdkPromise)return sdkPromise;sdkPromise=Promise.all([import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`)]).then(([appSdk,authSdk,fsSdk])=>({appSdk,authSdk,fsSdk}));return sdkPromise;}
-async function ensureServices(){if(services)return services;if(!isFirebaseConfigured())throw new Error("Firebase is not configured yet.");const {appSdk,authSdk,fsSdk}=await loadSdk();const app=appSdk.initializeApp(firebaseConfig),auth=authSdk.getAuth(app),db=fsSdk.getFirestore(app);services={app,auth,db,authSdk,fsSdk};return services;}
+async function loadSdk(){if(sdkPromise)return sdkPromise;sdkPromise=Promise.all([import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app-check.js`)]).then(([appSdk,authSdk,fsSdk,appCheckSdk])=>({appSdk,authSdk,fsSdk,appCheckSdk}));return sdkPromise;}
+async function ensureServices(){if(services)return services;if(!isFirebaseConfigured())throw new Error("Firebase is not configured yet.");const {appSdk,authSdk,fsSdk,appCheckSdk}=await loadSdk();const app=appSdk.initializeApp(firebaseConfig);const appCheck=appCheckSdk.initializeAppCheck(app,{provider:new appCheckSdk.ReCaptchaEnterpriseProvider(FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY),isTokenAutoRefreshEnabled:true});const auth=authSdk.getAuth(app),db=fsSdk.getFirestore(app);services={app,appCheck,auth,db,authSdk,fsSdk};return services;}
 export async function initFirebase(onUserChanged){const s=await ensureServices();s.authSdk.onAuthStateChanged(s.auth,user=>{authUser=user||null;onUserChanged?.(authUser);});return s;}
 export function getFirebaseUser(){return authUser;}
 
@@ -174,4 +177,3 @@ export async function getCloudAccountE2EEPublicKey(uid){
   return snap.exists()?{uid:snap.id,...snap.data()}:null;
 }
 // END ACCOUNT E2EE V1 CENTRAL FIREBASE API
-
