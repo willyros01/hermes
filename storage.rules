@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn(){ return request.auth != null; }
+    function directMember(cid){ return firestore.get(/databases/(default)/documents/conversations/$(cid)).data.members.hasAny([request.auth.uid]); }
+    function groupMember(cid){ return firestore.get(/databases/(default)/documents/groups/$(cid)).data.memberUids.hasAny([request.auth.uid]); }
+    function member(cid){ return directMember(cid) || groupMember(cid); }
+    match /attachments/{senderUid}/{conversationId}/{messageId}/{attachmentId}/{rest=**} {
+      allow read: if signedIn() && member(conversationId);
+      allow create, update: if signedIn() && request.auth.uid == senderUid && member(conversationId) && request.resource.size <= 1048576;
+      allow delete: if false;
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}
