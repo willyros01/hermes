@@ -1,0 +1,3 @@
+const text=v=>String(v??'').trim();
+export function planAttachmentOfflineRecovery({activeUid,outboxRows=[],cacheRows=[]}={}){const uid=text(activeUid);if(!uid)throw new Error('Active UID is required.');const pending=[],quarantine=[],cache=[];for(const row of outboxRows||[]){if(text(row?.uid)===uid&&row?.kind==='attachment')pending.push(row);else if(row?.kind==='attachment')quarantine.push(row);}for(const row of cacheRows||[])if(text(row?.uid)===uid)cache.push(row);return Object.freeze({pending:Object.freeze(pending),quarantine:Object.freeze(quarantine),cache:Object.freeze(cache)});}
+export const ATTACHMENT_OFFLINE_AUTHORITY_V1=Object.freeze({outboxAuthoritative:true,cacheRebuildable:true,uidScoped:true,crossAccountReuse:false});
