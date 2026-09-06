@@ -486,3 +486,10 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - No local/cloud tombstones are created.
 - Next slice must wire this decision through the existing UID-scoped IndexedDB/application owner, preserve metadata on direct/group projections, remove matching cache/Outbox traces before retry, and prove restart/reconnect non-resurrection.
 - Version 0.9.6.20 -> 0.9.6.21. No live Firebase/htest change. Overall first rebuild remains approximately 65%.
+
+FIDUNIO 1.0 PRE-ALLOCATED BUILD-NUMBER RULE — USER REQUIREMENT
+- `FIDUNIO-BUILD-CHECKLIST.md` must carry the detailed implementation task and an already-allocated target build number for every remaining component required for 1.0.0, including work that is only planned.
+- Current allocation bands: 0.9.6.x disappearing/anti-resurrection; 0.9.7.x attachments; 0.9.8.x invitations/install; 0.9.9.x UI/regression/release-candidate; 1.0.0 final promotion.
+- A reserved number is not the runtime version until that slice is materially implemented. If an unexpected security/regression build must be inserted, update the checklist allocation before coding and never silently reuse a completed number.
+- Every substantive build report must identify its allocated build number, detailed steps completed/remaining, validation evidence, and overall first-rebuild completion percentage.
+
