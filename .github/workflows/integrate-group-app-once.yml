@@ -31,8 +31,7 @@ jobs:
           lines=[]
           for line in body.splitlines():
               lines.append(line[10:] if line.startswith('          ') else line)
-          script='\n'.join(lines)+'\n'
-          Path('/tmp/group-admin-materialize.sh').write_text(script)
+          Path('/tmp/group-admin-materialize.sh').write_text('\n'.join(lines)+'\n')
           subprocess.run(['bash','/tmp/group-admin-materialize.sh'],check=True)
           PY
       - name: Reconcile group ownership assertions
@@ -42,13 +41,20 @@ jobs:
           p=Path('e2ee-account-group-app-controller.test.mjs');s=p.read_text()
           old='["legacy app still has explicit disabled marker until bounded wiring",/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]'
           new='["app uses bounded real group administration bridge",/renameGroupForApp/.test(app)&&/addGroupMemberForApp/.test(app)&&/removeGroupMemberForApp/.test(app)&&/leaveGroupForApp/.test(app)&&!/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]'
-          assert old in s
-          p.write_text(s.replace(old,new,1))
+          assert old in s;p.write_text(s.replace(old,new,1))
           p=Path('e2ee-account-group-app-integration.test.mjs');s=p.read_text()
           old='["bridge owns no Firebase",!/firebase\\.js|Firestore|sendCloud/.test(src)],'
           new='["bridge owns no Firebase",!/from\\s+["\']\\.\\/firebase\\.js["\']|firebaseApp|firebaseConfig|sendCloud|\\bgetFirestore\\b|\\bsetDoc\\b|\\bupdateDoc\\b/.test(src)],'
-          assert old in s
-          p.write_text(s.replace(old,new,1))
+          assert old in s;p.write_text(s.replace(old,new,1))
+          PY
+      - name: Preserve standalone epoch rotation rule
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('firestore.rules');s=p.read_text()
+          old='''allow update: if registered()&&request.resource.data.type==resource.data.type&&request.resource.data.ownerUid==resource.data.ownerUid&&request.resource.data.createdByUid==resource.data.createdByUid&&request.resource.data.createdAt==resource.data.createdAt&&request.resource.data.historyPolicy==resource.data.historyPolicy&&request.resource.data.groupVersion==resource.data.groupVersion&&request.resource.data.name is string&&request.resource.data.name.size()>0&&request.resource.data.name.size()<=120&&validGroupLists(request.resource.data)&&((isGroupAdmin(groupId)&&request.resource.data.memberUids==resource.data.memberUids&&request.resource.data.adminUids==resource.data.adminUids&&request.resource.data.keyEpoch==resource.data.keyEpoch)||(request.resource.data.name==resource.data.name&&request.resource.data.keyEpoch==resource.data.keyEpoch+1&&groupMembershipChanged(groupId)&&matchingNextEpochExists(groupId)&&(isGroupAdmin(groupId)||selfLeaveAfter(groupId))));'''
+          new='''allow update: if registered()&&request.resource.data.type==resource.data.type&&request.resource.data.ownerUid==resource.data.ownerUid&&request.resource.data.createdByUid==resource.data.createdByUid&&request.resource.data.createdAt==resource.data.createdAt&&request.resource.data.historyPolicy==resource.data.historyPolicy&&request.resource.data.groupVersion==resource.data.groupVersion&&request.resource.data.name is string&&request.resource.data.name.size()>0&&request.resource.data.name.size()<=120&&validGroupLists(request.resource.data)&&((isGroupAdmin(groupId)&&request.resource.data.memberUids==resource.data.memberUids&&request.resource.data.adminUids==resource.data.adminUids&&((request.resource.data.keyEpoch==resource.data.keyEpoch)||(request.resource.data.name==resource.data.name&&request.resource.data.keyEpoch==resource.data.keyEpoch+1&&matchingNextEpochExists(groupId))))||(request.resource.data.name==resource.data.name&&request.resource.data.keyEpoch==resource.data.keyEpoch+1&&groupMembershipChanged(groupId)&&matchingNextEpochExists(groupId)&&(isGroupAdmin(groupId)||selfLeaveAfter(groupId))));'''
+          assert old in s;p.write_text(s.replace(old,new,1))
           PY
       - name: Syntax checks
         run: |
