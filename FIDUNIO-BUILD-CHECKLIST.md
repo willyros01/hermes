@@ -215,10 +215,16 @@ The 1.0 percentage is now a **fixed-point weighted ledger**, not a subjective es
 - 0.9.7.7 attachment receipt/lifecycle authority is repository-validated: **+1.0 earned**.
 - 0.9.7.8 disappearing attachment trace-free purge is repository-validated: **+1.0 earned**.
 - 0.9.7.9 attachment phase security closeout is repository-validated: **+1.0 earned**.
-- 0.9.8.0 and later allocated builds: **0.0 earned so far**.
-- **Current total: 85.0 / 100.0, reported as 85%.**
+- 0.9.8.0 invitation deterministic-owner rebuild is repository-validated: **+1.0 earned**.
+- 0.9.8.1 invitation create/send/use/join is repository-validated: **+1.0 earned**.
+- 0.9.8.2 invitation account/conversation association is repository-validated: **+1.0 earned**.
+- 0.9.8.3 safe install-to-Home-Screen owner is repository-validated: **+1.0 earned**.
+- 0.9.8.4 invite/install coexistence regression gate is repository-validated: **+1.0 earned**.
+- 0.9.8.5 account/invitation/install phase closeout is repository-validated: **+1.0 earned**.
+- 0.9.9.0 and later allocated builds: **0.0 earned so far**.
+- **Current total: 91.0 / 100.0, reported as 91%.**
 
-This 85.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
+This 91.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
 
 
 ## FIDUNIO 1.0 allocated build roadmap
@@ -268,18 +274,18 @@ This section pre-allocates the planned build number for every remaining first-re
 
 | Allocated build | Component / detailed task | Exit criteria | State |
 |---|---|---|---|
-| **0.9.8.0** | **CURRENT — Invitation deterministic-owner rebuild.** Re-audit current invitation code and establish one serialized invitation owner/write path; do not adapt rejected 0.9.4.12-.15 invite-install logic. | Architecture/rules tests green before changing install behavior. | CURRENT |
-| **0.9.8.1** | **Invitation create/send/use/join end-to-end.** Owner/Admin issue invitation; recipient validates/redeems; account/profile enrollment is real Firebase-backed behavior. | Happy path + used/revoked/expired/role/unauthorized tests green. | PLANNED |
-| **0.9.8.2** | **Invitation account/conversation association.** Joined user appears correctly to permitted contacts/groups without prototype identity or manual device binding. | Cross-account conversation/group discovery tests green. | PLANNED |
-| **0.9.8.3** | **Safe install-to-Home-Screen owner.** Build install guidance independently from invitation redemption; preserve manifest/icons/service-worker foundation and browser-specific supported paths. | Install flow cannot mutate invitation/account state; iPhone/iPad/desktop support paths documented/tested. | PLANNED |
-| **0.9.8.4** | **Invite + install coexistence regression gate.** Specifically reproduce the historical bug class where automatic icon/install behavior broke Settings/two-pane behavior, and prove the new architecture cannot do so. | Two-pane Settings, iPhone back/wrap and invitation flows remain green with install code present. | PLANNED |
-| **0.9.8.5** | **Account/invitation/install phase closeout.** Reconcile account creation/sign-in/sign-out/recovery, invitation-only enrollment and install guidance. | Complete repository gate green; no rejected historical implementation restored. | PLANNED |
+| **0.9.8.0** | **Invitation deterministic-owner rebuild.** `invitation-owner.js` is sole serialized invitation mutation coordinator; rejected 0.9.4.12-.15 logic not reused. | Full baseline `34065528714` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.8.1** | **Invitation create/send/use/join end-to-end.** Atomic accepted-invite + active-profile enrollment. | Policy + emulator matrix + full baseline `34065528714` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.8.2** | **Invitation account/conversation association.** Joined active profile enters UID/account-authoritative direct/group discovery; no device binding. | Closeout association gate + full baseline `34065528714` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.8.3** | **Safe install-to-Home-Screen owner.** Independent Settings guidance; no auto prompt or invitation/account mutation. | Browser guidance + full baseline `34065528714` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.8.4** | **Invite + install coexistence regression gate.** Install owner state-independent; automatic install absent; protected Settings/two-pane/iPhone assets intact. | Coexistence gate + full baseline `34065528714` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.8.5** | **Account/invitation/install phase closeout.** Invitation-only enrollment, account lifecycle/recovery and independent install guidance reconciled. | Full baseline `34065528714` SUCCESS; rejected implementation absent. | REPOSITORY-VALIDATED |
 
 ### 0.9.9.x — UI completion, regression hardening and release candidate
 
 | Allocated build | Component / detailed task | Exit criteria | State |
 |---|---|---|---|
-| **0.9.9.0** | **Group Info completion.** Integrate earlier-history controls from 0.9.6.29, remove obsolete placeholders, and finish tablet landscape layout without redesigning established two-pane behavior. | Group Info functional + responsive tests green. | PLANNED |
+| **0.9.9.0** | **CURRENT — Group Info completion.** Integrate earlier-history controls from 0.9.6.29, remove obsolete placeholders, and finish tablet landscape layout without redesigning established two-pane behavior. | Group Info functional + responsive tests green. | PLANNED |
 | **0.9.9.1** | **Direct Chat Info completion.** Replace remaining placeholder behavior with supported real actions or remove unsupported controls deliberately. | No Direct Chat Info placeholder actions remain. | PLANNED |
 | **0.9.9.2** | **Prototype/simulation cleanup.** Remove remaining test banners, simulated local message-state timers and tool-button alert placeholders only after their real replacements exist. | Search/runtime gates prove no forbidden simulation owner remains. | PLANNED |
 | **0.9.9.3** | **Responsive/lifecycle regression hardening.** Verify iPhone single-pane + prominent Back/wrap, iPad/tablet/desktop two-pane, Group Info landscape, Settings lifecycle, rotation/resize and live receipts. | Repository UI/lifecycle gates green with no observer/timer/reload rescue architecture. | PLANNED |
