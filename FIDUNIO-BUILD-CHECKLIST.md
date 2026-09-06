@@ -1,0 +1,118 @@
+# FIDUNIO Complete Rebuild — Authoritative Build Checklist
+
+This file is the operational completion ledger for the `fidunio-complete-rebuild` branch.
+
+## Mandatory build-session rule
+
+Before changing code in any build session:
+1. Read `hermes-memory.txt` and the mandatory architecture/security documents named there.
+2. Read this entire checklist.
+3. Select work from an item marked `NOT DONE` or `IN PROGRESS`.
+4. Do not mark an item `DONE` merely because code exists. `DONE` requires the implementation to be integrated into the real app and the applicable repository tests/security gate to pass.
+5. After every substantive build run/commit, update this file in the same work session with the actual state and evidence/commit. If no checklist state changed, update the Build Log only when there is material evidence worth preserving.
+6. If a completed feature regresses, change it back to `IN PROGRESS` or `NOT DONE`; never preserve a false green status.
+7. Completion percentage is based on the complete product acceptance criteria, not file count. Report a new percentage to the user only after a meaningful milestone is completed.
+
+Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE PROOF`.
+
+## Architecture / security foundation
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Deterministic owner architecture | DONE | One-resource/one-owner rule documented and gated. |
+| `firebase.js` sole Firebase SDK/service owner | DONE | Runtime authority/App Check gates. |
+| Service worker cache/transport only | DONE | Semantic app.js transforms retired. |
+| UID-scoped startup/account isolation | DONE | Auth -> UID -> account storage -> app startup; mixed pre-v3 state quarantined. |
+| Account E2EE identity manager | DONE | Durable P-256 account identity; fail-closed lifecycle. |
+| Three-component E2EE recovery | DONE | Recovery Functions active; client/server tests; no fourth factor. |
+| Direct-message account E2EE v3 | DONE | `e2ee:3`, runtime/service/rules/tests integrated. |
+| Serialized encrypted Outbox foundation | DONE | Firestore confirmation required before removal. |
+| Local PIN/security serialized mutations | DONE | Remaining UI callers repaired in `013508078f1cda925a54c99cf7e7ffb3c986f8e7`. |
+| App Check client ownership | DONE | Centralized in firebase.js; enforcement intentionally OFF pending legitimate-device validation. |
+
+## Core messaging product
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Conversation list / cloud metadata | DONE | Real cloud direct/group conversations integrated. |
+| Create direct conversation | DONE | Real cloud user selection/creation. |
+| Direct send/receive/decrypt | DONE | Account-authoritative v3 path. |
+| Direct offline queue/reconnect | DONE | Encrypted Outbox + idempotent retry path. |
+| Direct Sent/Delivered/Read | IN PROGRESS | Core receipt path exists; final cross-device/iPad lifecycle validation remains. |
+| Group E2EE crypto/runtime/rules | DONE | `e2ee:4`, epoch crypto/runtime/rules tests green. |
+| Group send/receive/decrypt | DONE | Integrated through group app owner into app.js; encrypted Outbox retained until Firestore confirmation. |
+| Group per-account receipts | DONE | Membership-aware receipt aggregation implemented. |
+| Group offline queue/epoch revalidation | DONE | Epoch-aware Outbox coordinator integrated. |
+| Group create | DONE | Real cloud group creation UI exists. |
+| Group rename | NOT DONE | Current Group Info path still has local/placeholder behavior. |
+| Group add member | NOT DONE | Must use real cloud users and rotate epoch atomically. |
+| Group remove member | NOT DONE | Must rotate epoch before subsequent message; removed member gets no new envelope. |
+| Leave group | NOT DONE | Real cloud membership mutation + epoch handling required. |
+| Group history policy/admin controls | IN PROGRESS | `historyPolicy:"fromJoin"` contract exists; real management UI/backend controls unfinished. |
+
+## Attachments / rich messaging
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Attachment encryption/chunking foundation | DONE | Integrity-checked bounded chunking; tamper/missing-chunk tests. |
+| Photo select/capture + send | NOT DONE | End-to-end UI/transport/storage required. |
+| File select + send | NOT DONE | End-to-end UI/transport/storage required. |
+| Audio record/select + send | NOT DONE | End-to-end UI/transport/storage required. |
+| Video select/capture + send | NOT DONE | End-to-end UI/transport/storage required. |
+| Attachment receive/decrypt/display/play | NOT DONE | Must work in direct and group conversations. |
+| Attachment retention/history/offline | NOT DONE | Must follow Firestore-authoritative/cache/Outbox ownership. |
+| Attachment receipts/lifecycle | NOT DONE | Must integrate with message status model. |
+
+## Account / invitations / install
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Account creation/sign-in/sign-out | DONE | Firebase Auth owner centralized. |
+| Account E2EE enroll/unlock UI | DONE | Exact six-digit account E2EE PIN; separate from local PIN. |
+| Same-identity recovery | BLOCKED — USER DEVICE PROOF | Repo implementation complete; final legitimate account/device proof belongs to final validation. |
+| Invitation creation/send/use/join | NOT DONE | Must be completed end-to-end under deterministic owner. |
+| Invitation account/conversation association | NOT DONE | Must be real Firebase-backed behavior. |
+| PWA manifest/icons/standalone/SW foundation | DONE | Existing PWA assets/runtime foundation. |
+| Safe install-to-Home-Screen integration | NOT DONE | Rebuild from scratch; rejected invite-install/icon implementation must never be adapted. |
+
+## UI / responsive / settings
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Settings deterministic lifecycle owner | DONE | Explicit lifecycle owner; observer self-repair rejected. |
+| iPad/tablet/desktop two-pane foundation | DONE | Mandatory responsive owner retained. |
+| iPhone single-pane/back/wrap fixes | DONE | Protected behavior retained; final device regression still required. |
+| Group Info real management UI | NOT DONE | Contains placeholders/local-only controls. |
+| Direct Chat Info complete | NOT DONE | Remaining placeholder behavior. |
+| Remove remaining prototype/test banners | NOT DONE | Only after corresponding real functionality is complete. |
+| Remove remaining simulated local message-state timers | NOT DONE | Real product must not simulate sent/delivered/read. |
+| Remove remaining tool-button alert placeholders | NOT DONE | Replace with real supported functions or deliberately remove unsupported tools. |
+
+## Notifications
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Browser/PWA notification architecture | NOT DONE | Inspect existing code/backend before implementation. |
+| Direct-message notifications | NOT DONE | Must respect E2EE/privacy and platform support. |
+| Group-message notifications | NOT DONE | Must respect E2EE/privacy and platform support. |
+
+## Final product gate / deployment
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Full repository security/regression gate on complete candidate | NOT DONE | Required after feature completion. |
+| Cumulative `hermes-memory.txt` final reconciliation | IN PROGRESS | Keep one cumulative root file. |
+| Reusable `hermes-setup.txt` final reconciliation | NOT DONE | Keep one reusable root file. |
+| Remove temporary one-shot build workflows | IN PROGRESS | Delete after each one-shot job has served its purpose. |
+| Atomic complete deployment to `htest` | NOT DONE | Current htest is stale/incomplete; do not continuously sync. |
+| Final iPhone/iPad/two-device/offline/recovery test candidate | NOT DONE | User tests only after complete coherent candidate is deployed. |
+
+## Current completion estimate
+
+Approximately **65%** of the complete FIDUNIO acceptance criteria. This number must not be advanced for minor cleanup; advance it only after a meaningful product milestone closes a material block above.
+
+## Build Log
+
+- 2026-09-06 — Created this authoritative checklist at user request so every build session has an explicit done/not-done ledger.
+- 2026-09-06 — Local-security Settings callers now await serialized timeout/device-unlock mutations; commit `013508078f1cda925a54c99cf7e7ffb3c986f8e7`; Local PIN/security serialized mutations marked DONE.
+- 2026-09-06 — Group account-authoritative send/read/receipts/Outbox integration is present in the rebuild; group administration remains the next major messaging milestone.
