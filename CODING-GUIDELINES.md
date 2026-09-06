@@ -186,3 +186,12 @@ Before writing application code in this project, the developer/assistant must in
 **"I have read CODING-GUIDELINES.md. I know the owner, scope, lifecycle trigger, and serialized write path for every mutable resource this change touches."**
 
 If that statement cannot be made truthfully, implementation must stop and investigation must continue.
+
+
+## README / release-number ledger rule — 2026-09-06
+- `version.js` remains the sole runtime release-number authority.
+- Whenever a release number is incremented, reset, rolled back, or reassigned, `README.md` MUST be updated in the same work session.
+- The README entry must preserve the old version, new version, reason, significant implementation changes, rollback/rejection status where applicable, validation evidence, and important follow-on constraints.
+- The same version-change session must reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md`, and every additional affected architecture/security/runtime/UI/setup/bug document.
+- Do not erase rejected builds or rollback history from README merely because they are no longer current. Historical failure/rollback information is part of the project safety record.
+- Keep exactly one cumulative root `README.md`; do not create version-numbered README replacements.

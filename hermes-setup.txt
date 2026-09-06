@@ -101,3 +101,10 @@ Before declaring READY FOR TEST:
 
 RECOVERY FROM A NEW CHAT OR INTERRUPTION
 Start with CURRENT-REBUILD.md on main if necessary. Then read the mirrored hermes-memory.txt and FIDUNIO-BUILD-CHECKLIST.md to locate the active branch and current state. Return to fidunio-complete-rebuild for executable development. The curated main-branch documents are recovery/discovery copies, not evidence that unfinished application code has been promoted.
+
+README / VERSION RELEASE PROCEDURE
+- `version.js` is the only runtime version-number authority.
+- Whenever the version is incremented, reset, rolled back or reassigned, update root `README.md` in the same work session.
+- README must record old -> new version, reason, significant implementation/build changes, rollback/rejection status, validation evidence and important next constraints.
+- Reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md` and every other affected durable document at the same boundary.
+- Keep one cumulative README; do not create versioned README copies.

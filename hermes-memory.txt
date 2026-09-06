@@ -295,3 +295,12 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - The prior full Rebuild Baseline Security Gate run `34046083575` completed green including the new group-history grant crypto test. A fresh gate is required for this wiring repair before treating the checkpoint as validated.
 - Earlier-history Firestore schema/rules/runtime/UI/purge linkage remain unfinished; do not enable the Group Info history-sharing control yet.
 - Overall first complete rebuild estimate remains approximately 65%.
+
+
+2026-09-06 — README / RELEASE-HISTORY LEDGER RULE
+- User requested README become the cumulative human-readable build history, including significant milestones, protected checkpoints, rejected builds and rollback/reset history.
+- README was modernized at 0.9.6.6 to cover the early prototype through the current complete rebuild, including the rejected 0.9.4.12-.15 invite/install line and return to the stable 0.9.4.10/0.9.4.11 foundation, three-component recovery correction, duplicate App Check/Firebase owner correction, service-worker semantic-transform retirement, current group/history work, and major green security-gate evidence.
+- Durable rule: whenever `version.js` is incremented, reset, rolled back or reassigned, README MUST be updated in the same work session with old/new version, reason, significant changes, rollback/rejection status, validation evidence and follow-on constraints.
+- The same version-change boundary must reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md` and all additional affected docs.
+- Keep one cumulative root README; do not create version-numbered README files.
+- This documentation-only change does not alter release number 0.9.6.6 or the approximately 65% first-rebuild completion estimate.
