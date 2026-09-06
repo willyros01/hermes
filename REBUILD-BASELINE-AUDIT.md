@@ -32,7 +32,7 @@ The latest checkpoint preserves the fully green repository-only account direct-m
 - `index.html`, `version.js`, active CSS, current artwork/icons and `manifest.json`;
 - `app.js` remains the structural runtime owner and still contains legacy per-device E2EE compatibility behavior pending migration;
 - `bootstrap.js` is startup sequencing only;
-- `firebase.js` is the sole runtime Firebase SDK/service owner;
+- **published target authority remains: `firebase.js` is the sole runtime Firebase SDK/service owner;**
 - `firebase-config.js` remains protected and must never be regenerated/replaced;
 - `service-worker.js` remains temporarily because it still injects legacy per-device E2EE compatibility transforms, but its target end-state is shell/offline caching only.
 
@@ -42,7 +42,7 @@ The latest checkpoint preserves the fully green repository-only account direct-m
 - `new-message-owner.js` owns only its assigned recipient-picker region;
 - peer display names and main Sign Out are explicit `app.js` projections using central `firebase.js` APIs;
 - former `profile-sync.js`, `main-screen-polish.js`, `settings-lifecycle-bridge.js`, and observer-based `new-message-polish.js` are gone;
-- runtime authority gate now has no temporary direct-Firebase or MutationObserver exceptions.
+- runtime authority gate had no temporary direct-Firebase or MutationObserver exceptions before the later App Check deviation documented below.
 
 ### Account E2EE identity/recovery foundation
 - `e2ee-account-crypto.js` + browser tests;
@@ -91,13 +91,13 @@ Do not delete yet:
 
 These remain only because normal runtime cannot yet safely reach a READY durable account identity without the live Firebase account-E2EE/recovery boundary. They are migration compatibility, not target ownership.
 
-## Security-gate history and latest state
+## Security-gate history and latest validated checkpoint
 
 The rebuild branch uses `.github/workflows/rebuild-baseline-security.yml` with read-only repository permission and no Firebase deployment step.
 
 The earlier `action_required` run `33981660852` at `ee27f32a46ef4a058a2c1e430f4a3c108e31f260` had **zero jobs**. It was caused by a one-shot materializer committing as `github-actions[bot]`, not by a failed security test. The one-shot materializer was removed, and normal user-authored branch runs returned to green.
 
-The expanded gate now executes:
+The expanded gate executes:
 - original exact Firestore account-E2EE emulator matrix (42 assertions);
 - dedicated account direct-message v3 rules matrix;
 - recovery server crypto/session/callable/persistence tests;
@@ -111,31 +111,81 @@ The expanded gate now executes:
 
 Commit `ca9222bdb7171ae60de5b2b9c08bf5b9327f52c9` passed the complete expanded gate. The dedicated v3 rules test first exposed a mixed-format loophole: a row carrying E2EE fields plus plaintext could be accepted by the old plaintext OR branch. Commit `7eb1d22fe1c3323ca613ff986812be5dc02d7b21` closed that path by requiring plaintext rows to have no `e2ee` field; both original and dedicated rule gates passed afterward.
 
-## Live Firebase boundary — now the ordered blocker
+A later App Check integration also reached a green CI run, but the process audit below determined that the implementation changed the authority gate to fit a second Firebase SDK owner. That later green result must **not** be treated as architecture approval. The protected pre-deviation checkpoint remains `ca9222...` for comparison while rectification is performed on the rebuild branch.
 
-Repository preparation has reached the point where the next architectural dependency is live-project configuration/verification, not additional source-transform cleanup.
+## Process-integrity audit — September 5, 2026
 
-Why the boundary is real:
+The user explicitly required the durable repository documents to be reread before work and had previously been assured this safeguard was in place. At the start of the later App Check continuation, that mandatory first-read process was not followed; conversational carry-over was used instead.
+
+### Gaps created by that deviation
+
+1. `firebase-app-check.js` was introduced as a second direct Firebase SDK owner, contrary to the published target architecture that `firebase.js` owns Firebase SDK/service acquisition.
+2. `runtime-authority-gate.test.mjs` was changed to allow both `firebase.js` and `firebase-app-check.js`, weakening the guardrail instead of changing the implementation to fit the guardrail.
+3. App Check initialization was placed after `initFirebase()`/the first auth callback rather than being integrated into the single central Firebase initialization lifecycle before protected service use.
+4. The provider registration part of App Check was completed before Stage C supplemental recovery verifier design was finalized.
+5. `hermes-memory.txt`, this audit, and `FIREBASE-RECOVERY-PROJECT-CONFIG.md` were not immediately updated as the live handoff advanced, leaving stale statements that later caused an attempted repeat of completed inventory work.
+6. During the same continuation, a temporary bad edit to `auth-ui-clean.js` was corrected by resetting the rebuild branch to a prior known commit; the bad content did not survive, but the occurrence itself violated the project change-discipline expectation to investigate ownership/lifecycle before patching.
+
+### Impact assessment
+
+No evidence of live Firebase compromise was found from these deviations. Specifically:
+- App Check enforcement remains OFF;
+- no recovery master secret was created;
+- no recovery IAM grant was made;
+- no recovery Functions were deployed;
+- no rebuild Firestore rules were deployed;
+- no v3 transport cutover occurred;
+- the legacy working transport/recovery compatibility path remains present;
+- recovery completion remains fail-closed pending the supplemental verifier.
+
+### Mandatory rectification plan
+
+1. Freeze further live Firebase changes while repository rectification is underway.
+2. Re-establish `firebase.js` as the sole runtime Firebase SDK/service owner.
+3. Integrate App Check initialization into the central Firebase initialization path.
+4. Remove the second-owner allowance from the runtime authority gate.
+5. Update App Check tests so they enforce central initialization ordering and clearly distinguish static repository validation from live token verification.
+6. Run the complete security gate again and compare against the protected checkpoint behavior.
+7. Update `hermes-memory.txt`, `FIREBASE-RECOVERY-PROJECT-CONFIG.md`, and this audit as each repair step completes.
+8. Resume the Firebase handoff only at the correct Stage C boundary: supplemental recovery verifier design/review.
+
+## Live Firebase boundary — current actual state
+
+The live-project handoff has begun in a limited, preparatory form.
+
+Confirmed live state:
+- Firebase project `FIDUNIO`, project ID `fidunio-fef13`, project number `130339622893`;
+- Firestore `(default)` in `nam5`, Native mode;
+- billing upgraded to Blaze;
+- reCAPTCHA Enterprise API enabled;
+- reCAPTCHA Enterprise Web key registered for `willyros01.github.io`;
+- Firebase App Check Web app registered with reCAPTCHA Enterprise;
+- App Check enforcement remains OFF;
+- live Firestore App Check metrics currently show unverified requests because the App Check-enabled rebuild client has not been deployed to the live site.
+
+Why the boundary remains real:
 - account identity creation must establish both normal and recovery wrappers; the recovery service is deliberately unavailable until the reviewed Functions/Secret/App Check boundary exists;
 - existing durable account identity lookup/unlock needs the reviewed account-E2EE Firestore permissions to be deployed/verified;
-- normal runtime transport must not be switched from legacy per-device compatibility to v3 until a real authenticated account can reach E2EE `READY` safely;
+- normal runtime transport must not be switched from legacy per-device compatibility to v3 until a real authenticated account can reach account E2EE `READY` safely;
 - removing legacy service-worker transforms before that would remove the last working transport path.
 
-Therefore **do not** remove the remaining per-device transforms and do not change live Firebase implicitly. The next live-project step is controlled by `FIREBASE-RECOVERY-PROJECT-CONFIG.md` / `GEMINI-FIREBASE-HANDOFF.md` and requires project-owner confirmation for the actual Firebase/Google environment, billing/region, Secret Manager/IAM/App Check, rule/function deployment and verification.
+Therefore **do not** remove the remaining per-device transforms and do not advance Secret Manager/IAM/Functions/rules/enforcement implicitly. The next architectural blocker is Stage C supplemental recovery verification, after the repository App Check ownership rectification is complete.
 
-No Cloud Function, Firestore rule, Secret Manager secret, IAM permission, App Check setting, billing setting, or production Firebase deployment has been changed by this rebuild work.
+## Ordered continuation after rectification
 
-## Ordered continuation after the handoff
-
-1. Confirm actual Firebase project and deployment region; configure least-privilege recovery Functions/Secret Manager/App Check/IAM and deploy/verify exact reviewed account-E2EE rules only under explicit handoff.
-2. Prove a real account can safely resolve EMPTY/LOCKED/READY without replacement; wire normal six-digit account-E2EE PIN enrollment/unlock explicitly into auth lifecycle.
-3. Wire `e2ee:3` direct send/receive through the validated account-message service while retaining explicit `e2ee:1/2` readability.
-4. Move Outbox retries to stable account-v3 message IDs and preserve Sent/Delivered/Read semantics.
-5. Remove only the matching per-device service-worker transforms after replacement behavior is proven.
-6. Reduce service worker to cache/offline duties only.
-7. Finish Firestore-authoritative encrypted history + UID-scoped rebuildable cache + serialized Outbox.
-8. Revalidate iPhone/iPad/PWA receipts, offline reconnect, Settings, account switching, reinstall/recovery and local PIN behavior.
-9. Only then decide whether to merge/advance `main`.
+1. Complete the repository process-integrity/App Check ownership repair and rerun the full security gate.
+2. Finalize and test the supplemental recovery verifier (Stage C).
+3. Confirm final function region and any still-missing required APIs deliberately.
+4. Provision least-privilege recovery Secret Manager/IAM/App Check configuration only under explicit handoff.
+5. Deploy/verify recovery Functions and exact reviewed account-E2EE rules only after review.
+6. Prove a real account can safely resolve EMPTY/LOCKED/READY without replacement; wire normal six-digit account-E2EE PIN enrollment/unlock explicitly into auth lifecycle.
+7. Wire `e2ee:3` direct send/receive through the validated account-message service while retaining explicit `e2ee:1/2` readability.
+8. Move Outbox retries to stable account-v3 message IDs and preserve Sent/Delivered/Read semantics.
+9. Remove only the matching per-device service-worker transforms after replacement behavior is proven.
+10. Reduce service worker to cache/offline duties only.
+11. Finish Firestore-authoritative encrypted history + UID-scoped rebuildable cache + serialized Outbox.
+12. Revalidate iPhone/iPad/PWA receipts, offline reconnect, Settings, account switching, reinstall/recovery and local PIN behavior.
+13. Only then decide whether to merge/advance `main`.
 
 ## Non-negotiable rollback points
 
