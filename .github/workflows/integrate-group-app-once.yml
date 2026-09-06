@@ -6,49 +6,59 @@ on:
 permissions:
   contents: write
 jobs:
-  integrate:
+  materialize-group-admin:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with: {ref: fidunio-complete-rebuild}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-java@v5
+        with: {distribution: temurin, java-version: '21'}
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - name: Patch app through bounded group owner
+      - name: Execute reviewed materializer body
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('app.js'); s=p.read_text()
-          anchor='import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";'
-          add=anchor+'\nimport { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut } from "./e2ee-account-group-app-integration.js";'
-          assert anchor in s and 'queueGroupTextForApp' not in s
-          s=s.replace(anchor,add,1)
-          old='''async function decryptOutboxRecord(record){\n  const payload=await decryptLocal(record.payload);\n  return {\n    conversationId:payload.conversationId ?? record.conversationId,\n    messageId:payload.messageId ?? record.id,\n    text:payload.text ?? "",\n    time:payload.time ?? "",\n    cloud:!!payload.cloud,\n    conversation:payload.conversation || null\n  };\n}'''
-          new='''async function decryptOutboxRecord(record){\n  const payload=await decryptLocal(record.payload);\n  return {\n    ...payload,\n    conversationId:payload.conversationId ?? payload.groupId ?? record.conversationId,\n    messageId:payload.messageId ?? record.id,\n    text:payload.text ?? "",\n    time:payload.time ?? "",\n    cloud:!!payload.cloud || payload.kind==="group-e2ee-v1",\n    conversation:payload.conversation || null\n  };\n}\nasync function persistGroupOutboxPayload(payload){\n  const db=await openDb(),conversationId=String(payload.groupId);\n  const c=state.conversations.find(x=>String(x.id)===conversationId);\n  const encrypted=await encryptLocal({...payload,conversationId,cloud:true,conversation:c?{id:c.id,name:c.name,type:"group",cloudGroup:true,preview:payload.text,time:payload.time,unread:0}:null});\n  const tx=db.transaction("outbox","readwrite");\n  tx.objectStore("outbox").put({id:payload.messageId,conversationId,createdAt:Date.now(),payload:encrypted});\n  await txDone(tx);\n}'''
-          assert old in s; s=s.replace(old,new,1)
-          old='''function ensureActiveCloudMessageSubscription(force=false){\n  if(!firebaseUser || state.route!=="chat") return;\n  const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));\n  if(c?.cloud) beginCloudMessageSubscription(c.id,{force});\n}'''
-          new='''function ensureActiveCloudMessageSubscription(force=false){\n  if(!firebaseUser || state.route!=="chat") return;\n  const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));\n  if(c?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(c.id);}\n  else if(c?.cloud){closeGroupForApp();beginCloudMessageSubscription(c.id,{force});}\n}\nfunction beginCloudGroupMessageSubscription(groupId){\n  if(!firebaseUser)return;\n  openGroupForApp(groupId,{\n    isOpen:()=>state.route==="chat"&&String(state.selectedId)===String(groupId),\n    onRows:async rows=>{\n      const existing=state.messages[groupId]||[];\n      const remoteIds=new Set(rows.map(x=>x.id));\n      const pending=existing.filter(x=>x.mine&&["queued","sending","failed"].includes(x.state)&&!remoteIds.has(x.id));\n      state.messages[groupId]=[...rows,...pending];\n      const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);\n      if(c&&last){c.preview=last.text;c.time=last.time;}\n      await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();\n      if(state.route==="chat"&&String(state.selectedId)===String(groupId))render();\n    },\n    onError:err=>{firebaseError=err?.message||String(err);}\n  });\n}'''
-          assert old in s; s=s.replace(old,new,1)
-          s=s.replace('''        resetAccountE2EEForSignOut();''','''        resetGroupAppIntegrationForSignOut();\n        resetAccountE2EEForSignOut();''',1)
-          s=s.replace('''  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Group • messaging pending E2EE",time:remote.time||existing?.time||""};''','''  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Encrypted group",time:remote.time||existing?.time||""};''',1)
-          s=s.replace('''<p class="small-note">New members begin at join time. Real group messaging remains disabled until group E2EE is implemented.</p>''','''<p class="small-note">New members begin at join time. Group messages use account-authoritative end-to-end encryption.</p>''',1)
-          s=s.replace('''  const cloud=!!c?.cloud;\n  if(c?.cloudGroup){alert("Group messaging is intentionally disabled until group E2EE is implemented.");return;}''','''  const cloud=!!c?.cloud;\n  const cloudGroup=!!c?.cloudGroup;''',1)
-          old='''  // The Outbox is authoritative. Do not return from Send until the\n  // encrypted queued record is durably committed to IndexedDB.\n  await queueOutboxMessage(conversationId,m);'''
-          new='''  // The Outbox is authoritative. Group plaintext enters only the encrypted local Outbox.\n  if(cloudGroup){\n    m.cloud=true;m.group=true;\n    await queueGroupTextForApp({groupId:conversationId,messageId:m.id,text,time:m.time,persistEncryptedOutbox:persistGroupOutboxPayload});\n  }else await queueOutboxMessage(conversationId,m);'''
-          assert old in s; s=s.replace(old,new,1)
-          s=s.replace('''    if(cloud){\n      await flushQueued();''','''    if(cloud || cloudGroup){\n      await flushQueued();''',1)
-          old='''    const {c,m}=ensureQueuedMessageFromPayload(payload);\n    const isCloud=payload.cloud || !!c?.cloud;\n\n    if(isCloud){'''
-          new='''    const {c,m}=ensureQueuedMessageFromPayload(payload);\n    const isGroupPayload=payload.kind==="group-e2ee-v1";\n    const isCloud=payload.cloud || !!c?.cloud || isGroupPayload;\n\n    if(isGroupPayload){\n      if(!firebaseUser){m.state="queued";await persistState();continue;}\n      try{\n        m.state="sending";await persistState();\n        await flushGroupOutboxForApp(payload,{removeEncryptedOutbox:removeOutboxMessage});\n        m.state="sent";await persistState();\n      }catch(err){m.state="failed";firebaseError=err?.message||String(err);await persistState();}\n      continue;\n    }\n    if(isCloud){'''
-          assert old in s; s=s.replace(old,new,1)
-          # Route all conversation selection through the correct owner.
-          s=s.replace('''    if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true});\n    else stopCloudMessageSubscription();''','''    if(chosen?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(chosen.id);}\n    else if(chosen?.cloud){closeGroupForApp();beginCloudMessageSubscription(chosen.id,{force:true});}\n    else{closeGroupForApp();stopCloudMessageSubscription();}''')
-          s=s.replace('''      if(chosen?.cloud)beginCloudMessageSubscription(chosen.id,{force:true});else stopCloudMessageSubscription();''','''      if(chosen?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(chosen.id);}\n      else if(chosen?.cloud){closeGroupForApp();beginCloudMessageSubscription(chosen.id,{force:true});}\n      else{closeGroupForApp();stopCloudMessageSubscription();}''')
-          # New group enters chat and starts encrypted subscription.
-          s=s.replace('''state.route="groupInfo";await persistState();render();''','''state.route="chat";await persistState();beginCloudGroupMessageSubscription(group.id);render();''',1)
-          p.write_text(s)
+          import subprocess
+          raw=Path('.github/workflows/group-admin-once.yml').read_text()
+          start_marker='      - name: Materialize atomic group administration\n        run: |\n'
+          end_marker='      - name: Syntax checks\n'
+          assert start_marker in raw and end_marker in raw
+          body=raw.split(start_marker,1)[1].split(end_marker,1)[0]
+          lines=[]
+          for line in body.splitlines():
+              lines.append(line[10:] if line.startswith('          ') else line)
+          script='\n'.join(lines)+'\n'
+          Path('/tmp/group-admin-materialize.sh').write_text(script)
+          subprocess.run(['bash','/tmp/group-admin-materialize.sh'],check=True)
           PY
+      - name: Syntax checks
+        run: |
           node --check app.js
+          node --check firebase.js
+          node --check e2ee-account-group-runtime.js
+          node --check e2ee-account-group-app-controller.js
+          node --check e2ee-account-group-app-integration.js
+      - name: Install test dependencies
+        run: npm install --ignore-scripts
+      - name: Group runtime tests
+        run: npm run test:e2ee-account-group-runtime
+      - name: Group app ownership tests
+        run: |
+          npm run test:e2ee-account-group-service
+          npm run test:e2ee-account-group-app-controller
+          npm run test:e2ee-account-group-app-integration
+      - name: Group Firestore rules tests
+        run: npm run emulator:test:group-e2ee-rules
+      - name: Runtime authority tests
+        run: npm run test:runtime-authority
+      - name: Commit validated group administration
+        run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add app.js
-          git commit -m "Wire account-authoritative group messaging into app"
+          git add app.js firebase.js firestore.rules e2ee-account-group-firebase-adapter.js e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-app-controller.js e2ee-account-group-app-integration.js e2ee-account-group-runtime.test.mjs firestore-group-e2ee-v1.rules.test.mjs ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md FIRESTORE-GROUP-E2EE-V1-RULES.md group-data-model.txt architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md DETERMINISTIC-UI-LIFECYCLE.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md
+          git commit -m "Materialize atomic group administration"
           git push origin HEAD:fidunio-complete-rebuild
