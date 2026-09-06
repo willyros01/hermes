@@ -5,7 +5,6 @@ export const RECOVERY_SESSION_V1 = Object.freeze({
   maxAccountConsecutivePinFailures: 10,
   statuses: Object.freeze({
     PENDING: "PENDING",
-    AUTHORIZED: "AUTHORIZED",
     CONSUMED: "CONSUMED",
     LOCKED: "LOCKED",
     EXPIRED: "EXPIRED"
@@ -52,8 +51,6 @@ export function createRecoverySession({ sessionId, uid, keyId, identityRevisionA
     createdAtMs: now,
     expiresAtMs: now + RECOVERY_SESSION_V1.lifetimeMs,
     failedPinAttempts: 0,
-    failedSupplementalAttempts: 0,
-    authorizedAtMs: null,
     consumedAtMs: null
   });
 }
@@ -77,7 +74,7 @@ export function assertRecoveryAttemptAllowed({ session, uid, keyId, currentIdent
   if (s.status === RECOVERY_SESSION_V1.statuses.EXPIRED) throw fail("SESSION_EXPIRED", "Recovery session expired.");
   if (s.status === RECOVERY_SESSION_V1.statuses.LOCKED) throw fail("SESSION_LOCKED", "Recovery session is locked.");
   if (s.status === RECOVERY_SESSION_V1.statuses.CONSUMED) throw fail("SESSION_CONSUMED", "Recovery session has already been used.");
-  if (![RECOVERY_SESSION_V1.statuses.PENDING, RECOVERY_SESSION_V1.statuses.AUTHORIZED].includes(s.status)) throw fail("RECOVERY_DENIED", "Recovery authorization failed.");
+  if (s.status !== RECOVERY_SESSION_V1.statuses.PENDING) throw fail("RECOVERY_DENIED", "Recovery authorization failed.");
   return s;
 }
 
@@ -98,22 +95,9 @@ export function registerFailedPinAttempt({ session, accountConsecutivePinFailure
   });
 }
 
-export function registerFailedSupplementalAttempt({ session, nowMs }) {
-  const s = normalizeForTime(session, nowMs);
-  if (terminal(s.status)) throw fail("RECOVERY_DENIED", "Recovery session cannot accept another verification attempt.");
-  return Object.freeze({ ...s, failedSupplementalAttempts: Number(s.failedSupplementalAttempts || 0) + 1 });
-}
-
-export function authorizeRecoverySession({ session, nowMs }) {
-  const s = normalizeForTime(session, nowMs);
-  if (s.status !== RECOVERY_SESSION_V1.statuses.PENDING) throw fail("RECOVERY_DENIED", "Recovery session is not pending authorization.");
-  const now = requireTime(nowMs, "nowMs");
-  return Object.freeze({ ...s, status: RECOVERY_SESSION_V1.statuses.AUTHORIZED, authorizedAtMs: now });
-}
-
 export function consumeRecoverySession({ session, nowMs }) {
   const s = normalizeForTime(session, nowMs);
-  if (s.status !== RECOVERY_SESSION_V1.statuses.AUTHORIZED) throw fail("RECOVERY_DENIED", "Recovery session is not authorized for consumption.");
+  if (s.status !== RECOVERY_SESSION_V1.statuses.PENDING) throw fail("RECOVERY_DENIED", "Recovery session is not pending consumption.");
   const now = requireTime(nowMs, "nowMs");
   return Object.freeze({ ...s, status: RECOVERY_SESSION_V1.statuses.CONSUMED, consumedAtMs: now });
 }
