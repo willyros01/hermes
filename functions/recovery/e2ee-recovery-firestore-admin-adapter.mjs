@@ -72,36 +72,12 @@ export function createRecoveryFirestoreAdminRepositories({ db } = {}) {
         assertStableSession(oldSession, session);
         if (requireInt(oldSession.failedPinAttempts ?? 0, "stored failedPinAttempts") + 1 !== nextSessionFailures) throw fail("SESSION_CONFLICT", "Recovery PIN failure counter raced.");
         if (["CONSUMED","EXPIRED","LOCKED"].includes(oldSession.status)) throw fail("SESSION_CONFLICT", "Terminal recovery session cannot record another PIN attempt.");
+        if (oldSession.status !== "PENDING") throw fail("SESSION_CONFLICT", "Only a pending recovery session may record a PIN attempt.");
         const oldAccountFailures = dataOf(aSnap)?.consecutivePinFailures ?? 0;
         if (requireInt(oldAccountFailures, "stored consecutivePinFailures") + 1 !== nextAccountFailures) throw fail("ACCOUNT_CONFLICT", "Account recovery failure counter raced.");
         tx.update(sRef, { status: session.status, failedPinAttempts: nextSessionFailures });
         tx.set(aRef, { uid, consecutivePinFailures: nextAccountFailures, hold: accountHold === true }, { merge: true });
         return { failedPinAttempts: nextSessionFailures, accountConsecutivePinFailures: nextAccountFailures };
-      });
-    },
-    async saveFailedSupplementalAttempt(session) {
-      const next = requireInt(session?.failedSupplementalAttempts, "failedSupplementalAttempts", 1);
-      return db.runTransaction(async tx => {
-        const ref = sessionRef(requireText(session?.sessionId, "sessionId"));
-        const snap = await tx.get(ref);
-        const old = dataOf(snap);
-        assertStableSession(old, session);
-        if (["CONSUMED","EXPIRED","LOCKED"].includes(old.status)) throw fail("SESSION_CONFLICT", "Terminal recovery session cannot record another verification attempt.");
-        if (requireInt(old.failedSupplementalAttempts ?? 0, "stored failedSupplementalAttempts") + 1 !== next) throw fail("SESSION_CONFLICT", "Supplemental recovery counter raced.");
-        tx.update(ref, { failedSupplementalAttempts: next });
-        return { failedSupplementalAttempts: next };
-      });
-    },
-    async saveAuthorizedSession(session) {
-      if (session?.status !== "AUTHORIZED") throw fail("INVALID_INPUT", "Authorized session state is required.");
-      return db.runTransaction(async tx => {
-        const ref = sessionRef(requireText(session?.sessionId, "sessionId"));
-        const snap = await tx.get(ref);
-        const old = dataOf(snap);
-        assertStableSession(old, session);
-        if (old.status !== "PENDING") throw fail("SESSION_CONFLICT", "Only a pending recovery session may be authorized.");
-        tx.update(ref, { status: "AUTHORIZED", authorizedAtMs: session.authorizedAtMs, failedSupplementalAttempts: session.failedSupplementalAttempts });
-        return { status: "AUTHORIZED" };
       });
     },
     async consumeSession({ session, accountConsecutivePinFailures }) {
@@ -114,7 +90,7 @@ export function createRecoveryFirestoreAdminRepositories({ db } = {}) {
         const sSnap = await tx.get(sRef);
         const old = dataOf(sSnap);
         assertStableSession(old, session);
-        if (old.status !== "AUTHORIZED") throw fail("SESSION_CONFLICT", "Only an authorized recovery session may be consumed.");
+        if (old.status !== "PENDING") throw fail("SESSION_CONFLICT", "Only a pending recovery session may be consumed.");
         tx.update(sRef, { status: "CONSUMED", consumedAtMs: session.consumedAtMs });
         tx.set(aRef, { uid, consecutivePinFailures: 0, hold: false }, { merge: true });
         return { status: "CONSUMED", accountConsecutivePinFailures: 0 };
