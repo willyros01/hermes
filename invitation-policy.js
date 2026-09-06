@@ -1,0 +1,4 @@
+export function normalizeInvitationRole(role){const r=String(role||'user');if(!['user','admin'].includes(r))throw new Error('Invitation role must be User or Admin.');return r;}
+export function assertInvitationUsable({status,expiresAt,now=Date.now()}={}){if(status!=='pending')throw new Error(status==='accepted'?'This invitation has already been used.':'This invitation is no longer active.');const ms=expiresAt instanceof Date?expiresAt.getTime():Number(expiresAt);if(Number.isFinite(ms)&&ms<=Number(now))throw new Error('This invitation has expired.');return true;}
+export function canIssueInvitation(role){return ['owner','admin'].includes(String(role||''));}
+export const INVITATION_POLICY_V1=Object.freeze({singleUse:true,roles:Object.freeze(['user','admin']),issuerRoles:Object.freeze(['owner','admin']),installIndependent:true});
