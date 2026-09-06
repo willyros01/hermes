@@ -8,8 +8,8 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.8.5**
-- Current weighted FIDUNIO 1.0 completion: **91%**
+- Current checkpoint version: **0.9.9.5**
+- Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
 - `htest` is reserved for coherent final-stage testing deployments and is not continuously synchronized with intermediate rebuild work.
@@ -201,7 +201,7 @@ The full Rebuild Baseline Security Gate run **34046337123** passed after that re
 
 ## Current first-rebuild completion state
 
-Exactly **91.0 / 100.0 weighted product points (reported as 91%)** of the first complete rebuild acceptance criteria are repository-validated. This deterministic ledger excludes FCM 1.1 and App Check 1.2 work.
+Exactly **95.5 / 100.0 weighted product points (reported as 96%)** of the first complete rebuild acceptance criteria are repository-validated. This deterministic ledger excludes FCM 1.1 and App Check 1.2 work.
 
 Major completed areas include deterministic runtime/Firebase ownership, account E2EE identity/recovery, direct/group E2EE and administration, earlier-history grant UI/runtime, disappearing text and attachment anti-resurrection foundations, encrypted attachment send/receive/offline/lifecycle/purge, invitation-only enrollment, and independent safe install guidance.
 
@@ -533,3 +533,10 @@ Runtime 0.9.7.9 completes the allocated attachment phase: integrity-checked rece
 Runtime 0.9.8.5 completes the invitation/join/install phase. `invitation-owner.js` is the sole serialized invitation mutation coordinator while `firebase.js` remains the sole Firebase repository/SDK owner. Pure `invitation-policy.js` enforces single-use lifecycle, issuer roles and target roles. Auth and Settings request invitation work through that owner. Firestore emulator coverage proves anonymous validation of a known token, unauthorized issuance/revocation denial, owner issuance/revocation, atomic accepted-invitation + active-profile enrollment, and second-redemption denial. Joined active profiles flow into existing direct/group discovery without device binding.
 
 `install-guidance.js` owns only an optional predefined Settings Install panel. It never mutates invitation, account, messaging or service-worker state and never uses automatic install prompting. iOS uses Safari Share -> Add to Home Screen; Android/Fire and desktop use browser-provided install/add/shortcut commands when available. The rejected 0.9.4.12–0.9.4.15 invite/install logic was not restored or adapted. Protected iPhone Back/wrap, Settings deterministic ownership and two-pane architecture remain gated. Full Rebuild Baseline Security Gate `34065528714` SUCCESS. No live Firebase or htest deployment occurred. Next allocated build: 0.9.9.0 Group Info completion.
+
+
+### 0.9.9.0-0.9.9.5 — repository release-candidate closeout
+
+Group Info now uses the established tablet-responsive secondary-screen owner, including the previously deferred landscape treatment, while retaining the validated earlier-history grant controls. Direct Chat Info exposes only real cloud security information; unsupported local-only placeholder behavior was removed. Prototype test banners, fake local receipt timers, and unsupported Contact/Checklist/Schedule/Saved tool alerts were retired; legacy local-only transport now fails closed instead of manufacturing delivery states.
+
+The permanent `release-candidate-ui.test.mjs` gate protects these decisions alongside the existing runtime, receipt, Settings, attachment, invitation, disappearing-content, group, recovery and E2EE gates. Full Rebuild Baseline Security Gate **34066875377** completed SUCCESS on the clean candidate source. 0.9.9.5 reconciles cumulative documentation and prepares the coherent candidate for one atomic `htest` deployment. Live Firebase remains untouched; real iPhone/iPad acceptance remains a separate 0.9.9.7 requirement.

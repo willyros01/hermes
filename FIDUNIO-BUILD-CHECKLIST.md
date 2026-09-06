@@ -221,10 +221,16 @@ The 1.0 percentage is now a **fixed-point weighted ledger**, not a subjective es
 - 0.9.8.3 safe install-to-Home-Screen owner is repository-validated: **+1.0 earned**.
 - 0.9.8.4 invite/install coexistence regression gate is repository-validated: **+1.0 earned**.
 - 0.9.8.5 account/invitation/install phase closeout is repository-validated: **+1.0 earned**.
-- 0.9.9.0 and later allocated builds: **0.0 earned so far**.
-- **Current total: 91.0 / 100.0, reported as 91%.**
+- 0.9.9.0 Group Info completion is repository-validated: **+1.0 earned**.
+- 0.9.9.1 Direct Chat Info completion is repository-validated: **+0.5 earned**.
+- 0.9.9.2 prototype/simulation cleanup is repository-validated: **+0.5 earned**.
+- 0.9.9.3 responsive/lifecycle regression hardening is repository-validated: **+1.0 earned**.
+- 0.9.9.4 complete 1.0 repository candidate gate is repository-validated: **+1.0 earned**.
+- 0.9.9.5 final docs/setup/package reconciliation is repository-validated: **+0.5 earned**.
+- 0.9.9.6 and later allocated builds: **0.0 earned so far**.
+- **Current total: 95.5 / 100.0, reported as 96%.**
 
-This 91.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
+This 95.5-point ledger is authoritative until another allocated build earns points or a validated item regresses.
 
 
 ## FIDUNIO 1.0 allocated build roadmap
@@ -285,13 +291,13 @@ This section pre-allocates the planned build number for every remaining first-re
 
 | Allocated build | Component / detailed task | Exit criteria | State |
 |---|---|---|---|
-| **0.9.9.0** | **CURRENT — Group Info completion.** Integrate earlier-history controls from 0.9.6.29, remove obsolete placeholders, and finish tablet landscape layout without redesigning established two-pane behavior. | Group Info functional + responsive tests green. | CURRENT |
-| **0.9.9.1** | **Direct Chat Info completion.** Replace remaining placeholder behavior with supported real actions or remove unsupported controls deliberately. | No Direct Chat Info placeholder actions remain. | PLANNED |
-| **0.9.9.2** | **Prototype/simulation cleanup.** Remove remaining test banners, simulated local message-state timers and tool-button alert placeholders only after their real replacements exist. | Search/runtime gates prove no forbidden simulation owner remains. | PLANNED |
-| **0.9.9.3** | **Responsive/lifecycle regression hardening.** Verify iPhone single-pane + prominent Back/wrap, iPad/tablet/desktop two-pane, Group Info landscape, Settings lifecycle, rotation/resize and live receipts. | Repository UI/lifecycle gates green with no observer/timer/reload rescue architecture. | PLANNED |
-| **0.9.9.4** | **Complete 1.0 repository candidate gate.** Run all rules, E2EE, recovery, groups, disappearing content, attachments, invitations/install, offline and runtime authority tests as one coherent candidate. | Every required 1.0 repository gate green. FCM 1.1 and App Check enforcement 1.2 excluded. | PLANNED |
-| **0.9.9.5** | **Final documentation/setup/package reconciliation.** Update cumulative README/memory/checklist/setup, remove temporary one-shot files/workflows, verify protected config exclusion, prepare one coherent candidate package/checkpoint. | Docs match executable source; no temporary materializers; protected configs untouched. | PLANNED |
-| **0.9.9.6** | **Atomic deployment to `htest`.** Deploy only the coherent 1.0 release candidate, not incremental slices. | htest source/version exactly matches gated candidate. | PLANNED |
+| **0.9.9.0** | **Group Info completion.** Earlier-history controls retained; unsupported placeholders removed; landscape tablet workspace completed without changing the established pane owner. | Candidate UI/lifecycle gate + full baseline `34066875377` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.9.1** | **Direct Chat Info completion.** Real cloud direct-chat security info retained; unsupported local-only placeholder action removed. | Candidate UI/lifecycle gate + full baseline `34066875377` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.9.2** | **Prototype/simulation cleanup.** Test banner, simulated local Sent/Delivered/Read timers, and unsupported tool placeholders removed; legacy local-only transport fails closed. | Candidate UI/lifecycle gate + full baseline `34066875377` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.9.3** | **Responsive/lifecycle regression hardening.** Group Info joins the established responsive route owner; protected phone/tablet structures and deliberate receipt recovery remain intact. | Candidate UI/lifecycle, runtime-authority and receipt gates + full baseline `34066875377` SUCCESS. Real-device acceptance remains 0.9.9.7. | REPOSITORY-VALIDATED |
+| **0.9.9.4** | **Complete 1.0 repository candidate gate.** All required repository rules/E2EE/recovery/group/disappearing/attachment/invitation/offline/runtime/UI gates run together. | Full Rebuild Baseline Security Gate `34066875377` SUCCESS. FCM 1.1 and App Check enforcement 1.2 excluded. | REPOSITORY-VALIDATED |
+| **0.9.9.5** | **Final documentation/setup/package reconciliation.** Cumulative recovery docs reconciled to candidate; one-shot implementation helpers removed; protected configs remain excluded from release authority. | Docs/source reconcile against full gate `34066875377` SUCCESS; coherent candidate checkpoint ready for `htest`. | REPOSITORY-VALIDATED |
+| **0.9.9.6** | **CURRENT — Atomic deployment to `htest`.** Deploy only the coherent 1.0 release candidate, not incremental slices. | htest source/version exactly matches gated candidate. | CURRENT |
 | **0.9.9.7** | **User-device acceptance pass.** iPhone + iPad + two-account/two-device + offline/reconnect + disappearing + attachments + invitation/install + recovery proof. Fire HD constraints verified where applicable. | User/device acceptance recorded; recovery item can leave `BLOCKED — USER DEVICE PROOF`. | PLANNED |
 | **0.9.9.8** | **Reserved release-candidate stabilization build.** Apply only defects discovered by 0.9.9.7 using normal owner/debug-first rules; no opportunistic feature expansion. | All acceptance regressions closed and complete security gate green again. | PLANNED |
 | **0.9.9.9** | **1.0 promotion readiness.** Freeze feature scope, verify no required 1.0 checklist item remains NOT DONE/IN PROGRESS/BLOCKED, and prepare controlled production/Firebase handoff without enabling 1.1/1.2 work. | Explicit go/no-go record for 1.0.0. | PLANNED |
