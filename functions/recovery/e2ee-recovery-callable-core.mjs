@@ -4,6 +4,7 @@ import {
   RECOVERY_SESSION_V1,
   createRecoverySession,
   assertRecoveryAttemptAllowed,
+  beginRecoveryPinAttempt,
   registerFailedPinAttempt,
   consumeRecoverySession,
   resetAccountRecoveryFailuresAfterSuccess
@@ -56,7 +57,7 @@ export function createRecoveryCallableCore({
   if (typeof masterSecretProvider !== "function") throw new Error("masterSecretProvider is required.");
   if (typeof requireAppCheck !== "boolean") throw new Error("requireAppCheck must be boolean.");
   requireRepo(identityRepo, ["readIdentity"], "identityRepo");
-  requireRepo(sessionRepo, ["createSession","readSession","readAccountFailureCount","saveFailedPinAttempt","consumeSession"], "sessionRepo");
+  requireRepo(sessionRepo, ["createSession","readSession","readAccountFailureCount","beginPinAttempt","saveFailedPinAttempt","consumeSession"], "sessionRepo");
 
   async function enrollRecoveryV1({ authUid, appCheckValid, data }) {
     const uid = requireCaller({ authUid, appCheckValid }, { requireAppCheck });
@@ -101,7 +102,7 @@ export function createRecoveryCallableCore({
       sessionRepo.readAccountFailureCount(uid)
     ]);
     if (!sessionRead || !identity?.keyId || !Number.isInteger(identity?.revision)) throw fail("RECOVERY_DENIED", "Recovery authorization failed.");
-    const session = assertRecoveryAttemptAllowed({
+    const pending = assertRecoveryAttemptAllowed({
       session: sessionRead,
       uid,
       keyId: identity.keyId,
@@ -109,6 +110,12 @@ export function createRecoveryCallableCore({
       accountConsecutivePinFailures: accountFailures,
       nowMs: now()
     });
+
+    // Firestore serializes the transition PENDING -> VERIFYING before any PIN
+    // cryptography runs. Concurrent completion calls cannot perform parallel PIN
+    // guesses against the same recovery session.
+    const verifyingCandidate = beginRecoveryPinAttempt({ session: pending, nowMs: now() });
+    const verifying = await sessionRepo.beginPinAttempt(verifyingCandidate);
 
     let ruk;
     const masterSecret = await ownedMasterSecret(masterSecretProvider);
@@ -121,7 +128,7 @@ export function createRecoveryCallableCore({
         protectedRecoveryKey: identity.recoveryWrapper
       });
     } catch (cause) {
-      const failed = registerFailedPinAttempt({ session, accountConsecutivePinFailures: accountFailures, nowMs: now() });
+      const failed = registerFailedPinAttempt({ session: verifying, accountConsecutivePinFailures: accountFailures, nowMs: now() });
       await sessionRepo.saveFailedPinAttempt({
         session: failed.session,
         accountConsecutivePinFailures: failed.accountConsecutivePinFailures,
@@ -132,7 +139,7 @@ export function createRecoveryCallableCore({
       masterSecret.fill(0);
     }
 
-    const consumed = consumeRecoverySession({ session, nowMs: now() });
+    const consumed = consumeRecoverySession({ session: verifying, nowMs: now() });
     await sessionRepo.consumeSession({
       session: consumed,
       accountConsecutivePinFailures: resetAccountRecoveryFailuresAfterSuccess()
