@@ -9,25 +9,23 @@ concurrency:
   group: fidunio-rebuild-doc-mirror
   cancel-in-progress: false
 jobs:
-  materialize-09622:
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Retry 0.9.6.22 local purge wiring' }}
+  docs-09622:
+    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Trigger 0.9.6.22 documentation reconciliation' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
-      - run: |
-          python3 .fidunio-09622-materialize.py
-          git checkout -- .github/workflows/rebuild-baseline-security.yml
+      - run: python3 .fidunio-09622-docs.py
       - run: |
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add app.js disappearing-local-storage-plan.js disappearing-local-storage-plan.test.mjs package.json version.js
-          git commit -m "Wire UID-scoped disappearing local purge"
+          git add README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt DISAPPEARING-PURGE-AUTHORITY.md architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md CURRENT-REBUILD.md
+          git commit -m "Document 0.9.6.22 local purge wiring"
           git push origin HEAD:fidunio-complete-rebuild
   mirror:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Normal mirror temporarily paused for bounded 0.9.6.22 materialization."
+      - run: echo "Normal mirror temporarily paused for bounded 0.9.6.22 documentation."
