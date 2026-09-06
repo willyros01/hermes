@@ -50,6 +50,19 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 | Leave group | NOT DONE | Real cloud membership mutation + epoch handling required. |
 | Group history policy/admin controls | IN PROGRESS | `historyPolicy:"fromJoin"` contract exists; real management UI/backend controls unfinished. |
 
+## Disappearing / self-destructing content
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Disappearing-message policy/model | NOT DONE | Define authenticated E2EE expiry metadata and deterministic start condition/timer semantics; must work across devices without relying on a single device clock as authority. |
+| Direct disappearing text messages | NOT DONE | Expiry must remove durable encrypted message data and rebuildable local cached plaintext/ciphertext according to the policy. |
+| Group disappearing text messages | NOT DONE | Must integrate with group E2EE epochs, membership, per-account receipts, and deterministic expiry. |
+| Disappearing/self-destructing attachments | NOT DONE | Attachment metadata, encrypted chunks/blobs, thumbnails/previews, local decrypted object URLs/cache, and durable references must expire together. |
+| Offline/reconnect expiry behavior | NOT DONE | Expired content must not resurrect from Outbox, IndexedDB history, stale snapshots, or reconnect reconciliation. |
+| Multi-device expiry convergence | NOT DONE | Same account on multiple devices must converge on the same expired state; deletion/expiry cannot be installation-local only. |
+| Expiry UI/settings | NOT DONE | Provide clear per-conversation/default or per-message controls only after the underlying authority model is defined; UI must show the effective disappearing policy. |
+| Expiry security/rules/tests | NOT DONE | Firestore rules/runtime tests must reject expiry tampering and prove expired content cannot be reintroduced by normal clients. |
+
 ## Attachments / rich messaging
 
 | Area | State | Evidence / notes |
@@ -102,17 +115,19 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 |---|---|---|
 | Full repository security/regression gate on complete candidate | NOT DONE | Required after feature completion. |
 | Cumulative `hermes-memory.txt` final reconciliation | IN PROGRESS | Keep one cumulative root file. |
-| Reusable `hermes-setup.txt` final reconciliation | NOT DONE | Keep one reusable root file. |
+| Reusable `hermes-setup.txt` final reconciliation | IN PROGRESS | Current rebuild/recovery guide reconciled 2026-09-06; keep updating as architecture/product state changes. |
 | Remove temporary one-shot build workflows | IN PROGRESS | Delete after each one-shot job has served its purpose. |
 | Atomic complete deployment to `htest` | NOT DONE | Current htest is stale/incomplete; do not continuously sync. |
 | Final iPhone/iPad/two-device/offline/recovery test candidate | NOT DONE | User tests only after complete coherent candidate is deployed. |
 
 ## Current completion estimate
 
-Approximately **65%** of the complete FIDUNIO acceptance criteria. This number must not be advanced for minor cleanup; advance it only after a meaningful product milestone closes a material block above.
+Approximately **65%** of the complete FIDUNIO acceptance criteria. The newly restored disappearing-content requirement expands the remaining acceptance criteria; retain 65% as the working estimate until the next meaningful product milestone is completed and the denominator is reconciled. This number must not be advanced for minor cleanup.
 
 ## Build Log
 
 - 2026-09-06 — Created this authoritative checklist at user request so every build session has an explicit done/not-done ledger.
 - 2026-09-06 — Local-security Settings callers now await serialized timeout/device-unlock mutations; commit `013508078f1cda925a54c99cf7e7ffb3c986f8e7`; Local PIN/security serialized mutations marked DONE.
 - 2026-09-06 — Group account-authoritative send/read/receipts/Outbox integration is present in the rebuild; group administration remains the next major messaging milestone.
+- 2026-09-06 — Restored disappearing/self-destructing messages and attachments to the complete-product acceptance criteria, including direct/group, attachments, offline/reconnect, multi-device convergence, UI, and security/rules testing.
+- 2026-09-06 — Reconciled hermes-setup.txt from obsolete 0.8.1.9 instructions to the current complete-rebuild architecture and recovery procedure.
