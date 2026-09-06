@@ -18,7 +18,6 @@ on:
       - DETERMINISTIC-UI-LIFECYCLE.md
       - BUG-LIST.md
       - .github/workflows/mirror-rebuild-docs-to-main.yml
-      - .fidunio-reconcile-09611-trigger
   workflow_dispatch:
 
 permissions:
@@ -29,26 +28,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  reconcile-09611:
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Run 0.9.6.11 doc reconciliation' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fidunio-complete-rebuild
-          fetch-depth: 0
-      - name: Reconcile 0.9.6.11 durable docs
-        run: python3 .fidunio-reconcile-09611.py
-      - name: Commit reconciliation
-        run: |
-          git config user.name "FIDUNIO Build"
-          git config user.email "actions@users.noreply.github.com"
-          git add README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md hermes-setup.txt
-          git commit -m "Reconcile 0.9.6.11 duration policy docs"
-          git push origin HEAD:fidunio-complete-rebuild
-
   mirror:
-    if: ${{ !(github.event_name == 'push' && github.event.head_commit.message == 'Run 0.9.6.11 doc reconciliation') }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out rebuild source
