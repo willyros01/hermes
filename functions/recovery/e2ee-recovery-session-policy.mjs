@@ -5,6 +5,7 @@ export const RECOVERY_SESSION_V1 = Object.freeze({
   maxAccountConsecutivePinFailures: 10,
   statuses: Object.freeze({
     PENDING: "PENDING",
+    VERIFYING: "VERIFYING",
     CONSUMED: "CONSUMED",
     LOCKED: "LOCKED",
     EXPIRED: "EXPIRED"
@@ -78,9 +79,15 @@ export function assertRecoveryAttemptAllowed({ session, uid, keyId, currentIdent
   return s;
 }
 
+export function beginRecoveryPinAttempt({ session, nowMs }) {
+  const s = normalizeForTime(session, nowMs);
+  if (s.status !== RECOVERY_SESSION_V1.statuses.PENDING) throw fail("RECOVERY_DENIED", "Recovery session is not available for PIN verification.");
+  return Object.freeze({ ...s, status: RECOVERY_SESSION_V1.statuses.VERIFYING });
+}
+
 export function registerFailedPinAttempt({ session, accountConsecutivePinFailures, nowMs }) {
   const s = normalizeForTime(session, nowMs);
-  if (terminal(s.status)) throw fail("RECOVERY_DENIED", "Recovery session cannot accept another PIN attempt.");
+  if (s.status !== RECOVERY_SESSION_V1.statuses.VERIFYING) throw fail("RECOVERY_DENIED", "Recovery session is not verifying a PIN.");
   const currentAccount = Number(accountConsecutivePinFailures ?? 0);
   if (!Number.isInteger(currentAccount) || currentAccount < 0) throw fail("INVALID_INPUT", "Account recovery failure counter is invalid.");
   const failedPinAttempts = Number(s.failedPinAttempts || 0) + 1;
@@ -88,7 +95,7 @@ export function registerFailedPinAttempt({ session, accountConsecutivePinFailure
   const lockSession = failedPinAttempts >= RECOVERY_SESSION_V1.maxPinFailuresPerSession;
   const accountHold = nextAccount >= RECOVERY_SESSION_V1.maxAccountConsecutivePinFailures;
   return Object.freeze({
-    session: Object.freeze({ ...s, failedPinAttempts, status: lockSession ? RECOVERY_SESSION_V1.statuses.LOCKED : s.status }),
+    session: Object.freeze({ ...s, failedPinAttempts, status: lockSession ? RECOVERY_SESSION_V1.statuses.LOCKED : RECOVERY_SESSION_V1.statuses.PENDING }),
     accountConsecutivePinFailures: nextAccount,
     sessionLocked: lockSession,
     accountHold
@@ -97,7 +104,7 @@ export function registerFailedPinAttempt({ session, accountConsecutivePinFailure
 
 export function consumeRecoverySession({ session, nowMs }) {
   const s = normalizeForTime(session, nowMs);
-  if (s.status !== RECOVERY_SESSION_V1.statuses.PENDING) throw fail("RECOVERY_DENIED", "Recovery session is not pending consumption.");
+  if (s.status !== RECOVERY_SESSION_V1.statuses.VERIFYING) throw fail("RECOVERY_DENIED", "Recovery session is not verifying a PIN.");
   const now = requireTime(nowMs, "nowMs");
   return Object.freeze({ ...s, status: RECOVERY_SESSION_V1.statuses.CONSUMED, consumedAtMs: now });
 }
