@@ -1,6 +1,8 @@
 name: FIDUNIO 0.9.6.26-27 materialize
 on:
-  workflow_dispatch:
+  push:
+    branches: [fidunio-complete-rebuild]
+    paths: ['.fidunio-09626-27-trigger']
 permissions:
   contents: write
 jobs:
