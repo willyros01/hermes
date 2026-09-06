@@ -1,0 +1,35 @@
+name: Link Build Checklist Once
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+permissions:
+  contents: write
+jobs:
+  link:
+    if: github.event.head_commit.message == 'Queue mandatory build checklist linkage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fidunio-complete-rebuild
+          fetch-depth: 0
+      - name: Make checklist mandatory in cumulative memory
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('hermes-memory.txt')
+          s=p.read_text()
+          anchor='- At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`'
+          if anchor not in s: raise SystemExit('mandatory-read anchor missing')
+          needle='- Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.\n'
+          insert='- Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.\n- `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.\n'
+          if '`FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger' not in s:
+              if needle not in s: raise SystemExit('first-read anchor missing')
+              s=s.replace(needle,insert,1)
+          p.write_text(s)
+          PY
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add hermes-memory.txt
+          git commit -m "Make build checklist a mandatory first read"
+          git push origin HEAD:fidunio-complete-rebuild
