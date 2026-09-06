@@ -105,3 +105,6 @@ using Firebase Local Emulator Suite and Java/Node in GitHub Actions.
 Passing the emulator gate proves only repository rule behavior. It does **not** mean `firestore.rules` has been deployed to the live Firebase project.
 
 Do not weaken unrelated rules to make this suite pass. Do not add a broad wildcard allow. Do not deploy a test rule set. Any live deployment must follow the later controlled Firebase project handoff.
+
+## Group history-grant emulator extension — 0.9.6.7
+`firestore-group-e2ee-v1.rules.test.mjs` now includes explicit history-grant assertions: non-admin create denied, outsider target denied, timestamp boundary underflow denied, building grant create allowed for admin, target reads denied while building, bounded copy write allowed, pre-activation copy read denied, activation allowed, target active grant/copy reads allowed, and outsider reads denied. The normal Rebuild Baseline Security Gate remains the repository validation authority.

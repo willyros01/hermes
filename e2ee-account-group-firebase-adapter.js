@@ -5,7 +5,12 @@ import {
   readCloudGroupEpochRecord,
   sendCloudEncryptedGroupMessage,
   renameCloudGroup,
-  commitCloudGroupMembershipEpoch
+  commitCloudGroupMembershipEpoch,
+  beginCloudGroupHistoryGrant,
+  writeCloudGroupHistoryGrantCopies,
+  activateCloudGroupHistoryGrant,
+  readCloudGroupHistoryGrants,
+  readCloudGroupHistoryGrantCopies
 } from "./firebase.js";
 
 // This adapter is intentionally thin. firebase.js remains the sole Firebase
@@ -19,6 +24,11 @@ export function createFirebaseAccountGroupE2EETransport(){
     readGroupEpochRecord: readCloudGroupEpochRecord,
     sendEncryptedGroupMessage: sendCloudEncryptedGroupMessage,
     renameGroup: renameCloudGroup,
-    commitGroupMembershipEpoch: commitCloudGroupMembershipEpoch
+    commitGroupMembershipEpoch: commitCloudGroupMembershipEpoch,
+    beginGroupHistoryGrant: beginCloudGroupHistoryGrant,
+    writeGroupHistoryGrantCopies: writeCloudGroupHistoryGrantCopies,
+    activateGroupHistoryGrant: activateCloudGroupHistoryGrant,
+    readGroupHistoryGrants: readCloudGroupHistoryGrants,
+    readGroupHistoryGrantCopies: readCloudGroupHistoryGrantCopies
   });
 }

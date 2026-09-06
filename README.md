@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.6**
+- Current checkpoint version: **0.9.6.7**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -251,3 +251,19 @@ Before consequential rebuild work, read and reconcile the repository documentati
 Do not declare a feature complete because code merely exists. A rebuild item is DONE only when it is integrated into the real application and its applicable tests/security gates pass. If a regression is found, the checklist must move backward rather than preserve a false green state.
 
 The README must likewise tell the truth about release history: successful versions, rejected versions, resets, rollbacks, protected checkpoints, and significant architecture changes must remain visible rather than being rewritten out of history.
+
+## FIDUNIO 0.9.6.7 — bounded group-history persistence foundation
+
+Release transition: **0.9.6.6 -> 0.9.6.7**.
+
+- Added exact Firestore schema/rules for explicit group-history grant metadata and message-granular encrypted copies under `groups/{groupId}/historyGrants/{grantId}`.
+- Only a current group administrator can create/activate a grant; the target must be another current active group member with the authoritative durable account key.
+- A grant begins in `building` state. The target cannot read grant metadata or copies until the grantor explicitly activates it; this prevents partial chunked history from becoming visible during construction.
+- Source-message timestamps are rule-bound to retained group messages, and timestamp grants reject copies earlier than the selected lower boundary. `Beginning of conversation` remains supported without disclosing historical epoch keys.
+- `firebase.js` remains the sole Firebase owner and now transports opaque grant metadata/copy records in bounded chunks.
+- `e2ee-account-group-runtime.js` serializes grant construction, decrypts only source messages the admin can already read, re-encrypts them message-by-message through `e2ee-account-group-history-crypto.js`, and provides target-side grant decryption.
+- Runtime and Firestore emulator coverage were expanded for creation, boundary enforcement, activation visibility, outsider denial, and target decrypt.
+- Group Info UI remains deliberately disabled for earlier-history sharing until date-selection UI, conversation merge/display, disappearing-content purge/anti-resurrection linkage, and final real-app validation are complete.
+- Repository rules changed in this release but **live Firebase rules were not deployed**. Live Firebase remains untouched pending the controlled Firebase handoff.
+- Overall first-rebuild estimate remains approximately 65% until the full history-sharing user path and purge linkage are integrated.
+

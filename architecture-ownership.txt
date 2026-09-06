@@ -110,3 +110,13 @@ GROUP ADMINISTRATION OWNER UPDATE — 2026-09-06
 - `firebase.js`: sole Firebase SDK owner and sole atomic Firestore membership/epoch commit path.
 - Firestore Rules: enforce matching post-membership epoch and owner/admin invariants.
 No local-only membership mutation is authoritative.
+
+GROUP HISTORY GRANTS — 0.9.6.7
+- Resource: explicit earlier-history grant metadata and message-granular encrypted copies.
+- Crypto owner: e2ee-account-group-history-crypto.js.
+- Serialized operation owner: e2ee-account-group-runtime.js.
+- Firebase transport owner: firebase.js through the thin group Firebase adapter.
+- Firestore paths: groups/{groupId}/historyGrants/{grantId} and nested messages/{sourceMessageId}.
+- Write path: Group runtime -> Firebase adapter -> firebase.js -> Firestore. No app.js/service-worker direct writes.
+- UI remains non-authoritative and not yet enabled.
+- Purge/delete ownership remains reserved for the disappearing-content implementation; do not casually open client delete rules.

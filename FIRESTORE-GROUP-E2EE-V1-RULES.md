@@ -90,3 +90,13 @@ No intermediate commit may enable plaintext group messaging.
 ## Group administration hardening — 2026-09-06
 
 Membership-changing group updates now require `keyEpoch + 1` and a matching post-state epoch document in the same atomic write. Epoch `memberKeyIds` and `envelopes` must have exactly the post-change member UID keys. Admins may add/remove non-owner members. A non-owner member may leave only by removing the signed-in UID, with the same atomic epoch replacement. Owner removal/leave remains denied.
+
+## Group history-grant rules — 0.9.6.7
+- `historyGrants/{grantId}` is a separate explicit authority path; it never changes `historyPolicy: fromJoin` and never exposes old epoch keys.
+- Create requires current group admin, current target membership, target != grantor, and exact authoritative account keyIds.
+- The first shared message and every copy are bound to an existing retained `e2ee:4` source message and its authoritative `createdAt`.
+- Timestamp boundaries reject any source copy earlier than `boundaryAt`; Beginning of conversation uses `boundaryAt:null`.
+- Grants are created as `building`; targets cannot read metadata/copies until the grantor activates the grant. Activation rechecks admin and target membership.
+- Other members/outsiders cannot read target grants. Current admins may inspect ciphertext metadata for administration but cannot decrypt a target envelope without that target private identity.
+- Update/delete remain closed except the single `building -> active` activation transition. Purge deletion authority is intentionally deferred to the disappearing-content owner rather than opened prematurely.
+- These repository rules are NOT automatically deployed to live Firebase.

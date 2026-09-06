@@ -304,3 +304,18 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - The same version-change boundary must reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md` and all additional affected docs.
 - Keep one cumulative root README; do not create version-numbered README files.
 - This documentation-only change does not alter release number 0.9.6.6 or the approximately 65% first-rebuild completion estimate.
+
+
+2026-09-06 — GROUP HISTORY PERSISTENCE FOUNDATION / 0.9.6.7
+- Confirmed prior cleaned-branch Rebuild Baseline Security Gate run `34046696823` green before starting this slice.
+- Implemented exact repository Firestore schema/rules for explicit earlier-history grant metadata plus per-source-message encrypted copies. Default `fromJoin` remains unchanged.
+- Grant construction is two-phase (`building` -> `active`) so large Beginning-of-conversation grants can be written in chunks without exposing partial history. Target reads are denied until activation.
+- Rules require current admin grantor, another current member as target, authoritative durable account keyIds, retained e2ee:4 source messages, source timestamp equality and lower-bound enforcement.
+- `firebase.js` remains sole Firebase owner and now provides begin/write-chunks/activate/read APIs for opaque grant records.
+- `e2ee-account-group-runtime.js` serializes grant creation, decrypts only already-authorized source messages, re-encrypts each through the isolated history crypto owner, and decrypts active grants for the target account.
+- Runtime and Firestore group E2EE tests were expanded.
+- Version advanced 0.9.6.6 -> 0.9.6.7 and README updated in the same release boundary per the release-ledger rule.
+- This is not the completed UI feature: Group Info date selection, granted-history conversation projection, disappearing-content physical purge of grant copies/local plaintext and anti-resurrection remain required.
+- Repository rules now contain history-grant policy but LIVE Firebase rules were NOT deployed; do not deploy until the controlled Firebase handoff.
+- htest was not touched. App Check enforcement remains OFF. FCM remains deferred to 1.1.
+- Overall first complete rebuild estimate remains approximately 65%.

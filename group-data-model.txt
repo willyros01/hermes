@@ -103,3 +103,6 @@ CONTROLLED TEST GROUPS
 
 CURRENT COMPLETE-REBUILD STATUS — 2026-09-06
 The earlier 0.9.1 text above is historical foundation material. Group E2EE messaging is now active in the authoritative complete rebuild. Real rename/add/remove/non-owner-leave administration is cloud-backed. Every membership mutation atomically rotates `keyEpoch` and creates envelopes for exactly the post-change members. The owner remains immutable. Default history policy remains `fromJoin`; explicit earlier-history grants are still unfinished and must never be simulated locally.
+
+GROUP HISTORY GRANT DATA MODEL — 0.9.6.7
+Grant metadata: groups/{groupId}/historyGrants/{grantId}. Per-message encrypted copies: groups/{groupId}/historyGrants/{grantId}/messages/{sourceMessageId}. Grants are built invisibly in status=building and become readable to the target only after status=active. Timestamp lower boundaries are enforced against authoritative source-message createdAt; Beginning of conversation uses the earliest still-retained eligible source. Copies contain target-specific account-E2EE history envelopes and never old group epoch keys or device IDs.

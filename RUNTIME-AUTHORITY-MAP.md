@@ -117,3 +117,6 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Future grant creation path remains `app.js intent -> group app controller -> serialized group runtime/service -> firebase.js opaque persistence`.
 - Historical epoch keys are never handed to the target merely to satisfy a date boundary.
 - Group Info history-grant UI remains disabled until Firestore schema/rules, runtime integration, source-boundary selection, purge linkage and emulator tests are green.
+
+## Group history-grant runtime path — 0.9.6.7
+`e2ee-account-group-history-crypto.js` owns only message-granular grant cryptography. `e2ee-account-group-runtime.js` is the serialized group orchestration owner for grant selection/construction/decryption. `e2ee-account-group-firebase-adapter.js` is a thin naming adapter. `firebase.js` remains the sole Firebase SDK/service owner for grant persistence/read transport. `app.js`, the service worker and UI modules do not own grant cryptography or Firestore writes. The Group Info UI is still disabled until projection/purge integration is complete.

@@ -109,3 +109,14 @@ Fail closed when the durable account identity, current group membership, current
 ## Atomic group-administration rule — 2026-09-06
 
 Group membership mutation and the replacement epoch are one serialized operation. Add/remove/leave prepares the epoch for the exact post-change member UID set, then `firebase.js` commits parent membership/admin arrays, `keyEpoch + 1`, member-subcollection mutation, and the matching epoch document atomically. There is no state in which changed membership can accept messages under the old epoch. A removed/leaving member is absent from the replacement epoch envelopes. The owner remains immutable and cannot be removed or leave until an explicit ownership-transfer design is approved.
+
+
+### Firestore history-grant persistence schema — 0.9.6.7
+
+Grant metadata lives at `groups/{groupId}/historyGrants/{grantId}` and uses exact fields: `format,version,groupId,grantId,grantorUid,grantorKeyId,targetUid,targetKeyId,boundaryKind,boundaryAt,firstSharedMessageId,firstSharedAt,totalCopies,status,createdAt,activatedAt`. `format` is `fidunio-group-history-grant-v1`; `version` is `1`; `boundaryKind` is `beginning` or `timestamp`; `status` is `building` or `active`. A timestamp boundary requires `firstSharedAt >= boundaryAt`; Beginning uses `boundaryAt:null`. The first shared message must still exist and its authoritative Firestore `createdAt` must equal `firstSharedAt`.
+
+Encrypted per-message copies live at `groups/{groupId}/historyGrants/{grantId}/messages/{sourceMessageId}`. Each exact copy records `format:"fidunio-group-history-grant-copy-v1",version,groupId,grantId,sourceMessageId,sourceCreatedAt,grantorUid,grantorKeyId,targetUid,targetKeyId,envelope,createdAt`. `envelope` is the exact message-granular crypto envelope already defined above. Rules bind the copy to the retained source message and enforce the selected lower boundary.
+
+Construction is two-phase so Beginning of conversation can scale across multiple Firestore batches without exposing partial history: create `building` metadata, write bounded copy chunks, then activate. The target can read neither building metadata nor building copies. Activation rechecks that the grantor is still a current admin and the target is still a current member. Under-sharing caused by an interrupted build is not a confidentiality failure; over-sharing before the boundary is denied by rules and cryptographic context.
+
+0.9.6.7 does not yet enable the Group Info control. Grant-copy physical purge, local decrypted-copy purge/anti-resurrection, UI date selection and conversation projection are still mandatory before this feature is DONE.
