@@ -1,0 +1,49 @@
+from pathlib import Path
+import json
+
+p=Path('app.js');s=p.read_text()
+# 0.9.9.0: Group Info is a real bounded management screen. Remove unsupported placeholder controls.
+s=s.replace('<main class="app-shell">\n      ${shellTop("Group Info",\'<button class="back-btn" id="backBtn">‹</button>\')}','<main class="app-shell group-info-shell">\n      ${shellTop("Group Info",\'<button class="back-btn" id="backBtn">‹</button>\')}')
+old='''<div class="row"><div class="row-main"><strong>History policy</strong><span>New members see messages only from the time they join.</span></div><span class="role-tag">From join</span></div>\n<div class="row"><div class="row-main"><strong>Mute notifications</strong><span>Silence alerts for this group</span></div><button class="toggle"></button></div>\n<div class="row"><div class="row-main"><strong>Search messages</strong><span>Find text in this conversation</span></div><button class="row-action placeholderBtn">Open</button></div>\n<div class="row"><div class="row-main"><strong>Shared photos & files</strong><span>View shared attachments</span></div><button class="row-action placeholderBtn">Open</button></div>\n<div class="row"><div class="row-main"><strong>Security information</strong><span>Member keys and group-key status</span></div><button class="row-action placeholderBtn">View</button></div>'''
+new='''<div class="row"><div class="row-main"><strong>History policy</strong><span>New members see messages only from the time they join. An administrator may deliberately grant earlier history from the beginning or a selected date.</span></div><span class="role-tag">From join</span></div>\n<div class="row"><div class="row-main"><strong>Encryption</strong><span>Account-authoritative group E2EE with membership-bound key epochs.</span></div><span class="role-tag">E2EE</span></div>'''
+if old not in s: raise SystemExit('group controls anchor missing')
+s=s.replace(old,new)
+s=s.replace('  document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));\n  document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");\n','')
+s=s.replace('<p>No additional sample contacts are available in this prototype.</p><button class="secondary" id="modalCancel">Close</button>','<p>No additional FIDUNIO accounts are available to add.</p><button class="secondary" id="modalCancel">Close</button>')
+# 0.9.9.1: Info exists only where a real supported owner exists.
+s=s.replace('        <button class="icon-btn icon-2d" id="infoBtn" aria-label="Info">${icon2d("info",23)}</button>','        ${(isGroup(c)||c?.cloud)?`<button class="icon-btn icon-2d" id="infoBtn" aria-label="Info">${icon2d("info",23)}</button>`:`<span class="topbar-spacer"></span>`}')
+old='''  document.querySelector("#infoBtn").onclick=async()=>{\n    if(isGroup(c)){state.route="groupInfo";return render();}\n    if(c?.cloud){\n      await peerPublicKeyForConversation(c.id,{refresh:true});\n      state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId:c.id};\n      return render();\n    }\n    alert("Conversation details remain a UX placeholder.");\n  };'''
+new='''  const infoBtn=document.querySelector("#infoBtn");\n  if(infoBtn)infoBtn.onclick=async()=>{\n    if(isGroup(c)){state.route="groupInfo";return render();}\n    await peerPublicKeyForConversation(c.id,{refresh:true});\n    state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId:c.id};\n    return render();\n  };'''
+if old not in s: raise SystemExit('info handler anchor missing')
+s=s.replace(old,new)
+# 0.9.9.2: remove test banner, unsupported tool placeholders and local simulated receipts.
+s=s.replace('      ${c.cloud?`<div class="warning-banner">FIDUNIO ${esc(FIDUNIO_VERSION)} E2EE + key verification foundation — test messages only until verified per-device fan-out and forward secrecy are complete.</div>`:""}\n','')
+s=s.replace('          ${toolButton("photo","Photo")}${toolButton("file","File")}\n          ${toolButton("voice","Audio")}${toolButton("video","Video")}\n          ${toolButton("contact","Contact")}${toolButton("checklist","Checklist")}\n          ${toolButton("schedule","Schedule")}${toolButton("saved","Saved")}','          ${toolButton("photo","Photo")}${toolButton("file","File")}\n          ${toolButton("voice","Audio")}${toolButton("video","Video")}')
+s=s.replace('  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();const map={Photo:["photo","image/*",true],File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};if(map[label])return chooseAndSendAttachment(...map[label]);alert(`${label} is a UX placeholder in FIDUNIO ${FIDUNIO_VERSION}.`);});','  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();const map={Photo:["photo","image/*",true],File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});')
+old='''    }else{\n      await removeOutboxMessage(m.id);\n      simulateDelivery(conversationId,m.id);\n    }'''
+new='''    }else{\n      // Prototype-only local delivery simulation is retired. Legacy local-only\n      // conversations are not a supported 1.0 transport and must not manufacture receipts.\n      m.state="failed";\n      await persistState();\n      render();\n    }'''
+if old not in s: raise SystemExit('send simulation anchor missing')
+s=s.replace(old,new)
+start=s.find('function simulateDelivery(conversationId,id){')
+end=s.find('function serializeReconnectRecovery(work){')
+if start<0 or end<0 or end<=start: raise SystemExit('simulation functions anchor missing')
+s=s[:start]+s[end:]
+old='''    }else{\n      m.state="sending";\n      await persistState();\n      await removeOutboxMessage(payload.messageId);\n      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"sent"),500+i*150);\n      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"delivered"),1200+i*150);\n      setTimeout(()=>updateMessageState(payload.conversationId,m.id,"read"),2200+i*150);\n    }'''
+new='''    }else{\n      // No simulated local transport in the 1.0 candidate. Preserve the record\n      // and fail closed rather than manufacturing Sent/Delivered/Read.\n      m.state="failed";\n      await persistState();\n    }'''
+if old not in s: raise SystemExit('flush simulation anchor missing')
+s=s.replace(old,new)
+p.write_text(s)
+
+# 0.9.9.0/0.9.9.3 responsive Group Info treatment, without a second lifecycle.
+p=Path('styles.css');css=p.read_text()
+css += '''\n\n/* 0.9.9.0/0.9.9.3 — Group Info uses the established secondary-screen responsive owner. */\n@media (min-width:700px){\n  body[data-route="groupInfo"] .group-info-shell{width:min(100%,960px);max-width:960px;min-height:100dvh;margin:0 auto;}\n  body[data-route="groupInfo"] .group-info-shell .content{width:100%;max-width:860px;margin:0 auto;box-sizing:border-box;}\n}\n@media (min-width:900px) and (orientation:landscape){\n  body[data-route="groupInfo"] .group-info-shell{width:100vw;max-width:100vw;margin:0;}\n  body[data-route="groupInfo"] .group-info-shell .topbar{width:100%;max-width:none;margin:0;box-sizing:border-box;}\n  body[data-route="groupInfo"] .group-info-shell .content{width:min(100%,1180px);max-width:1180px;margin:0 auto;padding-left:28px;padding-right:28px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;}\n  body[data-route="groupInfo"] .group-info-shell .content > *{min-width:0;margin-top:0;}\n  body[data-route="groupInfo"] .group-info-shell .content > :first-child{grid-column:1 / -1;}\n}\n@media (min-width:700px) and (max-width:899px) and (orientation:landscape){\n  body[data-route="groupInfo"] .group-info-shell{width:100%;max-width:100%;}\n  body[data-route="groupInfo"] .group-info-shell .content{width:min(100%,900px);max-width:900px;margin:0 auto;}\n}\n'''
+p.write_text(css)
+
+# Permanent candidate UI gate.
+Path('release-candidate-ui.test.mjs').write_text('''import fs from "node:fs";\nimport assert from "node:assert/strict";\nconst app=fs.readFileSync("app.js","utf8"),css=fs.readFileSync("styles.css","utf8");\nassert.match(app,/group-info-shell/);\nassert.match(css,/data-route="groupInfo"/);\nassert.match(app,/grantGroupHistoryForApp/);\nassert.doesNotMatch(app,/placeholderBtn/);\nassert.doesNotMatch(app,/UX placeholder/);\nassert.doesNotMatch(app,/later prototype/);\nassert.doesNotMatch(app,/simulateDelivery/);\nassert.doesNotMatch(app,/setTimeout\\(\\(\\)=>updateMessageState/);\nassert.doesNotMatch(app,/test messages only/);\nfor(const unsupported of [\"Contact\",\"Checklist\",\"Schedule\",\"Saved\"]) assert.doesNotMatch(app,new RegExp(`toolButton\\(\\\"[^\\\"]+\\\",\\\"${unsupported}\\\"\\)`));\nfor(const supported of [\"Photo\",\"File\",\"Audio\",\"Video\"]) assert.match(app,new RegExp(`toolButton\\(\\\"[^\\\"]+\\\",\\\"${supported}\\\"\\)`));\nassert.match(app,/const infoBtn=document\\.querySelector\\(\"#infoBtn\"\\)/);\nassert.doesNotMatch(app,/Conversation details remain a UX placeholder/);\nassert.match(app,/visibilitychange/);assert.match(app,/pageshow/);\nassert.doesNotMatch(app,/MutationObserver/);assert.doesNotMatch(app,/location\\.reload\\(/);\nassert.match(css,/tablet-shell/);assert.match(css,/data-route="settings"/);\nconsole.log("FIDUNIO release-candidate UI and lifecycle gate passes");\n''')
+
+# package script
+p=Path('package.json');pkg=json.loads(p.read_text());pkg['scripts']['test:release-candidate-ui']='node release-candidate-ui.test.mjs';p.write_text(json.dumps(pkg,separators=(',',':'))+'\n')
+
+# version materializes through docs/candidate checkpoint .5
+Path('version.js').write_text('globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "0.9.9.5" });\n')
