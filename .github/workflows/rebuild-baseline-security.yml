@@ -15,108 +15,62 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - {name: Checkout, uses: actions/checkout@v4}
       - name: Set up Node
         uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+        with: {node-version: '22'}
       - name: Set up Java
         uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Install test dependencies
-        run: npm install --ignore-scripts
-      - name: Firestore E2EE rules gate
-        run: npm run emulator:test:e2ee-rules
-      - name: Account direct-message rules gate
-        run: npm run emulator:test:account-message-rules
-      - name: Group E2EE rules baseline gate
-        run: npm run emulator:test:group-e2ee-rules
-      - name: Account group-message crypto
-        run: npm run test:e2ee-account-group-crypto
-      - name: Account group-history grant crypto
-        run: npm run test:e2ee-account-group-history-crypto
-      - name: Account group-message runtime
-        run: npm run test:e2ee-account-group-runtime
-      - name: Account group-message service ownership
-        run: npm run test:e2ee-account-group-service
-      - name: Account group-message Outbox ownership
-        run: npm run test:e2ee-account-group-outbox
-      - name: Account group-message conversation ownership
-        run: npm run test:e2ee-account-group-conversation
-      - name: Account group-message app controller ownership
-        run: npm run test:e2ee-account-group-app-controller
-      - name: Account group-message bounded app integration
-        run: npm run test:e2ee-account-group-app-integration
-      - name: Attachment crypto foundation
-        run: npm run test:e2ee-account-attachment-crypto
-      - name: Attachment transport and send owner
-        run: npm run test:attachment-send-service
-      - name: Photo file audio video UI wiring
-        run: npm run test:attachment-ui-wiring
-      - name: Disappearing content policy
-        run: npm run test:disappearing-content-policy
-      - name: Disappearing first-read authority
-        run: npm run test:disappearing-read-authority
-      - name: Disappearing message metadata authority
-        run: npm run test:disappearing-message-metadata-authority
-      - name: Disappearing purge decision policy
-        run: npm run test:disappearing-purge-policy
-      - name: Disappearing serialized purge executor
-        run: npm run test:disappearing-purge-executor
-      - name: Disappearing group grant trace plan
-        run: npm run test:disappearing-group-grant-trace-plan
-      - name: Disappearing Firestore purge repository
-        run: npm run test:disappearing-purge-firestore
-      - name: Disappearing local convergence policy
-        run: npm run test:disappearing-local-convergence
-      - name: Disappearing authoritative projection convergence
-        run: npm run test:disappearing-authoritative-projection
-      - name: Disappearing local physical purge wiring
-        run: npm run test:disappearing-local-storage
-      - name: Disappearing restart reconnect recovery
-        run: npm run test:disappearing-reconnect-recovery
-      - name: Disappearing multi-device convergence
-        run: npm run test:disappearing-multi-device-convergence
-      - name: Disappearing compose policy and UI wiring
-        run: npm run test:disappearing-compose-policy
-      - name: Disappearing text end-to-end closeout
-        run: npm run test:disappearing-text-closeout
-      - name: Group earlier-history admin UI
-        run: npm run test:group-history-admin-ui
-      - name: Receipt lifecycle stabilization
-        run: npm run test:receipt-lifecycle-stabilization
-      - name: Group history-grant purge barrier
-        run: npm run test:group-history-grant-purge-barrier
-      - name: Group history-copy purge barrier
-        run: npm run test:group-history-copy-purge-barrier
-      - name: Group receipt purge barrier
-        run: npm run test:group-receipt-purge-barrier
-      - name: Recovery server crypto
-        run: npm run test:recovery-crypto
-      - name: Recovery session policy
-        run: npm run test:recovery-session
-      - name: Recovery callable core
-        run: npm run test:recovery-callable-core
-      - name: Recovery Firestore admin adapter
-        run: npm run test:recovery-firestore
-      - name: Central Firebase E2EE adapter
-        run: npm run test:firebase-e2ee-adapter
-      - name: Account E2EE auth lifecycle
-        run: npm run test:e2ee-account-lifecycle
-      - name: Account E2EE recovery client
-        run: npm run test:e2ee-account-recovery-client
-      - name: Account direct-message crypto
-        run: npm run test:e2ee-account-message-crypto
-      - name: Account direct-message service
-        run: npm run test:e2ee-account-message-service
-      - name: Firebase App Check client integration
-        run: npm run test:firebase-app-check
-      - name: Cloud Functions recovery scaffold
-        run: npm run test:functions-scaffold
-      - name: Runtime transform anchor gate
-        run: npm run test:runtime-transform-anchors
-      - name: Runtime authority gate
-        run: npm run test:runtime-authority
+        with: {distribution: temurin, java-version: '21'}
+      - {name: Install test dependencies, run: npm install --ignore-scripts}
+      - {name: Firestore E2EE rules gate, run: npm run emulator:test:e2ee-rules}
+      - {name: Account direct-message rules gate, run: npm run emulator:test:account-message-rules}
+      - {name: Group E2EE rules baseline gate, run: npm run emulator:test:group-e2ee-rules}
+      - {name: Account group-message crypto, run: npm run test:e2ee-account-group-crypto}
+      - {name: Account group-history grant crypto, run: npm run test:e2ee-account-group-history-crypto}
+      - {name: Account group-message runtime, run: npm run test:e2ee-account-group-runtime}
+      - {name: Account group-message service ownership, run: npm run test:e2ee-account-group-service}
+      - {name: Account group-message Outbox ownership, run: npm run test:e2ee-account-group-outbox}
+      - {name: Account group-message conversation ownership, run: npm run test:e2ee-account-group-conversation}
+      - {name: Account group-message app controller ownership, run: npm run test:e2ee-account-group-app-controller}
+      - {name: Account group-message bounded app integration, run: npm run test:e2ee-account-group-app-integration}
+      - {name: Attachment crypto foundation, run: npm run test:e2ee-account-attachment-crypto}
+      - {name: Attachment transport and send owner, run: npm run test:attachment-send-service}
+      - {name: Photo file audio video UI wiring, run: npm run test:attachment-ui-wiring}
+      - {name: Attachment receive integrity and object lifecycle, run: npm run test:attachment-receive}
+      - {name: Attachment offline and account isolation, run: npm run test:attachment-offline}
+      - {name: Attachment receipt lifecycle, run: npm run test:attachment-lifecycle}
+      - {name: Disappearing attachment purge plan, run: npm run test:disappearing-attachment-purge}
+      - {name: Attachment phase closeout matrix, run: npm run test:attachment-phase-closeout}
+      - {name: Disappearing content policy, run: npm run test:disappearing-content-policy}
+      - {name: Disappearing first-read authority, run: npm run test:disappearing-read-authority}
+      - {name: Disappearing message metadata authority, run: npm run test:disappearing-message-metadata-authority}
+      - {name: Disappearing purge decision policy, run: npm run test:disappearing-purge-policy}
+      - {name: Disappearing serialized purge executor, run: npm run test:disappearing-purge-executor}
+      - {name: Disappearing group grant trace plan, run: npm run test:disappearing-group-grant-trace-plan}
+      - {name: Disappearing Firestore purge repository, run: npm run test:disappearing-purge-firestore}
+      - {name: Disappearing local convergence policy, run: npm run test:disappearing-local-convergence}
+      - {name: Disappearing authoritative projection convergence, run: npm run test:disappearing-authoritative-projection}
+      - {name: Disappearing local physical purge wiring, run: npm run test:disappearing-local-storage}
+      - {name: Disappearing restart reconnect recovery, run: npm run test:disappearing-reconnect-recovery}
+      - {name: Disappearing multi-device convergence, run: npm run test:disappearing-multi-device-convergence}
+      - {name: Disappearing compose policy and UI wiring, run: npm run test:disappearing-compose-policy}
+      - {name: Disappearing text end-to-end closeout, run: npm run test:disappearing-text-closeout}
+      - {name: Group earlier-history admin UI, run: npm run test:group-history-admin-ui}
+      - {name: Receipt lifecycle stabilization, run: npm run test:receipt-lifecycle-stabilization}
+      - {name: Group history-grant purge barrier, run: npm run test:group-history-grant-purge-barrier}
+      - {name: Group history-copy purge barrier, run: npm run test:group-history-copy-purge-barrier}
+      - {name: Group receipt purge barrier, run: npm run test:group-receipt-purge-barrier}
+      - {name: Recovery server crypto, run: npm run test:recovery-crypto}
+      - {name: Recovery session policy, run: npm run test:recovery-session}
+      - {name: Recovery callable core, run: npm run test:recovery-callable-core}
+      - {name: Recovery Firestore admin adapter, run: npm run test:recovery-firestore}
+      - {name: Central Firebase E2EE adapter, run: npm run test:firebase-e2ee-adapter}
+      - {name: Account E2EE auth lifecycle, run: npm run test:e2ee-account-lifecycle}
+      - {name: Account E2EE recovery client, run: npm run test:e2ee-account-recovery-client}
+      - {name: Account direct-message crypto, run: npm run test:e2ee-account-message-crypto}
+      - {name: Account direct-message service, run: npm run test:e2ee-account-message-service}
+      - {name: Firebase App Check client integration, run: npm run test:firebase-app-check}
+      - {name: Cloud Functions recovery scaffold, run: npm run test:functions-scaffold}
+      - {name: Runtime transform anchor gate, run: npm run test:runtime-transform-anchors}
+      - {name: Runtime authority gate, run: npm run test:runtime-authority}
