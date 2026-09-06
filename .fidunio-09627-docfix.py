@@ -1,2 +1,0 @@
-from pathlib import Path
-p=Path('FIDUNIO-BUILD-CHECKLIST.md');s=p.read_text();old='| **0.9.6.28** | **CURRENT — Disappearing text end-to-end security closeout.** Reconcile direct/group text purge, receipts, history grants, local cache, Outbox, stale clients and multi-device behavior as one release checkpoint. | Complete disappearing-text repository matrix green; checklist text-message items can move to DONE except attachment-specific work. | PLANNED |';new=old[:-10]+'CURRENT |';assert old in s;p.write_text(s.replace(old,new,1))
