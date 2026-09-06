@@ -1,10 +1,9 @@
-import {prepareGroupSend,flushGroupSend,openGroupConversation,closeGroupConversation,isGroupOutboxPayload,resetGroupMessagingForSignOut} from "./e2ee-account-group-app-controller.js";
+import {prepareGroupSend,flushGroupSend,openGroupConversation,closeGroupConversation,isGroupOutboxPayload,resetGroupMessagingForSignOut,renameGroup,addGroupMember,removeGroupMember,leaveGroup} from "./e2ee-account-group-app-controller.js";
 
 // Bounded bridge between the legacy app shell and the account-authoritative
 // group messaging owners. This module owns no Firebase, crypto, IndexedDB or
 // DOM. app.js supplies only its existing encrypted Outbox/state callbacks.
 let activeGroupId=null;
-
 
 export function renameGroupForApp(groupId,name){return renameGroup(groupId,name);}
 export function addGroupMemberForApp(groupId,targetUid){return addGroupMember(groupId,targetUid);}
