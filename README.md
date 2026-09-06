@@ -8,8 +8,8 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.30**
-- Current weighted FIDUNIO 1.0 completion: **75%**
+- Current checkpoint version: **0.9.8.5**
+- Current weighted FIDUNIO 1.0 completion: **91%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
 - `htest` is reserved for coherent final-stage testing deployments and is not continuously synchronized with intermediate rebuild work.
@@ -191,7 +191,7 @@ Cloud-backed Group Info administration now includes rename, add member, remove m
 
 The user approved administrator-selected starting point/date history sharing, including Beginning of conversation. `e2ee-account-group-history-crypto.js` now provides message-granular account-to-account re-encryption so the selected lower boundary cannot be bypassed by disclosure of an old epoch key.
 
-The persistence/runtime foundation is repository-validated, and 0.9.6.8 adds deterministic granted-history conversation projection. A target account can now merge active message-granular grant copies into the normal group conversation without allowing a grant to override an already decryptable ordinary message. The usable feature is still not complete because Group Info date-selection/grant controls, disappearing-content physical purge/anti-resurrection linkage, and real-app/device validation remain required before earlier-history sharing can be enabled.
+The persistence/runtime foundation is repository-validated, and 0.9.6.8 adds deterministic granted-history conversation projection. A target account can now merge active message-granular grant copies into the normal group conversation without allowing a grant to override an already decryptable ordinary message. The earlier-history runtime and Group Info grant controls are now repository-validated; final responsive Group Info completion and real-device acceptance remain in the allocated 0.9.9.x release-candidate phase.
 
 ### 0.9.6.6 bounded wiring repair
 
@@ -201,11 +201,11 @@ The full Rebuild Baseline Security Gate run **34046337123** passed after that re
 
 ## Current first-rebuild completion state
 
-Approximately **65%** of the first complete rebuild acceptance criteria are complete. This percentage excludes FCM 1.1 and App Check 1.2 work.
+Exactly **91.0 / 100.0 weighted product points (reported as 91%)** of the first complete rebuild acceptance criteria are repository-validated. This deterministic ledger excludes FCM 1.1 and App Check 1.2 work.
 
-Major completed areas include deterministic runtime ownership, centralized Firebase ownership, account E2EE identity/recovery foundation, direct-message v3 E2EE, encrypted Outbox, group E2EE send/receive/receipts/offline retry, group creation, and real group rename/add/remove/leave administration.
+Major completed areas include deterministic runtime/Firebase ownership, account E2EE identity/recovery, direct/group E2EE and administration, earlier-history grant UI/runtime, disappearing text and attachment anti-resurrection foundations, encrypted attachment send/receive/offline/lifecycle/purge, invitation-only enrollment, and independent safe install guidance.
 
-Major unfinished first-release areas include explicit earlier-history grant UI/purge integration, disappearing-content physical purge and anti-resurrection, complete attachment send/receive/lifecycle, invitation and safe install integration rebuilt from scratch, remaining Chat/Group Info/tool placeholders and simulated state removal, final complete-repository gate, atomic `htest` deployment, and final real-device validation.
+Major unfinished first-release areas are the allocated 0.9.9.x release-candidate work: Group Info completion, Direct Chat Info completion, remaining prototype/simulation cleanup, responsive/lifecycle hardening, complete 1.0 repository candidate gate, final docs/package reconciliation, atomic `htest` deployment, real-device acceptance, any acceptance-only stabilization, and 1.0 promotion readiness.
 
 ## Disappearing-content requirement
 
