@@ -509,4 +509,4 @@ WEIGHTED 1.0 COMPLETION LEDGER — USER REQUIREMENT
 - Restored queued messages retain `disappearAfterSeconds` and are explicitly never-server-backed (`serverBacked:false`).
 - Added pure `disappearing-local-storage-plan.js` + focused test and normal gate step.
 - 0.9.6.23 must supply authoritative direct/group server-backed observation/absence; this build does not authorize cache-only purge.
-- Version advanced 0.9.6.21 -> 0.9.6.22. Full gate pending at documentation time; 0.9.6.22 weighted point remains unearned, so authoritative completion remains 67% until green. No live Firebase/htest change.
+- Version advanced 0.9.6.21 -> 0.9.6.22. Full gate pending at documentation time; Full gate `34058248816` is SUCCESS; 0.9.6.22 earns its allocated +1.0 point and authoritative completion is now 68%. No live Firebase/htest change.

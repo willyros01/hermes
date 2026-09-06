@@ -9,7 +9,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
 - Current checkpoint version: **0.9.6.22**
-- Current weighted FIDUNIO 1.0 completion: **67%** (0.9.6.22 points remain unearned until its full gate is green)
+- Current weighted FIDUNIO 1.0 completion: **68%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
 - `htest` is reserved for coherent final-stage testing deployments and is not continuously synchronized with intermediate rebuild work.
@@ -469,4 +469,4 @@ Release transition: **0.9.6.20 -> 0.9.6.21**.
 - Overall first-rebuild estimate remains approximately 65%.
 
 ### 0.9.6.22 — UID-scoped local physical purge wiring
-Release transition: **0.9.6.21 -> 0.9.6.22**. `app.js`, the existing owner of live application state, encrypted Outbox and encrypted history cache, now has one serialized UID-guarded local purge path. The path physically removes planned message IDs from in-memory message state, encrypted history records and matching Outbox records, then persists the cleaned state. Restored queued messages retain `disappearAfterSeconds` and are explicitly `serverBacked:false`; no tombstone/`expired:true` record is created. A pure local-storage plan and focused gate test were added. Authoritative snapshot invocation remains allocated to 0.9.6.23, so this build does not let cache-only absence trigger purge. Full gate validation is pending at documentation time. No live Firebase or htest change.
+Release transition: **0.9.6.21 -> 0.9.6.22**. `app.js`, the existing owner of live application state, encrypted Outbox and encrypted history cache, now has one serialized UID-guarded local purge path. The path physically removes planned message IDs from in-memory message state, encrypted history records and matching Outbox records, then persists the cleaned state. Restored queued messages retain `disappearAfterSeconds` and are explicitly `serverBacked:false`; no tombstone/`expired:true` record is created. A pure local-storage plan and focused gate test were added. Authoritative snapshot invocation remains allocated to 0.9.6.23, so this build does not let cache-only absence trigger purge. Full Rebuild Baseline Security Gate `34058248816` completed SUCCESS, including the dedicated local physical purge wiring step and all protected baseline gates. No live Firebase or htest change.
