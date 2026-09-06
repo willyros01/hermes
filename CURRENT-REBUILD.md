@@ -45,3 +45,6 @@ New group history-grant creation is now basis-visible to disappearing purge: the
 
 ## 0.9.6.18 copy purge barrier
 New group history-copy writes are now basis-visible: every genuinely new copy chunk must atomically update group `updatedAt`, and repository Rules enforce it. Clean gate `34054991773` passed. Group physical trace deletion remains the next secure slice. Live Firebase and htest remain untouched.
+
+## 0.9.6.19 receipt purge barrier
+Group receipt creation/advance is now purge-basis-visible through an atomic parent `receiptRevision`. Clean gate `34055638377` passed. Group physical trace deletion remains fail-closed; next work is the bounded server trace commit, then local/offline anti-resurrection. Live Firebase and htest remain untouched.

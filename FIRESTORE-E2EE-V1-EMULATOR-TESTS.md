@@ -120,3 +120,6 @@ The group E2EE emulator matrix now proves that an administrator cannot create a 
 
 ## Group history-copy purge barrier — 0.9.6.18
 The group emulator matrix now denies an administrator's standalone history-grant copy creation and accepts the same copy only when the request also updates parent-group `updatedAt` to server request time. Dedicated `group-history-copy-purge-barrier.test.mjs` gates the central `firebase.js` batch and Rules anchor. Rebuild Baseline Security Gate run `34054991773` passed. These repository Rules are not deployed to live Firebase by this checkpoint.
+
+## Group receipt purge barrier — 0.9.6.19
+The group emulator matrix now proves standalone Delivered and first-Read receipt writes are denied, while each succeeds when atomically paired with the exact next parent `receiptRevision`. Dedicated `group-receipt-purge-barrier.test.mjs` gates the central Firebase transaction and Rules anchors. Rebuild Baseline Security Gate run `34055638377` passed. Repository Rules remain undeployed to live Firebase.

@@ -153,3 +153,6 @@ Creating a genuinely new earlier-history grant now atomically updates the group 
 
 ### History-copy purge barrier — 0.9.6.18
 While an earlier-history grant is building, each chunk that creates one or more new message-granular copies must atomically update the parent group `updatedAt` using the same server timestamp. Repository Rules enforce this barrier. The barrier does not grant history or extend disappearing lifetime; it exists solely so concurrent subordinate-copy creation invalidates the group purge basis before source deletion can commit.
+
+### Receipt purge barrier — 0.9.6.19
+Encrypted group message documents carry outer integer `receiptRevision`, initialized to `0`. This field is not authenticated plaintext and does not alter the E2EE envelope. Each actual per-account Delivered/Read receipt transition atomically increments the parent revision exactly once. Rules allow no other parent mutation. The field exists so receipt-subcollection concurrency is visible to disappearing-source purge revalidation.

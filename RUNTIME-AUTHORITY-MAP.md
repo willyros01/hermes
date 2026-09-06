@@ -189,3 +189,10 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Firestore Rules deny copy create unless `historyGrantBarrier(groupId)` is satisfied.
 - Group update-time is already part of the server purge basis, so new grant-copy writes are now purge-conflict/basis-visible.
 - No physical delete authority moved to the client; group purge commit remains server-only and currently fail-closed.
+
+## Group receipt purge barrier — 0.9.6.19
+- New e2ee:4 group source: `receiptRevision: 0`.
+- `firebase.js` group receipt transaction: parent message + caller receipt -> one atomic real-state transition + exact parent revision increment.
+- Firestore Rules bind the two writes and prohibit unrelated group-message mutation.
+- Server purge basis already contains the source update version, so receipt changes now invalidate stale purge plans.
+- Physical group delete authority remains server-only/fail-closed.

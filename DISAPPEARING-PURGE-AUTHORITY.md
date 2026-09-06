@@ -143,3 +143,11 @@ Every genuinely new history-grant copy chunk now updates the parent group `updat
 This complements the 0.9.6.17 new-grant barrier. While a grant is `building`, any additional copy creation changes group update-time; activation changes the grant document itself, whose update time is already present in the purge basis. Thus the observed grant/copy trace set can no longer gain a permitted browser-written subordinate document without changing a basis-visible resource.
 
 The group source still must not be deleted until the server repository revalidates and commits all receipt/grant/source traces together.
+
+## Group receipt purge barrier — 0.9.6.19
+
+Every new encrypted group source begins with outer `receiptRevision: 0`. A real Delivered or first Read receipt mutation must atomically advance that source revision by exactly one. Firestore Rules couple both sides: the source update may affect only `receiptRevision` and requires the caller's receipt `updatedAt == request.time`; the receipt create/update requires the corresponding parent revision advance.
+
+The server purge basis already binds the source message Firestore update time. Therefore a receipt that appears or advances after planning changes the source version and causes final purge revalidation to fail/retry rather than deleting the source while leaving an orphan receipt. Repeat receipt no-ops do not manufacture revision changes.
+
+This barrier does not grant browser delete authority. Group physical deletion remains server-only and fail-closed until the full revalidated trace commit is materialized.

@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.18**
+- Current checkpoint version: **0.9.6.19**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -426,4 +426,18 @@ Release transition: **0.9.6.17 -> 0.9.6.18**.
 - Added `group-history-copy-purge-barrier.test.mjs` plus group emulator tests proving standalone copy denial and atomic barrier success.
 - Group physical deletion remains fail-closed. With new-grant and new-copy creation now basis-visible, the next secure repository slice is the bounded revalidated group trace commit: receipts + affected grant copies + grant metadata reconciliation/deletion + final source delete.
 - Repository Firestore Rules changed only; **no live Firebase rule deployment** occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.19 — group receipt purge barrier
+
+Release transition: **0.9.6.18 -> 0.9.6.19**.
+
+- Clean Rebuild Baseline Security Gate run `34055638377` passed every step, including the new group receipt purge barrier and expanded group Firestore emulator matrix.
+- New encrypted group messages now begin with `receiptRevision: 0` as outer non-cryptographic purge-concurrency metadata.
+- Every actual group Delivered/Read receipt mutation is serialized in the existing Firebase transaction with the parent message and atomically advances `receiptRevision` by exactly one.
+- Firestore Rules permit a parent group-message update only for that exact +1 revision and only when the caller's receipt in the same atomic request has `updatedAt == request.time`. Receipt create/update likewise requires the matching parent revision barrier.
+- Repeat Delivered/Read no-ops do not advance the revision. Ciphertext, epoch, sender, disappearing duration and all other message authority remain immutable.
+- This closes the orphan-receipt race: a newly created or advanced receipt necessarily changes the parent message already included in the server purge basis, forcing stale purge plans to retry.
+- Group physical deletion remains fail-closed pending the bounded server trace commit and local/offline anti-resurrection work.
+- Repository Firestore Rules changed only; **no live Firebase deployment** occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
 - Overall first-rebuild estimate remains approximately 65%.

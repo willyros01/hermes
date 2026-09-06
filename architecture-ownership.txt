@@ -195,3 +195,10 @@ GROUP HISTORY-COPY PURGE BARRIER — 0.9.6.18
 - Firestore Rules require the same group barrier for each copy create.
 - Existing-copy idempotent retry writes nothing and does not manufacture a barrier update.
 - Server group purge repository remains the sole physical-delete owner; no delete capability moved to the browser.
+
+GROUP RECEIPT PURGE BARRIER — 0.9.6.19
+- `firebase.js` remains the sole browser Firestore receipt transport owner.
+- Group message `receiptRevision` is outer purge-concurrency metadata, not ciphertext or cryptographic envelope state.
+- The existing receipt transaction owns both the own-receipt mutation and exact +1 parent revision in one serialized write path.
+- Firestore Rules allow no unrelated parent-message mutation and require the matching receipt request-time write.
+- Server purge repository remains sole physical-delete owner.

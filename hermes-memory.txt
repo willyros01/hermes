@@ -457,3 +457,14 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Version advanced 0.9.6.17 -> 0.9.6.18. No live Firebase/htest/App Check/FCM change.
 - Next: bounded atomic/revalidated receipt/grant/source deletion, followed by local cache/Outbox anti-resurrection and attachments.
 - Overall first complete rebuild remains approximately 65%.
+
+2026-09-06 — 0.9.6.19 GROUP RECEIPT PURGE BARRIER
+- Clean gate `34055638377` passed all baseline steps, including the dedicated receipt barrier and group emulator coverage.
+- New e2ee:4 group messages carry outer `receiptRevision: 0`.
+- Existing `firebase.js` receipt transaction now reads parent message + own receipt together and advances parent `receiptRevision` exactly once for each real Delivered/Read mutation.
+- Rules couple receipt create/update to the same atomic parent +1 revision and allow no other client mutation of the group message.
+- Repeat receipt no-ops do not advance the barrier. First Read remains immutable/server-backed as before.
+- Because group purge basis already includes the source message update time, concurrent receipt creation/advance is now basis-visible and cannot leave an orphan receipt behind a stale source purge.
+- Group source delete remains disabled pending the server trace commit and local/offline anti-resurrection.
+- Version 0.9.6.18 -> 0.9.6.19. No live Firebase, htest, App Check enforcement or FCM change.
+- Overall first complete rebuild remains approximately 65%.
