@@ -1,0 +1,52 @@
+name: Fix Local Security Await Once
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Queue local security async caller repair'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fidunio-complete-rebuild
+          fetch-depth: 0
+      - name: Repair serialized local-security callers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app.js')
+          s=p.read_text()
+          old='''  if(timeoutSelect)timeoutSelect.onchange=()=>{\n    try{setLockTimeoutMs(Number(timeoutSelect.value));setLocalSecurityMessage("Inactivity lock updated.");renderSettings();}\n    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}\n  };'''
+          new='''  if(timeoutSelect)timeoutSelect.onchange=async()=>{\n    timeoutSelect.disabled=true;\n    try{await setLockTimeoutMs(Number(timeoutSelect.value));setLocalSecurityMessage("Inactivity lock updated.");renderSettings();}\n    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}\n  };'''
+          if old not in s: raise SystemExit('timeout caller anchor missing')
+          s=s.replace(old,new,1)
+          old2='''  const disableBiometricBtn=document.querySelector("#disableBiometricBtn");\n  if(disableBiometricBtn)disableBiometricBtn.onclick=()=>{disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");renderSettings();};'''
+          new2='''  const disableBiometricBtn=document.querySelector("#disableBiometricBtn");\n  if(disableBiometricBtn)disableBiometricBtn.onclick=async()=>{\n    disableBiometricBtn.disabled=true;\n    try{await disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");renderSettings();}\n    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}\n  };'''
+          if old2 not in s: raise SystemExit('device unlock caller anchor missing')
+          s=s.replace(old2,new2,1)
+          p.write_text(s)
+          PY
+      - name: Add caller regression gate
+        run: |
+          cat > local-security-app-callers.test.mjs <<'EOF'
+          import fs from 'node:fs';
+          const src=fs.readFileSync(new URL('./app.js',import.meta.url),'utf8');
+          const checks=[
+            ['timeout handler is async',/timeoutSelect\.onchange=async\(\)=>/],
+            ['timeout mutation awaited',/await setLockTimeoutMs\(Number\(timeoutSelect\.value\)\)/],
+            ['device unlock disable handler async',/disableBiometricBtn\.onclick=async\(\)=>/],
+            ['device unlock mutation awaited',/await disableBiometric\(\)/]
+          ];
+          for(const [name,re] of checks){if(!re.test(src))throw new Error('FAIL: '+name);console.log('PASS:',name)}
+          EOF
+          node local-security-app-callers.test.mjs
+      - name: Commit repair
+        run: |
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add app.js local-security-app-callers.test.mjs
+          git commit -m "Await serialized local security mutations"
+          git push origin HEAD:fidunio-complete-rebuild
