@@ -29,7 +29,7 @@ jobs:
         run: |
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add app.js firebase.js firestore.rules firestore-account-message-v3.rules.test.mjs firestore-group-e2ee-v1.rules.test.mjs e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-outbox.js e2ee-account-group-app-controller.js e2ee-account-group-app-integration.js e2ee-account-group-runtime.test.mjs e2ee-account-group-outbox.test.mjs disappearing-message-metadata-authority.test.mjs package.json .github/workflows/rebuild-baseline-security.yml version.js README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt hermes-setup.txt
+          git add app.js firebase.js firestore.rules firestore-account-message-v3.rules.test.mjs firestore-group-e2ee-v1.rules.test.mjs e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-outbox.js e2ee-account-group-app-controller.js e2ee-account-group-app-integration.js e2ee-account-group-runtime.test.mjs e2ee-account-group-outbox.test.mjs disappearing-message-metadata-authority.test.mjs package.json version.js README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt hermes-setup.txt
           git commit -m "Materialize 0.9.6.12 disappearing metadata"
           git push origin HEAD:fidunio-complete-rebuild
 
