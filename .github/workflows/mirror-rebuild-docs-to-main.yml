@@ -60,4 +60,3 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git commit -m "Mirror rebuild recovery docs from ${source_commit:0:12}"
           git push origin HEAD:main
-# temporary mirror trigger: 0.9.6.23 closeout
