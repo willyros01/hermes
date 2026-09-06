@@ -1,6 +1,6 @@
 # FIDUNIO E2EE Recovery Protocol v1
 
-**STATUS: BINDING SECURITY DESIGN — THREE-COMPONENT RECOVERY AUTHORITY CONFIRMED SEPTEMBER 5, 2026**
+**STATUS: BINDING SECURITY DESIGN — THREE-COMPONENT RECOVERY AUTHORITY CONFIRMED; SUPPLEMENTAL VERIFIER REMOVED SEPTEMBER 6, 2026**
 
 FIDUNIO recovery preserves the same durable account E2EE identity. The existing six-digit FIDUNIO PIN is a real cryptographic recovery factor, not merely a UI prompt.
 
@@ -10,22 +10,20 @@ The approved recovery architecture is a separated three-component design:
 
 1. **FIDUNIO/Firebase account authority** — verified Firebase authentication establishes the account/UID requesting recovery.
 2. **User-held E2EE knowledge factor** — the existing exact six-digit FIDUNIO account-E2EE PIN participates in the recovery cryptography and is never stored plaintext.
-3. **Separate Google-hosted server-side recovery authority** — Firebase/Google Cloud Functions operating under server IAM control access the Google Secret Manager-held `FIDUNIO_RECOVERY_MASTER_V1` only at the reviewed recovery boundary. The browser never receives or possesses this master secret.
+3. **Separate Google-hosted server-side recovery authority** — Firebase/Google Cloud Functions operating under a dedicated recovery service account access the Google Secret Manager-held `FIDUNIO_RECOVERY_MASTER_V1` only at the reviewed recovery boundary. The browser never receives or possesses this master secret.
 
-These components are deliberately separated. No single client-side component contains all material required to recover the account E2EE identity. The Google-hosted component does **not** store the user's account private key in plaintext and is not a general decryption service. It controls access to the server-side master secret used to protect/unprotect the Recovery Unlock Key (RUK).
+These are the complete recovery-authority components. There is no supplemental recovery verifier, security question, extra recovery password, second PIN, test PIN, or client-supplied authorization bypass.
 
 Forgotten-password recovery therefore requires:
 
 - authenticated Firebase account context;
-- a valid App Check token when production enforcement is enabled;
+- a valid App Check token only after production App Check enforcement is deliberately enabled;
 - a short-lived server-owned recovery session;
-- the existing six-digit FIDUNIO PIN;
-- authorization by the separate Google-hosted server recovery authority under its reviewed IAM/Secret Manager boundary;
+- the existing six-digit FIDUNIO account-E2EE PIN;
+- the Google-hosted recovery function operating under its IAM/Secret Manager boundary;
 - the unchanged authoritative keyId/revision for the account identity.
 
-This three-component architecture is the approved supplemental recovery-verification design. It is **not an unresolved product-design question**. Implementation and production verification of the server-side authorization boundary may remain fail-closed until its reviewed code/configuration is complete, but that implementation work must not be described as an unresolved choice of recovery architecture.
-
-The PIN is never stored plaintext and never protects the private key by itself.
+The PIN is never stored plaintext and never protects the private key by itself. The Google-hosted component does not store the account private key in plaintext and is not a general decryption service. Its server master secret protects/unprotects only the per-account Recovery Unlock Key (RUK).
 
 ### Security rationale
 
@@ -139,18 +137,21 @@ Forgot Password
  -> startE2EERecoveryV1
  -> server creates short-lived recovery session bound to UID/keyId/revision
  -> enter EXISTING six-digit FIDUNIO PIN
- -> Google-hosted recovery authority verifies the reviewed server-side recovery conditions
- -> completeE2EERecoveryV1 verifies session + UID/keyId/revision + retry policy
+ -> completeE2EERecoveryV1 validates session + UID/keyId/revision + retry policy
+ -> Firestore atomically reserves the session PENDING -> VERIFYING before PIN cryptography
  -> PIN/master-derived wrapping key unwraps RUK
+ -> failed PIN increments retry counters and returns session to PENDING, or LOCKED at the limit
+ -> successful verification atomically consumes the VERIFYING session and resets account PIN-failure count
  -> authorized client receives RUK once
  -> client decrypts/imports SAME account private key
  -> client creates and verifies new normal wrapper using new password + existing PIN
  -> revision-checked Firestore normal-wrapper update
- -> session remains consumed
  -> history remains decryptable with same keyId/private identity
 ```
 
 No recovery failure may cause automatic creation of a replacement account identity.
+
+The `VERIFYING` reservation exists specifically to prevent concurrent completion calls from performing parallel online PIN guesses. If execution is interrupted while a session is `VERIFYING`, that session fails closed; it is not silently reopened by another caller.
 
 ## 6. Recovery sessions
 
@@ -169,14 +170,14 @@ sessionId
 uid
 keyId
 identityRevisionAtStart
-status: PENDING | AUTHORIZED | CONSUMED | LOCKED | EXPIRED
+status: PENDING | VERIFYING | CONSUMED | LOCKED | EXPIRED
 createdAtMs
 expiresAtMs
 failedPinAttempts
-failedSupplementalAttempts
-authorizedAtMs
 consumedAtMs
 ```
+
+There is no `AUTHORIZED` state, supplemental-attempt counter, supplemental proof, or supplemental-verifier state.
 
 Account state tracks consecutive PIN failures and account hold state. Client Firestore access to these collections is denied by default.
 
@@ -190,6 +191,7 @@ Never store PIN, password, RUK, private key, master secret, derived recovery key
 - maximum consecutive account-level PIN failures across sessions: 10;
 - a new session does not reset the account counter;
 - successful recovery resets the account PIN-failure counter;
+- only one PIN verification may be in progress for a session because `PENDING -> VERIFYING` is serialized by a Firestore transaction before cryptographic verification;
 - generic client-visible recovery failures are used to reduce oracle detail;
 - infrastructure-level account/network throttling may be stricter, never weaker.
 
@@ -198,7 +200,7 @@ Never store PIN, password, RUK, private key, master secret, derived recovery key
 ### `enrollRecoveryV1`
 
 - authenticated caller required;
-- App Check required in production;
+- App Check is not currently enforced during staging and must be enabled only after legitimate client traffic is verified;
 - UID comes only from verified Auth context;
 - accepts keyId, exact six-digit PIN, and transient base64url 32-byte RUK;
 - has access to `FIDUNIO_RECOVERY_MASTER_V1`;
@@ -207,7 +209,8 @@ Never store PIN, password, RUK, private key, master secret, derived recovery key
 
 ### `startE2EERecoveryV1`
 
-- authenticated caller and App Check;
+- authenticated caller required;
+- App Check is not currently enforced during staging;
 - reads authoritative private identity metadata and account failure count;
 - creates short-lived server-owned session;
 - does not need or receive the recovery master secret;
@@ -215,29 +218,35 @@ Never store PIN, password, RUK, private key, master secret, derived recovery key
 
 ### `completeE2EERecoveryV1`
 
-- authenticated caller and App Check;
-- sensitive endpoint intended to consume a limited-use App Check token;
+- authenticated caller required;
+- App Check is not currently enforced during staging;
 - validates session UID/keyId/revision and retry limits;
-- operates only through the approved Google-hosted server recovery authority;
-- uses the Secret Manager-held master secret only after the server-side recovery authorization boundary is satisfied;
-- atomically consumes session state before returning successful recovery material as implemented by the reviewed server core;
+- atomically reserves the session as `VERIFYING` before server-master/PIN cryptography;
+- uses the Secret Manager-held master secret only inside the Google-hosted recovery function;
+- on wrong PIN, atomically records the failure and returns the session to `PENDING` or `LOCKED`;
+- on success, atomically consumes the `VERIFYING` session before returning the RUK;
 - never acts as a general message-decryption service.
 
-## 9. Current Cloud Functions scaffold status
+When App Check is later proven and deliberately enabled, callable `enforceAppCheck` must be changed to true and the completion endpoint may additionally enable limited-use token consumption/replay protection. That later change requires its own tests and deployment.
 
-The rebuild branch contains a deployable-source layout under `functions/`, using Node.js 22, Firebase Functions v2 callables, Firebase Admin, `defineSecret("FIDUNIO_RECOVERY_MASTER_V1")`, and App Check enforcement declarations.
+## 9. Current Cloud Functions source status
 
-The completion callable remains intentionally **fail-closed in the current scaffold** until the approved three-component server recovery authority is fully represented by reviewed implementation/configuration and its tests pass. This is an implementation gate, not an unresolved architecture decision.
+The rebuild branch contains deployable source under `functions/`, using Node.js 22, Firebase Functions v2 callables, Firebase Admin, `defineSecret("FIDUNIO_RECOVERY_MASTER_V1")`, and the dedicated runtime service account `fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com`.
 
-No recovery Function, recovery master secret, recovery IAM grant, production Firestore rules deployment, or v3 transport cutover has yet occurred. Billing/Blaze, reCAPTCHA Enterprise setup and App Check provider registration have occurred separately during the live handoff; App Check enforcement remains off.
+The obsolete prototype-era supplemental recovery verifier and hardcoded fail-closed completion stub were removed on September 6, 2026. Completion now implements the decided three-component recovery protocol and serialized PIN-verification state. App Check enforcement remains deliberately OFF in the Functions source during staging.
+
+Repository tests and the full security gate must pass on the final source before any Recovery Function deployment. No Recovery Function has been deployed yet.
+
+Live supporting state already completed separately: the recovery Secret Manager secret exists, narrowly scoped recovery IAM/service-account setup has been performed, `us-central1` is the settled function region, and the reviewed Firestore rules are live. Normal direct-message `e2ee:3` transport remains uncut over.
 
 ## 10. IAM / secret boundary
 
-- only enrollment and completion functions bind `FIDUNIO_RECOVERY_MASTER_V1`;
+- all recovery functions run as the dedicated recovery service account;
+- only enrollment and completion bind `FIDUNIO_RECOVERY_MASTER_V1`;
 - start-session does not bind the secret;
 - browser code and normal messaging code receive no secret access;
-- Admin SDK bypasses client Firestore Rules, so server service-account IAM is part of the security boundary;
-- production deployment must use least privilege and must not grant broad project-level secret access unnecessarily.
+- Admin SDK bypasses client Firestore Rules, so the runtime service account requires only the minimum Firestore and Secret Manager permissions needed by the reviewed recovery paths;
+- deployment must fail rather than fall back to a broader default runtime identity if required least-privilege permissions are missing.
 
 ## 11. Logging
 
@@ -247,10 +256,12 @@ Never log request bodies containing PIN, RUK, password, private PKCS#8, recovery
 
 ## 12. Validation
 
-Repository CI tests cover server recovery crypto, session policy, callable core and Firestore Admin persistence behavior. The rebuild baseline CI additionally validates that the Cloud Functions scaffold imports successfully with its declared dependencies.
+Repository CI tests cover server recovery crypto, session policy, callable core, serialized verification behavior and Firestore Admin persistence. The rebuild baseline CI additionally validates that the Cloud Functions source imports successfully with its declared dependencies.
 
-Passing repository CI does not imply production deployment or production IAM/App Check correctness; those remain explicit project-configuration steps.
+Passing repository CI does not imply production deployment or production IAM/App Check correctness. Function deployment and live verification remain explicit controlled handoff steps.
 
-## 13. Documentation integrity correction — September 5, 2026
+## 13. Documentation integrity correction — September 5–6, 2026
 
-The owner had already selected the three-component recovery architecture and explicitly instructed that it be recorded. The durable recovery documents were not updated at that time and later incorrectly described the supplemental recovery architecture as unresolved. That was a documentation/process failure. This section corrects the authoritative record. Future work must distinguish between **architecture decided** and **implementation/configuration not yet completed**; the latter must not be used to reopen the former without an explicit security reason and owner review.
+The owner had already selected the three-component recovery architecture and explicitly instructed that it be recorded. The durable recovery documents were not updated at that time and later incorrectly described a supplemental recovery architecture/verifier as unresolved. The prototype scaffold then carried a `supplementalVerifier()` placeholder and supplemental session state forward even though no fourth factor belonged in the decided design.
+
+On September 6 the owner explicitly directed that this obsolete design be stricken. The supplemental verifier, supplemental counter, `AUTHORIZED` transition and associated placeholder completion block are therefore removed from the binding protocol and implementation. Future work must not reintroduce a fourth recovery factor without an explicit new security design and owner approval.
