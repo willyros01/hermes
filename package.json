@@ -22,6 +22,7 @@
     "test:disappearing-purge-executor":"node disappearing-purge-executor.test.mjs",
     "test:disappearing-group-grant-trace-plan":"node disappearing-group-grant-trace-plan.test.mjs",
     "test:disappearing-purge-firestore":"node disappearing-purge-firestore-admin-adapter.test.mjs",
+    "test:group-history-grant-purge-barrier":"node group-history-grant-purge-barrier.test.mjs",
     "test:recovery-crypto":"node e2ee-recovery-server-crypto.test.mjs",
     "test:recovery-session":"node e2ee-recovery-session-policy.test.mjs",
     "test:recovery-callable-core":"node e2ee-recovery-callable-core.test.mjs",
