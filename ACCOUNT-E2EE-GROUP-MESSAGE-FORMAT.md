@@ -77,6 +77,14 @@ Implementation MUST therefore preserve an exact lower boundary at message granul
 
 The exact on-disk/Firestore grant schema must be security-reviewed and emulator-tested before the Group Info earlier-history control is enabled.
 
+### Message-granular grant crypto foundation — 2026-09-06
+
+`e2ee-account-group-history-crypto.js` is the isolated cryptographic owner for explicit history-grant copies. It deliberately does not reuse or disclose a historical group epoch key. For each selected source message, the granting admin decrypts through the normal authorized group runtime and a separate account-to-account ECDH P-256 + HKDF-SHA256 + AES-256-GCM transform encrypts only that message for the target member.
+
+The v1 grant-copy envelope is exactly `{format,version,grantorKeyId,targetKeyId,ciphertext,iv}` with `format:"fidunio-group-history-grant-v1"` and `version:1`. Its HKDF/AAD context binds group ID, grant ID, source message ID, grantor UID/keyId and target UID/keyId. This prevents a grant ciphertext from being moved to another message, grant, group or account. Device IDs are absent.
+
+This crypto foundation is not permission to expose the Group Info control yet. Firestore grant metadata/copy schema, current-admin/current-member authorization, source-boundary selection, purge linkage, runtime/service/transport integration and emulator tests remain required before history sharing becomes usable.
+
 ## Offline / Outbox
 
 The Outbox is authoritative for pending sends. A queued group message records the target `groupId`, `messageId`, plaintext payload inside the existing installation-local encrypted Outbox, and the expected `keyEpoch`. On retry, the runtime MUST re-read group membership/epoch authority. If the epoch changed, it MUST encrypt under the current authorized epoch rather than send ciphertext for a stale membership set. The Outbox record is removed only after Firestore confirms the message write.
