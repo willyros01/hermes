@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.13**
+- Current checkpoint version: **0.9.6.14**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -245,6 +245,7 @@ Before consequential rebuild work, read and reconcile the repository documentati
 - `BUG-LIST.md` — durable defect ledger.
 - `REBUILD-BASELINE-AUDIT.md` — baseline keep/remove/audit history.
 - `hermes-setup.txt` — reusable setup/deployment/recovery/testing instructions.
+- `DISAPPEARING-PURGE-AUTHORITY.md` — disappearing-content physical purge ownership, trace-set, server-time, revalidation, and anti-resurrection contract.
 
 ## Development rule
 
@@ -354,4 +355,18 @@ Release transition: **0.9.6.12 -> 0.9.6.13**.
 - Production deletion authorization must use server-side time. A device clock is never sufficient authority for cloud purge.
 - This is a decision/policy foundation only. No delete rules, scheduled server purge, local cache purge, attachment cleanup or stale-client anti-resurrection executor is enabled yet.
 - Live Firebase and `htest` remain untouched; FCM remains deferred to 1.1; App Check enforcement remains OFF/deferred to 1.2.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.14 — serialized purge-executor authority
+
+Release transition: **0.9.6.13 -> 0.9.6.14**.
+
+- Added `DISAPPEARING-PURGE-AUTHORITY.md`, the binding single-owner contract for future physical deletion. The contract explicitly forbids browser/client delete rules, per-message tombstones, and device-clock deletion authority.
+- Added `disappearing-purge-executor.js` as the single serialized purge coordination owner. It consumes the already-authoritative pure direct/group purge decisions, owns no Firebase/Admin SDK, and can reach physical deletion only through one injected repository interface.
+- The executor requires an explicit server-time provider, one opaque repository `basis` for every evaluation, and a commit result that confirms physical deletion. Ineligible sources never enter the mutable delete owner.
+- The future server repository must re-read/revalidate the basis inside its transaction/precondition path. A stale basis fails closed and is not automatically retried from stale state; a later evaluation starts a new read/decision cycle.
+- One executor instance serializes direct and group purge attempts. This queue is supplemental; cross-instance correctness remains a required server transaction/precondition responsibility.
+- Added `disappearing-purge-executor.test.mjs` and normal security-gate coverage for eligible direct commit, unread retention, per-recipient group blocking, removed-member handling, stale-basis fail-closed behavior, serialization, and explicit server-time authority.
+- This checkpoint still does **not** physically delete Firestore/Storage/local traces and does not add a scheduler or new Cloud Function. The next implementation boundary is the dedicated server repository/adapter that enumerates and atomically/reliably deletes source + receipts + history-grant copies/references, followed by local cache/Outbox anti-resurrection and attachment cleanup.
+- Live Firebase and `htest` remain untouched; no delete rules were opened; FCM remains deferred to 1.1; App Check enforcement remains OFF/deferred to 1.2.
 - Overall first-rebuild estimate remains approximately 65%.
