@@ -1,6 +1,6 @@
 # FIDUNIO Account E2EE and Firestore Authority Architecture
 
-**STATUS: BINDING ARCHITECTURE — UPDATED SEPTEMBER 5, 2026**
+**STATUS: BINDING ARCHITECTURE — UPDATED SEPTEMBER 6, 2026**
 
 **MANDATORY READ before messaging, E2EE, Firestore synchronization, local cache, account switching, recovery, device registry, or push-notification work.**
 
@@ -15,7 +15,7 @@ This architecture supersedes the historical installation/device-owned E2EE model
 5. Device ID may be collected but is informational only.
 6. Password change and legitimate account recovery preserve the same E2EE keyId/private identity.
 7. Normal durable-key unlock requires password + the exact existing six-digit FIDUNIO PIN.
-8. Forgotten-password recovery uses the narrowly scoped Firebase/Google recovery authority.
+8. Forgotten-password recovery uses exactly the authenticated account, six-digit account-E2EE PIN, and narrowly scoped Firebase/Google server recovery authority.
 9. No failed unlock/recovery path may silently generate a replacement identity.
 10. `ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH`.
 
@@ -149,15 +149,31 @@ The exact server KDF context, AAD, serialized fields and limits are binding in `
 
 Forgotten-password recovery is not ordinary unlock. It uses a 10-minute server-owned session bound to UID, keyId and identity revision. The existing six-digit PIN is cryptographically required. Five PIN failures lock a session; ten consecutive account-level failures cause an account recovery hold. A new session does not reset the account counter.
 
-The server completion path additionally requires approved supplemental recovery verification. App Check is an abuse-defense layer, not a substitute for Auth/PIN/recovery authorization.
+There is **no supplemental recovery verifier or fourth factor**. App Check is an abuse-defense layer, not a substitute for Auth/PIN/server recovery authority, and its enforcement remains OFF during current staging.
 
-The current Cloud Functions scaffold deliberately leaves completion fail-closed until that supplemental verifier is implemented and reviewed.
+Recovery completion follows one serialized server path:
+
+```text
+PENDING
+ -> VERIFYING        // Firestore transaction reserves the one active PIN attempt
+ -> PENDING          // wrong PIN below session limit
+ -> LOCKED           // wrong PIN at session limit
+ -> CONSUMED         // correct PIN; account failure counter reset
+```
+
+The `PENDING -> VERIFYING` transition occurs before PIN/master-secret cryptography so concurrent completion calls cannot perform parallel online PIN guesses against the same recovery session. A stranded `VERIFYING` session fails closed.
 
 ## Firestore Security Rules status
 
-Repository `firestore.rules` now contains the exact account-E2EE client rules and has passed the Firebase Local Emulator Suite security gate. The current matrix is 42 assertions, including rejection of generic recovery metadata and JWK `ext`/`key_ops`.
+Repository `firestore.rules` contains the exact account-E2EE client rules and passes the Firebase Local Emulator Suite security gate. The account identity matrix remains 42 assertions, including rejection of generic recovery metadata and JWK `ext`/`key_ops`.
 
-This repository validation does **not** mean the rules are deployed to the live Firebase project.
+The reviewed rules were deployed to the live Firebase project on September 6, 2026 and verified. Active ruleset:
+
+```text
+projects/fidunio-fef13/rulesets/52ea515e-359f-453f-8822-3c0f6ef2659a
+```
+
+Repository validation and live deployment remain distinct concepts: future rule changes still require explicit review/test/pin/deploy/verify rather than assuming CI changes production.
 
 Client permissions are intentionally narrow:
 
@@ -166,7 +182,7 @@ Client permissions are intentionally narrow:
 - server recovery collections: no browser-client allow rule;
 - legacy device rules remain temporarily for migration compatibility.
 
-Admin SDK bypasses client rules; recovery server safety therefore depends on IAM, narrow functions, App Check, retry policy, secret binding, and reviewed server code.
+Admin SDK bypasses client rules; recovery server safety therefore depends on dedicated runtime IAM, narrow functions, retry/session policy, secret binding, and reviewed server code. App Check becomes an additional callable abuse-defense only after its legitimate client traffic is proven and enforcement is deliberately enabled.
 
 ## Sole account-E2EE owner
 
@@ -186,6 +202,12 @@ SIGNED_OUT
 ```
 
 Duplicate lifecycle triggers join the serialized owner path. Sign-out invalidates in-flight manager operations so stale work cannot repopulate runtime identity.
+
+## Firebase runtime authority
+
+`firebase.js` is the sole runtime Firebase SDK/service owner, including App Check. The rejected prototype-era `firebase-app-check.js` second owner was removed on September 6, 2026. Central initialization now establishes the one Firebase app, App Check, Auth and Firestore under one lifecycle, and the runtime authority gate enforces this single-owner rule.
+
+App Check enforcement remains OFF until legitimate Safari/iPhone/iPad/Home Screen PWA traffic is proven with the repaired client.
 
 ## Identity creation
 
@@ -225,19 +247,23 @@ The current user-facing runtime still contains legacy per-device envelope behavi
 - account identity manager browser gate passed 24/24 on iPad Safari;
 - Firestore account-E2EE emulator gate passed exact 42-assertion matrix;
 - recovery server crypto/session/callable/persistence CI passes;
+- recovery completion source implements the final three-component architecture with serialized `VERIFYING` reservation;
 - central Firebase E2EE adapter CI passes;
-- rebuild branch security gate re-runs all of the above server/rules tests.
+- App Check central-owner integration and runtime authority gates pass;
+- full `Rebuild Baseline Security Gate` run #318 (`34011735357`) passed on commit `f7d764df29fd936d2893645813257ea19deda6c1` after the final strengthened Functions scaffold guard.
 
 ## Remaining pre-production gates
 
-1. keep the rebuild branch security gate green after every recovery/scaffold change;
-2. implement and review the supplemental recovery verifier;
-3. configure Firebase Cloud Functions, Secret Manager, App Check and least-privilege IAM;
-4. explicitly deploy/verify Firestore rules and recovery functions only after project configuration is approved;
-5. wire the validated account E2EE manager into the normal auth/PIN lifecycle;
-6. build Firestore-authoritative account-key messaging/cache/Outbox;
-7. retire legacy per-device envelope ownership and service-worker source transforms;
-8. revalidate iPhone/iPad/PWA/offline/account-switch/reinstall/recovery behavior.
+1. keep the rebuild branch security gate green after each consequential recovery/runtime change;
+2. verify the dedicated recovery runtime service account has only the minimum required Firestore data-access IAM;
+3. deploy and verify only the reviewed Recovery Functions to `us-central1` using the dedicated recovery service account and existing Secret Manager secret;
+4. keep App Check enforcement OFF during controlled recovery/client validation;
+5. prove recovery restores the same durable identity without replacement;
+6. wire the validated account E2EE manager into the normal auth/PIN lifecycle;
+7. build Firestore-authoritative account-key messaging/cache/Outbox;
+8. retire legacy per-device envelope ownership and service-worker source transforms only after replacement passes;
+9. revalidate iPhone/iPad/PWA/offline/account-switch/reinstall/recovery behavior;
+10. only after legitimate App Check traffic is proven should enforcement be considered.
 
 ## Recovery rollback invariant
 
