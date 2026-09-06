@@ -24,25 +24,27 @@ await test("09 plaintext field on encrypted message denied",()=>assertFails(setD
 await test("10 stale epoch message denied",()=>assertFails(setDoc(doc(dbA,"groups","g1","messages","m3"),msg({keyEpoch:0}))));
 await test("11 sender key mismatch denied",()=>assertFails(setDoc(doc(dbA,"groups","g1","messages","m4"),msg({senderKeyId:keyB}))));
 await test("12 member can write own delivered receipt",()=>assertSucceeds(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"delivered",updatedAt:serverTimestamp()})));
-await test("13 member can advance own receipt to read",()=>assertSucceeds(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp()})));
-await test("14 member cannot write another account receipt",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",A),{uid:A,state:"read",updatedAt:serverTimestamp()})));
-await test("15 outsider cannot write receipt",()=>assertFails(setDoc(doc(dbO,"groups","g1","messages","m1","receipts",OUT),{uid:OUT,state:"read",updatedAt:serverTimestamp()})));
+await test("13 read transition without readAt is denied",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp()})));
+await test("14 member first Read stores server-backed readAt",()=>assertSucceeds(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));
+await test("15 repeat Read cannot move first-read timestamp",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));
+await test("16 member cannot write another account receipt",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",A),{uid:A,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));
+await test("17 outsider cannot write receipt",()=>assertFails(setDoc(doc(dbO,"groups","g1","messages","m1","receipts",OUT),{uid:OUT,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));
 
-await test("16 membership change without matching epoch denied",async()=>{const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));return assertFails(b.commit());});
-await test("17 admin atomic removal plus new epoch succeeds",async()=>{const e2={...epoch(),keyEpoch:2,memberKeyIds:{[A]:keyA},envelopes:{[A]:{senderKeyId:keyA,recipientKeyId:keyA,ciphertext:"CCCCCCCCCCCCCCCCCCCCCC",iv:"CCCCCCCCCCCCCCCC"}}};const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],adminUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));b.set(doc(dbA,"groups","g1","epochs","2"),e2);return assertSucceeds(b.commit());});
-await test("18 removed member cannot read new epoch",()=>assertFails(getDoc(doc(dbB,"groups","g1","epochs","2"))));
+await test("18 membership change without matching epoch denied",async()=>{const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));return assertFails(b.commit());});
+await test("19 admin atomic removal plus new epoch succeeds",async()=>{const e2={...epoch(),keyEpoch:2,memberKeyIds:{[A]:keyA},envelopes:{[A]:{senderKeyId:keyA,recipientKeyId:keyA,ciphertext:"CCCCCCCCCCCCCCCCCCCCCC",iv:"CCCCCCCCCCCCCCCC"}}};const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],adminUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));b.set(doc(dbA,"groups","g1","epochs","2"),e2);return assertSucceeds(b.commit());});
+await test("20 removed member cannot read new epoch",()=>assertFails(getDoc(doc(dbB,"groups","g1","epochs","2"))));
 
 await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();const g=await getDoc(doc(db,"groups","g1"));await setDoc(doc(db,"groups","g1"),{...g.data(),memberUids:[A,B],adminUids:[A],updatedAt:new Date()});await setDoc(doc(db,"groups","g1","members",B),{uid:B,displayName:B,role:"member",joinedAt:new Date(),historyFrom:new Date(),addedByUid:A,active:true});});
-await test("19 non-admin cannot create history grant",()=>assertFails(setDoc(doc(dbB,"groups","g1","historyGrants","hg0"),{...grant("hg0"),grantorUid:B,grantorKeyId:keyB,targetUid:A,targetKeyId:keyA})));
-await test("20 admin cannot grant history to outsider",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-out"),grant("hg-out",{targetUid:OUT,targetKeyId:"missing"}))));
-await test("21 timestamp grant cannot start before requested boundary",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-late"),grant("hg-late",{boundaryKind:"timestamp",boundaryAt:new Date(m1CreatedAt.toMillis()+60000)}))));
-await test("22 admin creates building beginning grant",()=>assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1"),grant())));
-await test("23 target cannot read building grant",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1"))));
-await test("24 admin writes bounded history copy while building",()=>assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1","messages","m1"),grantCopy())));
-await test("25 target cannot read copy before activation",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1","messages","m1"))));
-await test("26 grantor activates completed grant metadata",async()=>{const before=await getDoc(doc(dbA,"groups","g1","historyGrants","hg1"));return assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1"),{...before.data(),status:"active",activatedAt:serverTimestamp()}));});
-await test("27 target reads active grant",()=>assertSucceeds(getDoc(doc(dbB,"groups","g1","historyGrants","hg1"))));
-await test("28 target reads active granted message copy",()=>assertSucceeds(getDoc(doc(dbB,"groups","g1","historyGrants","hg1","messages","m1"))));
-await test("29 outsider cannot read active history grant",()=>assertFails(getDoc(doc(dbO,"groups","g1","historyGrants","hg1"))));
+await test("21 non-admin cannot create history grant",()=>assertFails(setDoc(doc(dbB,"groups","g1","historyGrants","hg0"),{...grant("hg0"),grantorUid:B,grantorKeyId:keyB,targetUid:A,targetKeyId:keyA})));
+await test("22 admin cannot grant history to outsider",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-out"),grant("hg-out",{targetUid:OUT,targetKeyId:"missing"}))));
+await test("23 timestamp grant cannot start before requested boundary",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-late"),grant("hg-late",{boundaryKind:"timestamp",boundaryAt:new Date(m1CreatedAt.toMillis()+60000)}))));
+await test("24 admin creates building beginning grant",()=>assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1"),grant())));
+await test("25 target cannot read building grant",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1"))));
+await test("26 admin writes bounded history copy while building",()=>assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1","messages","m1"),grantCopy())));
+await test("27 target cannot read copy before activation",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1","messages","m1"))));
+await test("28 grantor activates completed grant metadata",async()=>{const before=await getDoc(doc(dbA,"groups","g1","historyGrants","hg1"));return assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1"),{...before.data(),status:"active",activatedAt:serverTimestamp()}));});
+await test("29 target reads active grant",()=>assertSucceeds(getDoc(doc(dbB,"groups","g1","historyGrants","hg1"))));
+await test("30 target reads active granted message copy",()=>assertSucceeds(getDoc(doc(dbB,"groups","g1","historyGrants","hg1","messages","m1"))));
+await test("31 outsider cannot read active history grant",()=>assertFails(getDoc(doc(dbO,"groups","g1","historyGrants","hg1"))));
 
 const failed=results.filter(([,ok])=>!ok);console.log(`\n${results.length-failed.length}/${results.length} group E2EE assertions passed.`);await env.cleanup();if(failed.length)process.exitCode=1;
