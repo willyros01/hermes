@@ -50,6 +50,8 @@ jobs:
         run: npm run test:e2ee-account-group-app-controller
       - name: Account group-message bounded app integration
         run: npm run test:e2ee-account-group-app-integration
+      - name: Disappearing content policy
+        run: npm run test:disappearing-content-policy
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
