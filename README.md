@@ -470,3 +470,20 @@ Release transition: **0.9.6.20 -> 0.9.6.21**.
 
 ### 0.9.6.22 — UID-scoped local physical purge wiring
 Release transition: **0.9.6.21 -> 0.9.6.22**. `app.js`, the existing owner of live application state, encrypted Outbox and encrypted history cache, now has one serialized UID-guarded local purge path. The path physically removes planned message IDs from in-memory message state, encrypted history records and matching Outbox records, then persists the cleaned state. Restored queued messages retain `disappearAfterSeconds` and are explicitly `serverBacked:false`; no tombstone/`expired:true` record is created. A pure local-storage plan and focused gate test were added. Authoritative snapshot invocation remains allocated to 0.9.6.23, so this build does not let cache-only absence trigger purge. Full Rebuild Baseline Security Gate `34058248816` completed SUCCESS, including the dedicated local physical purge wiring step and all protected baseline gates. No live Firebase or htest change.
+
+## 0.9.6.23 — authoritative direct/group projection convergence
+
+Runtime version advanced from **0.9.6.22** to **0.9.6.23** because the server/cache projection boundary is now wired into both direct and group message projections.
+
+Significant changes:
+- `disappearing-authoritative-projection.js` is the pure server-vs-cache projection decision owner. A cache snapshot can merge but cannot authorize purge; a server-backed snapshot marks observed rows `serverBacked:true` and can plan physical removal of previously server-backed disappearing rows that are now absent.
+- `app.js` invokes the existing serialized active-UID local physical purge owner before committing an authoritative direct/group projection, including matching encrypted Outbox removal.
+- Direct and group projections preserve `disappearAfterSeconds`; legitimate never-server-backed queued work survives authoritative snapshots.
+- Group snapshot metadata is propagated through the existing group conversation owner. Earlier-history grant reads now require server reads so a stale cached grant copy cannot be treated as authoritative after server purge; offline/cache projections preserve the already encrypted local projection rather than gaining delete authority.
+- No tombstone, `expired:true`, client-clock purge authority, competing Firebase owner, service-worker semantic owner, live Firebase deployment, or htest deployment was introduced.
+
+Validation: full `Rebuild Baseline Security Gate` run **34058866151** completed **SUCCESS**, including the permanent `Disappearing authoritative projection convergence` step and all prior E2EE/rules/recovery/runtime gates.
+
+Rollback/rejection status: no validated checkpoint was rejected or rolled back. The historical rejected 0.9.4.12–0.9.4.15 invite/install implementation remains excluded.
+
+Follow-on constraint: 0.9.6.24 owns cold-start/restart/reconnect ordering proof. In particular, an authoritative server snapshot must converge/purge stale server-backed disappearing traces before any reconnect Outbox replay can recreate them. The existing reconnect retry timers are not accepted as purge authority and must not be used as a semantic rescue mechanism.

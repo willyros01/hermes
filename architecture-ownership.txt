@@ -220,3 +220,10 @@ LOCAL PHYSICAL PURGE — 0.9.6.22
 - `disappearing-local-storage-plan.js` is pure planning only; it cannot open IndexedDB or call Firebase.
 - local purge is serialized and active-UID guarded; no tombstone and no second storage owner.
 - authoritative absence classification remains with the 0.9.6.21 convergence policy and is wired in 0.9.6.23.
+
+0.9.6.23 AUTHORITATIVE PROJECTION OWNER
+- `disappearing-authoritative-projection.js`: sole pure owner for cache-vs-server message projection convergence decisions. No Firebase, IndexedDB, clock, UI, retry or physical-delete authority.
+- `firebase.js`: remains sole Firebase SDK owner and supplies snapshot metadata; group history-grant projection reads use server-only Firestore reads.
+- `e2ee-account-group-conversation.js`: remains group read-side owner and propagates snapshot metadata plus immutable disappearing duration to its bounded app callback.
+- `app.js`: remains sole local persistence mutation owner; it invokes the existing serialized active-UID physical purge before committing authoritative direct/group projections.
+- Service worker, client wall clock and reconnect timers have no disappearing-content semantic authority.

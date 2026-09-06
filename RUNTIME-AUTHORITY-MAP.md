@@ -216,3 +216,6 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Serialization: dedicated local purge promise queue; active Firebase UID must match requested UID.
 - Pure helper: `disappearing-local-storage-plan.js` computes exact removals only.
 - 0.9.6.23 remains responsible for invoking this only from authoritative direct/group server-backed convergence.
+
+### 0.9.6.23 projection convergence authority
+Server/cache projection decisions are centralized in `disappearing-authoritative-projection.js`. Firestore `fromCache` metadata is carried from the central Firebase/group subscription owners to the app boundary. Cache projections merge without purge; authoritative projections mark remote rows server-backed and may request exact local physical convergence through app.js. The local mutation itself remains serialized under the existing app/IndexedDB owner. Restart/reconnect pre-flush ordering is intentionally not claimed complete until 0.9.6.24.
