@@ -9,6 +9,8 @@ If a ChatGPT session is interrupted or a handover is required, start here:
 3. Read the architecture/security documents required by `hermes-memory.txt` before consequential code changes.
 4. Perform executable development on `fidunio-complete-rebuild` until the complete candidate is security-gated and deliberately promoted.
 
+Current product decision: disappearing direct and group messages use a fixed interval that starts from each recipient account's first authoritative Read event. Group timers are per recipient, not first-reader-global. Exact purge implementation remains in progress.
+
 ## Main-branch recovery mirror
 
 A curated set of recovery-critical documentation is automatically mirrored from `fidunio-complete-rebuild` to `main` by `.github/workflows/mirror-rebuild-docs-to-main.yml`.
