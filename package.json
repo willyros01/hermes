@@ -11,6 +11,7 @@
     "test:e2ee-account-group-crypto": "node e2ee-account-group-crypto.test.mjs",
     "test:e2ee-account-group-runtime": "node e2ee-account-group-runtime.test.mjs",
     "test:e2ee-account-group-service": "node e2ee-account-group-service.test.mjs",
+    "test:e2ee-account-group-outbox": "node e2ee-account-group-outbox.test.mjs",
     "test:recovery-crypto": "node e2ee-recovery-server-crypto.test.mjs",
     "test:recovery-session": "node e2ee-recovery-session-policy.test.mjs",
     "test:recovery-callable-core": "node e2ee-recovery-callable-core.test.mjs",
