@@ -156,3 +156,11 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Group input authority: source epoch membership, sender UID, current entitlement membership, per-account immutable Read receipts, immutable outer duration, and server-side current time.
 - History grants do not become source-lifetime authority and cannot resurrect or extend a disappearing source.
 - No deletion executor exists at this checkpoint. Final purge must be implemented by one serialized server-side owner and must also coordinate receipts, grant copies/metadata, attachments and local anti-resurrection.
+
+## Disappearing serialized purge executor — 0.9.6.14
+- `disappearing-purge-policy.js`: sole pure final-source eligibility owner.
+- `disappearing-purge-executor.js`: sole serialized purge-coordination owner; no Firebase/Admin SDK, local storage, DOM, crypto or delete calls.
+- Future server repository/adapter: sole physical Firestore/Storage delete owner. It must supply authoritative state + opaque basis, then re-read/revalidate that basis before commit.
+- Server-side current time is required. Device/browser time cannot authorize cloud deletion.
+- Ineligible sources never enter the mutable delete owner; stale basis fails closed without stale-state retry.
+- No scheduled Function, client delete rule, or local anti-resurrection executor exists yet.

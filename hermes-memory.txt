@@ -402,3 +402,14 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - History-grant targets/copies do not extend source lifetime; source purge must remove subordinate grant copies/references.
 - This does NOT execute deletion. Dedicated serialized server purge authority, physical Firestore/subcollection/grant/attachment deletion, local cache purge, reconnect rejection and anti-resurrection remain unfinished.
 - No live Firebase/htest change. App Check enforcement OFF; FCM deferred 1.1. Overall first rebuild remains approximately 65%.
+
+2026-09-06 — 0.9.6.14 SERIALIZED PURGE EXECUTOR AUTHORITY
+- Version advanced 0.9.6.13 -> 0.9.6.14.
+- Added binding `DISAPPEARING-PURGE-AUTHORITY.md` defining one server purge owner, one revalidated trace set, one serialized commit path, no client delete rules, no per-message tombstones, and no device-clock cloud deletion authority.
+- Added `disappearing-purge-executor.js` as the single serialized coordination owner. It imports the pure eligibility policy but owns no Firebase/Admin SDK, storage, UI, crypto, or physical deletes.
+- The executor requires an explicit server-time provider and an opaque repository `basis`; the future mutable repository must re-read/revalidate that basis inside its transaction/precondition commit path.
+- Ineligible direct/group sources never invoke the delete owner. A stale-basis commit fails closed and is not retried from stale state. One executor instance serializes direct and group attempts; cross-instance safety still belongs to the server repository transaction/precondition layer.
+- Dedicated executor tests cover eligible direct commit, unread retention, group per-recipient blocking, removed-recipient handling, stale-basis failure, serialization, and explicit server-time authority; this test is now part of the normal Rebuild Baseline Security Gate.
+- No Firestore/Storage delete implementation, scheduled Function, delete rule, local purge, attachment purge, live Firebase deployment, or htest deployment is introduced by this checkpoint.
+- Next secure implementation boundary: dedicated server repository/adapter for authoritative state reads + revalidated physical trace deletion, then UID-scoped local cache/Outbox anti-resurrection convergence and attachment cleanup.
+- Overall first complete rebuild estimate remains approximately 65%.

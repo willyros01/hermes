@@ -230,3 +230,6 @@ For direct messages, only the non-sender recipient account may establish receipt
 
 ## Direct purge eligibility — 0.9.6.13
 For a disappearing direct message, the shared source is final-purge eligible only when the non-sender recipient has the immutable authoritative first `readAt` and `serverNow >= readAt + disappearAfterSeconds`. The pure purge policy computes that decision; a device clock cannot authorize cloud deletion. This checkpoint does not open delete rules or execute deletion.
+
+## Direct serialized purge coordination — 0.9.6.14
+`disappearing-purge-executor.js` now consumes the direct purge eligibility decision under one serialized coordination path. The repository read supplies the authoritative direct source plus recipient UID and an opaque basis; an eligible commit must re-read/revalidate that basis server-side before physical deletion. Ineligible/unread/active-window sources do not reach the delete owner. This does not add client delete permission, a tombstone, a scheduled Function, or a deployed physical-delete implementation.

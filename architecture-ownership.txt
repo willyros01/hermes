@@ -158,3 +158,12 @@ DISAPPEARING PURGE DECISION AUTHORITY — 0.9.6.13
 - Direct source eligibility is recipient first-Read + immutable duration elapsed.
 - Group source eligibility uses the source epoch recipient set, excluding sender, intersected with current entitlement. New members outside that epoch are not retroactive recipients; removed members no longer block source deletion.
 - Physical deletion is a separate mutable resource. It still requires one dedicated serialized server purge owner using bounded repository APIs; do not scatter deletes through app.js, subscription callbacks or group crypto modules.
+
+DISAPPEARING PURGE EXECUTOR AUTHORITY — 0.9.6.14
+- Resource: final disappearing-source purge coordination, separate from pure eligibility and separate from physical Firestore/Storage mutation.
+- Pure decision owner: `disappearing-purge-policy.js`.
+- Serialized coordination owner: `disappearing-purge-executor.js`.
+- Future mutable delete owner: one dedicated server repository/adapter only; no app.js/firebase.js/browser delete path and no client delete rules.
+- Read/evaluate cycle requires authoritative server time and an opaque repository basis. Commit must re-read/revalidate that basis with transaction/precondition semantics; stale basis fails closed.
+- The executor's local queue serializes one process only. Cross-instance/cloud correctness must come from the repository's transaction/precondition path.
+- Physical trace deletion, scheduler, local cache/Outbox convergence and attachments remain separate unfinished resources.
