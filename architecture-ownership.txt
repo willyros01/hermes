@@ -120,3 +120,11 @@ GROUP HISTORY GRANTS — 0.9.6.7
 - Write path: Group runtime -> Firebase adapter -> firebase.js -> Firestore. No app.js/service-worker direct writes.
 - UI remains non-authoritative and not yet enabled.
 - Purge/delete ownership remains reserved for the disappearing-content implementation; do not casually open client delete rules.
+
+GROUP HISTORY PROJECTION — 0.9.6.8
+- Resource: merged read-model rows for one active group conversation.
+- Read-side owner: e2ee-account-group-conversation.js.
+- Pure merge helper: e2ee-account-group-history-projection.js.
+- Grant plaintext source: e2ee-account-group-service.js -> serialized group runtime -> firebase.js transport.
+- app.js receives only the finished projection and remains the structural UI/cache owner.
+- A history grant cannot override a normally decryptable source row and cannot cause normal-message receipts for ciphertext the target could not decrypt.

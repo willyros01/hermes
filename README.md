@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.7**
+- Current checkpoint version: **0.9.6.8**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -191,7 +191,7 @@ Cloud-backed Group Info administration now includes rename, add member, remove m
 
 The user approved administrator-selected starting point/date history sharing, including Beginning of conversation. `e2ee-account-group-history-crypto.js` now provides message-granular account-to-account re-encryption so the selected lower boundary cannot be bypassed by disclosure of an old epoch key.
 
-The persistence/runtime foundation is now repository-validated in 0.9.6.7: exact Firestore grant/copy schema, authorization rules, serialized runtime/service/transport integration, message-granular target re-encryption, and emulator coverage are present. The usable feature is still not complete because Group Info date-selection controls, granted-history conversation projection, disappearing-content physical purge/anti-resurrection linkage, and real-app/device validation remain required before the control can be enabled.
+The persistence/runtime foundation is repository-validated, and 0.9.6.8 adds deterministic granted-history conversation projection. A target account can now merge active message-granular grant copies into the normal group conversation without allowing a grant to override an already decryptable ordinary message. The usable feature is still not complete because Group Info date-selection/grant controls, disappearing-content physical purge/anti-resurrection linkage, and real-app/device validation remain required before earlier-history sharing can be enabled.
 
 ### 0.9.6.6 bounded wiring repair
 
@@ -272,3 +272,15 @@ The first 0.9.6.7 materialization used a newly added one-shot workflow that GitH
 
 After temporary materializer/repair files were removed, the cleaned-branch **Rebuild Baseline Security Gate run 34047570212 passed completely**, including Firestore E2EE rules, direct-message rules, expanded group E2EE/history-grant rules, group crypto/runtime/service/Outbox/conversation/controller/integration gates, recovery, App Check ownership, Functions scaffold, and runtime authority/transform gates. This validates the 0.9.6.7 repository foundation; it does not enable the unfinished Group Info history-sharing UI and does not deploy the changed rules to live Firebase.
 
+### 0.9.6.8 — granted-history conversation projection
+
+Release transition: **0.9.6.7 -> 0.9.6.8**.
+
+- Added `e2ee-account-group-history-projection.js`, a pure deterministic projection helper for merging active earlier-history grant copies with ordinary retained group rows.
+- Ordinary successfully decrypted group messages remain authoritative; a grant may replace only the undecryptable body for the same source message ID. Duplicate source messages are collapsed and the final projection is ordered by authoritative source time/message ID.
+- `e2ee-account-group-conversation.js` now loads active granted history through the existing group runtime/service owner and projects it through the same bounded conversation callback used by `app.js`; no Firebase or crypto ownership moved into the UI.
+- Normal Delivered/Read receipts are no longer written for historical ciphertext that the current account cannot decrypt. Explicit granted-history copies are projected without retroactive normal-message receipt mutation.
+- The group conversation gate now executes projection behavior, checking deterministic order, deduplication, grant replacement only for undecryptable rows, ordinary-message precedence, and removal of internal decrypt markers.
+- Rebuild Baseline Security Gate run `34048452887` passed all substantive steps on the implementation commit.
+- This release does **not** enable the Group Info history-grant control. Date/beginning selection and grant creation remain deliberately unavailable until physical disappearing-content purge/anti-resurrection is integrated and validated.
+- Live Firebase, `htest`, FCM and App Check enforcement were not changed. Overall first-rebuild estimate remains approximately 65%.

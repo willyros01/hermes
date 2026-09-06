@@ -212,3 +212,6 @@ settings-lifecycle.js owns the named Account Encryption Settings host and serial
 
 ## Group Info management lifecycle — 2026-09-06
 Rename/add/remove/leave no longer mutate sample/local group state. Group Info emits one user intent into the bounded group administration owner and waits for the cloud-authoritative operation; `subscribeMyGroups` remains the rendering authority for resulting membership/name state. Non-owner leave routes back to Messages after confirmed completion. Owner leave is deliberately unavailable while ownership is immutable.
+
+## Granted-history conversation projection — 0.9.6.8
+Earlier-history display now follows the same deterministic chat projection lifecycle as normal group messages. The group conversation owner merges ordinary rows and active grant rows before invoking the single `app.js` projection callback. The DOM does not discover or append historical rows independently, and no observer/timer/orientation repair path exists. Ordinary decryptable content wins over grant copies for the same source ID.

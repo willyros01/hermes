@@ -106,3 +106,6 @@ The earlier 0.9.1 text above is historical foundation material. Group E2EE messa
 
 GROUP HISTORY GRANT DATA MODEL — 0.9.6.7
 Grant metadata: groups/{groupId}/historyGrants/{grantId}. Per-message encrypted copies: groups/{groupId}/historyGrants/{grantId}/messages/{sourceMessageId}. Grants are built invisibly in status=building and become readable to the target only after status=active. Timestamp lower boundaries are enforced against authoritative source-message createdAt; Beginning of conversation uses the earliest still-retained eligible source. Copies contain target-specific account-E2EE history envelopes and never old group epoch keys or device IDs.
+
+GROUP HISTORY PROJECTION — 0.9.6.8
+Active grant-copy records are not a second message authority. They are a target-specific decryptability mechanism for retained source message IDs. The read-side conversation owner deduplicates by sourceMessageId/message ID and projects one visible row. If the ordinary source ciphertext is decryptable under normal group epoch authority, that normal decrypt wins; otherwise an active valid grant copy may supply the visible body. Grant projection does not create retroactive normal-message receipts.
