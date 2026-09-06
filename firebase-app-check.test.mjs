@@ -5,6 +5,9 @@ const firebaseSource=await fs.readFile(new URL("./firebase.js",import.meta.url),
 const authSource=await fs.readFile(new URL("./auth-ui-clean.js",import.meta.url),"utf8");
 
 assert.match(firebaseSource,/firebase-app-check\.js/);
+assert.match(firebaseSource,/firebase-functions\.js/);
+assert.match(firebaseSource,/getFunctions\(app,"us-central1"\)/);
+assert.match(firebaseSource,/httpsCallable\(s\.functions,name\)/);
 assert.match(firebaseSource,/ReCaptchaEnterpriseProvider/);
 assert.match(firebaseSource,/initializeAppCheck/);
 assert.match(firebaseSource,/isTokenAutoRefreshEnabled\s*:\s*true/);

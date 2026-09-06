@@ -106,7 +106,7 @@ CLOUD FUNCTIONS RECOVERY — REVIEWED SOURCE READY, NOT YET DEPLOYED
 - Secret format: exactly 32 random bytes, base64url without padding.
 - `completeE2EERecoveryV1` is wired to the reviewed final recovery core; the obsolete fail-closed supplemental-verifier stub is gone.
 - Functions staging source explicitly sets App Check enforcement OFF (`REQUIRE_APP_CHECK = false`). Limited-use completion-token consumption is deferred until App Check itself is proven and deliberately enabled.
-- No Recovery Function has been deployed yet.
+- All three Recovery Functions were deployed and verified ACTIVE in us-central1 on September 6, 2026.
 - Before deployment, verify the dedicated recovery runtime service account has the minimum required Firestore data-access IAM. Secret Accessor on the recovery secret is already configured, but Firestore runtime permission is not yet independently proven in the durable handoff record.
 
 DETERMINISTIC UI / CURRENT RUNTIME — APP CHECK AUTHORITY REPAIRED
@@ -153,7 +153,7 @@ LIVE FIREBASE / GOOGLE HANDOFF — ACTUAL CURRENT STATE
 - Secret Accessor is granted narrowly on the recovery secret, not project-wide.
 - Functions region is settled: `us-central1`.
 - Reviewed Firestore rules are deployed and verified. Active ruleset: `projects/fidunio-fef13/rulesets/52ea515e-359f-453f-8822-3c0f6ef2659a`.
-- No Recovery Functions deployed yet.
+- All three Recovery Functions are deployed and verified ACTIVE.
 - No normal direct-message v3 transport cutover.
 - Normal account identity enrollment still cannot be enabled safely until recovery enrollment is live and proven, because identity creation establishes both normal and recovery wrappers atomically.
 - Existing durable identity lookup/unlock must use the reviewed account-E2EE Firestore permissions in the actual project.
@@ -224,3 +224,13 @@ PROTECTED BASELINES / CONVENTIONS
 
 FINAL HANDOFF RULE
 Read supporting repo docs before code. Repository docs are durable authority. DETERMINISTIC: reduce competing authorities; do not add repair machinery. Never remove the last working transport/recovery path before its account-authoritative replacement is proven.
+
+RECOVERY FUNCTIONS LIVE VERIFICATION — SEPTEMBER 6, 2026
+- enrollRecoveryV1, startE2EERecoveryV1, and completeE2EERecoveryV1 are ACTIVE in us-central1.
+- All three use fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com.
+- FIDUNIO_RECOVERY_MASTER_V1 is bound only to enrollment and completion; start has no secret binding.
+- roles/datastore.user is present on the dedicated recovery runtime service account; Secret Accessor remains narrow on the recovery secret.
+- Artifact Registry gcf-artifacts cleanup policy is configured to delete images older than 1 day.
+- App Check enforcement remains OFF. Firestore rules, Hosting, Auth, and normal message transport were not changed by final verification.
+- The first deploy returned an error only because artifact cleanup policy was not yet configured; the three Functions themselves reported successful create operations. The final verification script then confirmed ACTIVE/runtime-SA/secret bindings and set cleanup policy successfully.
+- Console/Cloud Shell setup is complete. Do not repeat deployment or console setup. The next boundary is client recovery/enrollment validation and account-authoritative runtime migration.

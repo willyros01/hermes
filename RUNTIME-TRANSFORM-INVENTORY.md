@@ -101,3 +101,7 @@ Converts cloud send to per-device `e2ee:2` fan-out.
 ## Rule
 
 For every bounded unit: preserve rollback, materialize/supersede behavior, remove only its matching transform, run gates, and never weaken account isolation, E2EE continuity, group-send safety, or deterministic UI ownership.
+
+## September 6 live-boundary update
+
+The Firebase/Google handoff that previously blocked account-E2EE enrollment is complete: reviewed Firestore rules are live and all three Recovery Functions are ACTIVE/verified. App Check remains OFF. The next bounded runtime work is explicit account enrollment/unlock/recovery readiness, followed by e2ee:3 send/receive/Outbox migration. Legacy per-device transforms remain until their replacement passes.

@@ -21,6 +21,7 @@ import {
   listPendingFidunioInvitations,
   revokeFidunioInvitation
 } from "./firebase.js";
+import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE } from "./e2ee-account-runtime.js";
 
 function serializeSettingsMutation(label,work){
   const run=mutationTail.then(()=>work());
@@ -31,13 +32,14 @@ function serializeSettingsMutation(label,work){
 const GROUPS=[
   {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Firebase Account"]},
   {id:"privacy",label:"Privacy & Access",icon:"🔒",subtitle:"Local PIN, device unlock, inactivity lock, and device identity.",cards:["Privacy & Access","Device Identity"]},
+  {id:"encryption",label:"Account Encryption",icon:"◇",subtitle:"Unlock or recover the one durable account E2EE identity."},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, and expiration."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","users","invites","data","about"];
+const PANEL_ORDER=["profile","general","privacy","encryption","users","invites","data","about"];
 let activeGroup="profile";
 
 function directCards(settings){return[...settings.querySelectorAll(":scope > .card")];}
@@ -186,8 +188,29 @@ function renderInvitations(invitesHost,info){
   const card=invitesHost.querySelector("#fidunioInvitationAdmin");card.querySelector("#createInviteBtn").onclick=e=>{e.preventDefault();e.stopPropagation();openInviteModal(card);};refreshPending(card);
 }
 
+function renderAccountEncryption(encryptionHost,info){
+  const lifecycle=getAccountE2EELifecycleState(),managerState=lifecycle?.manager?.state||"EMPTY",uid=info.user.uid;
+  const ready=managerState==="READY",empty=managerState==="EMPTY";
+  encryptionHost.innerHTML=`<div class="card" id="fidunioAccountEncryptionCard"><h2>Account Encryption</h2>
+    <p class="small-note"><strong>Status:</strong> ${esc(managerState)}</p>
+    ${ready?`<p class="small-note">Your durable account encryption identity is unlocked on this installation. The same keyId is used across legitimate recovery; FIDUNIO never creates a replacement identity after an unlock/recovery failure.</p>`:`
+      <label class="form-label" for="accountE2EEPassword">${empty?"Current Firebase password":"Firebase password"}</label>
+      <input class="text-input" id="accountE2EEPassword" type="password" autocomplete="current-password" placeholder="Password">
+      <label class="form-label" for="accountE2EEPin">Six-digit account E2EE PIN</label>
+      <input class="text-input" id="accountE2EEPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Exactly 6 digits">
+      ${empty?`<label class="form-label" for="accountE2EEPin2">Confirm E2EE PIN</label><input class="text-input" id="accountE2EEPin2" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Repeat 6-digit PIN">`:""}
+      <button class="primary" id="accountE2EEPrimaryBtn" style="margin-top:14px">${empty?"Create Account Encryption":"Unlock Account Encryption"}</button>
+      ${empty?"":'<button class="secondary" id="accountE2EERecoverBtn" style="margin-top:10px">Recover After Password Reset</button>'}
+      <div id="accountE2EENote"></div>`}
+    <p class="warning-note">This six-digit account E2EE PIN is separate from the installation-local 4–12 digit app-lock PIN.</p></div>`;
+  if(ready)return;
+  const card=encryptionHost.querySelector("#fidunioAccountEncryptionCard"),note=card.querySelector("#accountE2EENote"),primary=card.querySelector("#accountE2EEPrimaryBtn");
+  primary.onclick=async()=>{const password=card.querySelector("#accountE2EEPassword").value,pin=card.querySelector("#accountE2EEPin").value;if(empty&&pin!==card.querySelector("#accountE2EEPin2").value){note.innerHTML='<p class="warning-note">The E2EE PIN entries do not match.</p>';return;}primary.disabled=true;primary.textContent=empty?"Creating…":"Unlocking…";try{if(empty)await enrollAccountE2EE({uid,password,pin});else await unlockAccountE2EE({uid,password,pin});renderAccountEncryption(encryptionHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;primary.disabled=false;primary.textContent=empty?"Create Account Encryption":"Unlock Account Encryption";}};
+  const recover=card.querySelector("#accountE2EERecoverBtn");if(recover)recover.onclick=async()=>{const newPassword=card.querySelector("#accountE2EEPassword").value,pin=card.querySelector("#accountE2EEPin").value;if(!confirm("Use recovery only after the Firebase password has been reset. Continue with the existing six-digit account E2EE PIN?"))return;recover.disabled=true;recover.textContent="Recovering…";try{await recoverAccountE2EE({uid,newPassword,pin});renderAccountEncryption(encryptionHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;recover.disabled=false;recover.textContent="Recover After Password Reset";}};
+}
+
 async function hydrateAccountPanels(g,shell){
-  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites");
+  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"encryption");
   /* Claim the legacy IDs synchronously so old observer-era modules cannot
      become competing writers while this migration build is being validated. */
   profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="small-note">Loading profile…</p></div>';
@@ -196,7 +219,7 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);
+    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 

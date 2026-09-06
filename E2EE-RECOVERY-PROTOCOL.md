@@ -235,7 +235,7 @@ The rebuild branch contains deployable source under `functions/`, using Node.js 
 
 The obsolete prototype-era supplemental recovery verifier and hardcoded fail-closed completion stub were removed on September 6, 2026. Completion now implements the decided three-component recovery protocol and serialized PIN-verification state. App Check enforcement remains deliberately OFF in the Functions source during staging.
 
-Repository tests and the full security gate must pass on the final source before any Recovery Function deployment. No Recovery Function has been deployed yet.
+Repository tests and the full security gate must pass on the final source before any Recovery Function deployment. All three Recovery Functions were deployed and verified ACTIVE in us-central1 on September 6, 2026.
 
 Live supporting state already completed separately: the recovery Secret Manager secret exists, narrowly scoped recovery IAM/service-account setup has been performed, `us-central1` is the settled function region, and the reviewed Firestore rules are live. Normal direct-message `e2ee:3` transport remains uncut over.
 
@@ -265,3 +265,7 @@ Passing repository CI does not imply production deployment or production IAM/App
 The owner had already selected the three-component recovery architecture and explicitly instructed that it be recorded. The durable recovery documents were not updated at that time and later incorrectly described a supplemental recovery architecture/verifier as unresolved. The prototype scaffold then carried a `supplementalVerifier()` placeholder and supplemental session state forward even though no fourth factor belonged in the decided design.
 
 On September 6 the owner explicitly directed that this obsolete design be stricken. The supplemental verifier, supplemental counter, `AUTHORIZED` transition and associated placeholder completion block are therefore removed from the binding protocol and implementation. Future work must not reintroduce a fourth recovery factor without an explicit new security design and owner approval.
+
+## 14. Live deployment verification — September 6, 2026
+
+The three reviewed Recovery Functions are live and verified ACTIVE in us-central1 under the dedicated recovery runtime service account. Secret binding matches this protocol: enrollment and completion bind FIDUNIO_RECOVERY_MASTER_V1; start does not. App Check enforcement remains OFF while legitimate client traffic and recovery behavior are validated.

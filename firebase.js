@@ -10,10 +10,21 @@ let authUser=null;
 const messageStreams=new Map();
 
 export function isFirebaseConfigured(){return firebaseConfig&&!String(firebaseConfig.apiKey||"").includes("PASTE_")&&!String(firebaseConfig.projectId||"").includes("PASTE_")&&!String(firebaseConfig.appId||"").includes("PASTE_");}
-async function loadSdk(){if(sdkPromise)return sdkPromise;sdkPromise=Promise.all([import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app-check.js`)]).then(([appSdk,authSdk,fsSdk,appCheckSdk])=>({appSdk,authSdk,fsSdk,appCheckSdk}));return sdkPromise;}
-async function ensureServices(){if(services)return services;if(!isFirebaseConfigured())throw new Error("Firebase is not configured yet.");const {appSdk,authSdk,fsSdk,appCheckSdk}=await loadSdk();const app=appSdk.initializeApp(firebaseConfig);const appCheck=appCheckSdk.initializeAppCheck(app,{provider:new appCheckSdk.ReCaptchaEnterpriseProvider(FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY),isTokenAutoRefreshEnabled:true});const auth=authSdk.getAuth(app),db=fsSdk.getFirestore(app);services={app,appCheck,auth,db,authSdk,fsSdk};return services;}
+async function loadSdk(){if(sdkPromise)return sdkPromise;sdkPromise=Promise.all([import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app-check.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-functions.js`)]).then(([appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk])=>({appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk}));return sdkPromise;}
+async function ensureServices(){if(services)return services;if(!isFirebaseConfigured())throw new Error("Firebase is not configured yet.");const {appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk}=await loadSdk();const app=appSdk.initializeApp(firebaseConfig);const appCheck=appCheckSdk.initializeAppCheck(app,{provider:new appCheckSdk.ReCaptchaEnterpriseProvider(FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY),isTokenAutoRefreshEnabled:true});const auth=authSdk.getAuth(app),db=fsSdk.getFirestore(app),functions=functionsSdk.getFunctions(app,"us-central1");services={app,appCheck,auth,db,functions,authSdk,fsSdk,functionsSdk};return services;}
 export async function initFirebase(onUserChanged){const s=await ensureServices();s.authSdk.onAuthStateChanged(s.auth,user=>{authUser=user||null;onUserChanged?.(authUser);});return s;}
 export function getFirebaseUser(){return authUser;}
+
+async function callRecoveryFunction(name,data={}){
+  const s=await ensureServices();
+  if(!authUser)throw new Error("Sign in first.");
+  const callable=s.functionsSdk.httpsCallable(s.functions,name);
+  const result=await callable(data);
+  return result.data;
+}
+export function enrollCloudE2EERecovery(data){return callRecoveryFunction("enrollRecoveryV1",data);}
+export function startCloudE2EERecovery(){return callRecoveryFunction("startE2EERecoveryV1",{});}
+export function completeCloudE2EERecovery(data){return callRecoveryFunction("completeE2EERecoveryV1",data);}
 
 function normalizeInviteToken(token){return String(token||"").trim().replace(/\s+/g,"");}
 function bytesToUrlToken(bytes){let raw="";bytes.forEach(b=>raw+=String.fromCharCode(b));return btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");}

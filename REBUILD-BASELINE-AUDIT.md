@@ -149,7 +149,7 @@ The mandatory repository-first read was skipped during a later September 5 App C
 - Functions scaffold gate now rejects supplemental-verifier regression, missing dedicated SA, accidental staging enforcement, or unwired completion;
 - full security runs #316, #318 and final documentation run #324 are green.
 
-No live compromise was identified. App Check enforcement remained OFF throughout. No Recovery Function has been deployed yet.
+No live compromise was identified. App Check enforcement remained OFF throughout. All three Recovery Functions were deployed and verified ACTIVE in us-central1 on September 6, 2026.
 
 ## Live Firebase boundary — actual state September 6
 
@@ -165,7 +165,7 @@ Confirmed live state:
 - Functions region settled to `us-central1`;
 - reviewed Firestore rules are live and verified;
 - active ruleset `projects/fidunio-fef13/rulesets/52ea515e-359f-453f-8822-3c0f6ef2659a`;
-- no Recovery Functions deployed yet;
+- all three Recovery Functions deployed and verified ACTIVE;
 - no normal v3 transport cutover.
 
 The only unresolved deployment prerequisite is verification of the dedicated recovery runtime service account's minimum Firestore data-access IAM. The controlled deployment script must verify this and add only the predefined minimum data role if absent. It must never fall back to a broad default runtime identity.
@@ -195,3 +195,7 @@ The only unresolved deployment prerequisite is verification of the dedicated rec
 - historical stable 0.9.4.11, Settings 0.9.5.1, receipts 0.9.5.4, identity-race stabilization 0.9.5.7.
 
 No destructive reset of `main` is required to rebuild FIDUNIO safely.
+
+## Recovery deployment completion — September 6, 2026
+
+The controlled Google/Firebase handoff completed. All three Recovery Functions are ACTIVE in us-central1 with the dedicated runtime service account and exact secret-binding boundary. Artifact Registry cleanup is configured. App Check remains OFF. Repository continuation may now wire and test the client recovery/enrollment lifecycle; normal e2ee:3 transport remains gated until account identity READY is proven.

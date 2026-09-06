@@ -65,7 +65,7 @@ Repository CI proves reviewed repository behavior. It does not by itself prove l
 - reviewed Firestore rules are live and verified
 - active Firestore ruleset: `projects/fidunio-fef13/rulesets/52ea515e-359f-453f-8822-3c0f6ef2659a`
 - previous ruleset: `projects/fidunio-fef13/rulesets/42640d51-c425-4615-bcdf-44d9be990c3f`
-- no Recovery Function has been deployed yet
+- all three Recovery Functions are deployed and verified ACTIVE
 - no normal FIDUNIO direct-message transport cutover to `e2ee:3` has occurred
 
 ## App Check ownership correction — complete
@@ -144,3 +144,7 @@ Until their later gates are satisfied:
 Recovery architecture, source repair, App Check ownership repair, Firestore rules and supporting secret infrastructure are complete. The next owner/operator action is a **single controlled Recovery Functions deployment with runtime-IAM preflight and post-deploy verification**. App Check enforcement remains off.
 
 Do not let the console operator improvise architecture/security changes.
+
+## Live Recovery Functions verification — September 6, 2026
+
+The deployment handoff is COMPLETE. enrollRecoveryV1, startE2EERecoveryV1 and completeE2EERecoveryV1 are ACTIVE in us-central1 under the dedicated recovery service account. Enrollment/completion have the recovery-secret binding; start does not. Artifact Registry cleanup is configured for images older than one day. App Check enforcement remains OFF. No further planned Firebase/Google Console setup remains before later conditional App Check enforcement.
