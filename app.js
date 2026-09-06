@@ -34,6 +34,7 @@ import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp } from "./e2ee-account-group-app-integration.js";
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
+import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -486,11 +487,12 @@ function beginCloudGroupMessageSubscription(groupId){
   if(!firebaseUser)return;
   openGroupForApp(groupId,{
     isOpen:()=>state.route==="chat"&&String(state.selectedId)===String(groupId),
-    onRows:async rows=>{
+    onRows:async (rows,meta={})=>{
       const existing=state.messages[groupId]||[];
-      const remoteIds=new Set(rows.map(x=>x.id));
-      const pending=existing.filter(x=>x.mine&&["queued","sending","failed"].includes(x.state)&&!remoteIds.has(x.id));
-      state.messages[groupId]=[...rows,...pending];
+      const outboxIds=(await getOutboxRecords()).map(x=>x.id);
+      const projection=planAuthoritativeMessageProjection({existingRows:existing,remoteRows:rows,snapshotMeta:meta,outboxMessageIds:outboxIds});
+      if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
+      state.messages[groupId]=[...projection.rows];
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
       if(c&&last){c.preview=last.text;c.time=last.time;}
       await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
@@ -746,44 +748,13 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
           else text="[Encrypted message — key unavailable]";
         }
-        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null});
+        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null});
       }
 
-      let merged;
-
-      if(meta.fromCache){
-        /*
-         * IMPORTANT OFFLINE RULE
-         * ----------------------
-         * Firestore may emit an empty or incomplete cache snapshot on an
-         * offline cold start. That is NOT proof that the conversation has no
-         * messages. Never let such a snapshot erase the encrypted local copy.
-         *
-         * Merge anything Firestore does know into the locally restored
-         * history, but preserve every existing row that Firestore's cache
-         * doesn't currently contain.
-         */
-        const byId=new Map(existing.map(m=>[m.id,m]));
-        for(const m of remote){
-          const prior=byId.get(m.id);
-          byId.set(m.id, prior ? {...prior,...m} : m);
-        }
-        merged=[...byId.values()];
-      }else{
-        /*
-         * A server-backed snapshot is authoritative for messages already
-         * stored in Firestore. Preserve only local outbound work that has not
-         * yet reached the server.
-         */
-        const remoteIds=new Set(remote.map(m=>m.id));
-        const localPending=existing.filter(m=>
-          m.cloud && m.mine &&
-          ["queued","sending","failed"].includes(m.state) &&
-          !remoteIds.has(m.id)
-        );
-        merged=[...remote,...localPending];
-      }
-
+      const outboxIds=(await getOutboxRecords()).map(x=>x.id);
+      const projection=planAuthoritativeMessageProjection({existingRows:existing,remoteRows:remote,snapshotMeta:meta,outboxMessageIds:outboxIds});
+      if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
+      const merged=[...projection.rows];
       state.messages[conversationId]=merged;
 
       const last=merged.at(-1);

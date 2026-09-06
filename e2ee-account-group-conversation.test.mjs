@@ -13,7 +13,10 @@ const required=[
   'recipients.every(uid=>states.get(uid)==="read")',
   '["delivered","read"].includes(states.get(uid))',
   'decryptAvailable&&row.senderUid!==id.uid',
-  'isOpen()?"read":"delivered"'
+  'isOpen()?"read":"delivered"',
+  'disappearAfterSeconds:row.disappearAfterSeconds??null',
+  'onRows?.(merged,snapshotMeta)',
+  'meta.fromCache===true'
 ];
 for(const token of required)if(!src.includes(token))throw new Error(`group conversation owner missing ${token}`);
 for(const forbidden of ['initializeApp(','getFirestore(','firebase-config','senderDeviceId','recipientDeviceId'])if(src.includes(forbidden))throw new Error(`group conversation owner crosses authority boundary: ${forbidden}`);
