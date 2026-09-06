@@ -493,3 +493,11 @@ FIDUNIO 1.0 PRE-ALLOCATED BUILD-NUMBER RULE — USER REQUIREMENT
 - A reserved number is not the runtime version until that slice is materially implemented. If an unexpected security/regression build must be inserted, update the checklist allocation before coding and never silently reuse a completed number.
 - Every substantive build report must identify its allocated build number, detailed steps completed/remaining, validation evidence, and overall first-rebuild completion percentage.
 
+
+
+WEIGHTED 1.0 COMPLETION LEDGER — USER REQUIREMENT
+- FIDUNIO 1.0 completion is now a fixed 100.0-point weighted ledger in `FIDUNIO-BUILD-CHECKLIST.md`, not a subjective estimate or raw build count.
+- Audited/repository-validated foundation through 0.9.6.20 is frozen at 66.0 earned points. 0.9.6.21 earns 1.0, making the current authoritative completion 67.0%.
+- Every remaining allocated 1.0 build has a fixed point value. Reserved/current/incomplete builds earn zero until exit criteria + required repository gate are green; real-device points remain unearned until device proof.
+- Regression removes points. Newly discovered mandatory 1.0 work requires explicit point reallocation before implementation while denominator remains 100.0.
+- FCM 1.1 and App Check enforcement 1.2 remain outside the 1.0 denominator.
