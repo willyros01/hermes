@@ -44,6 +44,8 @@ jobs:
         run: npm run test:firebase-e2ee-adapter
       - name: Account E2EE auth lifecycle
         run: npm run test:e2ee-account-lifecycle
+      - name: Account E2EE recovery client
+        run: npm run test:e2ee-account-recovery-client
       - name: Account direct-message crypto
         run: npm run test:e2ee-account-message-crypto
       - name: Account direct-message service
