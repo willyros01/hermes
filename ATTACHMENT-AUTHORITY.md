@@ -19,3 +19,7 @@ Storage authorization is UID/member scoped. Storage rules may consult Firestore 
 ## Phase boundary
 
 0.9.7.0 defines transport/data authority. 0.9.7.1-.4 wire photo/file/audio/video selection and encrypted send. Receive/decrypt/display is 0.9.7.5, offline restart integration 0.9.7.6, receipt closeout 0.9.7.7 and trace-free disappearing attachment purge 0.9.7.8. No live Firebase deployment occurs in these repository builds.
+
+## 0.9.7.5–0.9.7.9 attachment phase closeout — repository validated
+
+Runtime 0.9.7.9 completes the allocated attachment phase: integrity-checked receive/decrypt with explicit object-URL lifecycle; UID-scoped offline/cache recovery policy; message-level receipt authority; trace-free disappearing-attachment purge planning and serialized storage/local-before-source execution; and the permanent attachment closeout matrix. Firebase Storage download remains solely in `firebase.js`. Client Storage deletion remains denied; server purge dependencies are injected into the dedicated purge executor and no live Firebase deployment occurred. Full Rebuild Baseline Security Gate `34064314857` SUCCESS. Next allocated build is 0.9.8.0 invitation deterministic-owner rebuild; rejected 0.9.4.12-.15 invite/install logic remains forbidden.
