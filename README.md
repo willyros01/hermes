@@ -547,3 +547,10 @@ The permanent `release-candidate-ui.test.mjs` gate protects these decisions alon
 Runtime version advanced 0.9.9.5 -> 0.9.9.6 solely to materialize the deployment candidate. Full Rebuild Baseline Security Gate **34067021824** completed SUCCESS on commit `31dac2c0b551429a5a4ba7cf7c967e6316e9a9e6`. The `htest` branch was then created directly at that exact commit, so the deployed test source and version are identical to the gated candidate. No live Firebase configuration, rules, Functions, App Check enforcement or production branch was changed.
 
 The next checkpoint is 0.9.9.7 and is intentionally **BLOCKED — USER DEVICE PROOF** until real iPhone/iPad/two-account/offline/disappearing/attachment/invitation/install/recovery acceptance is performed.
+
+
+### 0.9.9.6 — atomic `htest` candidate deployment
+
+Runtime version advanced 0.9.9.5 -> 0.9.9.6 solely to materialize the deployment candidate. Full Rebuild Baseline Security Gate **34067021824** completed SUCCESS on commit `31dac2c0b551429a5a4ba7cf7c967e6316e9a9e6`. The `htest` branch was then created directly at that exact commit, so the deployed test source and version are identical to the gated candidate. No live Firebase configuration, rules, Functions, App Check enforcement or production branch was changed.
+
+The next checkpoint is 0.9.9.7 and is intentionally **BLOCKED — USER DEVICE PROOF** until real iPhone/iPad/two-account/offline/disappearing/attachment/invitation/install/recovery acceptance is performed.
