@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: '22'
       - run: node materialize-v3-runtime.mjs
+      - name: Remove one-shot materializer before authority scan
+        run: rm materialize-v3-runtime.mjs
       - name: Focused syntax and security tests
         run: |
           node --check app.js
