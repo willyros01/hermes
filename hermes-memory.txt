@@ -392,3 +392,13 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Physical trace-free purge, server purge authority, grant-copy/attachment purge, local/offline convergence and stale-client anti-resurrection remain unfinished and must be completed before exposing disappearing controls.
 - No live Firebase or htest deployment; App Check enforcement remains OFF; FCM deferred to 1.1.
 - Overall first complete rebuild estimate remains approximately 65%.
+
+2026-09-06 — 0.9.6.13 DETERMINISTIC PURGE-ELIGIBILITY POLICY
+- Clean 0.9.6.12 security gate run `34052064381` passed every baseline step, including the new disappearing metadata authority gate.
+- Added pure `disappearing-purge-policy.js`; it does not own Firebase/Admin SDK/storage/DOM/timers/deletes. Production callers must inject server-side current time; device time cannot authorize cloud deletion.
+- Direct eligibility: disappearing enabled + recipient state Read + immutable server-backed `readAt` + resolved duration elapsed.
+- Group original recipients are the source epoch member UIDs minus sender. Applicable recipients are those original recipients who remain currently entitled. New members outside the source epoch do not retroactively block purge; removed members no longer block it.
+- Every applicable original recipient must have an authoritative Read whose independent window has elapsed. Unread applicable recipients block final source purge.
+- History-grant targets/copies do not extend source lifetime; source purge must remove subordinate grant copies/references.
+- This does NOT execute deletion. Dedicated serialized server purge authority, physical Firestore/subcollection/grant/attachment deletion, local cache purge, reconnect rejection and anti-resurrection remain unfinished.
+- No live Firebase/htest change. App Check enforcement OFF; FCM deferred 1.1. Overall first rebuild remains approximately 65%.

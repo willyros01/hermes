@@ -149,3 +149,10 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - `firebase.js` is the sole Firestore persistence owner and writes the bounded optional metadata alongside ciphertext.
 - Firestore Rules enforce bounds and immutability through exact create schemas plus receipt-only update diffs.
 - Physical deletion remains a separate not-yet-materialized serialized resource owner.
+
+## Disappearing purge-decision authority — 0.9.6.13
+- `disappearing-purge-policy.js`: pure final-source eligibility only.
+- Direct input authority: immutable message `readAt` plus immutable outer duration.
+- Group input authority: source epoch membership, sender UID, current entitlement membership, per-account immutable Read receipts, immutable outer duration, and server-side current time.
+- History grants do not become source-lifetime authority and cannot resurrect or extend a disappearing source.
+- No deletion executor exists at this checkpoint. Final purge must be implemented by one serialized server-side owner and must also coordinate receipts, grant copies/metadata, attachments and local anti-resurrection.

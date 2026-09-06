@@ -112,3 +112,6 @@ Active grant-copy records are not a second message authority. They are a target-
 
 GROUP HISTORY SOURCE AUTHORITY — 0.9.6.9
 Grant source rows are selected from the currently retained server-backed `groups/{groupId}/messages` authority through the existing Firebase owner. App/local projected rows are not accepted as grant input. A Beginning/timestamp boundary is applied to the authoritative source `createdAt` values inside the serialized group runtime before message-granular grant copies are produced.
+
+DISAPPEARING SOURCE RECIPIENT AUTHORITY — 0.9.6.13
+For a disappearing group source, retention recipients come from the source message's `keyEpoch` record, not from the current group list alone. Start with that epoch's member UIDs, remove `senderUid`, then intersect with accounts that remain currently entitled. This prevents later joiners from becoming retroactive purge blockers while allowing removal/deactivation to end future entitlement. Explicit earlier-history grants remain subordinate copies and do not extend source retention.

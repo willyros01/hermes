@@ -135,3 +135,6 @@ Group receipt persistence is account-specific. A Delivered receipt has exact fie
 
 ### Disappearing-message outer metadata — 0.9.6.12
 Current `e2ee:4` group messages may include optional outer `disappearAfterSeconds` metadata, integer 1..31,536,000. The group crypto envelope remains unchanged. The encrypted group Outbox preserves the resolved value while queued epoch revalidation may replace only the ciphertext envelope. Each recipient still starts an independent expiry window at immutable server-backed first Read. Final shared-source deletion remains blocked until every applicable recipient window has elapsed and the dedicated purge owner can remove all related traces.
+
+### Final source purge eligibility — 0.9.6.13
+For one `e2ee:4` source message, the original recipient set is derived from that message's key-epoch membership, excluding the sender. Final purge considers only original recipients who remain currently entitled. A later-added member outside that epoch is not a retroactive source recipient and a removed member no longer blocks final deletion. Every still-entitled original recipient independently blocks purge until first Read plus `disappearAfterSeconds` has elapsed. History-grant copies never extend source lifetime and must be removed when their source is purged. Server-side time is required for production deletion authority.

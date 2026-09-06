@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.12**
+- Current checkpoint version: **0.9.6.13**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -339,4 +339,19 @@ Release transition: **0.9.6.11 -> 0.9.6.12**.
 - Direct/group emulator matrices now cover valid duration, zero/over-max/non-integer rejection, and direct receipt mutation denial. A dedicated source gate verifies metadata ownership and that crypto-envelope modules remain untouched.
 - This checkpoint still does not implement physical deletion. Purge ownership, deletion authorization, grant-copy/attachment/local-cache purge, and stale-client anti-resurrection remain prerequisites before user-facing disappearing controls or earlier-history controls are enabled.
 - Repository rules changed but are not deployed to live Firebase. `htest` remains untouched; FCM remains deferred to 1.1; App Check enforcement remains OFF/deferred to 1.2.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.13 — deterministic purge-eligibility policy
+
+Release transition: **0.9.6.12 -> 0.9.6.13**.
+
+- Cleaned 0.9.6.12 Rebuild Baseline Security Gate run `34052064381` passed every step after the bounded group app-integration assertion was updated to recognize the new outer-duration argument.
+- Added pure `disappearing-purge-policy.js`. It owns only deterministic purge eligibility and performs no Firebase, Admin SDK, local-storage, timer, UI or deletion writes.
+- Direct disappearing source purge becomes eligible only after its sole recipient has an authoritative first Read and that message's immutable `disappearAfterSeconds` window has elapsed.
+- Group final-source eligibility is derived from the source epoch's member set, excluding the sender, intersected with members who remain entitled now. A later-added member outside that source epoch does not become a retroactive retention blocker; a removed member no longer blocks final purge.
+- Every still-entitled original recipient independently blocks final group-source purge until that recipient has Read and the recipient-specific duration window has elapsed. An unread still-entitled original recipient therefore keeps the source.
+- A history grant cannot extend the lifetime of a disappearing source. Grant copies remain subordinate traces and must disappear when the source becomes purge-eligible.
+- Production deletion authorization must use server-side time. A device clock is never sufficient authority for cloud purge.
+- This is a decision/policy foundation only. No delete rules, scheduled server purge, local cache purge, attachment cleanup or stale-client anti-resurrection executor is enabled yet.
+- Live Firebase and `htest` remain untouched; FCM remains deferred to 1.1; App Check enforcement remains OFF/deferred to 1.2.
 - Overall first-rebuild estimate remains approximately 65%.

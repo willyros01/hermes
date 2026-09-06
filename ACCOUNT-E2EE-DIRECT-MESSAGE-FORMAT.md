@@ -227,3 +227,6 @@ For direct messages, only the non-sender recipient account may establish receipt
 
 ## Disappearing-message outer metadata — 0.9.6.12
 `disappearAfterSeconds` is optional outer Firestore message metadata for account-authoritative v3 direct messages. It is not part of the six-field cryptographic envelope or AAD. When present it must be an integer from 1 through 31,536,000 and is immutable after creation; absence means disappearing is off. The encrypted local Outbox preserves the resolved value across reconnect, and `firebase.js` is the sole persistence owner. First recipient `readAt` remains the start authority. Repository rules are not live-deployed by this checkpoint.
+
+## Direct purge eligibility — 0.9.6.13
+For a disappearing direct message, the shared source is final-purge eligible only when the non-sender recipient has the immutable authoritative first `readAt` and `serverNow >= readAt + disappearAfterSeconds`. The pure purge policy computes that decision; a device clock cannot authorize cloud deletion. This checkpoint does not open delete rules or execute deletion.

@@ -151,3 +151,10 @@ DISAPPEARING OUTER MESSAGE METADATA — 0.9.6.12
 - Crypto owners remain unchanged and must not absorb disappearing metadata into their exact envelopes.
 - Firestore Rules bound and freeze the metadata.
 - Physical purge is a different resource and still requires one dedicated serialized deletion owner.
+
+DISAPPEARING PURGE DECISION AUTHORITY — 0.9.6.13
+- `disappearing-purge-policy.js` is the pure eligibility owner. It decides whether a source is eligible for final purge but performs no deletion and imports no Firebase/Admin/local-storage/UI owner.
+- Production purge evaluation must supply server-side time; device clocks cannot authorize cloud deletion.
+- Direct source eligibility is recipient first-Read + immutable duration elapsed.
+- Group source eligibility uses the source epoch recipient set, excluding sender, intersected with current entitlement. New members outside that epoch are not retroactive recipients; removed members no longer block source deletion.
+- Physical deletion is a separate mutable resource. It still requires one dedicated serialized server purge owner using bounded repository APIs; do not scatter deletes through app.js, subscription callbacks or group crypto modules.
