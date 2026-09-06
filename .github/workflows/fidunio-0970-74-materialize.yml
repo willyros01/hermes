@@ -1,0 +1,25 @@
+name: FIDUNIO 0.9.7.0-0.9.7.4 Materializer
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+    paths: [.fidunio-0970-74-trigger]
+permissions:
+  contents: write
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fidunio-complete-rebuild
+          fetch-depth: 0
+      - run: python .fidunio-0970-74-materialize.py
+      - run: npm run test:e2ee-account-attachment-crypto && npm run test:attachment-send-service && npm run test:attachment-ui-wiring
+      - name: Commit bounded implementation
+        run: |
+          set -euo pipefail
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add firebase.js app.js package.json version.js attachment-ui-wiring.test.mjs
+          git commit -m "Build FIDUNIO 0.9.7.0 through 0.9.7.4"
+          git push origin HEAD:fidunio-complete-rebuild
