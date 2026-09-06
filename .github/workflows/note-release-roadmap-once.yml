@@ -1,0 +1,40 @@
+name: Note Release Roadmap Once
+
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+    paths:
+      - '.github/workflows/note-release-roadmap-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fidunio-complete-rebuild
+      - name: Append roadmap note once
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('hermes-memory.txt')
+          text = p.read_text()
+          marker = 'RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2'
+          if marker not in text:
+              note = '''\n\nRELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2\n- User explicitly set release scope on September 6, 2026.\n- First complete rebuild release does NOT require Firebase Cloud Messaging (FCM) to be active. FCM notification implementation/activation is deferred to FIDUNIO 1.1 and must not block the first rebuild release.\n- First complete rebuild release does NOT require Firebase App Check production enforcement to be active. App Check production activation/enforcement is deferred to FIDUNIO 1.2 and must not block the first rebuild release.\n- Existing centralized App Check client ownership/configuration may remain present with enforcement OFF.\n- FCM remains a documented roadmap requirement for 1.1: privacy-preserving notification/wake transport only, Firestore remains message authority, no plaintext message/attachment content in push payloads by default, multi-endpoint UID support, and non-FCM/Fire OS fallback.\n- App Check 1.2 must be enabled only after legitimate supported client/recovery flows are validated and rollout testing proves no legitimate-client lockout.\n- The first-rebuild completion percentage and final release gate exclude FCM 1.1 and App Check 1.2 work.\n'''
+              p.write_text(text.rstrip() + note + '\n')
+          PY
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- hermes-memory.txt; then
+            echo 'No change required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add hermes-memory.txt
+          git commit -m 'Document FCM 1.1 and App Check 1.2 roadmap'
+          git push origin HEAD:fidunio-complete-rebuild
