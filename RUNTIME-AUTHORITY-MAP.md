@@ -164,3 +164,10 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Server-side current time is required. Device/browser time cannot authorize cloud deletion.
 - Ineligible sources never enter the mutable delete owner; stale basis fails closed without stale-state retry.
 - No scheduled Function, client delete rule, or local anti-resurrection executor exists yet.
+
+## Disappearing Firestore purge repository — 0.9.6.15
+- Server Firestore repository: `disappearing-purge-firestore-admin-adapter.mjs`.
+- Admin Firestore is injected; the module is not a Firebase initializer and is never a browser/runtime import.
+- Direct source deletion: transaction re-reads conversation/message, compares opaque update-time basis, then deletes only on unchanged authority; stale basis fails closed and absence is idempotent.
+- Group read: authoritative group + source + source epoch + per-account receipts, all bound into the opaque basis supplied to the pure eligibility owner.
+- Group source deletion: intentionally unavailable until history-grant/receipt subordinate trace deletion is materialized. No independent/partial group delete path is permitted.

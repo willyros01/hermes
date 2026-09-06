@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.14**
+- Current checkpoint version: **0.9.6.15**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -369,4 +369,18 @@ Release transition: **0.9.6.13 -> 0.9.6.14**.
 - Added `disappearing-purge-executor.test.mjs` and normal security-gate coverage for eligible direct commit, unread retention, per-recipient group blocking, removed-member handling, stale-basis fail-closed behavior, serialization, and explicit server-time authority.
 - This checkpoint still does **not** physically delete Firestore/Storage/local traces and does not add a scheduler or new Cloud Function. The next implementation boundary is the dedicated server repository/adapter that enumerates and atomically/reliably deletes source + receipts + history-grant copies/references, followed by local cache/Outbox anti-resurrection and attachment cleanup.
 - Live Firebase and `htest` remain untouched; no delete rules were opened; FCM remains deferred to 1.1; App Check enforcement remains OFF/deferred to 1.2.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.15 — server Firestore purge repository foundation
+
+Release transition: **0.9.6.14 -> 0.9.6.15**.
+
+- Clean 0.9.6.14 Rebuild Baseline Security Gate run `34053227630` passed every step, including the serialized purge-executor gate.
+- Added server-only `disappearing-purge-firestore-admin-adapter.mjs`. Firebase Admin Firestore is injected; the adapter does not initialize/import a competing Firebase SDK owner.
+- Direct purge reads the authoritative direct conversation/message, derives the non-sender recipient, and binds an opaque purge basis to Firestore snapshot update times. Eligible direct source deletion is a Firestore transaction that re-reads the same authority and deletes the message only if the basis is unchanged. A stale basis fails closed; an already-absent source is idempotent success.
+- Group purge reads the source message, exact source epoch membership, current group entitlement membership, and per-account receipts into one opaque update-time basis. This is sufficient for the existing pure group eligibility policy without making the adapter a second policy owner.
+- Group physical deletion deliberately remains fail-closed with `GROUP_PURGE_TRACE_DELETE_NOT_READY`. The source will not be removed until history-grant copy/reference cleanup and receipt deletion can be coordinated without leaving FIDUNIO-controlled traces.
+- Added `disappearing-purge-firestore-admin-adapter.test.mjs` and normal gate coverage for direct basis/read/delete/idempotency/stale rejection, group authority reads, server-only SDK ownership, and the explicit group fail-closed boundary. Rebuild Baseline Security Gate run `34053462019` passed all steps on the implementation/gate commit.
+- This is repository-only. No scheduled purge Function was added or deployed, no client delete rule was opened, live Firebase and `htest` were untouched, FCM remains deferred to 1.1, and App Check enforcement remains OFF/deferred to 1.2.
+- Next secure slice: materialize group history-grant trace planning/reconciliation and receipt deletion so a group source can be physically removed only after subordinate traces are safely handled; then add UID-scoped local cache/Outbox anti-resurrection convergence.
 - Overall first-rebuild estimate remains approximately 65%.

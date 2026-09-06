@@ -413,3 +413,14 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - No Firestore/Storage delete implementation, scheduled Function, delete rule, local purge, attachment purge, live Firebase deployment, or htest deployment is introduced by this checkpoint.
 - Next secure implementation boundary: dedicated server repository/adapter for authoritative state reads + revalidated physical trace deletion, then UID-scoped local cache/Outbox anti-resurrection convergence and attachment cleanup.
 - Overall first complete rebuild estimate remains approximately 65%.
+
+2026-09-06 — 0.9.6.15 SERVER FIRESTORE PURGE REPOSITORY FOUNDATION
+- Clean 0.9.6.14 gate `34053227630` passed all steps before this slice.
+- Added server-only `disappearing-purge-firestore-admin-adapter.mjs`; Admin Firestore is injected and no competing Firebase SDK initializer/import was introduced.
+- Direct read authority binds conversation + message Firestore update times into an opaque basis and derives the non-sender recipient from the authoritative direct membership. Direct commit re-reads both in a Firestore transaction; unchanged basis deletes the source physically, stale basis fails closed, already-absent is idempotent success.
+- Group read authority binds group/message/source-epoch/per-account receipt update times, source-epoch member UIDs and current entitlement UIDs for the existing pure group policy.
+- Group physical delete is intentionally blocked with `GROUP_PURGE_TRACE_DELETE_NOT_READY` until history-grant copy/reference cleanup and receipt deletion are materialized together. Do not weaken this fail-closed boundary merely to make group purge appear complete.
+- Dedicated adapter tests and normal security-gate step pass on implementation gate run `34053462019`.
+- Version advanced 0.9.6.14 -> 0.9.6.15. No scheduler/deployment/client delete rules/live Firebase/htest changes.
+- Next: group subordinate trace plan/reconciliation, then local cache/Outbox anti-resurrection and attachment lifecycle integration.
+- Overall first complete rebuild remains approximately 65%.

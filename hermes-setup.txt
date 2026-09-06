@@ -115,3 +115,6 @@ README / VERSION RELEASE PROCEDURE
 
 ## 0.9.6.14 purge-executor repository boundary
 The rebuild now contains a repository-only serialized disappearing purge executor and binding `DISAPPEARING-PURGE-AUTHORITY.md`. Do not deploy a purge Function, open client delete rules, or alter live Firebase from this checkpoint. The next implementation must first add and repository-test one server repository/adapter that revalidates authoritative state/basis before physically deleting source/receipt/history-grant/attachment traces. Local cache/Outbox anti-resurrection remains a later bounded owner.
+
+## 0.9.6.15 server purge repository boundary
+Repository source now includes a server-only Firestore purge adapter and tests. Do not deploy it, create a purge scheduler, or open client delete rules yet. Direct transactional deletion is repository-proven only. Group commit intentionally fails closed until history-grant/receipt trace deletion is added. The later deployment package must preserve one purge-policy owner rather than duplicating root policy logic inside Functions.

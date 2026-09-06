@@ -141,3 +141,6 @@ For one `e2ee:4` source message, the original recipient set is derived from that
 
 ### Group serialized purge coordination — 0.9.6.14
 `disappearing-purge-executor.js` now serializes group final-purge evaluation and delegates mutation through one future revalidating server repository boundary. The state read must provide the source message, source-epoch member set, current entitlement set, per-account receipts and opaque basis; commit must re-read/revalidate before deleting. Ineligible or stale state fails closed. History-grant copies remain subordinate traces and cannot extend source lifetime. No physical delete adapter/scheduler/client delete rule is enabled by this checkpoint.
+
+### Group Firestore purge repository read authority — 0.9.6.15
+The server-only purge repository now reads the source group message, the exact source epoch record, current group membership/entitlement, and per-account receipt subcollection and binds their Firestore update times into the executor basis. Source-epoch recipients are derived from the epoch `memberKeyIds`, not from current membership. Group physical source deletion remains deliberately fail-closed until history-grant copies/references and receipt traces can be purged/reconciled safely; no partial delete path is accepted.

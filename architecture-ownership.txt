@@ -167,3 +167,9 @@ DISAPPEARING PURGE EXECUTOR AUTHORITY — 0.9.6.14
 - Read/evaluate cycle requires authoritative server time and an opaque repository basis. Commit must re-read/revalidate that basis with transaction/precondition semantics; stale basis fails closed.
 - The executor's local queue serializes one process only. Cross-instance/cloud correctness must come from the repository's transaction/precondition path.
 - Physical trace deletion, scheduler, local cache/Outbox convergence and attachments remain separate unfinished resources.
+
+DISAPPEARING FIRESTORE PURGE REPOSITORY — 0.9.6.15
+- `disappearing-purge-firestore-admin-adapter.mjs`: server-only physical Firestore repository boundary; receives Admin Firestore by injection and does not initialize/import a competing Firebase SDK owner.
+- Direct read/commit owns only authoritative server state + transactional source deletion under opaque update-time basis revalidation.
+- Group read owns only authoritative source/group/epoch/receipt state acquisition. Group physical delete remains fail-closed until subordinate receipt/history-grant trace cleanup is complete.
+- Eligibility remains exclusively in `disappearing-purge-policy.js`; orchestration remains exclusively in `disappearing-purge-executor.js`.

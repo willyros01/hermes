@@ -233,3 +233,6 @@ For a disappearing direct message, the shared source is final-purge eligible onl
 
 ## Direct serialized purge coordination — 0.9.6.14
 `disappearing-purge-executor.js` now consumes the direct purge eligibility decision under one serialized coordination path. The repository read supplies the authoritative direct source plus recipient UID and an opaque basis; an eligible commit must re-read/revalidate that basis server-side before physical deletion. Ineligible/unread/active-window sources do not reach the delete owner. This does not add client delete permission, a tombstone, a scheduled Function, or a deployed physical-delete implementation.
+
+## Direct Firestore purge repository — 0.9.6.15
+The server-only purge repository now derives direct recipient authority from the exact two-member conversation and binds conversation/message Firestore update times into the executor basis. An eligible direct purge transaction re-reads both snapshots and physically deletes the message only when that basis remains unchanged. Stale state fails closed; already-absent is idempotent. Browser delete permission, scheduler deployment, and local-cache convergence remain separate unfinished boundaries.

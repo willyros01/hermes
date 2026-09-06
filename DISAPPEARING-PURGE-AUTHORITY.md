@@ -105,3 +105,13 @@ Before disappearing-message controls or Group Info earlier-history sharing are c
 9. no client delete permission or per-message tombstone is introduced.
 
 Live Firebase and `htest` remain untouched until the normal controlled handoff/final-candidate gates.
+
+## Firestore repository foundation — 0.9.6.15
+
+`disappearing-purge-firestore-admin-adapter.mjs` is the first server-only repository implementation behind the serialized executor. It receives an Admin Firestore instance by dependency injection and never initializes Firebase itself.
+
+Direct state basis includes the direct conversation and source-message Firestore update times. Direct commit runs in a Firestore transaction, re-reads those documents, rejects any basis change, validates the direct membership/sender-recipient relationship again, and physically deletes only the source message. An already absent source is idempotent success.
+
+Group state basis includes the group document, source message, immutable source epoch document, and every current per-message receipt update time. The read returns source-epoch member UIDs, current entitlement member UIDs and receipt data to the existing pure eligibility owner. Group physical deletion is intentionally unavailable until history-grant copies/references and group receipts can be removed/reconciled without violating trace-free purge. The adapter therefore fails closed rather than deleting the group source prematurely.
+
+This repository foundation is not a scheduler or deployed Function and does not authorize client delete rules.
