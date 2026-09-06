@@ -72,6 +72,10 @@ jobs:
         run: npm run test:disappearing-local-storage
       - name: Disappearing restart reconnect recovery
         run: npm run test:disappearing-reconnect-recovery
+      - name: Disappearing multi-device convergence
+        run: npm run test:disappearing-multi-device-convergence
+      - name: Disappearing compose policy and UI wiring
+        run: npm run test:disappearing-compose-policy
       - name: Group history-grant purge barrier
         run: npm run test:group-history-grant-purge-barrier
       - name: Group history-copy purge barrier
