@@ -319,3 +319,14 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Repository rules now contain history-grant policy but LIVE Firebase rules were NOT deployed; do not deploy until the controlled Firebase handoff.
 - htest was not touched. App Check enforcement remains OFF. FCM remains deferred to 1.1.
 - Overall first complete rebuild estimate remains approximately 65%.
+
+
+2026-09-06 — 0.9.6.7 GROUP HISTORY PERSISTENCE VALIDATION GREEN
+- Materialized persistence/runtime foundation commit: `3c43c60834f95848b1f1cb5141b88e5efa2704d4`.
+- Review caught a test-only chronology fixture defect before final validation: valid group message test incorrectly used a fixed `createdAt` although rules require request time, and the history-grant matrix executed after removing its target member. The fixture was corrected to capture the authoritative server timestamp and restore target membership under disabled rules for the independent history-policy matrix.
+- A newly created branch-only one-shot workflow also produced zero-job/failure noise because GitHub had not registered it for same-push execution. This was workflow-registration noise, not a security/application test failure. The actual bounded materializer/repair ran through registered workflows and succeeded.
+- All temporary group-history workflows, scripts and trigger files were removed before the final clean validation.
+- Cleaned-branch Rebuild Baseline Security Gate run `34047570212` PASSED all substantive steps, including the expanded group E2EE/history-grant rule matrix and group history crypto/runtime integration gates.
+- 0.9.6.7 therefore has a repository-validated earlier-history persistence/runtime foundation. Do NOT mark the user-facing feature DONE: Group Info date selection, granted-history conversation projection, disappearing-content physical purge/anti-resurrection, and real-app/device proof remain unfinished.
+- Repository Firestore rules changed, but LIVE Firebase rules were NOT deployed. htest was NOT touched. App Check enforcement remains OFF; FCM remains deferred to 1.1.
+- Overall first complete rebuild estimate remains approximately 65%.

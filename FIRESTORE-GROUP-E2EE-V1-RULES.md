@@ -100,3 +100,6 @@ Membership-changing group updates now require `keyEpoch + 1` and a matching post
 - Other members/outsiders cannot read target grants. Current admins may inspect ciphertext metadata for administration but cannot decrypt a target envelope without that target private identity.
 - Update/delete remain closed except the single `building -> active` activation transition. Purge deletion authority is intentionally deferred to the disappearing-content owner rather than opened prematurely.
 - These repository rules are NOT automatically deployed to live Firebase.
+
+## 0.9.6.7 repository validation
+Cleaned-branch Rebuild Baseline Security Gate run `34047570212` passed the expanded group E2EE/history-grant rule matrix. The changed repository rules remain undeployed to live Firebase pending the controlled Firebase handoff.

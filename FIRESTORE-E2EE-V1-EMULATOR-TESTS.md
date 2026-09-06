@@ -108,3 +108,6 @@ Do not weaken unrelated rules to make this suite pass. Do not add a broad wildca
 
 ## Group history-grant emulator extension — 0.9.6.7
 `firestore-group-e2ee-v1.rules.test.mjs` now includes explicit history-grant assertions: non-admin create denied, outsider target denied, timestamp boundary underflow denied, building grant create allowed for admin, target reads denied while building, bounded copy write allowed, pre-activation copy read denied, activation allowed, target active grant/copy reads allowed, and outsider reads denied. The normal Rebuild Baseline Security Gate remains the repository validation authority.
+
+## 0.9.6.7 cleaned-branch group-history validation
+The expanded group E2EE/history-grant rules matrix was validated as part of Rebuild Baseline Security Gate run `34047570212`, which passed completely after the test fixture was corrected to use the authoritative server timestamp and an isolated restored-member setup for history-grant authorization. This confirms repository-rule behavior only; it does not deploy these rules to live Firebase.

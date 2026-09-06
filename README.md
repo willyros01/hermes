@@ -191,7 +191,7 @@ Cloud-backed Group Info administration now includes rename, add member, remove m
 
 The user approved administrator-selected starting point/date history sharing, including Beginning of conversation. `e2ee-account-group-history-crypto.js` now provides message-granular account-to-account re-encryption so the selected lower boundary cannot be bypassed by disclosure of an old epoch key.
 
-The usable feature is not yet complete. Firestore grant/copy schema, authorization rules, runtime/service/transport integration, Group Info date-selection controls, disappearing-content purge linkage, and emulator tests are still required before the control can be enabled.
+The persistence/runtime foundation is now repository-validated in 0.9.6.7: exact Firestore grant/copy schema, authorization rules, serialized runtime/service/transport integration, message-granular target re-encryption, and emulator coverage are present. The usable feature is still not complete because Group Info date-selection controls, granted-history conversation projection, disappearing-content physical purge/anti-resurrection linkage, and real-app/device validation remain required before the control can be enabled.
 
 ### 0.9.6.6 bounded wiring repair
 
@@ -266,4 +266,9 @@ Release transition: **0.9.6.6 -> 0.9.6.7**.
 - Group Info UI remains deliberately disabled for earlier-history sharing until date-selection UI, conversation merge/display, disappearing-content purge/anti-resurrection linkage, and final real-app validation are complete.
 - Repository rules changed in this release but **live Firebase rules were not deployed**. Live Firebase remains untouched pending the controlled Firebase handoff.
 - Overall first-rebuild estimate remains approximately 65% until the full history-sharing user path and purge linkage are integrated.
+### 0.9.6.7 validation and build-process note
+
+The first 0.9.6.7 materialization used a newly added one-shot workflow that GitHub did not register for execution on the same creation push, producing zero-job/failure noise; it was not an application or security-test failure. The materialization was then performed through a previously registered bounded runner. Repository inspection caught a rules-test chronology fixture defect before final validation: the valid group message had been given a fixed timestamp despite the rule requiring `createdAt == request.time`, and the history-grant matrix ran after its target member had been removed. The test fixture was repaired to use the authoritative server timestamp and an isolated restored-member setup for the separate grant matrix.
+
+After temporary materializer/repair files were removed, the cleaned-branch **Rebuild Baseline Security Gate run 34047570212 passed completely**, including Firestore E2EE rules, direct-message rules, expanded group E2EE/history-grant rules, group crypto/runtime/service/Outbox/conversation/controller/integration gates, recovery, App Check ownership, Functions scaffold, and runtime authority/transform gates. This validates the 0.9.6.7 repository foundation; it does not enable the unfinished Group Info history-sharing UI and does not deploy the changed rules to live Firebase.
 
