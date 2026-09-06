@@ -1784,8 +1784,9 @@ function renderSettings(){
   });
 
   const timeoutSelect=document.querySelector("#lockTimeoutSelect");
-  if(timeoutSelect)timeoutSelect.onchange=()=>{
-    try{setLockTimeoutMs(Number(timeoutSelect.value));setLocalSecurityMessage("Inactivity lock updated.");renderSettings();}
+  if(timeoutSelect)timeoutSelect.onchange=async()=>{
+    timeoutSelect.disabled=true;
+    try{await setLockTimeoutMs(Number(timeoutSelect.value));setLocalSecurityMessage("Inactivity lock updated.");renderSettings();}
     catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
   };
   const setPinBtn=document.querySelector("#setLocalPinBtn");
@@ -1817,7 +1818,11 @@ function renderSettings(){
     catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
   };
   const disableBiometricBtn=document.querySelector("#disableBiometricBtn");
-  if(disableBiometricBtn)disableBiometricBtn.onclick=()=>{disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");renderSettings();};
+  if(disableBiometricBtn)disableBiometricBtn.onclick=async()=>{
+    disableBiometricBtn.disabled=true;
+    try{await disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");renderSettings();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+  };
   const lockNowBtn=document.querySelector("#lockNowBtn");
   if(lockNowBtn)lockNowBtn.onclick=()=>lockLocalApp("manual");
 
