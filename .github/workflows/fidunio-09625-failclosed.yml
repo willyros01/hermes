@@ -1,0 +1,21 @@
+name: FIDUNIO 0.9.6.25 fail closed
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+    paths: ['.fidunio-09625-failclosed-trigger']
+permissions:
+  contents: write
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: fidunio-complete-rebuild}
+      - run: python .fidunio-09625-failclosed.py
+      - run: npm run test:disappearing-reconnect-recovery
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app.js
+          git diff --cached --quiet || git commit -m "Finish FIDUNIO 0.9.6.25 fail-closed replay barrier"
+          git push
