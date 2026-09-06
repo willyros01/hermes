@@ -202,3 +202,10 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - One transaction re-reads group/source/epoch/receipts/grants/copies, checks opaque basis, recomputes grant trace plan, then atomically deletes/reconciles subordinate traces and source.
 - 0.9.6.17-.19 concurrency barriers make browser grant/copy/receipt mutations basis-visible.
 - Local/offline convergence remains a separate UID-scoped resource and is not owned by this server transaction.
+
+## Local disappearing convergence — 0.9.6.21
+- Pure decision: `disappearing-local-convergence.js`.
+- Required evidence: valid disappearing metadata, explicit server-backed prior observation, authoritative server-backed absence.
+- Outputs: message IDs and matching Outbox IDs to physically remove.
+- IndexedDB/app-state mutation remains with the existing local persistence owner; wiring is the next slice.
+- Cache-only/offline snapshots and client clocks cannot authorize removal.

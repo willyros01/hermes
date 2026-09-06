@@ -208,3 +208,9 @@ GROUP PHYSICAL TRACE COMMIT — 0.9.6.20
 - Group commit revalidates one complete basis and mutates receipts, grant copies, grant metadata and source in one transaction.
 - Pure grant reconciliation remains owned by `disappearing-group-grant-trace-plan.js`; the repository only executes its revalidated plan.
 - Browser delete authority remains prohibited.
+
+LOCAL DISAPPEARING CONVERGENCE — 0.9.6.21
+- `disappearing-local-convergence.js`: pure local purge decision owner only.
+- `app.js` / existing UID-scoped local persistence path remains the IndexedDB mutation owner; the planner must not become a second storage owner.
+- Server-backed absence must be supplied by the synchronization path; cache-only absence is never authority.
+- No device clock or tombstone may substitute for cloud purge authority.

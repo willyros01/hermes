@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.20**
+- Current checkpoint version: **0.9.6.21**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -452,5 +452,18 @@ Release transition: **0.9.6.19 -> 0.9.6.20**.
 - The existing 0.9.6.17-.19 grant/copy/receipt barriers make permitted concurrent browser writes basis-visible; a concurrent change therefore aborts/retries rather than creating an orphan trace.
 - Browser/client delete authority remains closed. No tombstone or `expired:true` record was introduced.
 - This checkpoint does not add a scheduler and does not yet complete local IndexedDB/Outbox/object-URL/notification anti-resurrection convergence or attachment purge.
+- No live Firebase deployment occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.21 — local anti-resurrection decision foundation
+
+Release transition: **0.9.6.20 -> 0.9.6.21**.
+
+- Added `disappearing-local-convergence.js` as a pure decision owner for local disappearing-message convergence after authoritative cloud absence.
+- Only a message explicitly known to have been server-backed, carrying valid disappearing metadata, and absent from an authoritative server-backed snapshot can be planned for local cache/Outbox removal.
+- Cache-only absence, offline cold-start incompleteness, device time, and never-server-backed queued work cannot authorize local purge.
+- The planner emits physical-removal IDs only and creates no tombstone or `expired:true` record.
+- Added focused tests and the planner to the normal Rebuild Baseline Security Gate.
+- This checkpoint deliberately does not yet wire IndexedDB mutation into `app.js`; persistent cross-restart Outbox suppression, group projection metadata, object URLs, attachments and notification traces remain unfinished.
 - No live Firebase deployment occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
 - Overall first-rebuild estimate remains approximately 65%.

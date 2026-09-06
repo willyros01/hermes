@@ -161,3 +161,11 @@ After basis equality, the transaction recomputes the pure history-grant trace pl
 The 0.9.6.17 grant-creation barrier, 0.9.6.18 copy-creation barrier and 0.9.6.19 receipt revision barrier ensure every permitted concurrent browser addition/advance changes a basis-visible resource. Thus a trace cannot be appended behind the transaction's observed set without invalidating the transaction/precondition. Browser delete Rules remain closed.
 
 This makes the Firestore group physical trace commit repository-ready, not product-complete. Local cache/Outbox/object-URL/notification convergence, attachment transport traces, scheduler/discovery and real device validation remain separate required slices.
+
+## Local anti-resurrection decision foundation — 0.9.6.21
+
+`disappearing-local-convergence.js` is the pure local-convergence decision owner. It cannot open IndexedDB, mutate application state, call Firebase, delete cloud data, or use a client clock as deletion authority. It receives an already-classified authoritative remote ID set from the synchronization owner.
+
+A local row is eligible for physical local removal only when it has valid `disappearAfterSeconds`, was explicitly observed as server-backed, and is absent from the authoritative server-backed snapshot. Cache-only absence and never-server-backed queued work do not qualify. Matching encrypted Outbox IDs are returned in the plan so the one local persistence owner can remove them before retry. The planner emits no tombstone.
+
+This is intentionally only the decision foundation. The next slice must carry server-backed/disappearing metadata through direct and group projections, perform serialized IndexedDB history/Outbox removal through the existing UID-scoped owner before reconnect retry, and prove restart/offline convergence. Object URLs, attachment traces and notification payload caches remain separate resources.
