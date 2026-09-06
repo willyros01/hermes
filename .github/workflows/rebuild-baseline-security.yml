@@ -60,6 +60,8 @@ jobs:
         run: npm run test:disappearing-purge-policy
       - name: Disappearing serialized purge executor
         run: npm run test:disappearing-purge-executor
+      - name: Disappearing group grant trace plan
+        run: npm run test:disappearing-group-grant-trace-plan
       - name: Disappearing Firestore purge repository
         run: npm run test:disappearing-purge-firestore
       - name: Recovery server crypto
