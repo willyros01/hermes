@@ -1,43 +1,78 @@
-HERMES / FIDUNIO 0.8.1.9 — ORIENTATION-AWARE TABLET UI
+HERMES / FIDUNIO — CURRENT REBUILD SETUP AND RECOVERY GUIDE
 
 PURPOSE
-UI-only refinement so iPad portrait and landscape no longer use the exact same secondary-screen proportions.
+This is the single reusable root-level setup and recovery guide for the current FIDUNIO rebuild. It replaces the obsolete 0.8.1.9 tablet-only setup instructions.
 
-WHAT CHANGED
-- Portrait iPad/tablet:
-  keeps the centered single-column tablet layout.
-- Landscape iPad/tablet:
-  uses the available width more naturally.
-- Settings:
-  two-column card layout on wide landscape tablets.
-- First/unlock screen:
-  wider centered card in landscape.
-- New Message / New Group / Group Name:
-  broader centered workspace in landscape.
-- Messages/chat:
-  existing two-pane layout remains unchanged.
-- iPhone/narrow screens:
-  unchanged.
+CURRENT DEVELOPMENT BRANCH
+- Authoritative in-progress branch: fidunio-complete-rebuild
+- Product name: FIDUNIO
+- GitHub repository name: hermes
+- main contains a curated recovery-document mirror only; do not treat application code on main as the current rebuild until final deliberate promotion.
 
-NO SECURITY/BACKEND CHANGES
-No Firebase, Firestore Rules, E2EE, contact-key verification, device identity, Outbox, local history, or reconnect changes.
+MANDATORY START OF EVERY BUILD SESSION
+1. Read hermes-memory.txt completely.
+2. Read FIDUNIO-BUILD-CHECKLIST.md completely.
+3. Read the architecture/security documents required by hermes-memory.txt before consequential code changes.
+4. Select work marked NOT DONE or IN PROGRESS in FIDUNIO-BUILD-CHECKLIST.md.
+5. Work only on fidunio-complete-rebuild until the complete candidate passes the repository security/regression gate and is deliberately promoted.
+6. After substantive work, update FIDUNIO-BUILD-CHECKLIST.md with the actual state and evidence. Never mark a feature DONE merely because a file or partial implementation exists.
 
-GITHUB
-1. Upload ZIP contents to the ROOT of the hermes repository.
-2. Preserve firebase-config.js and config-firestore.js.
-3. Overwrite hermes-memory.txt and hermes-setup.txt.
-4. Confirm version.js shows 0.8.1.9.
-5. No Firestore Rules publication is required.
+AUTHORITATIVE ARCHITECTURE
+- ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
+- app.js is the application/UI controller. It coordinates specialized owners and must not own raw cryptography or direct Firebase SDK access.
+- firebase.js is the sole Firebase SDK/service owner and transports opaque encrypted records.
+- e2ee-account-identity-manager.js owns the durable account E2EE identity lifecycle.
+- Direct-message account E2EE uses e2ee:3 through its dedicated runtime/service.
+- Group account E2EE uses e2ee:4, group epochs, and dedicated group runtime/service modules.
+- Service worker is cache/transport only. Do not put application-semantic repair or encryption transforms in it.
+- Firestore is durable authority; local storage is rebuildable cache; encrypted Outbox is authoritative for pending sends.
+- Device IDs are not part of account-authoritative message-key derivation or decryptability.
 
-TEST
-1. iPad portrait:
-   - Unlock, Settings, New Message remain centered and balanced.
-2. Rotate to landscape:
-   - Unlock becomes wider and centered.
-   - Settings should use two columns on a wide iPad.
-   - New Message/New Group should use more of the screen width.
-3. Messages/chat:
-   - two-pane layout remains.
-4. iPhone:
-   - existing single-pane behavior remains.
-5. Send one short message each direction.
+ACCOUNT / RECOVERY RULES
+- Local device PIN is 4-12 digits and belongs only to local app security.
+- Account E2EE PIN is exactly six digits and belongs to account encryption/recovery. Never conflate the two.
+- Recovery requires exactly: verified Firebase account/UID + exact six-digit E2EE PIN + Google-hosted recovery authority.
+- Recovery failure must never silently create a replacement E2EE identity.
+- App Check enforcement remains OFF until legitimate-device validation of the complete candidate.
+- Firebase/Google console setup for the recovery architecture is complete; do not repeat it unless a later verified requirement explicitly demands a change.
+
+PROTECTED FILES / REPOSITORY RULES
+- Never overwrite, regenerate, or package firebase-config.js or config-firestore.js from the Hermes repository workflow.
+- version.js is the authoritative visible application version source.
+- Keep exactly one cumulative root hermes-memory.txt and one reusable root hermes-setup.txt. Do not create version-numbered memory/setup files.
+- Preserve the mandatory iPad/tablet/desktop two-pane layout.
+- Preserve iPhone single-pane behavior, prominent Back control, and wrap-around fixes.
+- Do not restore MutationObserver-based structural self-repair or competing lifecycle/Firebase owners.
+
+CURRENT PRODUCT STATUS
+Use FIDUNIO-BUILD-CHECKLIST.md as the authoritative completion ledger. At this guide's reconciliation, the complete-product estimate remains approximately 65%. Core account/authentication, account-authoritative E2EE, direct messaging, encrypted Outbox, group encrypted messaging, Settings lifecycle, and responsive foundations are substantially integrated. Major unfinished product areas include real group administration, complete attachment transport/UI/lifecycle, invitations, safe install integration, notifications, remaining placeholder/simulation removal, final full-product gate, and final deployment.
+
+GROUP REQUIREMENTS
+- Group messages use e2ee:4 and the fidunio-group-message-v1 format.
+- Membership changes rotate keyEpoch before subsequent messages.
+- New members receive only the new epoch by default; historyPolicy is fromJoin unless an explicit later history-grant feature is implemented.
+- Removed members receive no new epoch envelope.
+- Group receipts are per-account UID.
+- Group Outbox retry must revalidate the current epoch and re-encrypt when required.
+
+INVITATION / INSTALL LANDMINE
+A previous automatic invite/install/icon integration broke Settings and the two-pane UI. Do not adapt or restore that implementation. Invitation behavior and install-to-Home-Screen integration must be rebuilt under deterministic owners and integrated only after their logic is independently sound.
+
+HTEST POLICY
+- htest is not continuously synchronized with fidunio-complete-rebuild.
+- The current htest deployment may be stale/incomplete and must not be used to judge the current rebuild unless a deliberate candidate deployment has just been performed.
+- Do not deploy every intermediate commit to htest.
+- After the complete coherent candidate passes the full repository gate, deploy it atomically to htest for the user's final iPhone/iPad/two-device/offline/recovery testing.
+
+FINAL PRODUCT GATE
+Before declaring READY FOR TEST:
+1. Complete every applicable product item in FIDUNIO-BUILD-CHECKLIST.md.
+2. Remove simulations and unsupported placeholder controls or replace them with real supported behavior.
+3. Run the complete repository security/regression gate on the exact candidate commit.
+4. Reconcile hermes-memory.txt, this hermes-setup.txt, and FIDUNIO-BUILD-CHECKLIST.md.
+5. Deliberately deploy the exact complete candidate to htest.
+6. Verify the htest Pages deployment corresponds to that candidate.
+7. Only then ask the user to perform final device testing.
+
+RECOVERY FROM A NEW CHAT OR INTERRUPTION
+Start with CURRENT-REBUILD.md on main if necessary. Then read the mirrored hermes-memory.txt and FIDUNIO-BUILD-CHECKLIST.md to locate the active branch and current state. Return to fidunio-complete-rebuild for executable development. The curated main-branch documents are recovery/discovery copies, not evidence that unfinished application code has been promoted.
