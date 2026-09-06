@@ -252,3 +252,13 @@ V3 REPOSITORY CHECKPOINT — SECURITY GATE GREEN — SEPTEMBER 6, 2026
 - App Check enforcement remains OFF.
 - STOP BOUNDARY: do not merge/deploy this v3 transport to the live app until a legitimate signed-in account performs the first real Account Encryption enrollment/unlock/recovery proof on a test device. That proof necessarily needs the user's authenticated browser and chosen six-digit account E2EE PIN; it cannot be completed by repository CI without exposing credentials or fabricating a user identity.
 - Required first live proof: enroll -> READY -> record stable keyId -> sign out/reset runtime -> unlock same keyId -> controlled recovery after password-reset test -> same keyId/history -> two-device e2ee:3 send/read/offline-Outbox test. Only after that proof may the branch be merged/deployed and later App Check metrics evaluated for enforcement.
+
+RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
+- User explicitly set release scope on September 6, 2026.
+- First complete rebuild release does NOT require Firebase Cloud Messaging (FCM) to be active. FCM notification implementation/activation is deferred to FIDUNIO 1.1 and must not block the first rebuild release.
+- First complete rebuild release does NOT require Firebase App Check production enforcement to be active. App Check production activation/enforcement is deferred to FIDUNIO 1.2 and must not block the first rebuild release.
+- Existing centralized App Check client ownership/configuration may remain present with enforcement OFF.
+- FCM remains a documented roadmap requirement for 1.1: privacy-preserving notification/wake transport only, Firestore remains message authority, no plaintext message/attachment content in push payloads by default, multi-endpoint UID support, and non-FCM/Fire OS fallback.
+- App Check 1.2 must be enabled only after legitimate supported client/recovery flows are validated and rollout testing proves no legitimate-client lockout.
+- The first-rebuild completion percentage and final release gate exclude FCM 1.1 and App Check 1.2 work.
+
