@@ -209,3 +209,10 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Outputs: message IDs and matching Outbox IDs to physically remove.
 - IndexedDB/app-state mutation remains with the existing local persistence owner; wiring is the next slice.
 - Cache-only/offline snapshots and client clocks cannot authorize removal.
+
+## Local physical purge wiring — 0.9.6.22
+- Mutable owner: existing `app.js` local persistence path.
+- Resources: in-memory `state.messages`, encrypted `history`, encrypted `outbox`, encrypted persisted app-state.
+- Serialization: dedicated local purge promise queue; active Firebase UID must match requested UID.
+- Pure helper: `disappearing-local-storage-plan.js` computes exact removals only.
+- 0.9.6.23 remains responsible for invoking this only from authoritative direct/group server-backed convergence.

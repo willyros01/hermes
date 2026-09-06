@@ -214,3 +214,9 @@ LOCAL DISAPPEARING CONVERGENCE — 0.9.6.21
 - `app.js` / existing UID-scoped local persistence path remains the IndexedDB mutation owner; the planner must not become a second storage owner.
 - Server-backed absence must be supplied by the synchronization path; cache-only absence is never authority.
 - No device clock or tombstone may substitute for cloud purge authority.
+
+LOCAL PHYSICAL PURGE — 0.9.6.22
+- `app.js` remains sole live application-state / encrypted history / encrypted Outbox mutation owner and now owns physical disappearing-message removal for those resources.
+- `disappearing-local-storage-plan.js` is pure planning only; it cannot open IndexedDB or call Firebase.
+- local purge is serialized and active-UID guarded; no tombstone and no second storage owner.
+- authoritative absence classification remains with the 0.9.6.21 convergence policy and is wired in 0.9.6.23.
