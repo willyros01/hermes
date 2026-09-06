@@ -5,8 +5,6 @@ import {
   createRecoverySession,
   assertRecoveryAttemptAllowed,
   registerFailedPinAttempt,
-  registerFailedSupplementalAttempt,
-  authorizeRecoverySession,
   consumeRecoverySession,
   resetAccountRecoveryFailuresAfterSuccess
 } from "./e2ee-recovery-session-policy.mjs";
@@ -27,9 +25,9 @@ function requirePin(pin) {
   if (!/^\d{6}$/.test(v)) throw fail("INVALID_INPUT", "PIN must be exactly six digits.");
   return v;
 }
-function requireCaller({ authUid, appCheckValid }) {
+function requireCaller({ authUid, appCheckValid }, { requireAppCheck }) {
   const uid = requireText(authUid, "authUid");
-  if (appCheckValid !== true) throw fail("APP_CHECK_REQUIRED", "Recovery authorization failed.");
+  if (requireAppCheck && appCheckValid !== true) throw fail("APP_CHECK_REQUIRED", "Recovery authorization failed.");
   return uid;
 }
 function decodeRuk(value) {
@@ -51,17 +49,17 @@ export function createRecoveryCallableCore({
   masterSecretProvider,
   identityRepo,
   sessionRepo,
-  supplementalVerifier,
+  requireAppCheck = true,
   now = () => Date.now(),
   newSessionId = () => randomBytes(24).toString("base64url")
 } = {}) {
   if (typeof masterSecretProvider !== "function") throw new Error("masterSecretProvider is required.");
+  if (typeof requireAppCheck !== "boolean") throw new Error("requireAppCheck must be boolean.");
   requireRepo(identityRepo, ["readIdentity"], "identityRepo");
-  requireRepo(sessionRepo, ["createSession","readSession","readAccountFailureCount","saveFailedPinAttempt","saveFailedSupplementalAttempt","saveAuthorizedSession","consumeSession"], "sessionRepo");
-  if (typeof supplementalVerifier !== "function") throw new Error("supplementalVerifier is required.");
+  requireRepo(sessionRepo, ["createSession","readSession","readAccountFailureCount","saveFailedPinAttempt","consumeSession"], "sessionRepo");
 
   async function enrollRecoveryV1({ authUid, appCheckValid, data }) {
-    const uid = requireCaller({ authUid, appCheckValid });
+    const uid = requireCaller({ authUid, appCheckValid }, { requireAppCheck });
     const keyId = requireText(data?.keyId, "keyId");
     const pin = requirePin(data?.pin);
     const ruk = decodeRuk(data?.recoveryUnlockKey);
@@ -75,7 +73,7 @@ export function createRecoveryCallableCore({
   }
 
   async function startE2EERecoveryV1({ authUid, appCheckValid }) {
-    const uid = requireCaller({ authUid, appCheckValid });
+    const uid = requireCaller({ authUid, appCheckValid }, { requireAppCheck });
     const [identity, accountFailures] = await Promise.all([
       identityRepo.readIdentity(uid),
       sessionRepo.readAccountFailureCount(uid)
@@ -94,34 +92,23 @@ export function createRecoveryCallableCore({
   }
 
   async function completeE2EERecoveryV1({ authUid, appCheckValid, data }) {
-    const uid = requireCaller({ authUid, appCheckValid });
+    const uid = requireCaller({ authUid, appCheckValid }, { requireAppCheck });
     const sessionId = requireText(data?.sessionId, "sessionId");
     const pin = requirePin(data?.pin);
-    let [session, identity, accountFailures] = await Promise.all([
+    const [sessionRead, identity, accountFailures] = await Promise.all([
       sessionRepo.readSession(sessionId),
       identityRepo.readIdentity(uid),
       sessionRepo.readAccountFailureCount(uid)
     ]);
-    if (!session || !identity?.keyId || !Number.isInteger(identity?.revision)) throw fail("RECOVERY_DENIED", "Recovery authorization failed.");
-    session = assertRecoveryAttemptAllowed({
-      session,
+    if (!sessionRead || !identity?.keyId || !Number.isInteger(identity?.revision)) throw fail("RECOVERY_DENIED", "Recovery authorization failed.");
+    const session = assertRecoveryAttemptAllowed({
+      session: sessionRead,
       uid,
       keyId: identity.keyId,
       currentIdentityRevision: identity.revision,
       accountConsecutivePinFailures: accountFailures,
       nowMs: now()
     });
-
-    if (session.status === RECOVERY_SESSION_V1.statuses.PENDING) {
-      const supplementalOk = await supplementalVerifier({ uid, sessionId, proof: data?.supplementalProof });
-      if (!supplementalOk) {
-        const failed = registerFailedSupplementalAttempt({ session, nowMs: now() });
-        await sessionRepo.saveFailedSupplementalAttempt(failed);
-        throw fail("RECOVERY_DENIED", "Recovery authorization failed.");
-      }
-      session = authorizeRecoverySession({ session, nowMs: now() });
-      await sessionRepo.saveAuthorizedSession(session);
-    }
 
     let ruk;
     const masterSecret = await ownedMasterSecret(masterSecretProvider);
