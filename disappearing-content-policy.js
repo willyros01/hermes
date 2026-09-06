@@ -2,6 +2,9 @@
 // Server-backed receipt timestamps are inputs; device clocks are evaluation hints only.
 
 export const DISAPPEARING_POLICY_VERSION=1;
+export const DISAPPEARING_DURATION_FIELD="disappearAfterSeconds";
+export const DISAPPEARING_MIN_SECONDS=1;
+export const DISAPPEARING_MAX_SECONDS=31536000;
 
 function finiteMillis(value){
   if(value==null)return null;
@@ -12,8 +15,22 @@ function finiteMillis(value){
 
 export function normalizeDisappearDurationSeconds(value){
   const n=Number(value);
-  if(!Number.isInteger(n)||n<=0||n>31536000)throw new Error("Disappearing duration must be 1..31536000 seconds.");
+  if(!Number.isInteger(n)||n<DISAPPEARING_MIN_SECONDS||n>DISAPPEARING_MAX_SECONDS)throw new Error(`Disappearing duration must be ${DISAPPEARING_MIN_SECONDS}..${DISAPPEARING_MAX_SECONDS} seconds.`);
   return n;
+}
+
+// A user may leave disappearing content off or choose an exact duration.
+// UI presets/defaults are presentation only; each sent disappearing message must
+// persist its resolved immutable duration so later preference changes cannot
+// retroactively change an already-sent message's expiry window.
+export function normalizeDisappearSelection(value){
+  if(value==null||value===false||value==="off")return null;
+  return normalizeDisappearDurationSeconds(value);
+}
+
+export function disappearingMessageMetadata(value){
+  const duration=normalizeDisappearSelection(value);
+  return duration==null?Object.freeze({}):Object.freeze({[DISAPPEARING_DURATION_FIELD]:duration});
 }
 
 export function recipientExpiryAt(readAt,durationSeconds){
