@@ -40,6 +40,14 @@ jobs:
         run: npm run test:e2ee-account-group-runtime
       - name: Account group-message service ownership
         run: npm run test:e2ee-account-group-service
+      - name: Account group-message Outbox ownership
+        run: npm run test:e2ee-account-group-outbox
+      - name: Account group-message conversation ownership
+        run: npm run test:e2ee-account-group-conversation
+      - name: Account group-message app controller ownership
+        run: npm run test:e2ee-account-group-app-controller
+      - name: Account group-message bounded app integration
+        run: npm run test:e2ee-account-group-app-integration
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
