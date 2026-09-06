@@ -1,0 +1,2 @@
+export function projectAttachmentLifecycle(message={}){const state=String(message?.state||'sent').toLowerCase();if(!['queued','sending','sent','delivered','read','failed'].includes(state))throw new Error('Invalid message lifecycle.');return Object.freeze({messageId:String(message?.id||''),state,attachmentTransportState:null});}
+export const ATTACHMENT_LIFECYCLE_AUTHORITY_V1=Object.freeze({messageLevelReceiptsOnly:true,attachmentIndependentReceipt:false,transportCannotPromoteReceipt:true});
