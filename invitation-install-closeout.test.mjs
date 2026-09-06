@@ -3,6 +3,7 @@ const owner=fs.readFileSync('invitation-owner.js','utf8'),firebase=fs.readFileSy
 ok('one invitation mutation owner',owner.includes('let mutationTail=Promise.resolve()')&&owner.includes('serialize('));
 ok('auth uses invitation owner',auth.includes('./invitation-owner.js')&&!/validateInvitation|redeemFidunioInvitation/.test(auth.split('from "./firebase.js"')[0]));
 ok('settings uses invitation owner',settings.includes('./invitation-owner.js'));
+ok('invitation mutations have no competing Settings queue',!settings.includes('serializeSettingsMutation("create invitation"')&&!settings.includes('serializeSettingsMutation("revoke invitation"'));
 ok('Firebase remains repository not second SDK owner',!owner.includes('gstatic.com/firebasejs')&&firebase.includes('export async function createFidunioInvitation'));
 ok('firebase delegates lifecycle validation to pure policy',firebase.includes('assertInvitationUsable')&&firebase.includes('normalizeInvitationRole')&&firebase.includes('canIssueInvitation'));
 for(const anchor of ["status!=='pending'",'already been used','expired',"['owner','admin']","['user','admin']"])ok('invite policy guard '+anchor,policy.includes(anchor));
