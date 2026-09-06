@@ -1,0 +1,48 @@
+name: Reconcile README Release Ledger Once
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+permissions:
+  contents: write
+jobs:
+  update:
+    if: github.event.head_commit.message == 'Queue README release-ledger documentation reconciliation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fidunio-complete-rebuild
+          fetch-depth: 0
+      - name: Reconcile durable docs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('CODING-GUIDELINES.md'); s=p.read_text()
+          block='''\n\n## README / release-number ledger rule — 2026-09-06\n- `version.js` remains the sole runtime release-number authority.\n- Whenever a release number is incremented, reset, rolled back, or reassigned, `README.md` MUST be updated in the same work session.\n- The README entry must preserve the old version, new version, reason, significant implementation changes, rollback/rejection status where applicable, validation evidence, and important follow-on constraints.\n- The same version-change session must reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md`, and every additional affected architecture/security/runtime/UI/setup/bug document.\n- Do not erase rejected builds or rollback history from README merely because they are no longer current. Historical failure/rollback information is part of the project safety record.\n- Keep exactly one cumulative root `README.md`; do not create version-numbered README replacements.\n'''
+          if '## README / release-number ledger rule — 2026-09-06' not in s: s+=block
+          p.write_text(s)
+
+          p=Path('FIDUNIO-BUILD-CHECKLIST.md'); s=p.read_text()
+          rule='8. Every release-number increment/reset/rollback must update `README.md` in the same work session with the significant build/rollback history and validation evidence; `version.js` remains the runtime version authority.'
+          anchor='7. Completion percentage is based on the complete product acceptance criteria for the current release target, not file count. Report a new percentage to the user only after a meaningful milestone is completed.'
+          if rule not in s: s=s.replace(anchor,anchor+'\n'+rule)
+          log='- 2026-09-06 — README modernized from the stale 0.8.1.9-era prototype narrative into the current cumulative build/rebuild ledger, including protected checkpoints, rejected 0.9.4.12-.15 rollback history, recovery/App Check ownership reversals, current 0.9.6.6 rebuild state, validation runs, and the mandatory future rule that every version increment/reset/rollback updates README in the same work session.'
+          if log not in s: s=s.rstrip()+'\n'+log+'\n'
+          p.write_text(s)
+
+          p=Path('hermes-setup.txt'); s=p.read_text()
+          block='''\n\nREADME / VERSION RELEASE PROCEDURE\n- `version.js` is the only runtime version-number authority.\n- Whenever the version is incremented, reset, rolled back or reassigned, update root `README.md` in the same work session.\n- README must record old -> new version, reason, significant implementation/build changes, rollback/rejection status, validation evidence and important next constraints.\n- Reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md` and every other affected durable document at the same boundary.\n- Keep one cumulative README; do not create versioned README copies.\n'''
+          if 'README / VERSION RELEASE PROCEDURE' not in s: s+=block
+          p.write_text(s)
+
+          p=Path('hermes-memory.txt'); s=p.read_text()
+          block='''\n\n2026-09-06 — README / RELEASE-HISTORY LEDGER RULE\n- User requested README become the cumulative human-readable build history, including significant milestones, protected checkpoints, rejected builds and rollback/reset history.\n- README was modernized at 0.9.6.6 to cover the early prototype through the current complete rebuild, including the rejected 0.9.4.12-.15 invite/install line and return to the stable 0.9.4.10/0.9.4.11 foundation, three-component recovery correction, duplicate App Check/Firebase owner correction, service-worker semantic-transform retirement, current group/history work, and major green security-gate evidence.\n- Durable rule: whenever `version.js` is incremented, reset, rolled back or reassigned, README MUST be updated in the same work session with old/new version, reason, significant changes, rollback/rejection status, validation evidence and follow-on constraints.\n- The same version-change boundary must reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md` and all additional affected docs.\n- Keep one cumulative root README; do not create version-numbered README files.\n- This documentation-only change does not alter release number 0.9.6.6 or the approximately 65% first-rebuild completion estimate.\n'''
+          if '2026-09-06 — README / RELEASE-HISTORY LEDGER RULE' not in s: s+=block
+          p.write_text(s)
+          PY
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add CODING-GUIDELINES.md FIDUNIO-BUILD-CHECKLIST.md hermes-setup.txt hermes-memory.txt
+          git commit -m "Reconcile README release-history policy"
+          git push origin HEAD:fidunio-complete-rebuild
