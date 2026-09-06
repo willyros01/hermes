@@ -1,4 +1,7 @@
-import {webcrypto} from "node:crypto";globalThis.crypto=webcrypto;if(!globalThis.btoa)globalThis.btoa=s=>Buffer.from(s,"binary").toString("base64");if(!globalThis.atob)globalThis.atob=s=>Buffer.from(s,"base64").toString("binary");
+import {webcrypto} from "node:crypto";
+if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+if(!globalThis.btoa)globalThis.btoa=s=>Buffer.from(s,"binary").toString("base64");
+if(!globalThis.atob)globalThis.atob=s=>Buffer.from(s,"base64").toString("binary");
 import {createAccountGroupE2EERuntime} from "./e2ee-account-group-runtime.js";
 async function id(uid,keyId){const p=await crypto.subtle.generateKey({name:"ECDH",namedCurve:"P-256"},true,["deriveBits"]),j=await crypto.subtle.exportKey("jwk",p.publicKey);return{uid,keyId,privateKey:p.privateKey,publicJwk:{kty:j.kty,crv:j.crv,x:j.x,y:j.y}};}
 function ok(v,m){if(!v)throw new Error(m);}const A=await id("A","runtime-owner-key-0001"),B=await id("B","runtime-member-key-0001");let authority={memberUids:[A.uid,B.uid],adminUids:[A.uid],keyEpoch:0},epochs=new Map(),sent=null;const pubs={A:{keyId:A.keyId,publicJwk:A.publicJwk},B:{keyId:B.keyId,publicJwk:B.publicJwk}};
