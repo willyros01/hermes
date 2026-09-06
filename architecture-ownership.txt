@@ -227,3 +227,11 @@ LOCAL PHYSICAL PURGE — 0.9.6.22
 - `e2ee-account-group-conversation.js`: remains group read-side owner and propagates snapshot metadata plus immutable disappearing duration to its bounded app callback.
 - `app.js`: remains sole local persistence mutation owner; it invokes the existing serialized active-UID physical purge before committing authoritative direct/group projections.
 - Service worker, client wall clock and reconnect timers have no disappearing-content semantic authority.
+
+0.9.6.25 RECONNECT / REPLAY OWNERSHIP
+- `disappearing-reconnect-recovery.js`: pure restart/reconnect Outbox decision owner only. It has no Firebase SDK, IndexedDB, clock authority, crypto mutation, or physical delete capability.
+- `firebase.js`: sole client Firebase owner for explicit direct/group server source-ID probes used by reconnect reconciliation. These probes use server reads and do not mutate Firebase.
+- `app.js`: sole serialized reconnect orchestration and local mutation owner; it invokes server probes, applies the pure plan, physically removes local/Outbox traces through the established local owner, and gates replay.
+- The service worker remains transport/cache only and owns no disappearing/replay semantics.
+- The unresolved post-commit/pre-observation crash gap must not be solved by adding a second Firebase/local-storage owner, a per-message tombstone, client-clock authority, or scattered delete paths.
+

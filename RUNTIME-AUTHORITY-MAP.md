@@ -219,3 +219,11 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 
 ### 0.9.6.23 projection convergence authority
 Server/cache projection decisions are centralized in `disappearing-authoritative-projection.js`. Firestore `fromCache` metadata is carried from the central Firebase/group subscription owners to the app boundary. Cache projections merge without purge; authoritative projections mark remote rows server-backed and may request exact local physical convergence through app.js. The local mutation itself remains serialized under the existing app/IndexedDB owner. Restart/reconnect pre-flush ordering is intentionally not claimed complete until 0.9.6.24.
+
+0.9.6.25 RECONNECT / REPLAY OWNERSHIP
+- `disappearing-reconnect-recovery.js`: pure restart/reconnect Outbox decision owner only. It has no Firebase SDK, IndexedDB, clock authority, crypto mutation, or physical delete capability.
+- `firebase.js`: sole client Firebase owner for explicit direct/group server source-ID probes used by reconnect reconciliation. These probes use server reads and do not mutate Firebase.
+- `app.js`: sole serialized reconnect orchestration and local mutation owner; it invokes server probes, applies the pure plan, physically removes local/Outbox traces through the established local owner, and gates replay.
+- The service worker remains transport/cache only and owns no disappearing/replay semantics.
+- The unresolved post-commit/pre-observation crash gap must not be solved by adding a second Firebase/local-storage owner, a per-message tombstone, client-clock authority, or scattered delete paths.
+
