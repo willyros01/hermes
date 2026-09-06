@@ -38,6 +38,7 @@ import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupF
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
 import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
+import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisappearSelection } from "./disappearing-compose-policy.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -58,7 +59,7 @@ let state = {
   quickPhrases:["Yes","No","OK","On my way","Running late","Call me"],
   conversations:[],
   messages:{},
-  settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto"},
+  settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto",disappearingTextSeconds:null},
   peerTrust:{}
 };
 
@@ -1193,6 +1194,7 @@ function renderChat(){
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
         <div class="compose-line">
           <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
           <textarea id="messageBox" rows="1" placeholder="Type a message…"></textarea>
@@ -1237,6 +1239,8 @@ function renderChat(){
     alert("Conversation details remain a UX placeholder.");
   };
   document.querySelector("#moreBtn").onclick=()=>{state.toolsOpen=!state.toolsOpen;render()};
+  const disappearSelect=document.querySelector("#disappearSelect");
+  if(disappearSelect)disappearSelect.onchange=()=>{state.settings.disappearingTextSeconds=disappearSelect.value==="off"?null:Number(disappearSelect.value);persistSoon();render();};
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
@@ -1274,14 +1278,14 @@ async function sendCurrent(){
 
   if(cloud && c?.peerUid && !firebaseUser){throw new Error("Sign in before sending an encrypted message.");}
 
-  const m={
+  const m=stampOutgoingDisappearSelection({
     id:crypto.randomUUID(),
     mine:true,
     text,
     time:nowTime(),
     state:(state.online && (!cloud || firebaseUser))?"sending":"queued",
     cloud
-  };
+  },state.settings.disappearingTextSeconds);
 
   if(!state.messages[conversationId]) state.messages[conversationId]=[];
   state.messages[conversationId].push(m);
@@ -1291,7 +1295,7 @@ async function sendCurrent(){
   // The Outbox is authoritative. Group plaintext enters only the encrypted local Outbox.
   if(cloudGroup){
     m.cloud=true;m.group=true;
-    await queueGroupTextForApp({groupId:conversationId,messageId:m.id,text,time:m.time,persistEncryptedOutbox:persistGroupOutboxPayload});
+    await queueGroupTextForApp({groupId:conversationId,messageId:m.id,text,time:m.time,disappearAfterSeconds:m.disappearAfterSeconds??null,persistEncryptedOutbox:persistGroupOutboxPayload});
   }else await queueOutboxMessage(conversationId,m);
   await persistState();
   render();
