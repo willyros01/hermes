@@ -25,6 +25,7 @@ jobs:
         run: npm run test:e2ee-account-recovery-client
       - name: Commit materialized result
         run: |
+          git checkout HEAD -- .github/workflows/rebuild-baseline-security.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
