@@ -1,8 +1,7 @@
-// FIDUNIO disappearing-content purge Firestore repository foundation.
+// FIDUNIO disappearing-content purge Firestore repository.
 // SERVER ONLY. Browser/app code must never import or instantiate this adapter.
 // Firebase Admin Firestore is injected so this module does not become a second
-// SDK initializer. Physical group purge intentionally fails closed until the
-// history-grant trace delete/reconciliation path is materialized.
+// SDK initializer. Every physical delete is owned by this repository path.
 
 import {planGroupHistoryGrantSourcePurge} from "./disappearing-group-grant-trace-plan.js";
 
@@ -53,6 +52,7 @@ function epochMembers(epoch){
   if(!keys.length)throw fail("PURGE_SOURCE_INVALID","Source group epoch member authority is unavailable.");
   return keys.sort();
 }
+function grantRows(entries){return entries.map(entry=>({grant:{...entry.grantSnap.data()},copies:(entry.copySnaps||[]).map(s=>({...s.data()}))}));}
 
 export function createDisappearingPurgeFirestoreAdminRepository({db}={}){
   if(!db||typeof db.doc!=="function"||typeof db.runTransaction!=="function")throw new Error("Admin Firestore database is required.");
@@ -88,13 +88,14 @@ export function createDisappearingPurgeFirestoreAdminRepository({db}={}){
     });
   }
 
-  async function readGroupGrantEntries(gid){
-    const grantsQuery=await groupHistoryGrantsRef(gid).get();
+  async function readGroupGrantEntries(gid,getter=query=>query.get()){
+    const grantsQuery=await getter(groupHistoryGrantsRef(gid));
     const entries=[];
     for(const grantSnap of grantsQuery?.docs||[]){
-      const copiesQuery=await grantSnap.ref.collection("messages").get();
+      const copiesQuery=await getter(grantSnap.ref.collection("messages"));
       entries.push({grantSnap,copySnaps:copiesQuery?.docs||[]});
     }
+    entries.sort((a,b)=>a.grantSnap.ref.path.localeCompare(b.grantSnap.ref.path));
     return entries;
   }
 
@@ -111,28 +112,56 @@ export function createDisappearingPurgeFirestoreAdminRepository({db}={}){
     const epoch=dataOf(eSnap);
     if(!epoch)throw fail("PURGE_SOURCE_INVALID","Source group epoch authority is unavailable.");
     const receipts=(rQuery?.docs||[]).map(s=>({...s.data()}));
-    const grantRows=grantEntries.map(entry=>({
-      grant:{...entry.grantSnap.data()},
-      copies:(entry.copySnaps||[]).map(s=>({...s.data()}))
-    }));
-    const grantTracePlan=planGroupHistoryGrantSourcePurge({groupId:gid,sourceMessageId:mid,grants:grantRows});
-    return Object.freeze({
-      basis:groupBasis(gSnap,mSnap,eSnap,rQuery?.docs||[],grantEntries),
-      message:{...message},
-      epochMemberUids:epochMembers(epoch),
-      currentMemberUids:array(group.memberUids),
-      receipts,
-      grantTracePlan
-    });
+    const grantTracePlan=planGroupHistoryGrantSourcePurge({groupId:gid,sourceMessageId:mid,grants:grantRows(grantEntries)});
+    return Object.freeze({basis:groupBasis(gSnap,mSnap,eSnap,rQuery?.docs||[],grantEntries),message:{...message},epochMemberUids:epochMembers(epoch),currentMemberUids:array(group.memberUids),receipts,grantTracePlan});
   }
 
   async function commitGroupPurge({groupId,messageId,expectedBasis}){
-    text(groupId,"Group ID");text(messageId,"Message ID");
-    if(!String(expectedBasis??""))throw fail("INVALID_INPUT","Expected purge basis is required.");
-    // Do not delete the shared source until grant-copy/receipt trace cleanup and
-    // final transaction semantics are implemented together. Partial cloud purge
-    // would violate the trace-free requirement.
-    throw fail("GROUP_PURGE_TRACE_DELETE_NOT_READY","Group disappearing purge trace deletion is not yet materialized.");
+    const gid=text(groupId,"Group ID"),mid=text(messageId,"Message ID"),expected=String(expectedBasis??"");
+    if(!expected)throw fail("INVALID_INPUT","Expected purge basis is required.");
+    const gRef=groupRef(gid),mRef=groupMessageRef(gid,mid),rRef=groupReceiptsRef(gid,mid);
+    return db.runTransaction(async tx=>{
+      // Firestore transactions require all reads before writes. Re-read every
+      // basis-visible authority and every subordinate trace before planning any delete.
+      const [gSnap,mSnap]=await Promise.all([tx.get(gRef),tx.get(mRef)]);
+      if(!mSnap?.exists)return{purged:true,alreadyAbsent:true,traceCount:0};
+      if(!gSnap?.exists)throw fail("PURGE_SOURCE_INVALID","Group authority disappeared before purge.");
+      const message=mSnap.data(),keyEpoch=Number(message?.keyEpoch);
+      if(!Number.isInteger(keyEpoch)||keyEpoch<1)throw fail("PURGE_SOURCE_INVALID","Group purge source epoch is invalid.");
+      const eRef=groupEpochRef(gid,keyEpoch);
+      const [eSnap,rQuery,grantEntries]=await Promise.all([
+        tx.get(eRef),
+        tx.get(rRef),
+        readGroupGrantEntries(gid,query=>tx.get(query))
+      ]);
+      if(!eSnap?.exists)throw fail("PURGE_SOURCE_INVALID","Source group epoch authority disappeared before purge.");
+      epochMembers(eSnap.data());
+      const actualBasis=groupBasis(gSnap,mSnap,eSnap,rQuery?.docs||[],grantEntries);
+      sameBasis(actualBasis,expected);
+      const plan=planGroupHistoryGrantSourcePurge({groupId:gid,sourceMessageId:mid,grants:grantRows(grantEntries)});
+      const entriesByGrant=new Map(grantEntries.map(entry=>[String(entry.grantSnap.data()?.grantId||""),entry]));
+      let traceCount=0;
+
+      for(const receiptSnap of rQuery?.docs||[]){tx.delete(receiptSnap.ref);traceCount++;}
+      for(const copy of plan.copiesToDelete){
+        const entry=entriesByGrant.get(copy.grantId);
+        const copySnap=entry?.copySnaps?.find(s=>String(s.data()?.sourceMessageId||"")===copy.sourceMessageId);
+        if(!copySnap)throw fail("GRANT_TRACE_INCONSISTENT","Planned history copy disappeared before purge commit.");
+        tx.delete(copySnap.ref);traceCount++;
+      }
+      for(const grantId of plan.grantsToDelete){
+        const entry=entriesByGrant.get(grantId);
+        if(!entry?.grantSnap?.exists)throw fail("GRANT_TRACE_INCONSISTENT","Planned history grant disappeared before purge commit.");
+        tx.delete(entry.grantSnap.ref);traceCount++;
+      }
+      for(const update of plan.grantsToUpdate){
+        const entry=entriesByGrant.get(update.grantId);
+        if(!entry?.grantSnap?.exists)throw fail("GRANT_TRACE_INCONSISTENT","Planned history grant disappeared before purge commit.");
+        tx.update(entry.grantSnap.ref,{totalCopies:update.totalCopies,firstSharedMessageId:update.firstSharedMessageId,firstSharedAt:update.firstSharedAt});traceCount++;
+      }
+      tx.delete(mRef);traceCount++;
+      return{purged:true,alreadyAbsent:false,traceCount};
+    });
   }
 
   return Object.freeze({readDirectPurgeState,commitDirectPurge,readGroupPurgeState,commitGroupPurge});
@@ -147,5 +176,5 @@ export const DISAPPEARING_PURGE_FIRESTORE_V1=Object.freeze({
   groupHistoryGrantPath:"groups/{groupId}/historyGrants/{grantId}",
   groupHistoryGrantCopyPath:"groups/{groupId}/historyGrants/{grantId}/messages/{sourceMessageId}",
   clientDeleteRulesRequired:false,
-  groupPhysicalDeleteReady:false
+  groupPhysicalDeleteReady:true
 });
