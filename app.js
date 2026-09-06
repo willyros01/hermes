@@ -33,6 +33,7 @@ import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp } from "./e2ee-account-group-app-integration.js";
+import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -64,6 +65,7 @@ let dbPromise = null;
 let localKeyPromise = null;
 let hydrated = false;
 let persistTimer = null;
+let localPurgeTail=Promise.resolve();
 let firebaseReady = false;
 let firebaseError = "";
 let firebaseUser = null;
@@ -286,7 +288,9 @@ function ensureQueuedMessageFromPayload(payload){
       text:payload.text,
       time:payload.time,
       state:"queued",
-      cloud:payload.cloud
+      cloud:payload.cloud,
+      disappearAfterSeconds:payload.disappearAfterSeconds??null,
+      serverBacked:false
     };
     state.messages[conversationId].push(m);
   }else if(!["sent","delivered","read"].includes(m.state)){
@@ -313,6 +317,37 @@ async function restoreOutboxIntoState(){
   }catch(err){
     console.warn("Could not restore Outbox",err);
   }
+}
+
+function serializeLocalPurge(work){
+  const run=localPurgeTail.then(work,work);
+  localPurgeTail=run.catch(()=>{});
+  return run;
+}
+async function purgeLocalDisappearingMessageTraces(uid,messageIds){
+  const targetUid=String(uid||"").trim();
+  const ids=[...new Set((messageIds||[]).map(x=>String(x||"").trim()).filter(Boolean))];
+  if(!targetUid||!firebaseUser||String(firebaseUser.uid)!==targetUid)throw new Error("Active authenticated UID is required for local purge.");
+  if(!ids.length)return{purgedMessageIds:[],outboxDeleted:0,historyUpdated:0};
+  return serializeLocalPurge(async()=>{
+    clearTimeout(persistTimer);persistTimer=null;
+    const db=await openDb();
+    const historyValues=await idbRequest(db.transaction("history","readonly").objectStore("history").getAll());
+    const decoded=[];
+    for(const value of historyValues){
+      try{decoded.push(await decryptLocal(value));}catch(err){throw new Error("Local history decrypt failed during purge: "+String(err?.message||err));}
+    }
+    const plan=planPhysicalLocalMessagePurge({messagesByConversation:state.messages,historyRecords:decoded,outboxRecords:await getOutboxRecords(),purgeMessageIds:ids});
+    state.messages=plan.messagesByConversation;
+    const historyWrites=[];
+    for(const record of plan.historyRecords){historyWrites.push({key:String(record.conversationId),value:await encryptLocal(record)});}
+    const tx=db.transaction(["history","outbox"],"readwrite"),history=tx.objectStore("history"),outbox=tx.objectStore("outbox");
+    for(const row of historyWrites)history.put(row.value,row.key);
+    for(const id of plan.outboxDeleteIds)outbox.delete(id);
+    await txDone(tx);
+    await persistState();
+    return{purgedMessageIds:ids,outboxDeleted:plan.outboxDeleteIds.length,historyUpdated:historyWrites.length};
+  });
 }
 
 async function cacheCloudHistory(conversationId,messages){
