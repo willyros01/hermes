@@ -38,6 +38,8 @@ jobs:
         run: npm run test:e2ee-account-group-crypto
       - name: Account group-message runtime
         run: npm run test:e2ee-account-group-runtime
+      - name: Account group-message service ownership
+        run: npm run test:e2ee-account-group-service
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
