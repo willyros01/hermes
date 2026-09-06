@@ -66,6 +66,8 @@ jobs:
         run: npm run test:disappearing-purge-firestore
       - name: Disappearing local convergence policy
         run: npm run test:disappearing-local-convergence
+      - name: Disappearing local physical purge wiring
+        run: npm run test:disappearing-local-storage
       - name: Group history-grant purge barrier
         run: npm run test:group-history-grant-purge-barrier
       - name: Group history-copy purge barrier
