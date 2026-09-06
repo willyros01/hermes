@@ -269,3 +269,9 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Firestore Rules require a matching post-state epoch and exact epoch map keys for every membership change; owner removal/leave is denied.
 - Default `historyPolicy: fromJoin` remains authoritative. Explicit earlier-history grants/admin-role transfer remain unfinished and must not be simulated.
 - Group Info now reads admin/history metadata from cloud snapshots. Search/shared-files/security controls remain separate placeholders and are not part of this completed administration slice.
+
+2026-09-06 — GROUP ADMINISTRATION REPOSITORY VALIDATION GREEN
+- Materialized group administration commit: `c62db46bc8646f68beb54fd5038ae0d38bac1170`.
+- Focused materializer validation passed group runtime, group service/controller/integration ownership, Firestore group E2EE rules, and runtime authority tests.
+- Full Rebuild Baseline Security Gate run `34045259037` then passed every substantive step on the cleaned authoritative branch after temporary group-administration workflows were removed.
+- Group rename/add/remove/non-owner leave are therefore repository-validated DONE. Explicit earlier-history grants/admin-role controls remain IN PROGRESS; no `htest` deployment was performed.

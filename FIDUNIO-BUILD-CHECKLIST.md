@@ -52,7 +52,7 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 | Group per-account receipts | DONE | Membership-aware receipt aggregation implemented. |
 | Group offline queue/epoch revalidation | DONE | Epoch-aware Outbox coordinator integrated. |
 | Group create | DONE | Real cloud group creation UI exists. |
-| Group rename | DONE | Cloud-authoritative admin rename through serialized group owner; repository group tests/gate required. |
+| Group rename | DONE | Cloud-authoritative admin rename through serialized group owner; group tests and full Rebuild Baseline Security Gate green. |
 | Group add member | DONE | Real cloud users; membership/member doc/new E2EE epoch committed atomically. |
 | Group remove member | DONE | Admin removal atomically rotates epoch; removed member is excluded from replacement envelopes. |
 | Leave group | DONE | Non-owner self-leave is atomic with epoch replacement; immutable owner intentionally cannot leave. |
@@ -172,3 +172,4 @@ Approximately **65%** of the first complete rebuild release acceptance criteria.
 - 2026-09-06 — App Check production activation/enforcement explicitly deferred to FIDUNIO 1.2; client ownership/config may remain present with enforcement OFF and does not block the first complete rebuild release.
 - 2026-09-06 — Reconciled hermes-setup.txt from obsolete 0.8.1.9 instructions to the current complete-rebuild architecture and recovery procedure.
 - 2026-09-06 — Real group administration materialized: cloud-backed rename/add/remove/non-owner leave; membership changes atomically rotate E2EE epoch and exclude departed members. Firestore/runtime tests extended. Explicit earlier-history/admin-role controls remain IN PROGRESS.
+- 2026-09-06 — Group administration validation checkpoint: materializer group runtime/app/rules/authority tests passed, then full Rebuild Baseline Security Gate run `34045259037` passed on the cleaned authoritative branch. Temporary group-administration materializer/trigger workflows were removed.
