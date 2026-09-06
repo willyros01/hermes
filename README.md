@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.9**
+- Current checkpoint version: **0.9.6.10**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -205,7 +205,7 @@ Approximately **65%** of the first complete rebuild acceptance criteria are comp
 
 Major completed areas include deterministic runtime ownership, centralized Firebase ownership, account E2EE identity/recovery foundation, direct-message v3 E2EE, encrypted Outbox, group E2EE send/receive/receipts/offline retry, group creation, and real group rename/add/remove/leave administration.
 
-Major unfinished first-release areas include explicit earlier-history grant persistence/UI/purge integration, disappearing-content physical purge, complete attachment send/receive/lifecycle, invitation and safe install integration rebuilt from scratch, remaining Chat/Group Info/tool placeholders and simulated state removal, final complete-repository gate, atomic `htest` deployment, and final real-device validation.
+Major unfinished first-release areas include explicit earlier-history grant UI/purge integration, disappearing-content physical purge and anti-resurrection, complete attachment send/receive/lifecycle, invitation and safe install integration rebuilt from scratch, remaining Chat/Group Info/tool placeholders and simulated state removal, final complete-repository gate, atomic `htest` deployment, and final real-device validation.
 
 ## Disappearing-content requirement
 
@@ -266,6 +266,7 @@ Release transition: **0.9.6.6 -> 0.9.6.7**.
 - Group Info UI remains deliberately disabled for earlier-history sharing until date-selection UI, conversation merge/display, disappearing-content purge/anti-resurrection linkage, and final real-app validation are complete.
 - Repository rules changed in this release but **live Firebase rules were not deployed**. Live Firebase remains untouched pending the controlled Firebase handoff.
 - Overall first-rebuild estimate remains approximately 65% until the full history-sharing user path and purge linkage are integrated.
+
 ### 0.9.6.7 validation and build-process note
 
 The first 0.9.6.7 materialization used a newly added one-shot workflow that GitHub did not register for execution on the same creation push, producing zero-job/failure noise; it was not an application or security-test failure. The materialization was then performed through a previously registered bounded runner. Repository inspection caught a rules-test chronology fixture defect before final validation: the valid group message had been given a fixed timestamp despite the rule requiring `createdAt == request.time`, and the history-grant matrix ran after its target member had been removed. The test fixture was repaired to use the authoritative server timestamp and an isolated restored-member setup for the separate grant matrix.
@@ -298,4 +299,18 @@ Release transition: **0.9.6.8 -> 0.9.6.9**.
 - No live Firebase deployment, no `htest` deployment, no FCM activation and no App Check enforcement change. Overall first-rebuild estimate remains approximately 65%.
 
 ### Disappearing-content timer semantics — September 6, 2026
-The product decision for disappearing messages is now fixed-time-after-read for both direct and group messaging. Each recipient account starts its own timer from its first authoritative Read event. In a group, one member reading does not start other members' timers. Recipient-local visibility/cache must expire independently, while the shared Firestore source can be physically deleted only after all applicable recipient read windows have elapsed or those recipients are no longer entitled to the message. Final purge remains trace-free and includes grant copies/references and attachments. This is a semantics decision, not a completed implementation.
+
+The product decision for disappearing messages is fixed-time-after-read for both direct and group messaging. Each recipient account starts its own timer from its first authoritative Read event. In a group, one member reading does not start other members' timers. Recipient-local visibility/cache must expire independently, while the shared Firestore source can be physically deleted only after all applicable recipient read windows have elapsed or those recipients are no longer entitled to the message. Final purge remains trace-free and includes grant copies/references and attachments.
+
+### 0.9.6.10 — immutable first-Read authority foundation
+
+Release transition: **0.9.6.9 -> 0.9.6.10**.
+
+- Added `disappearing-content-policy.js` as the pure decision owner for recipient expiry and group shared-source purge eligibility. It owns no Firebase, DOM, cryptography, storage, timer, or deletion path.
+- Direct-message receipt rules now allow only the recipient to advance `sent -> delivered` or the first `sent/delivered -> read`. The first Read requires a server-backed `readAt == request.time`; repeat Read updates cannot move that timestamp.
+- Group receipt records now use a state-sensitive exact schema: Delivered has `uid,state,updatedAt`; Read additionally has immutable server-backed `readAt`. A group member can mutate only that member's own receipt.
+- `firebase.js`, still the sole Firebase SDK/service owner, now serializes direct and group receipt mutations with Firestore transactions. Repeat Read is a no-op and `markCloudConversationRead()` delegates through the same authoritative direct receipt path.
+- Emulator tests cover sender denial, missing `readAt`, first Read success, repeat-Read timestamp denial, group per-account isolation, and ciphertext-tamper denial. A dedicated source/ownership gate checks the transactional first-read write paths and is part of the normal security gate.
+- This release establishes timer-start authority only. It does **not** yet physically purge messages, history-grant copies, receipts, local cache, Outbox traces, attachments, or stale-device material. Purge execution and anti-resurrection remain IN PROGRESS.
+- Repository Firestore rules changed but were **not deployed to live Firebase**. `htest` was not touched; FCM remains deferred to 1.1 and App Check enforcement remains OFF/deferred to 1.2.
+- Overall first-rebuild estimate remains approximately 65%.
