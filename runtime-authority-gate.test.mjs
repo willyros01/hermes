@@ -6,11 +6,12 @@ const jsFiles=entries
   .map(e=>e.name)
   .filter(name=>!name.endsWith(".test.mjs"));
 
-// firebase.js is the sole TARGET Firebase service owner. The other entries are
-// explicit temporary migration exceptions. The test exists to stop the list
-// from growing while we remove these exceptions one at a time.
+// Firebase resource ownership is explicit and bounded: firebase.js owns the
+// default Firebase app/Auth/Firestore; firebase-app-check.js owns App Check only
+// and is forbidden by its own gate from creating another Firebase app.
 const firebaseSdkAllow=new Set([
-  "firebase.js",             // target owner
+  "firebase.js",
+  "firebase-app-check.js",
 ]);
 const observerAllow=new Set([
 ]);
@@ -36,6 +37,10 @@ if(unexpectedObservers.length){
   throw new Error(`Unexpected MutationObserver repair path outside allowlist: ${unexpectedObservers.join(", ")}`);
 }
 
+const appCheck=await readFile("firebase-app-check.js","utf8");
+if(/initializeApp\s*\(/.test(appCheck))throw new Error("firebase-app-check.js must never initialize a second Firebase app.");
+if(!/getApps\s*\(\)/.test(appCheck)||!/getApp\s*\(\)/.test(appCheck))throw new Error("firebase-app-check.js must bind only to the existing default Firebase app.");
+
 const bootstrap=await readFile("bootstrap.js","utf8");
 if(/MutationObserver/.test(bootstrap))throw new Error("bootstrap.js must remain observer-free.");
 if(/new-message-polish/.test(bootstrap))throw new Error("bootstrap.js must not revive superseded New Message polish.");
@@ -50,5 +55,5 @@ if(!/mountSettingsLifecycle/.test(app))throw new Error("app.js must call the exp
 if(!/bindAuthenticatedAccountE2EE/.test(app)||!/resetAccountE2EEForSignOut/.test(app))throw new Error("app.js must bind/reset account E2EE from the Firebase auth lifecycle.");
 
 console.log("Runtime authority gate passed.");
-console.log("Known temporary Firebase SDK exceptions:",[...firebaseSdkAllow].filter(x=>x!=="firebase.js").join(", "));
+console.log("Bounded Firebase SDK owners:",[...firebaseSdkAllow].join(", "));
 console.log("Known temporary observer exceptions:",[...observerAllow].join(", "));
