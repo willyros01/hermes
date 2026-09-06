@@ -537,3 +537,6 @@ The build is deliberately **not** marked repository-validated for the 1.0 ledger
 
 ### 0.9.6.25 FAIL-CLOSED REPLAY DECISION — USER APPROVED
 User explicitly approved fail-closed handling for the rare Firestore-accepted/browser-crash-before-observation ambiguity. Persist a local Outbox `sendAttempted` marker before the cloud write. After restart, authoritative absence of an attempted row must never auto-replay; show/retain it as failed so the sender may deliberately create a new message. Never solve this with a per-message server tombstone or accepted-ID registry. Never let client time authorize the decision. Full gate `34060880885` passed. 0.9.6.25 is REPOSITORY-VALIDATED; weighted completion 70.0/100; next build 0.9.6.26.
+
+### 0.9.6.26 + 0.9.6.27 COMBINED PASS — REPOSITORY-VALIDATED
+User authorized building the two separately allocated checkpoints in one pass. 0.9.6.26 permanently gates same-UID independent-device expiry convergence and anti-replay. 0.9.6.27 exposes a compact composer duration selector (Off/5m/1h/1d/7d) and snapshots the normalized choice into each new direct/group message's immutable outer `disappearAfterSeconds`; preference changes affect only future messages. Full gate `34061730677` passed. Runtime 0.9.6.27; weighted completion 72%; next 0.9.6.28. No live Firebase/htest.

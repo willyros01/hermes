@@ -189,3 +189,6 @@ The build is deliberately **not** marked repository-validated for the 1.0 ledger
 
 ### Fail-closed replay boundary (0.9.6.25)
 Before any direct/group cloud send, the existing local Outbox owner durably marks the record `sendAttempted:true`. This is local pending-send state, not a deletion tombstone. On reconnect, an attempted ID absent from an authoritative server read is not eligible for automatic replay, because it may have been accepted and subsequently physically purged while the device was away. This closes resurrection without retaining a server accepted-ID/deletion registry. A deliberate user resend creates a new message ID.
+
+### 0.9.6.26 multi-device convergence
+Same-UID installations do not share a device-local expiry authority. Each independently treats authoritative server source absence plus its own prior server-backed observation as the convergence signal, then physically removes its local projection/history/Outbox traces through the existing local owner. Cache-only absence cannot purge and attempted stale Outbox state cannot resurrect the source.

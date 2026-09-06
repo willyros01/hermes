@@ -229,3 +229,6 @@ Server/cache projection decisions are centralized in `disappearing-authoritative
 
 ### 0.9.6.25 reconnect fail-closed authority
 Outbox attempt state is owned and mutated only by `app.js`; authoritative source presence/absence is read only through `firebase.js`; `disappearing-reconnect-recovery.js` only plans accepted/purge/replay/blocked IDs. Automatic replay requires both authoritative server absence and `sendAttempted !== true` plus no prior server-backed observation. Attempted+absent is blocked/failed, never replayed automatically.
+
+### 0.9.6.27 disappearing compose selection
+`disappearing-compose-policy.js` is pure normalization/presentation policy only. `app.js` owns the persisted user selection and snapshots it when constructing a new outgoing row. Existing direct/group Outbox and message owners carry the immutable `disappearAfterSeconds`; no UI preference becomes expiry or purge authority.

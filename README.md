@@ -8,8 +8,8 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.22**
-- Current weighted FIDUNIO 1.0 completion: **68%**
+- Current checkpoint version: **0.9.6.27**
+- Current weighted FIDUNIO 1.0 completion: **72%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
 - `htest` is reserved for coherent final-stage testing deployments and is not continuously synchronized with intermediate rebuild work.
@@ -506,3 +506,6 @@ Reason: materialize the allocated restart/reconnect anti-resurrection barrier. S
 
 ### 0.9.6.25 fail-closed reconnect checkpoint
 The restart/reconnect anti-resurrection slice is repository-validated. FIDUNIO now persists a local Outbox send-attempt marker before direct/group cloud transmission and refuses automatic replay when an attempted ID is later absent from authoritative Firestore, preventing the rare crash/expiry sequence from resurrecting disappearing content without retaining server tombstones. Full baseline gate `34060880885` passed. Weighted first-rebuild completion is **70%**; next allocated build is 0.9.6.26 multi-device expiry convergence. Live Firebase and `htest` were not changed.
+
+### 0.9.6.26 + 0.9.6.27 combined build pass
+Per user instruction these two pre-allocated checkpoints were built in one continuous pass while retaining separate exit criteria. 0.9.6.26 adds permanent same-UID multi-device disappearance convergence proof: independent installations converge source/history/Outbox traces only from authoritative server absence, and stale attempted Outbox work cannot resurrect a purged source. 0.9.6.27 adds the user-facing disappearing-text selection (Off, 5 minutes, 1 hour, 1 day, 7 days) directly at the composer and snapshots that choice into each new direct/group message's immutable `disappearAfterSeconds`. Changing the preference later does not alter already-sent messages. Runtime version advanced 0.9.6.25 -> 0.9.6.27 because both allocated builds completed together. Full Rebuild Baseline Security Gate `34061730677` passed on `b3086fb894b2e9d904264300b60c04a68668f3dc`. Both are REPOSITORY-VALIDATED; weighted completion is **72%**. No live Firebase or `htest` change.
