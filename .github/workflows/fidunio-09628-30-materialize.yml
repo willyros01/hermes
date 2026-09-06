@@ -14,12 +14,11 @@ jobs:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
       - run: python .fidunio-09628-30-materialize.py
-      - name: Commit bounded implementation
+      - name: Commit validated documentation
         run: |
           set -euo pipefail
-          git checkout -- .github/workflows/rebuild-baseline-security.yml
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add app.js package.json version.js disappearing-text-e2e-closeout.test.mjs group-history-admin-ui.test.mjs receipt-lifecycle-stabilization.test.mjs
-          git commit -m "Build FIDUNIO 0.9.6.28 through 0.9.6.30"
+          git add README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt CURRENT-REBUILD.md DISAPPEARING-PURGE-AUTHORITY.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md DETERMINISTIC-UI-LIFECYCLE.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt BUG-LIST.md
+          git commit -m "Document validated FIDUNIO 0.9.6.28 through 0.9.6.30"
           git push origin HEAD:fidunio-complete-rebuild
