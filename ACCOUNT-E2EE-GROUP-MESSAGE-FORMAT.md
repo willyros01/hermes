@@ -75,3 +75,7 @@ Fail closed when the durable account identity, current group membership, current
 4. Outbox integration with epoch revalidation.
 5. `app.js` group send/receive/read UI integration.
 6. Rule/emulator and runtime tests before enabling the currently disabled group Send path.
+
+## Atomic group-administration rule — 2026-09-06
+
+Group membership mutation and the replacement epoch are one serialized operation. Add/remove/leave prepares the epoch for the exact post-change member UID set, then `firebase.js` commits parent membership/admin arrays, `keyEpoch + 1`, member-subcollection mutation, and the matching epoch document atomically. There is no state in which changed membership can accept messages under the old epoch. A removed/leaving member is absent from the replacement epoch envelopes. The owner remains immutable and cannot be removed or leave until an explicit ownership-transfer design is approved.

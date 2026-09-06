@@ -209,3 +209,6 @@ Do not solve UI instability by adding more moving parts. Reduce competing author
 ## Account Encryption Settings owner — September 6, 2026
 
 settings-lifecycle.js owns the named Account Encryption Settings host and serializes account/profile mutations. Enrollment/unlock/recovery inputs are ephemeral DOM values only; the six-digit account E2EE PIN is not persisted by the UI. The installation-local 4–12 digit app-lock PIN remains a separate resource and lifecycle.
+
+## Group Info management lifecycle — 2026-09-06
+Rename/add/remove/leave no longer mutate sample/local group state. Group Info emits one user intent into the bounded group administration owner and waits for the cloud-authoritative operation; `subscribeMyGroups` remains the rendering authority for resulting membership/name state. Non-owner leave routes back to Messages after confirmed completion. Owner leave is deliberately unavailable while ownership is immutable.

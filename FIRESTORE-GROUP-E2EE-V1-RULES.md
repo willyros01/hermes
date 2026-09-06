@@ -86,3 +86,7 @@ The existing rule `allow create, update, delete: if false` for group messages st
 6. UI integration without plaintext or legacy-device fallback.
 
 No intermediate commit may enable plaintext group messaging.
+
+## Group administration hardening — 2026-09-06
+
+Membership-changing group updates now require `keyEpoch + 1` and a matching post-state epoch document in the same atomic write. Epoch `memberKeyIds` and `envelopes` must have exactly the post-change member UID keys. Admins may add/remove non-owner members. A non-owner member may leave only by removing the signed-in UID, with the same atomic epoch replacement. Owner removal/leave remains denied.

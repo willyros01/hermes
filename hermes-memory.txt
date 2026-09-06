@@ -262,3 +262,10 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - App Check 1.2 must be enabled only after legitimate supported client/recovery flows are validated and rollout testing proves no legitimate-client lockout.
 - The first-rebuild completion percentage and final release gate exclude FCM 1.1 and App Check 1.2 work.
 
+2026-09-06 — GROUP ADMINISTRATION MATERIALIZED
+- Real cloud-backed Group Info rename/add/remove/non-owner leave implemented under deterministic ownership.
+- Membership changes are atomic with E2EE epoch rotation: post-change membership/admin arrays, member doc mutation, `keyEpoch + 1`, and the new epoch record are one Firestore transaction/batch-equivalent authority path in `firebase.js`.
+- `e2ee-account-group-runtime.js` prepares replacement epoch envelopes for exactly the post-change members; removed/leaving accounts receive no new envelope.
+- Firestore Rules require a matching post-state epoch and exact epoch map keys for every membership change; owner removal/leave is denied.
+- Default `historyPolicy: fromJoin` remains authoritative. Explicit earlier-history grants/admin-role transfer remain unfinished and must not be simulated.
+- Group Info now reads admin/history metadata from cloud snapshots. Search/shared-files/security controls remain separate placeholders and are not part of this completed administration slice.

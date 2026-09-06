@@ -102,3 +102,11 @@ PROTECTED VALIDATED BASELINE
 1ebc19df498de083f8084e0084c34ced18fc11f0
 
 This document may be updated as the ownership audit discovers additional facts.
+
+GROUP ADMINISTRATION OWNER UPDATE — 2026-09-06
+- `app.js`: Group Info rendering, confirmation and user intent only.
+- `e2ee-account-group-app-integration.js` / controller: bounded serialized app bridge.
+- `e2ee-account-group-runtime.js`: prepares the post-membership cryptographic epoch and owns group-operation serialization.
+- `firebase.js`: sole Firebase SDK owner and sole atomic Firestore membership/epoch commit path.
+- Firestore Rules: enforce matching post-membership epoch and owner/admin invariants.
+No local-only membership mutation is authoritative.

@@ -100,3 +100,6 @@ CONTROLLED TEST GROUPS
 - A newly added member receives joinedAt/historyFrom equal to join time by default.
 - No real group message can be written yet.
 - Existing 0.9.0.4 direct-message E2EE, receipts, Outbox and multi-device fan-out remain unchanged.
+
+CURRENT COMPLETE-REBUILD STATUS — 2026-09-06
+The earlier 0.9.1 text above is historical foundation material. Group E2EE messaging is now active in the authoritative complete rebuild. Real rename/add/remove/non-owner-leave administration is cloud-backed. Every membership mutation atomically rotates `keyEpoch` and creates envelopes for exactly the post-change members. The owner remains immutable. Default history policy remains `fromJoin`; explicit earlier-history grants are still unfinished and must never be simulated locally.

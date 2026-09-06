@@ -32,7 +32,7 @@ import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
-import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut } from "./e2ee-account-group-app-integration.js";
+import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp } from "./e2ee-account-group-app-integration.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -1431,72 +1431,56 @@ window.addEventListener("pageshow",recoverForegroundCloudSession);
 function renderGroupInfo(){
   const c=currentConversation();
   if(!c||c.type!=="group"){state.route="chat";return render()}
+  const myUid=firebaseUser?.uid||"",isAdmin=Array.isArray(c.adminUids)&&c.adminUids.includes(myUid),isOwner=c.ownerUid===myUid;
   app.innerHTML=`
     <main class="app-shell">
       ${shellTop("Group Info",'<button class="back-btn" id="backBtn">‹</button>')}
       <section class="content">
         <div class="card" style="text-align:center">
-          <div class="avatar group-avatar" style="margin:0 auto 10px">${initials(c.name)}</div>
-          <h2 style="font-size:22px;margin:0">${esc(c.name)}</h2>
-          <p class="small-note">${c.members.length} members • Secure group</p>
-          <button class="secondary" id="renameBtn">Rename Group</button>
+<div class="avatar group-avatar" style="margin:0 auto 10px">${initials(c.name)}</div>
+<h2 style="font-size:22px;margin:0">${esc(c.name)}</h2>
+<p class="small-note">${c.members.length} members • Secure group</p>
+${isAdmin?'<button class="secondary" id="renameBtn">Rename Group</button>':''}
         </div>
         <div class="card">
-          <h2>Members</h2>
-          ${c.members.map(m=>`
-            <div class="member-card">
-              <div class="avatar">${initials(m.name)}</div>
-              <div class="row-main">
-                <strong>${esc(m.name)}</strong>
-                <span>${esc(m.joinedAt)}</span>
-                ${m.historyAccess==="from_join"?'<span class="history-lock">Earlier history hidden</span>':
-                  m.historyAccess==="all"?'<span class="history-lock">Earlier history available</span>':""}
-              </div>
-              <div>${m.role!=="Member"?`<span class="role-tag">${esc(m.role)}</span>`:
-                `<button class="row-action historyBtn" data-id="${m.id}">History</button>`}</div>
-            </div>`).join("")}
-          <button class="secondary" id="addMemberBtn">＋ Add Member</button>
+<h2>Members</h2>
+${c.members.map(m=>`
+  <div class="member-card">
+    <div class="avatar">${initials(m.name)}</div>
+    <div class="row-main">
+      <strong>${esc(m.name)}</strong>
+      <span>${esc(m.joinedAt)}</span>
+      ${m.historyAccess==="from_join"?'<span class="history-lock">Earlier history hidden</span>':m.historyAccess==="all"?'<span class="history-lock">Earlier history available</span>':""}
+    </div>
+    <div>${m.role!=="Member"?`<span class="role-tag">${esc(m.role)}</span>`:""}${isAdmin&&m.id!==c.ownerUid&&m.id!==myUid?` <button class="row-action removeMemberBtn" data-id="${m.id}">Remove</button>`:""}</div>
+  </div>`).join("")}
+${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':''}
         </div>
         <div class="card">
-          <h2>Group Controls</h2>
-          <div class="row"><div class="row-main"><strong>Mute notifications</strong><span>Silence alerts for this group</span></div><button class="toggle"></button></div>
-          <div class="row"><div class="row-main"><strong>Search messages</strong><span>Find text in this conversation</span></div><button class="row-action placeholderBtn">Open</button></div>
-          <div class="row"><div class="row-main"><strong>Shared photos & files</strong><span>View shared attachments</span></div><button class="row-action placeholderBtn">Open</button></div>
-          <div class="row"><div class="row-main"><strong>Security information</strong><span>Member keys and group-key status</span></div><button class="row-action placeholderBtn">View</button></div>
+<h2>Group Controls</h2>
+<div class="row"><div class="row-main"><strong>History policy</strong><span>New members see messages only from the time they join.</span></div><span class="role-tag">From join</span></div>
+<div class="row"><div class="row-main"><strong>Mute notifications</strong><span>Silence alerts for this group</span></div><button class="toggle"></button></div>
+<div class="row"><div class="row-main"><strong>Search messages</strong><span>Find text in this conversation</span></div><button class="row-action placeholderBtn">Open</button></div>
+<div class="row"><div class="row-main"><strong>Shared photos & files</strong><span>View shared attachments</span></div><button class="row-action placeholderBtn">Open</button></div>
+<div class="row"><div class="row-main"><strong>Security information</strong><span>Member keys and group-key status</span></div><button class="row-action placeholderBtn">View</button></div>
         </div>
-        <button class="danger-btn" id="leaveBtn">Leave Group</button>
+        ${isOwner?'<p class="small-note">The group owner cannot leave until ownership transfer is deliberately implemented.</p>':'<button class="danger-btn" id="leaveBtn">Leave Group</button>'}
       </section>
     </main>`;
   document.querySelector("#backBtn").onclick=()=>{state.route="chat";render()};
-  document.querySelector("#renameBtn").onclick=()=>{
-    const name=prompt("Rename group:",c.name);
-    if(name?.trim()){c.name=name.trim();render()}
-  };
-  document.querySelector("#addMemberBtn").onclick=()=>openAddMemberModal();
-  document.querySelectorAll(".historyBtn").forEach(btn=>btn.onclick=()=>openHistoryModal(btn.dataset.id));
+  const rename=document.querySelector("#renameBtn");if(rename)rename.onclick=async()=>{const name=prompt("Rename group:",c.name);if(!name?.trim()||name.trim()===c.name)return;rename.disabled=true;try{await renameGroupForApp(c.id,name.trim());}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
+  const add=document.querySelector("#addMemberBtn");if(add)add.onclick=()=>openAddMemberModal();
+  document.querySelectorAll(".removeMemberBtn").forEach(btn=>btn.onclick=async()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member||!confirm(`Remove ${member.name} from this group?`))return;btn.disabled=true;try{await removeGroupMemberForApp(c.id,member.id);}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}});
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
-  document.querySelector("#leaveBtn").onclick=()=>alert(`Leave Group is a UX placeholder in FIDUNIO ${FIDUNIO_VERSION}.`);
+  const leave=document.querySelector("#leaveBtn");if(leave)leave.onclick=async()=>{if(!confirm(`Leave ${c.name}? You will lose access to future messages.`))return;leave.disabled=true;try{await leaveGroupForApp(c.id);state.route="messages";state.selectedId=null;}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
 }
 
 function openAddMemberModal(){
-  const c=currentConversation();
-  const currentIds=new Set(c.members.map(m=>m.id));
-  const available=contacts.filter(p=>!currentIds.has(p.id));
-  state.modal={
-    type:"addMember",
-    options:available,
-    selected:available[0]?.id||null
-  };
-  render();
-}
-
-function openHistoryModal(memberId){
-  const c=currentConversation();
-  const member=c.members.find(m=>m.id===memberId);
-  if(!member)return;
-  state.modal={type:"history",memberId,historyChoice:member.historyAccess==="all"?"all":"24h"};
-  render();
+  const c=currentConversation();if(!c)return;
+  state.modal={type:"addMember",options:[],selected:null,loading:true};render();
+  const currentIds=new Set(c.members.map(m=>String(m.id)));
+  listCloudUsers().then(rows=>{if(!state.modal||state.modal.type!=="addMember")return;const available=(rows||[]).filter(p=>!currentIds.has(String(p.uid))).map(p=>({id:p.uid,name:p.displayName||p.email||p.uid}));state.modal={type:"addMember",options:available,selected:available[0]?.id||null,loading:false};render();}).catch(err=>{firebaseError=err?.message||String(err);if(state.modal?.type==="addMember"){state.modal={type:"addMember",options:[],selected:null,loading:false,error:firebaseError};render();}});
 }
 
 function renderModal(){
@@ -1508,7 +1492,7 @@ function renderModal(){
       <div class="modal">
         <h2>Add Member</h2>
         <p>New members begin with access only from the time they join.</p>
-        ${modal.options.length?`
+        ${modal.loading?'<p class="small-note">Loading FIDUNIO users…</p>':modal.error?`<p class="warning-note">${esc(modal.error)}</p>`:modal.options.length?`
           <div class="choice-list">
             ${modal.options.map(p=>`
               <label class="member-option">
@@ -1527,15 +1511,12 @@ function renderModal(){
     host.querySelectorAll('input[name="newMember"]').forEach(r=>r.onchange=()=>state.modal.selected=r.value);
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
     const confirm=host.querySelector("#modalConfirm");
-    if(confirm) confirm.onclick=()=>{
-      const p=contacts.find(x=>x.id===state.modal.selected);
-      if(p){
-        const c=currentConversation();
-        c.members.push({id:p.id,name:p.name,role:"Member",joinedAt:`Joined ${nowTime()}`,historyAccess:"from_join"});
-        state.messages[c.id].push({id:crypto.randomUUID(),system:true,text:`${p.name} joined the group • Earlier messages hidden by default`,time:nowTime()});
-        c.preview=`${p.name} joined the group`;c.time=nowTime();
-      }
-      state.modal=null;render();
+    if(confirm) confirm.onclick=async()=>{
+      const modalNow=state.modal,p=modalNow?.options?.find(x=>String(x.id)===String(modalNow.selected)),c=currentConversation();
+      if(!p||!c)return;
+      confirm.disabled=true;
+      try{await addGroupMemberForApp(c.id,p.id);state.modal=null;host.remove();render();}
+      catch(err){firebaseError=err?.message||String(err);confirm.disabled=false;alert(firebaseError);}
     };
   } else if(modal.type==="conversationSecurity"){
     const c=state.conversations.find(x=>String(x.id)===String(modal.conversationId));

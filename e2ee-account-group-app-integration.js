@@ -5,6 +5,12 @@ import {prepareGroupSend,flushGroupSend,openGroupConversation,closeGroupConversa
 // DOM. app.js supplies only its existing encrypted Outbox/state callbacks.
 let activeGroupId=null;
 
+
+export function renameGroupForApp(groupId,name){return renameGroup(groupId,name);}
+export function addGroupMemberForApp(groupId,targetUid){return addGroupMember(groupId,targetUid);}
+export function removeGroupMemberForApp(groupId,targetUid){return removeGroupMember(groupId,targetUid);}
+export function leaveGroupForApp(groupId){return leaveGroup(groupId);}
+
 export async function queueGroupTextForApp({groupId,messageId,text,time,persistEncryptedOutbox}){
   if(typeof persistEncryptedOutbox!=="function")throw new Error("Encrypted Outbox persistence callback is required.");
   const queued=await prepareGroupSend({groupId,messageId,text});

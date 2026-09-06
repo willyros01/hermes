@@ -52,10 +52,10 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 | Group per-account receipts | DONE | Membership-aware receipt aggregation implemented. |
 | Group offline queue/epoch revalidation | DONE | Epoch-aware Outbox coordinator integrated. |
 | Group create | DONE | Real cloud group creation UI exists. |
-| Group rename | NOT DONE | Current Group Info path still has local/placeholder behavior. |
-| Group add member | NOT DONE | Must use real cloud users and rotate epoch atomically. |
-| Group remove member | NOT DONE | Must rotate epoch before subsequent message; removed member gets no new envelope. |
-| Leave group | NOT DONE | Real cloud membership mutation + epoch handling required. |
+| Group rename | DONE | Cloud-authoritative admin rename through serialized group owner; repository group tests/gate required. |
+| Group add member | DONE | Real cloud users; membership/member doc/new E2EE epoch committed atomically. |
+| Group remove member | DONE | Admin removal atomically rotates epoch; removed member is excluded from replacement envelopes. |
+| Leave group | DONE | Non-owner self-leave is atomic with epoch replacement; immutable owner intentionally cannot leave. |
 | Group history policy/admin controls | IN PROGRESS | `historyPolicy:"fromJoin"` contract exists; real management UI/backend controls unfinished. |
 
 ## Disappearing content
@@ -108,7 +108,7 @@ Provider limitation: this trace-free rule governs all data FIDUNIO controls thro
 | Settings deterministic lifecycle owner | DONE | Explicit lifecycle owner; observer self-repair rejected. |
 | iPad/tablet/desktop two-pane foundation | DONE | Mandatory responsive owner retained. |
 | iPhone single-pane/back/wrap fixes | DONE | Protected behavior retained; final device regression still required. |
-| Group Info real management UI | NOT DONE | Contains placeholders/local-only controls. |
+| Group Info real management UI | IN PROGRESS | Rename/add/remove/leave are real; explicit earlier-history/admin-role controls and unrelated tool placeholders remain. |
 | Direct Chat Info complete | NOT DONE | Remaining placeholder behavior. |
 | Remove remaining prototype/test banners | NOT DONE | Only after corresponding real functionality is complete. |
 | Remove remaining simulated local message-state timers | NOT DONE | Real product must not simulate sent/delivered/read. |
@@ -171,3 +171,4 @@ Approximately **65%** of the first complete rebuild release acceptance criteria.
 - 2026-09-06 — FCM notification architecture retained in roadmap but explicitly deferred to FIDUNIO 1.1; it does not block the first complete rebuild release.
 - 2026-09-06 — App Check production activation/enforcement explicitly deferred to FIDUNIO 1.2; client ownership/config may remain present with enforcement OFF and does not block the first complete rebuild release.
 - 2026-09-06 — Reconciled hermes-setup.txt from obsolete 0.8.1.9 instructions to the current complete-rebuild architecture and recovery procedure.
+- 2026-09-06 — Real group administration materialized: cloud-backed rename/add/remove/non-owner leave; membership changes atomically rotate E2EE epoch and exclude departed members. Firestore/runtime tests extended. Explicit earlier-history/admin-role controls remain IN PROGRESS.

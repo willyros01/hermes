@@ -10,6 +10,6 @@ const checks=[
  ["controller does not own crypto",!/crypto\.subtle|deriveKey|encrypt\(|decrypt\(/.test(src)],
  ["controller recognizes epoch-bound group Outbox records",/kind===\"group-e2ee-v1\"/.test(src)&&/Number\.isInteger\(payload\.expectedKeyEpoch\)/.test(src)],
  ["sign-out reset clears group messaging owners",/resetGroupMessagingForSignOut/.test(src)&&/resetAccountGroupOutboxQueue/.test(src)&&/resetAccountGroupConversationStreams/.test(src)],
- ["legacy app still has explicit disabled marker until bounded wiring",/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]
+ ["app uses bounded real group administration bridge",/renameGroupForApp/.test(app)&&/addGroupMemberForApp/.test(app)&&/removeGroupMemberForApp/.test(app)&&/leaveGroupForApp/.test(app)&&!/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]
 ];
 let failed=0;for(const [name,ok] of checks){console.log(ok?"PASS":"FAIL",name);if(!ok)failed++;}console.log(`\n${checks.length-failed}/${checks.length} app group ownership assertions passed.`);if(failed)process.exitCode=1;

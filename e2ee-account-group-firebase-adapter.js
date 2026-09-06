@@ -3,7 +3,9 @@ import {
   getCloudAccountE2EEPublicKey,
   createCloudGroupEpochRecord,
   readCloudGroupEpochRecord,
-  sendCloudEncryptedGroupMessage
+  sendCloudEncryptedGroupMessage,
+  renameCloudGroup,
+  commitCloudGroupMembershipEpoch
 } from "./firebase.js";
 
 // This adapter is intentionally thin. firebase.js remains the sole Firebase
@@ -15,6 +17,8 @@ export function createFirebaseAccountGroupE2EETransport(){
     getAccountPublicKey: getCloudAccountE2EEPublicKey,
     createGroupEpochRecord: createCloudGroupEpochRecord,
     readGroupEpochRecord: readCloudGroupEpochRecord,
-    sendEncryptedGroupMessage: sendCloudEncryptedGroupMessage
+    sendEncryptedGroupMessage: sendCloudEncryptedGroupMessage,
+    renameGroup: renameCloudGroup,
+    commitGroupMembershipEpoch: commitCloudGroupMembershipEpoch
   });
 }

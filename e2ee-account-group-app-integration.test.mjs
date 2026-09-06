@@ -5,7 +5,7 @@ const checks=[
  ["bridge persists only through injected encrypted Outbox callback",/await persistEncryptedOutbox\(payload\)/.test(src)&&!/indexedDB|openDb\(/.test(src)],
  ["bridge flushes before Outbox removal",src.indexOf("await flushGroupSend(payload)")<src.indexOf("await removeEncryptedOutbox(payload.messageId)")],
  ["bridge rejects non-group Outbox payloads",/isGroupOutboxPayload\(payload\)/.test(src)],
- ["bridge owns no Firebase",!/firebase\.js|Firestore|sendCloud/.test(src)],
+ ["bridge owns no Firebase",!/from\s+["']\.\/firebase\.js["']|firebaseApp|firebaseConfig|sendCloud|\bgetFirestore\b|\bsetDoc\b|\bupdateDoc\b/.test(src)],
  ["bridge owns no cryptography",!/crypto\.subtle|deriveKey|encrypt\(|decrypt\(/.test(src)],
  ["bridge exposes bounded conversation open-close",/openGroupForApp/.test(src)&&/closeGroupForApp/.test(src)],
  ["sign-out reset reaches group messaging owner",/resetGroupMessagingForSignOut\(\)/.test(src)]

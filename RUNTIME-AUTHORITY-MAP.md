@@ -106,3 +106,6 @@ No new MutationObserver, reload repair, source transform, competing Firebase ini
 - Settings enrollment/unlock/recovery UI: settings-lifecycle.js in its named Account Encryption host.
 - Service worker: cache/transport only; zero app.js semantic transforms.
 - New direct-message transport is e2ee:3 only and requires account identity READY. Legacy e2ee:1/e2ee:2 remain read compatibility until migration history is no longer needed.
+
+## Group administration materialization — 2026-09-06
+Group Info mutations now route `app.js -> group app integration/controller -> account group runtime -> Firebase adapter -> firebase.js`. Membership changes are a single serialized cryptographic+Firestore operation; the runtime prepares an epoch for the exact post-change members and `firebase.js` atomically commits membership, member document, key epoch and epoch record. Rename uses the same serialized bridge but does not rotate the key because membership is unchanged.
