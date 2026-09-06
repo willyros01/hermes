@@ -1,4 +1,4 @@
-name: Update Disappearing Content Memory Once
+name: Materialize Group History Persistence Once
 on:
   push:
     branches: [fidunio-complete-rebuild]
@@ -6,26 +6,19 @@ permissions:
   contents: write
 jobs:
   update:
-    if: github.event.head_commit.message == 'Queue disappearing-content memory update'
+    if: github.event.head_commit.message == 'Run registered group history persistence materializer'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
-      - name: Append disappearing-content purge requirement
+      - name: Apply reviewed materializer
+        run: python materialize-group-history-persistence.py
+      - name: Commit materialized slice
         run: |
-          cat >> hermes-memory.txt <<'EOF'
-
-DISAPPEARING CONTENT — NON-NEGOTIABLE PURGE REQUIREMENT
-- FIDUNIO must support disappearing messages and disappearing attachments for direct and group conversations.
-- When such content expires, every application-controlled trace must be physically purged. This includes the Firestore message document itself, ciphertext/plaintext fields, per-message receipts/references, attachment metadata, encrypted attachment chunks/blobs, thumbnails/previews, notification payload copies, local IndexedDB/history/cache entries, decrypted object URLs, and any Outbox copy.
-- Do not implement expiry as hide-only, soft-delete, `expired:true`, or a per-message tombstone. After purge, no application-owned per-message record may remain in Firestore or local app storage.
-- Purge must converge across all devices/accounts participating in the direct or group conversation and expired content must not resurrect through stale snapshots, offline state, Outbox replay, cache restoration, or reconnect reconciliation.
-- Provider-managed infrastructure outside FIDUNIO application control (for example provider service logs or backups, if enabled) must be separately audited/configured. FIDUNIO itself must never intentionally archive disappearing content after expiry.
-EOF
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add hermes-memory.txt
-          git commit -m "Record trace-free disappearing content requirement"
+          git add firestore.rules firebase.js e2ee-account-group-firebase-adapter.js e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-runtime.test.mjs firestore-group-e2ee-v1.rules.test.mjs version.js README.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md FIRESTORE-GROUP-E2EE-V1-RULES.md FIRESTORE-E2EE-V1-EMULATOR-TESTS.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt group-data-model.txt FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
+          git commit -m "Materialize group history persistence foundation"
           git push origin HEAD:fidunio-complete-rebuild
