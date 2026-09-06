@@ -5,6 +5,7 @@ const checks=[
  ["controller uses group Outbox owner",/prepareQueuedAccountGroupMessage/.test(src)&&/flushQueuedAccountGroupMessage/.test(src)],
  ["controller uses group conversation owner",/subscribeAccountGroupConversation/.test(src)&&/stopAccountGroupConversation/.test(src)],
  ["controller serializes send preparation and flush",/let tail=Promise\.resolve\(\)/.test(src)&&/return serial\(\(\)=>prepareQueuedAccountGroupMessage/.test(src)&&/return serial\(\(\)=>flushQueuedAccountGroupMessage/.test(src)],
+ ["controller serializes intent-only history grant",/grantGroupHistory\(groupId,targetUid,boundary\).*serial\(\(\)=>createAccountGroupHistoryGrant\(\{groupId,targetUid,boundary\}\)\)/.test(src)&&!/sourceRows/.test(src)],
  ["controller does not import Firebase",!/from\s+["']\.\/firebase\.js["']/.test(src)],
  ["controller does not own IndexedDB",!/indexedDB\.|openDb\(|IDB/.test(src)],
  ["controller does not own crypto",!/crypto\.subtle|deriveKey|encrypt\(|decrypt\(/.test(src)],
