@@ -1,3 +1,23 @@
 import assert from "node:assert/strict";
-import {normalizeDisappearSelection} from "./disappearing-content-policy.js";import {planLocalDisappearingConvergence} from "./disappearing-local-convergence.js";import {planPhysicalLocalMessagePurge} from "./disappearing-local-storage-plan.js";import {planAuthoritativeMessageProjection} from "./disappearing-authoritative-projection.js";import {planReconnectOutboxConvergence} from "./disappearing-reconnect-recovery.js";
-assert.equal(normalizeDisappearSelection(300),300);const local=[{id:"gone",disappearAfterSeconds:300,serverBacked:true,mine:true,state:"sent"},{id:"keep",disappearAfterSeconds:null,serverBacked:true}];const c=planLocalDisappearingConvergence({localMessages:local,authoritativeRemoteIds:["keep"],outboxMessageIds:["gone"]});assert.deepEqual([...c.purgeMessageIds],["gone"]);assert.deepEqual([...c.purgeOutboxMessageIds],["gone"]);const p=planPhysicalLocalMessagePurge({messagesByConversation:{x:local},historyRecords:[{conversationId:"x",messages:local}],outboxRecords:[{id:"gone",payload:{messageId:"gone"}}],purgeMessageIds:["gone"]});assert.equal(p.messagesByConversation.x.some(x=>x.id==="gone"),false);assert.deepEqual([...p.outboxDeleteIds],["gone"]);const a=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[{id:"keep"}],snapshotMeta:{fromCache:false},outboxMessageIds:["gone"]});assert.deepEqual([...a.purgeMessageIds],["gone"]);const cache=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[],snapshotMeta:{fromCache:true},outboxMessageIds:["gone"]});assert.equal(cache.purgeMessageIds.length,0);const replay=planReconnectOutboxConvergence({outboxRows:[{id:"gone",payload:{messageId:"gone",disappearAfterSeconds:300,serverBacked:true,sendAttempted:true}}],serverMessageIds:[]});assert.equal(replay.replayRows.length,0);console.log("Disappearing text end-to-end closeout matrix passed");
+import {normalizeDisappearSelection} from "./disappearing-content-policy.js";
+import {planLocalDisappearingConvergence} from "./disappearing-local-convergence.js";
+import {planPhysicalLocalMessagePurge} from "./disappearing-local-storage-plan.js";
+import {planAuthoritativeMessageProjection} from "./disappearing-authoritative-projection.js";
+import {planReconnectOutboxConvergence} from "./disappearing-reconnect-recovery.js";
+
+assert.equal(normalizeDisappearSelection(300),300);
+const local=[{id:"gone",disappearAfterSeconds:300,serverBacked:true,mine:true,state:"sent"},{id:"keep",disappearAfterSeconds:null,serverBacked:true}];
+const convergence=planLocalDisappearingConvergence({localMessages:local,authoritativeRemoteIds:["keep"],outboxMessageIds:["gone"]});
+assert.deepEqual([...convergence.purgeMessageIds],["gone"]);
+assert.deepEqual([...convergence.purgeOutboxMessageIds],["gone"]);
+const physical=planPhysicalLocalMessagePurge({messagesByConversation:{x:local},historyRecords:[{conversationId:"x",messages:local}],outboxRecords:[{id:"gone",conversationId:"x"}],purgeMessageIds:["gone"]});
+assert.equal(physical.messagesByConversation.x.some(x=>x.id==="gone"),false);
+assert.deepEqual([...physical.outboxDeleteIds],["gone"]);
+const authoritative=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[{id:"keep"}],snapshotMeta:{fromCache:false},outboxMessageIds:["gone"]});
+assert.deepEqual([...authoritative.purgeMessageIds],["gone"]);
+const cache=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[],snapshotMeta:{fromCache:true},outboxMessageIds:["gone"]});
+assert.equal(cache.purgeMessageIds.length,0);
+const replay=planReconnectOutboxConvergence({messagesByConversation:{x:local},outboxRecords:[{id:"gone",messageId:"gone",conversationId:"x",sendAttempted:true}],authoritativeRemoteIdsByConversation:{x:[]}});
+assert.deepEqual([...replay.purgeMessageIds],["gone"]);
+assert.equal(replay.replayMessageIds.length,0);
+console.log("Disappearing text end-to-end closeout matrix passed");
