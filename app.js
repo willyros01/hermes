@@ -32,6 +32,7 @@ import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
+import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut } from "./e2ee-account-group-app-integration.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -251,13 +252,22 @@ async function removeOutboxMessage(id){
 async function decryptOutboxRecord(record){
   const payload=await decryptLocal(record.payload);
   return {
-    conversationId:payload.conversationId ?? record.conversationId,
+    ...payload,
+    conversationId:payload.conversationId ?? payload.groupId ?? record.conversationId,
     messageId:payload.messageId ?? record.id,
     text:payload.text ?? "",
     time:payload.time ?? "",
-    cloud:!!payload.cloud,
+    cloud:!!payload.cloud || payload.kind==="group-e2ee-v1",
     conversation:payload.conversation || null
   };
+}
+async function persistGroupOutboxPayload(payload){
+  const db=await openDb(),conversationId=String(payload.groupId);
+  const c=state.conversations.find(x=>String(x.id)===conversationId);
+  const encrypted=await encryptLocal({...payload,conversationId,cloud:true,conversation:c?{id:c.id,name:c.name,type:"group",cloudGroup:true,preview:payload.text,time:payload.time,unread:0}:null});
+  const tx=db.transaction("outbox","readwrite");
+  tx.objectStore("outbox").put({id:payload.messageId,conversationId,createdAt:Date.now(),payload:encrypted});
+  await txDone(tx);
 }
 function ensureQueuedMessageFromPayload(payload){
   const conversationId=payload.conversationId;
@@ -377,7 +387,7 @@ function mergeCloudConversation(remote){
 }
 function mergeCloudGroup(remote){
   const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
-  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Group • messaging pending E2EE",time:remote.time||existing?.time||""};
+  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Encrypted group",time:remote.time||existing?.time||""};
   if(existing)Object.assign(existing,item);else state.conversations.unshift(item);
   if(!state.messages[item.id])state.messages[item.id]=[];
   return existing||item;
@@ -433,7 +443,25 @@ function beginCloudConversationSubscription(){
 function ensureActiveCloudMessageSubscription(force=false){
   if(!firebaseUser || state.route!=="chat") return;
   const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));
-  if(c?.cloud) beginCloudMessageSubscription(c.id,{force});
+  if(c?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(c.id);}
+  else if(c?.cloud){closeGroupForApp();beginCloudMessageSubscription(c.id,{force});}
+}
+function beginCloudGroupMessageSubscription(groupId){
+  if(!firebaseUser)return;
+  openGroupForApp(groupId,{
+    isOpen:()=>state.route==="chat"&&String(state.selectedId)===String(groupId),
+    onRows:async rows=>{
+      const existing=state.messages[groupId]||[];
+      const remoteIds=new Set(rows.map(x=>x.id));
+      const pending=existing.filter(x=>x.mine&&["queued","sending","failed"].includes(x.state)&&!remoteIds.has(x.id));
+      state.messages[groupId]=[...rows,...pending];
+      const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
+      if(c&&last){c.preview=last.text;c.time=last.time;}
+      await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
+      if(state.route==="chat"&&String(state.selectedId)===String(groupId))render();
+    },
+    onError:err=>{firebaseError=err?.message||String(err);}
+  });
 }
 
 /* FIDUNIO direct-message E2EE foundation */
@@ -769,6 +797,7 @@ async function initializeFirebaseLayer(){
         ensureActiveCloudMessageSubscription(true);
         if(state.online) scheduleReconnectRecovery();
       }else{
+        resetGroupAppIntegrationForSignOut();
         resetAccountE2EEForSignOut();
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
         stopPeerDisplayNameSubscription();
@@ -923,8 +952,9 @@ function drawTabletConversationList(term=""){
     state.route="chat";
     const chosen=state.conversations.find(x=>String(x.id)===String(state.selectedId));
     if(chosen) chosen.unread=0;
-    if(chosen?.cloud) beginCloudMessageSubscription(chosen.id,{force:true});
-    else stopCloudMessageSubscription();
+    if(chosen?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(chosen.id);}
+    else if(chosen?.cloud){closeGroupForApp();beginCloudMessageSubscription(chosen.id,{force:true});}
+    else{closeGroupForApp();stopCloudMessageSubscription();}
     render();
   });
 }
@@ -1053,7 +1083,9 @@ function renderMessages(){
       state.route="chat";
       const chosen=state.conversations.find(x=>String(x.id)===String(state.selectedId));
       if(chosen)chosen.unread=0;
-      if(chosen?.cloud)beginCloudMessageSubscription(chosen.id,{force:true});else stopCloudMessageSubscription();
+      if(chosen?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(chosen.id);}
+      else if(chosen?.cloud){closeGroupForApp();beginCloudMessageSubscription(chosen.id,{force:true});}
+      else{closeGroupForApp();stopCloudMessageSubscription();}
       render();
     });
   };
@@ -1111,8 +1143,8 @@ function renderNewGroup(){
 
 function renderGroupName(){
   const selected=groupCandidates.filter(p=>state.newGroupMembers.includes(p.uid));
-  app.innerHTML=`<main class="app-shell">${shellTop("Group Details",'<button class="back-btn" id="backBtn">‹</button>')}<section class="content"><div class="card"><label class="form-label" for="groupNameInput">Group name</label><input class="text-input" id="groupNameInput" maxlength="120" placeholder="Enter a group name" value="${esc(state.newGroupName)}" /><div class="section-title">Members</div><div class="chip-row">${selected.map(p=>`<span class="person-chip">${esc(p.displayName||p.email||p.uid)}</span>`).join("")}</div><p class="small-note">New members begin at join time. Real group messaging remains disabled until group E2EE is implemented.</p></div><button class="primary" id="createGroupBtn">Create Group</button></section></main>`;
-  document.querySelector("#backBtn").onclick=()=>{state.route="newGroup";render()};const input=document.querySelector("#groupNameInput"),btn=document.querySelector("#createGroupBtn");const validate=()=>{state.newGroupName=input.value;btn.disabled=!input.value.trim()||state.newGroupMembers.length<2;};input.oninput=validate;validate();btn.onclick=async()=>{btn.disabled=true;btn.textContent="Creating…";try{const group=await createCloudGroup(state.newGroupName.trim(),state.newGroupMembers);mergeCloudGroup(group);state.selectedId=group.id;state.newGroupMembers=[];state.newGroupName="";state.route="groupInfo";await persistState();render();}catch(err){alert("Could not create group: "+(err?.message||err));btn.disabled=false;btn.textContent="Create Group";}};
+  app.innerHTML=`<main class="app-shell">${shellTop("Group Details",'<button class="back-btn" id="backBtn">‹</button>')}<section class="content"><div class="card"><label class="form-label" for="groupNameInput">Group name</label><input class="text-input" id="groupNameInput" maxlength="120" placeholder="Enter a group name" value="${esc(state.newGroupName)}" /><div class="section-title">Members</div><div class="chip-row">${selected.map(p=>`<span class="person-chip">${esc(p.displayName||p.email||p.uid)}</span>`).join("")}</div><p class="small-note">New members begin at join time. Group messages use account-authoritative end-to-end encryption.</p></div><button class="primary" id="createGroupBtn">Create Group</button></section></main>`;
+  document.querySelector("#backBtn").onclick=()=>{state.route="newGroup";render()};const input=document.querySelector("#groupNameInput"),btn=document.querySelector("#createGroupBtn");const validate=()=>{state.newGroupName=input.value;btn.disabled=!input.value.trim()||state.newGroupMembers.length<2;};input.oninput=validate;validate();btn.onclick=async()=>{btn.disabled=true;btn.textContent="Creating…";try{const group=await createCloudGroup(state.newGroupName.trim(),state.newGroupMembers);mergeCloudGroup(group);state.selectedId=group.id;state.newGroupMembers=[];state.newGroupName="";state.route="chat";await persistState();beginCloudGroupMessageSubscription(group.id);render();}catch(err){alert("Could not create group: "+(err?.message||err));btn.disabled=false;btn.textContent="Create Group";}};
 }
 
 function renderChat(){
@@ -1219,7 +1251,7 @@ async function sendCurrent(){
   const conversationId=state.selectedId;
   const c=currentConversation();
   const cloud=!!c?.cloud;
-  if(c?.cloudGroup){alert("Group messaging is intentionally disabled until group E2EE is implemented.");return;}
+  const cloudGroup=!!c?.cloudGroup;
 
   if(cloud && c?.peerUid && !firebaseUser){throw new Error("Sign in before sending an encrypted message.");}
 
@@ -1237,14 +1269,16 @@ async function sendCurrent(){
   c.preview=text;
   c.time=m.time;
 
-  // The Outbox is authoritative. Do not return from Send until the
-  // encrypted queued record is durably committed to IndexedDB.
-  await queueOutboxMessage(conversationId,m);
+  // The Outbox is authoritative. Group plaintext enters only the encrypted local Outbox.
+  if(cloudGroup){
+    m.cloud=true;m.group=true;
+    await queueGroupTextForApp({groupId:conversationId,messageId:m.id,text,time:m.time,persistEncryptedOutbox:persistGroupOutboxPayload});
+  }else await queueOutboxMessage(conversationId,m);
   await persistState();
   render();
 
   if(state.online){
-    if(cloud){
+    if(cloud || cloudGroup){
       await flushQueued();
     }else{
       await removeOutboxMessage(m.id);
@@ -1289,8 +1323,18 @@ async function flushQueued(){
     // Never delete an Outbox record merely because the normal message cache
     // is missing. Rebuild the visible message from the encrypted Outbox.
     const {c,m}=ensureQueuedMessageFromPayload(payload);
-    const isCloud=payload.cloud || !!c?.cloud;
+    const isGroupPayload=payload.kind==="group-e2ee-v1";
+    const isCloud=payload.cloud || !!c?.cloud || isGroupPayload;
 
+    if(isGroupPayload){
+      if(!firebaseUser){m.state="queued";await persistState();continue;}
+      try{
+        m.state="sending";await persistState();
+        await flushGroupOutboxForApp(payload,{removeEncryptedOutbox:removeOutboxMessage});
+        m.state="sent";await persistState();
+      }catch(err){m.state="failed";firebaseError=err?.message||String(err);await persistState();}
+      continue;
+    }
     if(isCloud){
       if(!firebaseUser){
         m.state="queued";
