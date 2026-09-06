@@ -1,0 +1,273 @@
+name: Group Administration Once
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+    paths: ['.github/workflows/group-admin-once.yml']
+permissions:
+  contents: write
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: fidunio-complete-rebuild}
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-java@v5
+        with: {distribution: temurin, java-version: '21'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Materialize atomic group administration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # 1) Extend the thin Firebase adapter with group-administration transports.
+          p=Path('e2ee-account-group-firebase-adapter.js'); s=p.read_text()
+          s=s.replace('''  createCloudGroupEpochRecord,\n  readCloudGroupEpochRecord,\n  sendCloudEncryptedGroupMessage''','''  createCloudGroupEpochRecord,\n  readCloudGroupEpochRecord,\n  sendCloudEncryptedGroupMessage,\n  renameCloudGroup,\n  commitCloudGroupMembershipEpoch''')
+          s=s.replace('''    createGroupEpochRecord: createCloudGroupEpochRecord,\n    readGroupEpochRecord: readCloudGroupEpochRecord,\n    sendEncryptedGroupMessage: sendCloudEncryptedGroupMessage''','''    createGroupEpochRecord: createCloudGroupEpochRecord,\n    readGroupEpochRecord: readCloudGroupEpochRecord,\n    sendEncryptedGroupMessage: sendCloudEncryptedGroupMessage,\n    renameGroup: renameCloudGroup,\n    commitGroupMembershipEpoch: commitCloudGroupMembershipEpoch''')
+          p.write_text(s)
+
+          # 2) Replace group runtime with the same messaging behavior plus serialized atomic membership administration.
+          Path('e2ee-account-group-runtime.js').write_text(r'''import {createGroupEpoch,unwrapGroupEpoch,encryptAccountGroupMessage,decryptAccountGroupMessage} from "./e2ee-account-group-crypto.js";
+
+function need(obj,name){if(!obj||typeof obj[name]!=="function")throw new Error(`Missing group adapter method: ${name}`);}
+function text(v,n){const s=String(v??"").trim();if(!s)throw new Error(`${n} is required.`);return s;}
+function unique(values){return [...new Set((values||[]).map(v=>String(v||"").trim()).filter(Boolean))];}
+
+export function createAccountGroupE2EERuntime({identityProvider,transport}={}){
+  if(typeof identityProvider!=="function")throw new Error("Group E2EE identity provider is required.");
+  ["readGroupAuthority","getAccountPublicKey","createGroupEpochRecord","readGroupEpochRecord","sendEncryptedGroupMessage"].forEach(n=>need(transport,n));
+  let tail=Promise.resolve(),generation=0;
+  const epochCache=new Map();
+  function serial(work){const run=tail.then(work,work);tail=run.catch(()=>{});return run;}
+  function identity(){const v=identityProvider();if(!v?.uid||!v?.keyId||!v?.privateKey)throw new Error("Account E2EE identity must be unlocked before group messaging.");return v;}
+  function invalidate(){generation++;epochCache.clear();}
+  function clearGroupCache(groupId,keepEpoch=null){for(const key of [...epochCache.keys()])if(key.startsWith(`${groupId}:`)&&(keepEpoch===null||!key.startsWith(`${groupId}:${keepEpoch}:`)))epochCache.delete(key);}
+  async function authority(groupId){const a=await transport.readGroupAuthority(text(groupId,"Group ID"));if(!a||!Array.isArray(a.memberUids)||!a.memberUids.length)throw new Error("Group authority is unavailable.");return a;}
+  async function publicKeysForUids(uids){const members=[];for(const uid of unique(uids)){const p=await transport.getAccountPublicKey(uid);if(!p?.keyId||!p?.publicJwk)throw new Error(`Member ${uid} has no durable account E2EE public key.`);members.push({uid,keyId:p.keyId,publicJwk:p.publicJwk});}return members;}
+  async function loadEpoch(groupId,a,id){const cacheKey=`${groupId}:${a.keyEpoch}:${id.uid}:${id.keyId}`;if(epochCache.has(cacheKey))return epochCache.get(cacheKey);const record=await transport.readGroupEpochRecord(groupId,a.keyEpoch);if(!record)throw new Error("Current encrypted group epoch is unavailable.");const creator=await transport.getAccountPublicKey(record.createdByUid);if(!creator||creator.keyId!==record.createdByKeyId)throw new Error("Group epoch creator identity is unavailable or changed.");const key=await unwrapGroupEpoch({record,uid:id.uid,keyId:id.keyId,privateKey:id.privateKey,creatorPublicJwk:creator.publicJwk});epochCache.set(cacheKey,key);return key;}
+  async function buildEpoch(groupId,keyEpoch,id,memberUids){const members=await publicKeysForUids(memberUids);return createGroupEpoch({groupId,keyEpoch,creatorUid:id.uid,creatorKeyId:id.keyId,creatorPrivateKey:id.privateKey,members});}
+  async function createNextEpoch(groupId,a,id){if(!Array.isArray(a.adminUids)||!a.adminUids.includes(id.uid))throw new Error("A group administrator must rotate encrypted group messaging.");const current=Number(a.keyEpoch||0);if(!Number.isInteger(current)||current<0)throw new Error("Group key epoch is invalid.");const next=current+1,created=await buildEpoch(groupId,next,id,a.memberUids);await transport.createGroupEpochRecord({groupId,expectedEpoch:current,newEpoch:next,record:created.record});epochCache.set(`${groupId}:${next}:${id.uid}:${id.keyId}`,created.runtimeKey);return{authority:{...a,keyEpoch:next},epochKey:created.runtimeKey};}
+  async function ensureEpoch(groupId){return serial(async()=>{const g=generation,id=identity(),a=await authority(groupId);if(g!==generation)throw new Error("Group operation invalidated.");if(!a.memberUids.includes(id.uid))throw new Error("Account is not an active group member.");if(Number.isInteger(a.keyEpoch)&&a.keyEpoch>0)return{authority:a,epochKey:await loadEpoch(groupId,a,id)};const created=await createNextEpoch(groupId,a,id);if(g!==generation)throw new Error("Group operation invalidated.");return created;});}
+  async function rotateEpoch(groupId){return serial(async()=>{const g=generation,id=identity(),a=await authority(groupId);if(!a.memberUids.includes(id.uid))throw new Error("Account is not an active group member.");const created=await createNextEpoch(groupId,a,id);if(g!==generation)throw new Error("Group operation invalidated.");clearGroupCache(groupId,created.authority.keyEpoch);return{keyEpoch:created.authority.keyEpoch};});}
+  async function renameGroup(groupId,name){return serial(async()=>{need(transport,"renameGroup");const id=identity(),a=await authority(groupId);if(!a.adminUids?.includes(id.uid))throw new Error("Only a group administrator can rename this group.");const clean=text(name,"Group name");if(clean.length>120)throw new Error("Group name must be 120 characters or fewer.");return transport.renameGroup({groupId:String(groupId),name:clean});});}
+  async function changeMembership({groupId,operation,targetUid}){return serial(async()=>{need(transport,"commitGroupMembershipEpoch");const g=generation,id=identity(),a=await authority(groupId),target=text(targetUid,"Member UID"),op=text(operation,"Membership operation");if(!a.memberUids.includes(id.uid))throw new Error("Account is not an active group member.");const isAdmin=a.adminUids?.includes(id.uid),current=Number(a.keyEpoch||0);if(!Number.isInteger(current)||current<0)throw new Error("Group key epoch is invalid.");let nextMembers=unique(a.memberUids);
+    if(op==="add"){if(!isAdmin)throw new Error("Only a group administrator can add members.");if(nextMembers.includes(target))throw new Error("That account is already a group member.");if(nextMembers.length>=64)throw new Error("A group can have at most 64 members.");nextMembers.push(target);}
+    else if(op==="remove"){if(!isAdmin)throw new Error("Only a group administrator can remove members.");if(target===a.ownerUid)throw new Error("The group owner cannot be removed.");if(!nextMembers.includes(target))throw new Error("That account is not a group member.");nextMembers=nextMembers.filter(uid=>uid!==target);}
+    else if(op==="leave"){if(target!==id.uid)throw new Error("Leave operation must target the signed-in account.");if(target===a.ownerUid)throw new Error("The group owner cannot leave while ownership is immutable.");nextMembers=nextMembers.filter(uid=>uid!==target);}
+    else throw new Error("Unsupported group membership operation.");
+    if(!nextMembers.length)throw new Error("A group must retain at least one member.");const next=current+1,created=await buildEpoch(String(groupId),next,id,nextMembers);if(g!==generation)throw new Error("Group operation invalidated.");const result=await transport.commitGroupMembershipEpoch({groupId:String(groupId),operation:op,targetUid:target,expectedEpoch:current,newEpoch:next,record:created.record});clearGroupCache(String(groupId));if(nextMembers.includes(id.uid))epochCache.set(`${groupId}:${next}:${id.uid}:${id.keyId}`,created.runtimeKey);return result;});}
+  async function send({groupId,messageId,text:body}){return serial(async()=>{const g=generation,id=identity(),a=await authority(groupId);if(!a.memberUids.includes(id.uid))throw new Error("Account is not an active group member.");let epochKey;if(a.keyEpoch>0)epochKey=await loadEpoch(groupId,a,id);else{const created=await createNextEpoch(groupId,a,id);a.keyEpoch=created.authority.keyEpoch;epochKey=created.epochKey;}if(g!==generation)throw new Error("Group operation invalidated.");const envelope=await encryptAccountGroupMessage({text:body,groupId,messageId,keyEpoch:a.keyEpoch,senderUid:id.uid,senderKeyId:id.keyId,epochKey});await transport.sendEncryptedGroupMessage({groupId,messageId,senderUid:id.uid,envelope});return{messageId,keyEpoch:a.keyEpoch};});}
+  async function decrypt({groupId,messageId,row}){const id=identity(),a={keyEpoch:Number(row?.keyEpoch),memberUids:[id.uid]};if(!Number.isInteger(a.keyEpoch)||a.keyEpoch<1)throw new Error("Encrypted group message epoch is invalid.");const epochKey=await loadEpoch(groupId,a,id);return decryptAccountGroupMessage({envelope:{e2ee:row.e2ee,groupFormat:row.groupFormat,keyEpoch:row.keyEpoch,senderKeyId:row.senderKeyId,ciphertext:row.ciphertext,iv:row.iv},groupId,messageId,senderUid:row.senderUid,epochKey});}
+  async function revalidateQueued({groupId,queuedEpoch}){const a=await authority(groupId);if(!a.memberUids.includes(identity().uid))throw new Error("Queued group send is no longer authorized.");return{currentEpoch:a.keyEpoch,changed:Number(queuedEpoch)!==Number(a.keyEpoch)};}
+  return Object.freeze({ensureEpoch,rotateEpoch,renameGroup,changeMembership,send,decrypt,revalidateQueued,resetForSignOut:invalidate});
+}
+''')
+
+          # 3) Expose administration through the existing service/controller/app bridge.
+          p=Path('e2ee-account-group-service.js'); s=p.read_text()
+          s=s.replace('''export function rotateAccountGroupEpoch(groupId){return runtime.rotateEpoch(groupId);}\n''','''export function rotateAccountGroupEpoch(groupId){return runtime.rotateEpoch(groupId);}\nexport function renameAccountGroup(groupId,name){return runtime.renameGroup(groupId,name);}\nexport function addAccountGroupMember(groupId,targetUid){return runtime.changeMembership({groupId,operation:"add",targetUid});}\nexport function removeAccountGroupMember(groupId,targetUid){return runtime.changeMembership({groupId,operation:"remove",targetUid});}\nexport function leaveAccountGroup(groupId){const id=getAccountE2EERuntimeIdentity();if(!id?.uid)throw new Error("Account E2EE identity must be unlocked before leaving a group.");return runtime.changeMembership({groupId,operation:"leave",targetUid:id.uid});}\n''')
+          p.write_text(s)
+
+          p=Path('e2ee-account-group-app-controller.js'); s=p.read_text()
+          s=s.replace('''import {subscribeAccountGroupConversation,stopAccountGroupConversation,resetAccountGroupConversationStreams} from "./e2ee-account-group-conversation.js";''','''import {subscribeAccountGroupConversation,stopAccountGroupConversation,resetAccountGroupConversationStreams} from "./e2ee-account-group-conversation.js";\nimport {renameAccountGroup,addAccountGroupMember,removeAccountGroupMember,leaveAccountGroup} from "./e2ee-account-group-service.js";''')
+          s=s.replace('''export function prepareGroupSend({groupId,messageId,text}){''','''export function renameGroup(groupId,name){return serial(()=>renameAccountGroup(groupId,name));}\nexport function addGroupMember(groupId,targetUid){return serial(()=>addAccountGroupMember(groupId,targetUid));}\nexport function removeGroupMember(groupId,targetUid){return serial(()=>removeAccountGroupMember(groupId,targetUid));}\nexport function leaveGroup(groupId){return serial(()=>leaveAccountGroup(groupId));}\n\nexport function prepareGroupSend({groupId,messageId,text}){''')
+          p.write_text(s)
+
+          p=Path('e2ee-account-group-app-integration.js'); s=p.read_text()
+          s=s.replace('''  prepareGroupSend,\n  flushGroupSend,''','''  prepareGroupSend,\n  flushGroupSend,\n  renameGroup,addGroupMember,removeGroupMember,leaveGroup,''')
+          insert='''\nexport function renameGroupForApp(groupId,name){return renameGroup(groupId,name);}\nexport function addGroupMemberForApp(groupId,targetUid){return addGroupMember(groupId,targetUid);}\nexport function removeGroupMemberForApp(groupId,targetUid){return removeGroupMember(groupId,targetUid);}\nexport function leaveGroupForApp(groupId){return leaveGroup(groupId);}\n'''
+          marker='''export async function queueGroupTextForApp({groupId,messageId,text,time,persistEncryptedOutbox}){'''
+          assert marker in s
+          s=s.replace(marker,insert+'\n'+marker,1)
+          p.write_text(s)
+
+          # 4) Add central Firebase atomic metadata+epoch transaction APIs and richer group snapshots.
+          p=Path('firebase.js'); s=p.read_text()
+          old='''rows.push({id:d.id,cloudGroup:true,type:"group",name:x.name||"FIDUNIO Group",ownerUid:x.ownerUid,memberUids:x.memberUids||[],keyEpoch:Number(x.keyEpoch||0),members,unread:0,preview:"Encrypted group",time:""});'''
+          new='''rows.push({id:d.id,cloudGroup:true,type:"group",name:x.name||"FIDUNIO Group",ownerUid:x.ownerUid,memberUids:x.memberUids||[],adminUids:Array.isArray(x.adminUids)?x.adminUids:[],historyPolicy:x.historyPolicy||"fromJoin",keyEpoch:Number(x.keyEpoch||0),members,unread:0,preview:"Encrypted group",time:""});'''
+          assert old in s; s=s.replace(old,new,1)
+          anchor='''export async function createCloudGroupEpochRecord({groupId,expectedEpoch,newEpoch,record})'''
+          assert anchor in s and 'commitCloudGroupMembershipEpoch' not in s
+          admin=r'''export async function renameCloudGroup({groupId,name}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const clean=String(name||"").trim();if(!clean||clean.length>120)throw new Error("Group name must be 1 to 120 characters.");const ref=s.fsSdk.doc(s.db,"groups",String(groupId));return s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Group was not found.");const g=snap.data(),admins=Array.isArray(g.adminUids)?g.adminUids:[];if(!admins.includes(authUser.uid))throw new Error("Only a group administrator can rename this group.");tx.update(ref,{name:clean,updatedAt:s.fsSdk.serverTimestamp()});return{name:clean};});}
+function sameUidKeys(map,uids){const a=Object.keys(map||{}).sort(),b=[...uids].sort();return a.length===b.length&&a.every((v,i)=>v===b[i]);}
+export async function commitCloudGroupMembershipEpoch({groupId,operation,targetUid,expectedEpoch,newEpoch,record}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const gid=String(groupId||"").trim(),target=String(targetUid||"").trim(),op=String(operation||"").trim();if(!gid||!target)throw new Error("Group and member are required.");let targetProfile=null;if(op==="add"){const ps=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",target));if(!ps.exists()||ps.data().active===false)throw new Error("The selected FIDUNIO account is not active.");targetProfile=ps.data();}
+const groupRef=s.fsSdk.doc(s.db,"groups",gid),epochRef=s.fsSdk.doc(s.db,"groups",gid,"epochs",String(newEpoch)),memberRef=s.fsSdk.doc(s.db,"groups",gid,"members",target);return s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(groupRef);if(!snap.exists())throw new Error("Group was not found.");const g=snap.data(),actor=authUser.uid,members=[...new Set(Array.isArray(g.memberUids)?g.memberUids:[])],admins=[...new Set(Array.isArray(g.adminUids)?g.adminUids:[])],isAdmin=admins.includes(actor),current=Number(g.keyEpoch||0);if(current!==Number(expectedEpoch)||Number(newEpoch)!==current+1)throw new Error("Group membership changed; reload before retrying.");if((await tx.get(epochRef)).exists())throw new Error("Group epoch already exists.");let nextMembers=[...members],nextAdmins=[...admins];
+if(op==="add"){if(!isAdmin)throw new Error("Only a group administrator can add members.");if(nextMembers.includes(target))throw new Error("That account is already a group member.");if(nextMembers.length>=64)throw new Error("A group can have at most 64 members.");nextMembers.push(target);}
+else if(op==="remove"){if(!isAdmin)throw new Error("Only a group administrator can remove members.");if(target===g.ownerUid)throw new Error("The group owner cannot be removed.");if(!nextMembers.includes(target))throw new Error("That account is not a group member.");nextMembers=nextMembers.filter(uid=>uid!==target);nextAdmins=nextAdmins.filter(uid=>uid!==target);}
+else if(op==="leave"){if(target!==actor||!nextMembers.includes(actor))throw new Error("Only the signed-in member can leave this group.");if(actor===g.ownerUid)throw new Error("The group owner cannot leave while ownership is immutable.");nextMembers=nextMembers.filter(uid=>uid!==actor);nextAdmins=nextAdmins.filter(uid=>uid!==actor);}
+else throw new Error("Unsupported group membership operation.");
+if(!nextMembers.includes(g.ownerUid)||!nextAdmins.includes(g.ownerUid)||!nextAdmins.every(uid=>nextMembers.includes(uid)))throw new Error("Group owner/admin invariants would be violated.");if(record?.format!=="fidunio-group-key-v1"||record.groupId!==gid||Number(record.keyEpoch)!==Number(newEpoch)||record.createdByUid!==actor||!sameUidKeys(record.memberKeyIds,nextMembers)||!sameUidKeys(record.envelopes,nextMembers))throw new Error("New group epoch does not match post-change membership.");const now=s.fsSdk.serverTimestamp();tx.update(groupRef,{memberUids:nextMembers,adminUids:nextAdmins,keyEpoch:Number(newEpoch),updatedAt:now});tx.set(epochRef,{...record,createdAt:now});if(op==="add")tx.set(memberRef,{uid:target,displayName:targetProfile?.displayName||targetProfile?.email||"FIDUNIO user",role:"member",joinedAt:now,historyFrom:now,addedByUid:actor,active:true});else tx.delete(memberRef);return{groupId:gid,memberUids:nextMembers,adminUids:nextAdmins,keyEpoch:Number(newEpoch)};});}
+'''
+          s=s.replace(anchor,admin+'\n'+anchor,1)
+          p.write_text(s)
+
+          # 5) Harden Firestore rules so membership changes require a matching post-state epoch in the same atomic write.
+          p=Path('firestore.rules'); s=p.read_text()
+          old='''function validGroupEpoch(groupId,d){return d.keys().hasAll(["format","groupId","keyEpoch","createdByUid","createdByKeyId","memberKeyIds","envelopes","createdAt"]) && d.keys().hasOnly(["format","groupId","keyEpoch","createdByUid","createdByKeyId","memberKeyIds","envelopes","createdAt"]) && d.format=="fidunio-group-key-v1" && d.groupId==groupId && d.keyEpoch==groupDocAfter(groupId).data.keyEpoch && d.createdByUid==request.auth.uid && d.createdByKeyId==accountPublicKey(request.auth.uid).data.keyId && d.memberKeyIds is map && d.envelopes is map && d.memberKeyIds.size()==groupDocAfter(groupId).data.memberUids.size() && d.envelopes.size()==groupDocAfter(groupId).data.memberUids.size() && d.createdAt==request.time;}'''
+          new='''function validGroupEpoch(groupId,d){return d.keys().hasAll(["format","groupId","keyEpoch","createdByUid","createdByKeyId","memberKeyIds","envelopes","createdAt"]) && d.keys().hasOnly(["format","groupId","keyEpoch","createdByUid","createdByKeyId","memberKeyIds","envelopes","createdAt"]) && d.format=="fidunio-group-key-v1" && d.groupId==groupId && d.keyEpoch==groupDocAfter(groupId).data.keyEpoch && d.createdByUid==request.auth.uid && d.createdByKeyId==accountPublicKey(request.auth.uid).data.keyId && d.memberKeyIds is map && d.envelopes is map && d.memberKeyIds.keys().hasOnly(groupDocAfter(groupId).data.memberUids) && d.memberKeyIds.keys().hasAll(groupDocAfter(groupId).data.memberUids) && d.envelopes.keys().hasOnly(groupDocAfter(groupId).data.memberUids) && d.envelopes.keys().hasAll(groupDocAfter(groupId).data.memberUids) && d.createdAt==request.time;}\n    function groupMembershipChanged(groupId){return groupDocAfter(groupId).data.memberUids!=groupDoc(groupId).data.memberUids || groupDocAfter(groupId).data.adminUids!=groupDoc(groupId).data.adminUids;}\n    function matchingNextEpochExists(groupId){return existsAfter(/databases/$(database)/documents/groups/$(groupId)/epochs/$(groupDocAfter(groupId).data.keyEpoch));}\n    function selfLeaveAfter(groupId){return isGroupMember(groupId) && request.auth.uid!=groupDoc(groupId).data.ownerUid && request.auth.uid in groupDoc(groupId).data.memberUids && !(request.auth.uid in groupDocAfter(groupId).data.memberUids) && groupDocAfter(groupId).data.memberUids.hasOnly(groupDoc(groupId).data.memberUids) && groupDocAfter(groupId).data.adminUids.hasOnly(groupDoc(groupId).data.adminUids);}'''
+          assert old in s; s=s.replace(old,new,1)
+          old='''allow update: if isGroupAdmin(groupId)&&request.resource.data.type==resource.data.type&&request.resource.data.ownerUid==resource.data.ownerUid&&request.resource.data.createdByUid==resource.data.createdByUid&&request.resource.data.createdAt==resource.data.createdAt&&request.resource.data.historyPolicy==resource.data.historyPolicy&&request.resource.data.groupVersion==resource.data.groupVersion&&request.resource.data.name is string&&request.resource.data.name.size()>0&&request.resource.data.name.size()<=120&&validGroupLists(request.resource.data)&&((request.resource.data.memberUids==resource.data.memberUids&&request.resource.data.adminUids==resource.data.adminUids&&request.resource.data.keyEpoch==resource.data.keyEpoch)||(request.resource.data.keyEpoch==resource.data.keyEpoch+1));'''
+          new='''allow update: if registered()&&request.resource.data.type==resource.data.type&&request.resource.data.ownerUid==resource.data.ownerUid&&request.resource.data.createdByUid==resource.data.createdByUid&&request.resource.data.createdAt==resource.data.createdAt&&request.resource.data.historyPolicy==resource.data.historyPolicy&&request.resource.data.groupVersion==resource.data.groupVersion&&request.resource.data.name is string&&request.resource.data.name.size()>0&&request.resource.data.name.size()<=120&&validGroupLists(request.resource.data)&&((isGroupAdmin(groupId)&&request.resource.data.memberUids==resource.data.memberUids&&request.resource.data.adminUids==resource.data.adminUids&&request.resource.data.keyEpoch==resource.data.keyEpoch)||(request.resource.data.name==resource.data.name&&request.resource.data.keyEpoch==resource.data.keyEpoch+1&&groupMembershipChanged(groupId)&&matchingNextEpochExists(groupId)&&(isGroupAdmin(groupId)||selfLeaveAfter(groupId))));'''
+          assert old in s; s=s.replace(old,new,1)
+          s=s.replace('''allow delete: if isGroupAdmin(groupId)&&uid!=groupDoc(groupId).data.ownerUid&&!(uid in groupDocAfter(groupId).data.memberUids);''','''allow delete: if uid!=groupDoc(groupId).data.ownerUid&&!(uid in groupDocAfter(groupId).data.memberUids)&&(isGroupAdmin(groupId)||(request.auth.uid==uid&&selfLeaveAfter(groupId)));''',1)
+          s=s.replace('''match /epochs/{epochId}{allow read: if isGroupMember(groupId);allow create: if isGroupAdmin(groupId)&&request.resource.data.keyEpoch==int(epochId)&&request.resource.data.keyEpoch==groupDoc(groupId).data.keyEpoch+1&&validGroupEpoch(groupId,request.resource.data);''','''match /epochs/{epochId}{allow read: if isGroupMember(groupId);allow create: if (isGroupAdmin(groupId)||selfLeaveAfter(groupId))&&request.resource.data.keyEpoch==int(epochId)&&request.resource.data.keyEpoch==groupDoc(groupId).data.keyEpoch+1&&validGroupEpoch(groupId,request.resource.data);''',1)
+          p.write_text(s)
+
+          # 6) Replace Group Info local placeholders with cloud-backed serialized operations.
+          p=Path('app.js'); s=p.read_text()
+          old='''import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut } from "./e2ee-account-group-app-integration.js";'''
+          new='''import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp } from "./e2ee-account-group-app-integration.js";'''
+          assert old in s; s=s.replace(old,new,1)
+          start=s.index('function renderGroupInfo(){')
+          end=s.index('\nfunction renderModal(){',start)
+          replacement=r'''function renderGroupInfo(){
+  const c=currentConversation();
+  if(!c||c.type!=="group"){state.route="chat";return render()}
+  const myUid=firebaseUser?.uid||"",isAdmin=Array.isArray(c.adminUids)&&c.adminUids.includes(myUid),isOwner=c.ownerUid===myUid;
+  app.innerHTML=`
+    <main class="app-shell">
+      ${shellTop("Group Info",'<button class="back-btn" id="backBtn">‹</button>')}
+      <section class="content">
+        <div class="card" style="text-align:center">
+          <div class="avatar group-avatar" style="margin:0 auto 10px">${initials(c.name)}</div>
+          <h2 style="font-size:22px;margin:0">${esc(c.name)}</h2>
+          <p class="small-note">${c.members.length} members • Secure group</p>
+          ${isAdmin?'<button class="secondary" id="renameBtn">Rename Group</button>':''}
+        </div>
+        <div class="card">
+          <h2>Members</h2>
+          ${c.members.map(m=>`
+            <div class="member-card">
+              <div class="avatar">${initials(m.name)}</div>
+              <div class="row-main">
+                <strong>${esc(m.name)}</strong>
+                <span>${esc(m.joinedAt)}</span>
+                ${m.historyAccess==="from_join"?'<span class="history-lock">Earlier history hidden</span>':m.historyAccess==="all"?'<span class="history-lock">Earlier history available</span>':""}
+              </div>
+              <div>${m.role!=="Member"?`<span class="role-tag">${esc(m.role)}</span>`:""}${isAdmin&&m.id!==c.ownerUid&&m.id!==myUid?` <button class="row-action removeMemberBtn" data-id="${m.id}">Remove</button>`:""}</div>
+            </div>`).join("")}
+          ${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':''}
+        </div>
+        <div class="card">
+          <h2>Group Controls</h2>
+          <div class="row"><div class="row-main"><strong>History policy</strong><span>New members see messages only from the time they join.</span></div><span class="role-tag">From join</span></div>
+          <div class="row"><div class="row-main"><strong>Mute notifications</strong><span>Silence alerts for this group</span></div><button class="toggle"></button></div>
+          <div class="row"><div class="row-main"><strong>Search messages</strong><span>Find text in this conversation</span></div><button class="row-action placeholderBtn">Open</button></div>
+          <div class="row"><div class="row-main"><strong>Shared photos & files</strong><span>View shared attachments</span></div><button class="row-action placeholderBtn">Open</button></div>
+          <div class="row"><div class="row-main"><strong>Security information</strong><span>Member keys and group-key status</span></div><button class="row-action placeholderBtn">View</button></div>
+        </div>
+        ${isOwner?'<p class="small-note">The group owner cannot leave until ownership transfer is deliberately implemented.</p>':'<button class="danger-btn" id="leaveBtn">Leave Group</button>'}
+      </section>
+    </main>`;
+  document.querySelector("#backBtn").onclick=()=>{state.route="chat";render()};
+  const rename=document.querySelector("#renameBtn");if(rename)rename.onclick=async()=>{const name=prompt("Rename group:",c.name);if(!name?.trim()||name.trim()===c.name)return;rename.disabled=true;try{await renameGroupForApp(c.id,name.trim());}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
+  const add=document.querySelector("#addMemberBtn");if(add)add.onclick=()=>openAddMemberModal();
+  document.querySelectorAll(".removeMemberBtn").forEach(btn=>btn.onclick=async()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member||!confirm(`Remove ${member.name} from this group?`))return;btn.disabled=true;try{await removeGroupMemberForApp(c.id,member.id);}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}});
+  document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
+  document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
+  const leave=document.querySelector("#leaveBtn");if(leave)leave.onclick=async()=>{if(!confirm(`Leave ${c.name}? You will lose access to future messages.`))return;leave.disabled=true;try{await leaveGroupForApp(c.id);state.route="messages";state.selectedId=null;}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
+}
+
+function openAddMemberModal(){
+  const c=currentConversation();if(!c)return;
+  state.modal={type:"addMember",options:[],selected:null,loading:true};render();
+  const currentIds=new Set(c.members.map(m=>String(m.id)));
+  listCloudUsers().then(rows=>{if(!state.modal||state.modal.type!=="addMember")return;const available=(rows||[]).filter(p=>!currentIds.has(String(p.uid))).map(p=>({id:p.uid,name:p.displayName||p.email||p.uid}));state.modal={type:"addMember",options:available,selected:available[0]?.id||null,loading:false};render();}).catch(err=>{firebaseError=err?.message||String(err);if(state.modal?.type==="addMember"){state.modal={type:"addMember",options:[],selected:null,loading:false,error:firebaseError};render();}});
+}
+'''
+          s=s[:start]+replacement+s[end:]
+          # Make the add-member modal cloud-backed instead of mutating local sample state.
+          old='''        ${modal.options.length?`'''
+          new='''        ${modal.loading?'<p class="small-note">Loading FIDUNIO users…</p>':modal.error?`<p class="warning-note">${esc(modal.error)}</p>`:modal.options.length?`'''
+          assert old in s; s=s.replace(old,new,1)
+          old=r'''    if(confirm) confirm.onclick=()=>{
+      const p=contacts.find(x=>x.id===state.modal.selected);
+      if(p){
+        const c=currentConversation();
+        c.members.push({id:p.id,name:p.name,role:"Member",joinedAt:`Joined ${nowTime()}`,historyAccess:"from_join"});
+        state.messages[c.id].push({id:crypto.randomUUID(),system:true,text:`${p.name} joined the group • Earlier messages hidden by default`,time:nowTime()});
+        c.preview=`${p.name} joined the group`;c.time=nowTime();
+      }
+      state.modal=null;render();
+    };'''
+          new=r'''    if(confirm) confirm.onclick=async()=>{
+      const modalNow=state.modal,p=modalNow?.options?.find(x=>String(x.id)===String(modalNow.selected)),c=currentConversation();
+      if(!p||!c)return;
+      confirm.disabled=true;
+      try{await addGroupMemberForApp(c.id,p.id);state.modal=null;host.remove();render();}
+      catch(err){firebaseError=err?.message||String(err);confirm.disabled=false;alert(firebaseError);}
+    };'''
+          assert old in s; s=s.replace(old,new,1)
+          p.write_text(s)
+
+          # 7) Expand runtime and rules tests around atomic add/remove/leave invariants.
+          p=Path('e2ee-account-group-runtime.test.mjs'); s=p.read_text()
+          s=s.replace('''const transport={readGroupAuthority:async()=>({...authority,memberUids:[...authority.memberUids],adminUids:[...authority.adminUids]}),getAccountPublicKey:async uid=>pubs[uid],createGroupEpochRecord:''','''const transport={readGroupAuthority:async()=>({...authority,ownerUid:A.uid,memberUids:[...authority.memberUids],adminUids:[...authority.adminUids]}),getAccountPublicKey:async uid=>pubs[uid],renameGroup:async({name})=>({name}),commitGroupMembershipEpoch:async({operation,targetUid,expectedEpoch,newEpoch,record})=>{ok(authority.keyEpoch===expectedEpoch,"membership expected epoch");if(operation==="add")authority={...authority,memberUids:[...authority.memberUids,targetUid],keyEpoch:newEpoch};else authority={...authority,memberUids:authority.memberUids.filter(x=>x!==targetUid),adminUids:authority.adminUids.filter(x=>x!==targetUid),keyEpoch:newEpoch};epochs.set(newEpoch,record);return{keyEpoch:newEpoch,memberUids:[...authority.memberUids]};},createGroupEpochRecord:''')
+          s=s.replace('''const A=await id("A","runtime-owner-key-0001"),B=await id("B","runtime-member-key-0001");''','''const A=await id("A","runtime-owner-key-0001"),B=await id("B","runtime-member-key-0001"),C=await id("C","runtime-member-key-0002");''')
+          s=s.replace('''const pubs={A:{keyId:A.keyId,publicJwk:A.publicJwk},B:{keyId:B.keyId,publicJwk:B.publicJwk}};''','''const pubs={A:{keyId:A.keyId,publicJwk:A.publicJwk},B:{keyId:B.keyId,publicJwk:B.publicJwk},C:{keyId:C.keyId,publicJwk:C.publicJwk}};''')
+          s=s.replace('''console.log("8/8 group runtime assertions passed.");''','''authority={memberUids:[A.uid,B.uid],adminUids:[A.uid],keyEpoch:2};await ra.changeMembership({groupId:"g1",operation:"add",targetUid:C.uid});ok(authority.memberUids.includes(C.uid)&&authority.keyEpoch===3&&epochs.get(3).envelopes.C,"atomic add includes new member only in new epoch");await ra.changeMembership({groupId:"g1",operation:"remove",targetUid:B.uid});ok(!authority.memberUids.includes(B.uid)&&authority.keyEpoch===4&&!epochs.get(4).envelopes.B,"atomic remove excludes removed member from new epoch");console.log("10/10 group runtime assertions passed.");''')
+          p.write_text(s)
+
+          p=Path('firestore-group-e2ee-v1.rules.test.mjs'); s=p.read_text()
+          s=s.replace('''import { doc,getDoc,setDoc,serverTimestamp,writeBatch } from "firebase/firestore";''','''import { doc,getDoc,setDoc,serverTimestamp,writeBatch,deleteDoc } from "firebase/firestore";''')
+          extra=r'''
+await test("16 membership change without matching epoch denied",async()=>{const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));return assertFails(b.commit());});
+await test("17 admin atomic removal plus new epoch succeeds",async()=>{const e2={...epoch(),keyEpoch:2,memberKeyIds:{[A]:keyA},envelopes:{[A]:{senderKeyId:keyA,recipientKeyId:keyA,ciphertext:"CCCCCCCCCCCCCCCCCCCCCC",iv:"CCCCCCCCCCCCCCCC"}}};const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],adminUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));b.set(doc(dbA,"groups","g1","epochs","2"),e2);return assertSucceeds(b.commit());});
+await test("18 removed member cannot read new epoch",()=>assertFails(getDoc(doc(dbB,"groups","g1","epochs","2"))));
+'''
+          marker='''const failed=results.filter(([,ok])=>!ok);'''
+          assert marker in s; s=s.replace(marker,extra+'\n'+marker,1)
+          p.write_text(s)
+
+          # 8) Update durable documentation as part of definition of done.
+          def append(path,text):
+              p=Path(path); s=p.read_text();
+              if text.strip() not in s: p.write_text(s.rstrip()+"\n\n"+text.strip()+"\n")
+          append('ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md','''## Atomic group-administration rule — 2026-09-06\n\nGroup membership mutation and the replacement epoch are one serialized operation. Add/remove/leave prepares the epoch for the exact post-change member UID set, then `firebase.js` commits parent membership/admin arrays, `keyEpoch + 1`, member-subcollection mutation, and the matching epoch document atomically. There is no state in which changed membership can accept messages under the old epoch. A removed/leaving member is absent from the replacement epoch envelopes. The owner remains immutable and cannot be removed or leave until an explicit ownership-transfer design is approved.''')
+          append('FIRESTORE-GROUP-E2EE-V1-RULES.md','''## Group administration hardening — 2026-09-06\n\nMembership-changing group updates now require `keyEpoch + 1` and a matching post-state epoch document in the same atomic write. Epoch `memberKeyIds` and `envelopes` must have exactly the post-change member UID keys. Admins may add/remove non-owner members. A non-owner member may leave only by removing the signed-in UID, with the same atomic epoch replacement. Owner removal/leave remains denied.''')
+          append('group-data-model.txt','''CURRENT COMPLETE-REBUILD STATUS — 2026-09-06\nThe earlier 0.9.1 text above is historical foundation material. Group E2EE messaging is now active in the authoritative complete rebuild. Real rename/add/remove/non-owner-leave administration is cloud-backed. Every membership mutation atomically rotates `keyEpoch` and creates envelopes for exactly the post-change members. The owner remains immutable. Default history policy remains `fromJoin`; explicit earlier-history grants are still unfinished and must never be simulated locally.''')
+          append('architecture-ownership.txt','''GROUP ADMINISTRATION OWNER UPDATE — 2026-09-06\n- `app.js`: Group Info rendering, confirmation and user intent only.\n- `e2ee-account-group-app-integration.js` / controller: bounded serialized app bridge.\n- `e2ee-account-group-runtime.js`: prepares the post-membership cryptographic epoch and owns group-operation serialization.\n- `firebase.js`: sole Firebase SDK owner and sole atomic Firestore membership/epoch commit path.\n- Firestore Rules: enforce matching post-membership epoch and owner/admin invariants.\nNo local-only membership mutation is authoritative.''')
+          append('RUNTIME-AUTHORITY-MAP.md','''## Group administration materialization — 2026-09-06\nGroup Info mutations now route `app.js -> group app integration/controller -> account group runtime -> Firebase adapter -> firebase.js`. Membership changes are a single serialized cryptographic+Firestore operation; the runtime prepares an epoch for the exact post-change members and `firebase.js` atomically commits membership, member document, key epoch and epoch record. Rename uses the same serialized bridge but does not rotate the key because membership is unchanged.''')
+          append('DETERMINISTIC-UI-LIFECYCLE.md','''## Group Info management lifecycle — 2026-09-06\nRename/add/remove/leave no longer mutate sample/local group state. Group Info emits one user intent into the bounded group administration owner and waits for the cloud-authoritative operation; `subscribeMyGroups` remains the rendering authority for resulting membership/name state. Non-owner leave routes back to Messages after confirmed completion. Owner leave is deliberately unavailable while ownership is immutable.''')
+          append('hermes-memory.txt','''2026-09-06 — GROUP ADMINISTRATION MATERIALIZED\n- Real cloud-backed Group Info rename/add/remove/non-owner leave implemented under deterministic ownership.\n- Membership changes are atomic with E2EE epoch rotation: post-change membership/admin arrays, member doc mutation, `keyEpoch + 1`, and the new epoch record are one Firestore transaction/batch-equivalent authority path in `firebase.js`.\n- `e2ee-account-group-runtime.js` prepares replacement epoch envelopes for exactly the post-change members; removed/leaving accounts receive no new envelope.\n- Firestore Rules require a matching post-state epoch and exact epoch map keys for every membership change; owner removal/leave is denied.\n- Default `historyPolicy: fromJoin` remains authoritative. Explicit earlier-history grants/admin-role transfer remain unfinished and must not be simulated.\n- Group Info now reads admin/history metadata from cloud snapshots. Search/shared-files/security controls remain separate placeholders and are not part of this completed administration slice.''')
+
+          p=Path('FIDUNIO-BUILD-CHECKLIST.md'); s=p.read_text()
+          s=s.replace('| Group rename | NOT DONE | Current Group Info path still has local/placeholder behavior. |','| Group rename | DONE | Cloud-authoritative admin rename through serialized group owner; repository group tests/gate required. |')
+          s=s.replace('| Group add member | NOT DONE | Must use real cloud users and rotate epoch atomically. |','| Group add member | DONE | Real cloud users; membership/member doc/new E2EE epoch committed atomically. |')
+          s=s.replace('| Group remove member | NOT DONE | Must rotate epoch before subsequent message; removed member gets no new envelope. |','| Group remove member | DONE | Admin removal atomically rotates epoch; removed member is excluded from replacement envelopes. |')
+          s=s.replace('| Leave group | NOT DONE | Real cloud membership mutation + epoch handling required. |','| Leave group | DONE | Non-owner self-leave is atomic with epoch replacement; immutable owner intentionally cannot leave. |')
+          s=s.replace('| Group Info real management UI | NOT DONE | Contains placeholders/local-only controls. |','| Group Info real management UI | IN PROGRESS | Rename/add/remove/leave are real; explicit earlier-history/admin-role controls and unrelated tool placeholders remain. |')
+          build='''- 2026-09-06 — Real group administration materialized: cloud-backed rename/add/remove/non-owner leave; membership changes atomically rotate E2EE epoch and exclude departed members. Firestore/runtime tests extended. Explicit earlier-history/admin-role controls remain IN PROGRESS.'''
+          if build not in s:s=s.rstrip()+"\n"+build+"\n"
+          p.write_text(s)
+          PY
+      - name: Syntax checks
+        run: |
+          node --check app.js
+          node --check firebase.js
+          node --check e2ee-account-group-runtime.js
+          node --check e2ee-account-group-app-controller.js
+          node --check e2ee-account-group-app-integration.js
+      - name: Install test dependencies
+        run: npm install --ignore-scripts
+      - name: Group runtime tests
+        run: npm run test:e2ee-account-group-runtime
+      - name: Group app ownership tests
+        run: |
+          npm run test:e2ee-account-group-service
+          npm run test:e2ee-account-group-app-controller
+          npm run test:e2ee-account-group-app-integration
+      - name: Group Firestore rules tests
+        run: npm run emulator:test:group-e2ee-rules
+      - name: Runtime authority tests
+        run: npm run test:runtime-authority
+      - name: Commit validated group administration
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app.js firebase.js firestore.rules e2ee-account-group-firebase-adapter.js e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-app-controller.js e2ee-account-group-app-integration.js e2ee-account-group-runtime.test.mjs firestore-group-e2ee-v1.rules.test.mjs ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md FIRESTORE-GROUP-E2EE-V1-RULES.md group-data-model.txt architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md DETERMINISTIC-UI-LIFECYCLE.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md
+          git commit -m "Materialize atomic group administration"
+          git push origin HEAD:fidunio-complete-rebuild
