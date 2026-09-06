@@ -126,3 +126,10 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - `e2ee-account-group-conversation.js`: read-side owner that combines ordinary decrypted rows with active history-grant rows obtained through `e2ee-account-group-service.js`.
 - `app.js` continues to receive one bounded `onRows` projection and owns only rendering/cache projection; it does not decrypt grant copies or read Firestore grants directly.
 - Normal receipt mutation is restricted to ordinary rows that decrypt successfully; granted historical projection does not mint retroactive receipts.
+
+## Earlier-history source selection — 0.9.6.9
+- `app.js` / future Group Info control: intent only (`groupId`, `targetUid`, `boundary`).
+- `e2ee-account-group-app-integration.js` / controller: bounded serialized intent bridge only; no source rows, Firebase or crypto.
+- `e2ee-account-group-runtime.js`: grant ID generation, authoritative boundary filtering, source decrypt/re-encrypt and grant serialization.
+- `e2ee-account-group-firebase-adapter.js`: one-shot server-backed retained-message read by wrapping the existing central firebase.js group subscription; cache-only snapshots are not grant authority.
+- `firebase.js`: remains the sole Firebase SDK/service owner.

@@ -128,3 +128,10 @@ GROUP HISTORY PROJECTION — 0.9.6.8
 - Grant plaintext source: e2ee-account-group-service.js -> serialized group runtime -> firebase.js transport.
 - app.js receives only the finished projection and remains the structural UI/cache owner.
 - A history grant cannot override a normally decryptable source row and cannot cause normal-message receipts for ciphertext the target could not decrypt.
+
+GROUP HISTORY SOURCE AUTHORITY — 0.9.6.9
+- Resource: retained encrypted group rows eligible to seed an explicit earlier-history grant.
+- Authority path: firebase.js group message subscription -> thin Firebase adapter server-backed snapshot -> serialized group runtime.
+- app.js/local caches/projected conversation rows are NEVER source authority for a grant.
+- The controller/integration boundary carries only target/boundary intent.
+- Runtime owns secure grant ID generation and boundary/source selection before message-granular re-encryption.

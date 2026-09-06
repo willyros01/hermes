@@ -339,3 +339,13 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Conversation projection tests execute the merge behavior rather than checking only source tokens. Rebuild Baseline Security Gate run `34048452887` PASSED all substantive steps on implementation commit `07c274e80d5c04e18ef831f1c9f53d7da3a28f19`.
 - History sharing is still NOT user-facing DONE. Group Info date/Beginning selection + real grant invocation, physical purge of source/grant/local copies, anti-resurrection, and final device validation remain required.
 - Version advanced 0.9.6.7 -> 0.9.6.8. No live Firebase deployment, no htest deployment, no FCM activation, no App Check enforcement. Overall first-rebuild estimate remains approximately 65%.
+
+2026-09-06 — 0.9.6.9 GROUP HISTORY SOURCE AUTHORITY
+- Production earlier-history grants no longer accept source message rows from app.js, local cache, or other callers.
+- e2ee-account-group-runtime.js requests retained encrypted source rows from `readRetainedGroupMessages`; e2ee-account-group-firebase-adapter.js implements that as a one-shot view over the existing firebase.js group-message subscription and ignores cache-only snapshots until a server-backed snapshot arrives.
+- This preserves firebase.js as sole SDK owner while preventing stale/tampered UI projection from becoming cryptographic authority.
+- Approved Beginning/date boundaries are filtered inside the serialized runtime against those authoritative retained rows. Runtime tests inject forged caller `sourceRows` and prove they cannot affect source selection or boundary decisions.
+- Production grant IDs are runtime-owned via secure `crypto.randomUUID()`.
+- e2ee-account-group-app-controller.js and app-integration now expose an intent-only history grant path (`groupId`, `targetUid`, `boundary`) but app.js does not yet invoke it. This is deliberate: user-facing activation remains blocked on disappearing-content physical purge/anti-resurrection.
+- Rebuild Baseline Security Gate run `34048905157` PASSED all substantive steps.
+- Version advanced 0.9.6.8 -> 0.9.6.9. Live Firebase, htest, FCM and App Check enforcement remain untouched. Overall first-rebuild estimate remains approximately 65%.

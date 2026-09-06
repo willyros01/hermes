@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.8**
+- Current checkpoint version: **0.9.6.9**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -284,3 +284,15 @@ Release transition: **0.9.6.7 -> 0.9.6.8**.
 - Rebuild Baseline Security Gate run `34048452887` passed all substantive steps on the implementation commit.
 - This release does **not** enable the Group Info history-grant control. Date/beginning selection and grant creation remain deliberately unavailable until physical disappearing-content purge/anti-resurrection is integrated and validated.
 - Live Firebase, `htest`, FCM and App Check enforcement were not changed. Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.9 — authoritative earlier-history source selection
+
+Release transition: **0.9.6.8 -> 0.9.6.9**.
+
+- Removed caller/UI-provided source rows from production earlier-history grant creation. The serialized group runtime now obtains retained encrypted source rows through the bounded group Firebase adapter.
+- The adapter reuses `firebase.js`'s sole central group-message subscription owner and waits for a server-backed (`fromCache == false`) snapshot before a grant may be built. Local/app projected rows cannot become cryptographic grant authority.
+- Date/Beginning boundaries are applied to those authoritative retained rows inside `e2ee-account-group-runtime.js`; tests prove forged caller rows cannot change either the selected source message or the lower-bound decision.
+- Production grant IDs are now generated inside the group runtime with `crypto.randomUUID()`. The bounded controller/app-integration bridge accepts only group ID, target UID and boundary intent; it does not accept ciphertext/source rows or own Firebase/crypto.
+- Rebuild Baseline Security Gate run `34048905157` passed every substantive step on the source-authority/intent-bridge implementation.
+- Group Info still does not enable the earlier-history action. Physical disappearing-content purge/anti-resurrection remains a prerequisite before the control can be exposed to users.
+- No live Firebase deployment, no `htest` deployment, no FCM activation and no App Check enforcement change. Overall first-rebuild estimate remains approximately 65%.

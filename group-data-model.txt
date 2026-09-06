@@ -109,3 +109,6 @@ Grant metadata: groups/{groupId}/historyGrants/{grantId}. Per-message encrypted 
 
 GROUP HISTORY PROJECTION — 0.9.6.8
 Active grant-copy records are not a second message authority. They are a target-specific decryptability mechanism for retained source message IDs. The read-side conversation owner deduplicates by sourceMessageId/message ID and projects one visible row. If the ordinary source ciphertext is decryptable under normal group epoch authority, that normal decrypt wins; otherwise an active valid grant copy may supply the visible body. Grant projection does not create retroactive normal-message receipts.
+
+GROUP HISTORY SOURCE AUTHORITY — 0.9.6.9
+Grant source rows are selected from the currently retained server-backed `groups/{groupId}/messages` authority through the existing Firebase owner. App/local projected rows are not accepted as grant input. A Beginning/timestamp boundary is applied to the authoritative source `createdAt` values inside the serialized group runtime before message-granular grant copies are produced.
