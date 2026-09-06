@@ -42,7 +42,8 @@ await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();const g=awa
 await test("22 non-admin cannot create history grant",()=>assertFails(setDoc(doc(dbB,"groups","g1","historyGrants","hg0"),{...grant("hg0"),grantorUid:B,grantorKeyId:keyB,targetUid:A,targetKeyId:keyA})));
 await test("23 admin cannot grant history to outsider",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-out"),grant("hg-out",{targetUid:OUT,targetKeyId:"missing"}))));
 await test("24 timestamp grant cannot start before requested boundary",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-late"),grant("hg-late",{boundaryKind:"timestamp",boundaryAt:new Date(m1CreatedAt.toMillis()+60000)}))));
-await test("25 admin creates building beginning grant",()=>assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1"),grant())));
+await test("25a admin history grant without basis-visible group touch denied",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-no-barrier"),grant("hg-no-barrier"))));
+await test("25 admin creates building beginning grant with group barrier",async()=>{const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{updatedAt:serverTimestamp()});b.set(doc(dbA,"groups","g1","historyGrants","hg1"),grant());return assertSucceeds(b.commit());});
 await test("26 target cannot read building grant",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1"))));
 await test("27 admin writes bounded history copy while building",()=>assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1","messages","m1"),grantCopy())));
 await test("28 target cannot read copy before activation",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1","messages","m1"))));
