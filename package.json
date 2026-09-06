@@ -19,6 +19,7 @@
     "test:disappearing-read-authority":"node disappearing-read-authority.test.mjs",
     "test:disappearing-message-metadata-authority":"node disappearing-message-metadata-authority.test.mjs",
     "test:disappearing-purge-policy":"node disappearing-purge-policy.test.mjs",
+    "test:disappearing-purge-executor":"node disappearing-purge-executor.test.mjs",
     "test:recovery-crypto":"node e2ee-recovery-server-crypto.test.mjs",
     "test:recovery-session":"node e2ee-recovery-session-policy.test.mjs",
     "test:recovery-callable-core":"node e2ee-recovery-callable-core.test.mjs",
