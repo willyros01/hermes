@@ -66,6 +66,8 @@ jobs:
         run: npm run test:disappearing-purge-firestore
       - name: Group history-grant purge barrier
         run: npm run test:group-history-grant-purge-barrier
+      - name: Group history-copy purge barrier
+        run: npm run test:group-history-copy-purge-barrier
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
