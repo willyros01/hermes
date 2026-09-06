@@ -55,6 +55,28 @@ The existing `historyPolicy: "fromJoin"` is mandatory by default. A newly added 
 
 Removing or deactivating a member MUST rotate to a new epoch before another message is accepted. The removed member receives no envelope for the new epoch.
 
+## Explicit earlier-history grant policy — approved 2026-09-06
+
+When an administrator deliberately grants a member access to earlier group history, the administrator chooses a **starting point/date**. The selectable starting point may be the **beginning of the conversation**, which means the entire still-retained conversation history is shared.
+
+The grant boundary is security-significant and MUST NOT expose messages earlier than the selected starting point. Because a historical group epoch key may decrypt multiple messages on both sides of a requested date, FIDUNIO MUST NOT satisfy an exact date/message-boundary grant merely by handing the recipient a whole older epoch key when doing so would reveal earlier content.
+
+Implementation MUST therefore preserve an exact lower boundary at message granularity. A history-grant design may re-encrypt only the selected retained messages, or use another cryptographically equivalent bounded mechanism, but it must meet all of these invariants:
+
+- default remains `fromJoin`; no history is shared automatically;
+- only a current group administrator may create a history grant;
+- the target must be a current active member;
+- the grant records the requested lower boundary and the first actually shared message/time;
+- `Beginning of conversation` is an explicit UI option and resolves to the earliest still-retained eligible message;
+- the target cannot decrypt any message earlier than the grant boundary solely because of the grant;
+- removed/deactivated members cannot receive new history grants;
+- device IDs remain forbidden from grant routing, derivation, AAD, or decryptability;
+- history-grant ciphertext/copies are application-controlled traces and MUST participate in disappearing-content physical purge, retention, deletion, and anti-resurrection rules;
+- a disappearing or otherwise purged source message must also remove every history-grant copy/reference that exists only for that message;
+- all grant creation is serialized through the deterministic group owner and Firebase writes remain centralized in `firebase.js`.
+
+The exact on-disk/Firestore grant schema must be security-reviewed and emulator-tested before the Group Info earlier-history control is enabled.
+
 ## Offline / Outbox
 
 The Outbox is authoritative for pending sends. A queued group message records the target `groupId`, `messageId`, plaintext payload inside the existing installation-local encrypted Outbox, and the expected `keyEpoch`. On retry, the runtime MUST re-read group membership/epoch authority. If the epoch changed, it MUST encrypt under the current authorized epoch rather than send ciphertext for a stale membership set. The Outbox record is removed only after Firestore confirms the message write.
