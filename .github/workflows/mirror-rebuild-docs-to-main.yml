@@ -1,4 +1,4 @@
-# Recovery mirror checkpoint: FIDUNIO 0.9.7.4
+# Recovery mirror checkpoint: FIDUNIO 0.9.7.9
 name: Mirror Rebuild Recovery Docs to Main
 
 on:
@@ -21,23 +21,15 @@ on:
       - BUG-LIST.md
       - .github/workflows/mirror-rebuild-docs-to-main.yml
   workflow_dispatch:
-
-permissions:
-  contents: write
-
-concurrency:
-  group: fidunio-rebuild-doc-mirror
-  cancel-in-progress: false
-
+permissions: {contents: write}
+concurrency: {group: fidunio-rebuild-doc-mirror, cancel-in-progress: false}
 jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
       - name: Check out rebuild source
         uses: actions/checkout@v4
-        with:
-          ref: fidunio-complete-rebuild
-          fetch-depth: 0
+        with: {ref: fidunio-complete-rebuild, fetch-depth: 0}
       - name: Snapshot curated recovery documents
         shell: bash
         run: |
@@ -56,7 +48,7 @@ jobs:
           docs=(CURRENT-REBUILD.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md hermes-setup.txt CODING-GUIDELINES.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md E2EE-RECOVERY-PROTOCOL.md DETERMINISTIC-UI-LIFECYCLE.md DISAPPEARING-PURGE-AUTHORITY.md BUG-LIST.md)
           for f in "${docs[@]}"; do cp -- "$RUNNER_TEMP/fidunio-doc-mirror/$f" "$f"; done
           git add -- "${docs[@]}"
-          if git diff --cached --quiet; then echo "Main recovery mirror already matches rebuild docs."; exit 0; fi
+          if git diff --cached --quiet; then exit 0; fi
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
           git commit -m "Mirror rebuild recovery docs from ${source_commit:0:12}"
