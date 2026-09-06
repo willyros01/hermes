@@ -56,6 +56,8 @@ jobs:
         run: npm run test:disappearing-read-authority
       - name: Disappearing message metadata authority
         run: npm run test:disappearing-message-metadata-authority
+      - name: Disappearing purge decision policy
+        run: npm run test:disappearing-purge-policy
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
