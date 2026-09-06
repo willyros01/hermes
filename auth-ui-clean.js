@@ -15,7 +15,6 @@ import {
   signInFidunio,
   sendFidunioPasswordReset
 } from "./firebase.js";
-import {initializeFidunioAppCheck} from "./firebase-app-check.js";
 import {markSuccessfulAuthBypass} from "./local-security.js";
 import {
   getAccountStorageStatus,
@@ -134,6 +133,8 @@ async function verifyInvite(){
 
 export async function runAuthGate(){
   if(!isFirebaseConfigured()){authShell('<p class="warning-note">FIDUNIO cannot start because Firebase is not configured.</p>');return;}
+  // firebase.js owns the complete Firebase startup lifecycle. App Check is
+  // initialized there before Auth/Firestore services are exposed.
   await new Promise(resolve=>{
     let first=true;
     initFirebase(user=>{
@@ -141,8 +142,6 @@ export async function runAuthGate(){
       if(appStarted&&!user)location.reload();
     }).catch(err=>{authShell(`<p class="warning-note">${esc(err?.message||String(err))}</p>`);resolve(null);});
   });
-  try{await initializeFidunioAppCheck();}
-  catch(err){authShell(`<p class="warning-note">FIDUNIO security verification could not start: ${esc(err?.message||String(err))}</p>`);return;}
   const user=getFirebaseUser();
   if(user){
     try{const info=await getFidunioAccessInfo();if(info.profile)await startApp();else renderGate("join","This login is not enrolled in FIDUNIO. Use a valid invitation.");}
