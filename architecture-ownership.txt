@@ -235,3 +235,4 @@ LOCAL PHYSICAL PURGE — 0.9.6.22
 - The service worker remains transport/cache only and owns no disappearing/replay semantics.
 - The unresolved post-commit/pre-observation crash gap must not be solved by adding a second Firebase/local-storage owner, a per-message tombstone, client-clock authority, or scattered delete paths.
 
+0.9.6.25 replay ownership: app.js remains the sole IndexedDB/Outbox mutation owner and writes the local send-attempt marker before cloud transmission. disappearing-reconnect-recovery.js remains a pure decision owner. firebase.js remains the sole client server-read/write owner. Ambiguous attempted+authoritatively-absent work fails closed; no new persistence owner or server tombstone exists.

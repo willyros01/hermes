@@ -227,3 +227,5 @@ Server/cache projection decisions are centralized in `disappearing-authoritative
 - The service worker remains transport/cache only and owns no disappearing/replay semantics.
 - The unresolved post-commit/pre-observation crash gap must not be solved by adding a second Firebase/local-storage owner, a per-message tombstone, client-clock authority, or scattered delete paths.
 
+### 0.9.6.25 reconnect fail-closed authority
+Outbox attempt state is owned and mutated only by `app.js`; authoritative source presence/absence is read only through `firebase.js`; `disappearing-reconnect-recovery.js` only plans accepted/purge/replay/blocked IDs. Automatic replay requires both authoritative server absence and `sendAttempted !== true` plus no prior server-backed observation. Attempted+absent is blocked/failed, never replayed automatically.
