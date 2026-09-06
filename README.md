@@ -296,3 +296,6 @@ Release transition: **0.9.6.8 -> 0.9.6.9**.
 - Rebuild Baseline Security Gate run `34048905157` passed every substantive step on the source-authority/intent-bridge implementation.
 - Group Info still does not enable the earlier-history action. Physical disappearing-content purge/anti-resurrection remains a prerequisite before the control can be exposed to users.
 - No live Firebase deployment, no `htest` deployment, no FCM activation and no App Check enforcement change. Overall first-rebuild estimate remains approximately 65%.
+
+### Disappearing-content timer semantics — September 6, 2026
+The product decision for disappearing messages is now fixed-time-after-read for both direct and group messaging. Each recipient account starts its own timer from its first authoritative Read event. In a group, one member reading does not start other members' timers. Recipient-local visibility/cache must expire independently, while the shared Firestore source can be physically deleted only after all applicable recipient read windows have elapsed or those recipients are no longer entitled to the message. Final purge remains trace-free and includes grant copies/references and attachments. This is a semantics decision, not a completed implementation.
