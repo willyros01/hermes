@@ -24,7 +24,11 @@ FIRESTORE E2EE V1 GATE — EXACT SCHEMA
 - Exact account identity matrix remains 42 assertions and still passes after account-message rule additions.
 - Exact public JWK is `{kty,crv,x,y}` only.
 - Exact recovery wrapper fields: `version,ciphertext,iv,wrappedRecoveryKey,wrappingAlgorithm,recoveryAuthorityVersion,recoveryKeyIv,recoveryKeyWrappingAlgorithm`; generic metadata forbidden.
-- Repository validation does NOT mean live Firebase rules are deployed.
+- Repository validation and live deployment are separate gates.
+- LIVE RULES DEPLOYMENT COMPLETED SEPTEMBER 6, 2026 using the reviewed GitHub -> verified script -> Firebase workflow.
+- Active live ruleset: `projects/fidunio-fef13/rulesets/52ea515e-359f-453f-8822-3c0f6ef2659a`.
+- Previous live ruleset: `projects/fidunio-fef13/rulesets/42640d51-c425-4615-bcdf-44d9be990c3f`.
+- Future rule changes still require review/test/exact-source pin/deploy/verify; a green repository test alone never changes production.
 
 ACCOUNT E2EE IDENTITY MANAGER — VALIDATED
 - `e2ee-account-identity-manager.js` is sole account identity lifecycle owner/state machine.
@@ -63,53 +67,61 @@ ACCOUNT DIRECT-MESSAGE E2EE V3 — VALIDATED REPOSITORY CANDIDATE
 - `e2ee-account-message-crypto.test.mjs` passes directional round trips, strict JWK/base64url shape, AAD substitution, key substitution, tamper, empty and Unicode cases.
 - `e2ee-account-message-service.js` is fail-closed: it operates only when the local durable account identity is already READY and the peer exact authoritative public account identity is available. It never falls back to per-device E2EE and never generates an identity.
 - `e2ee-account-message-service.test.mjs` passes its fail-closed/identity-validation matrix.
-- `firestore.rules` contains repository-only exact v3 direct-message acceptance tied to authoritative `e2eePublicKeys/{uid}.keyId`, while retaining legacy plaintext/e2ee:1/e2ee:2 compatibility.
+- `firestore.rules` contains exact v3 direct-message acceptance tied to authoritative `e2eePublicKeys/{uid}.keyId`, while retaining legacy plaintext/e2ee:1/e2ee:2 compatibility.
 - Dedicated `firestore-account-message-v3.rules.test.mjs` found one real cross-format flaw: mixed E2EE+plaintext rows could be accepted by the old plaintext OR branch. Commit `7eb1d22fe1c3323ca613ff986812be5dc02d7b21` closed it by requiring plaintext rows to contain no `e2ee` field.
 - After that fix both the original 42-case rules gate and dedicated v3 message matrix passed.
-- Full expanded security gate passed at `ca9222bdb7171ae60de5b2b9c08bf5b9327f52c9` including rules, v3 crypto, v3 service, recovery, Functions scaffold, transform anchors and runtime authority.
+- The reviewed Firestore rules supporting v3 are now LIVE, but v3 is NOT yet wired into normal runtime transport. Do not confuse rules deployment with transport cutover.
 - Protected checkpoint: `checkpoint-rebuild-account-dm-v3-crypto-rules`.
-- v3 is NOT yet wired into normal runtime transport and has NOT been deployed to live Firebase.
 
-RECOVERY SERVER — VALIDATED REPOSITORY IMPLEMENTATION
+RECOVERY SERVER — VALIDATED THREE-COMPONENT IMPLEMENTATION
 - Recovery uses random 256-bit RUK; client recovery wrapper + PIN/server-master protected RUK. No plaintext password/PIN/RUK/private key/master secret in Firestore.
 - Exact server KDF bytes: UTF8(JSON.stringify(["FIDUNIO-E2EE-RECOVERY-KDF",1,uid,keyId,pin])). HMAC-SHA256 keyed by 32-byte recovery master secret produces AES-256-GCM RUK wrapping key.
 - Exact server RUK AAD bytes: UTF8(JSON.stringify(["FIDUNIO-E2EE-RECOVERY-RUK",1,uid,keyId])).
 - Recovery session: 10 minutes; max 5 PIN failures/session; max 10 consecutive account PIN failures; new session does not reset account counter; success resets counter.
+- Prototype-era `supplementalVerifier()` and supplemental recovery state were explicitly STRICKEN on September 6, 2026. There is no fourth recovery factor.
+- Recovery completion now serializes `PENDING -> VERIFYING` in Firestore before PIN/master-secret cryptography. This prevents concurrent completion calls from performing parallel PIN guesses against one session.
+- Wrong PIN transitions `VERIFYING -> PENDING` or `LOCKED` while atomically updating counters. Success transitions `VERIFYING -> CONSUMED` and resets account PIN failures before returning the RUK.
+- A stranded `VERIFYING` session fails closed; it is not silently reopened.
 - Recovery crypto/session/callable/persistence tests pass.
+- Full Rebuild Baseline Security Gate run #318 (`34011735357`) passed on commit `f7d764df29fd936d2893645813257ea19deda6c1` after the strengthened Functions scaffold guard.
 
-RECOVERY AUTHORITY — THREE-COMPONENT DESIGN DECIDED
-- The recovery architecture decision is NOT open. It was decided with the user and must not be reopened merely because it was previously omitted from durable documentation.
-- Component 1: the authenticated FIDUNIO/Firebase account establishes the account/UID and recovery context.
-- Component 2: the user's existing exact six-digit FIDUNIO account-E2EE PIN is the user-held cryptographic recovery factor.
-- Component 3: a separate Google-hosted server-side recovery authority (Cloud Functions/Google server infrastructure) controls access to the protected server recovery secret in Google Secret Manager.
-- The browser/client never receives `FIDUNIO_RECOVERY_MASTER_V1` and no single client-side component contains all material required to recover the identity.
-- The Google-side authority uses the server master secret only inside the reviewed recovery operation to unwrap the RUK; it does not store or expose the account private key in plaintext.
-- Successful recovery restores the SAME durable account E2EE private identity/keyId. Recovery failure must never silently create a replacement identity.
-- Firebase App Check protects the callable boundary when production enforcement is enabled; App Check enforcement must remain OFF until repaired client initialization is deployed and verified as producing valid traffic.
-- `completeE2EERecoveryV1` remains fail-closed until repository implementation/tests are reconciled with this decided three-component authority. That fail-closed implementation gap must not be mislabeled as an unresolved architecture decision.
-- Documentation failure recorded September 5, 2026: this three-component decision had been discussed and the user explicitly instructed that it be recorded, but it was not persisted. Later guidance therefore incorrectly treated Stage C as undecided. `E2EE-RECOVERY-PROTOCOL.md`, `FIREBASE-RECOVERY-PROJECT-CONFIG.md`, and this cumulative memory are now the corrected durable record.
+RECOVERY AUTHORITY — THREE-COMPONENT DESIGN FINAL
+- The recovery architecture decision is NOT open and must not be reopened because prototype code once contained a supplemental verifier.
+- Component 1: authenticated FIDUNIO/Firebase account establishes account/UID and recovery context.
+- Component 2: user's existing exact six-digit FIDUNIO account-E2EE PIN is the user-held cryptographic recovery factor.
+- Component 3: separate Google-hosted Cloud Functions recovery authority controls use of the protected server recovery secret in Google Secret Manager.
+- There is NO supplemental verifier, security question, extra password, second PIN, test PIN or bypass.
+- Browser/client never receives `FIDUNIO_RECOVERY_MASTER_V1`; no single client-side component contains all material required to recover the identity.
+- Google-side authority uses the server master secret only inside the reviewed recovery operation to unwrap the RUK; it does not store or expose the account private key in plaintext.
+- Successful recovery restores the SAME durable account E2EE private identity/keyId. Failure never silently creates a replacement identity.
+- Firebase App Check is an additional callable abuse-defense when production enforcement is later enabled. App Check enforcement remains OFF during staging and recovery deployment/testing.
 
-CLOUD FUNCTIONS RECOVERY SCAFFOLD — PREPARED, NOT DEPLOYED
+CLOUD FUNCTIONS RECOVERY — REVIEWED SOURCE READY, NOT YET DEPLOYED
 - Authoritative server source is under `functions/recovery/`; root recovery modules are compatibility re-exports so tests exercise deployable source.
 - `functions/package.json`: Node.js 22, `firebase-functions` 7.3.2, `firebase-admin` 14.3.0.
 - `firebase.json` registers Functions codebase `recovery` with source `functions`.
 - `functions/index.mjs` exports v2 callables `enrollRecoveryV1`, `startE2EERecoveryV1`, `completeE2EERecoveryV1`.
-- App Check enforcement declared; completion marked for limited-use token consumption.
-- Secret `FIDUNIO_RECOVERY_MASTER_V1` declared via `defineSecret`, bound only to enrollment/completion.
-- Secret format expected: exactly 32 random bytes, base64url without padding.
-- `completeE2EERecoveryV1` remains intentionally FAIL-CLOSED pending implementation/test reconciliation with the decided three-component recovery authority; this is an implementation gate, not an unresolved recovery-architecture decision.
-- No Cloud Function, Secret Manager secret, recovery IAM change, production Firestore rules deploy, or v3 transport cutover has occurred.
-- Billing/Blaze and App Check provider registration HAVE now occurred during the live handoff; do not use older statements that said the entire live project was untouched.
+- All three callables use dedicated runtime service account `fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com`.
+- `FIDUNIO_RECOVERY_MASTER_V1` is declared via `defineSecret`; enrollment/completion bind it, start does not.
+- Secret format: exactly 32 random bytes, base64url without padding.
+- `completeE2EERecoveryV1` is wired to the reviewed final recovery core; the obsolete fail-closed supplemental-verifier stub is gone.
+- Functions staging source explicitly sets App Check enforcement OFF (`REQUIRE_APP_CHECK = false`). Limited-use completion-token consumption is deferred until App Check itself is proven and deliberately enabled.
+- No Recovery Function has been deployed yet.
+- Before deployment, verify the dedicated recovery runtime service account has the minimum required Firestore data-access IAM. Secret Accessor on the recovery secret is already configured, but Firestore runtime permission is not yet independently proven in the durable handoff record.
 
-DETERMINISTIC UI / CURRENT RUNTIME — PROCESS AUDIT NOTE
+DETERMINISTIC UI / CURRENT RUNTIME — APP CHECK AUTHORITY REPAIRED
 - `bootstrap.js` is startup sequencing only; no broad bootstrap scrub observer.
 - Raw `app.js` starts from empty production state and explicitly owns Messages/Chat/Settings/New Message/group structural UI.
 - `new-message-owner.js` owns its recipient-picker region explicitly; observer-based New Message polish deleted.
 - Group metadata/subscription/auth lifecycle + real creation UI are fully materialized in raw source; group message send remains fail-closed pending group E2EE.
 - Peer display-name synchronization and main Sign Out are explicit through central `firebase.js`; former `profile-sync.js` and `main-screen-polish.js` deleted.
 - Settings lifecycle is explicitly mounted by `app.js`; former bridge deleted.
-- PUBLISHED TARGET remains: `firebase.js` is the sole runtime Firebase SDK/service owner.
-- DEVIATION CURRENTLY PRESENT: later App Check work introduced `firebase-app-check.js` as a second direct Firebase SDK owner and changed the authority gate to allow it. This must be rectified; do not treat the temporary two-owner gate as authoritative architecture.
+- `firebase.js` is again the sole runtime Firebase SDK/service owner, INCLUDING App Check.
+- `firebase-app-check.js` second owner was deleted September 6, 2026.
+- `auth-ui-clean.js` no longer starts an independent App Check lifecycle.
+- `firebase-app-check.test.mjs` validates central initialization order: one app -> App Check -> Auth/Firestore.
+- `runtime-authority-gate.test.mjs` again permits exactly one Firebase SDK owner.
+- Full security-gate run #316 (`34011694149`) and final run #318 (`34011735357`) passed after this repair.
 
 SERVICE WORKER / HIDDEN DUAL CODE
 - `service-worker.js` still rewrites `app.js`, but only legacy/per-device E2EE compatibility transforms remain:
@@ -136,57 +148,66 @@ LIVE FIREBASE / GOOGLE HANDOFF — ACTUAL CURRENT STATE
 - reCAPTCHA Enterprise Web key registered for `willyros01.github.io`.
 - Firebase App Check Web app registered with reCAPTCHA Enterprise; token TTL remains default 1 hour.
 - App Check enforcement remains OFF.
-- Firestore App Check metrics currently show unverified live traffic because the App Check-enabled rebuild client has not been deployed to the live site.
-- No recovery master secret exists yet; no recovery Functions deployed; no recovery IAM grant; no rebuild Firestore rules deployed; no normal direct-message v3 cutover.
-- Normal account identity enrollment still cannot be enabled safely until recovery enrollment is actually available, because identity creation establishes both normal and recovery wrappers atomically.
+- Recovery master secret `FIDUNIO_RECOVERY_MASTER_V1` exists; version 1 enabled; value was never displayed.
+- Dedicated recovery service account exists: `fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com`.
+- Secret Accessor is granted narrowly on the recovery secret, not project-wide.
+- Functions region is settled: `us-central1`.
+- Reviewed Firestore rules are deployed and verified. Active ruleset: `projects/fidunio-fef13/rulesets/52ea515e-359f-453f-8822-3c0f6ef2659a`.
+- No Recovery Functions deployed yet.
+- No normal direct-message v3 transport cutover.
+- Normal account identity enrollment still cannot be enabled safely until recovery enrollment is live and proven, because identity creation establishes both normal and recovery wrappers atomically.
 - Existing durable identity lookup/unlock must use the reviewed account-E2EE Firestore permissions in the actual project.
 - Normal direct-message transport must not switch to v3 until a real authenticated account can reach E2EE READY without silent identity replacement.
-- Therefore remaining per-device transforms must stay until the live account-E2EE/recovery boundary is proven.
-- Current scaffold region is `us-central1`; final deployment-region decision remains to be confirmed before first function deployment.
-- Stage C recovery architecture is DECIDED: Firebase/account context + exact six-digit account-E2EE PIN + separate Google-hosted server-side recovery authority controlling the Secret Manager recovery secret.
-- Remaining recovery work is implementation/test reconciliation and dormant Google/Firebase provisioning; it is not a need to invent a new supplemental recovery architecture.
-- Dormant console infrastructure may be prepared before client-code repair so long as it cannot affect current live traffic. App Check enforcement remains OFF, and recovery completion remains fail-closed until implementation/review is complete.
+- Remaining per-device transforms stay until the live account-E2EE/recovery boundary is proven.
+- Next live step: one controlled Recovery Functions deployment with exact-source pin, minimum-runtime-IAM preflight and post-deploy verification.
+- The deployment preflight must verify the dedicated recovery service account's minimum Firestore data-access role; do not fall back to a broad default runtime identity.
 
-PROCESS-INTEGRITY DEVIATION — SEPTEMBER 5, 2026
+PROCESS-INTEGRITY DEVIATION — SEPTEMBER 5, 2026 — RECTIFIED SEPTEMBER 6
 - The user explicitly required the mandatory repo documents to be reread before starting work and had previously been assured that safeguard was in place.
 - At the start of the later App Check continuation, the assistant did NOT perform the mandatory repository-first reread and relied on conversational carry-over instead. This violated the first rule in this file and `CODING-GUIDELINES.md`.
 - Audit identified these gaps created by that deviation:
   1. `firebase-app-check.js` introduced as a second direct Firebase SDK owner contrary to the published one-owner Firebase authority.
   2. `runtime-authority-gate.test.mjs` was changed to allow the second owner instead of requiring the implementation to conform to the existing authority rule.
-  3. App Check initialization was placed after `initFirebase()`/first auth callback instead of inside the single central Firebase initialization lifecycle before protected service use.
-  4. App Check provider registration progressed into part of Stage D before the already-decided three-component recovery architecture had been correctly recovered into the durable documentation; this was a documentation/process sequencing failure, not evidence that the recovery architecture itself was undecided.
-  5. Durable handoff docs were not updated immediately after live billing/App Check progress, leaving stale text that later led to an attempted repeat of already-completed inventory work.
-  6. A temporary bad `auth-ui-clean.js` edit occurred during the continuation and was removed by resetting the rebuild branch to a known prior commit; the bad content did not survive, but the process violated the required diagnose-before-patch discipline.
-  7. The user had explicitly instructed that the three-component recovery decision be recorded, but it was not persisted. This later caused the decided architecture to be incorrectly described as an unresolved Stage C decision.
-- Impact assessment: no live compromise identified. App Check enforcement is OFF; recovery completion remains fail-closed; no recovery secret/IAM/Functions/rules deployment occurred; no v3 transport cutover occurred; last working legacy compatibility paths remain.
-- Rectification remains mandatory for the App Check implementation before active cutover/enforcement:
-  1. restore `firebase.js` as sole runtime Firebase SDK/service owner;
-  2. integrate App Check into central Firebase initialization;
-  3. remove the temporary second-owner allowance from the authority gate;
-  4. update App Check tests to enforce central ordering and distinguish static repo validation from live token verification;
-  5. rerun the full security gate;
-  6. update `hermes-memory.txt`, `FIREBASE-RECOVERY-PROJECT-CONFIG.md`, and `REBUILD-BASELINE-AUDIT.md` after each repair milestone.
-- Dormant Google/Firebase recovery infrastructure may be provisioned first because it is not used by the current live client; do not enable App Check enforcement or make recovery completion usable until the repaired/reviewed implementation is proven.
-- IMPORTANT: the later green App Check CI result does NOT erase this architecture/process deviation. Green CI is evidence of what the test checked, not permission to rewrite an authority rule to fit a new implementation.
+  3. App Check initialization was placed after `initFirebase()`/first auth callback instead of inside the single central Firebase initialization lifecycle.
+  4. App Check provider registration progressed before the already-decided three-component recovery architecture had been correctly recovered into durable documentation.
+  5. Durable handoff docs were not updated immediately after live billing/App Check progress, leaving stale text that later led to attempted repeated work.
+  6. A temporary bad `auth-ui-clean.js` edit occurred during the continuation and was removed by resetting the rebuild branch to a known prior commit.
+  7. The three-component recovery decision was not persisted when originally instructed, later causing it to be incorrectly described as unresolved.
+  8. Prototype-era recovery scaffold contained a supplemental verifier and related state even though the final design had no fourth factor.
+- Rectification completed September 6:
+  1. mandatory repository-first reread was performed before this repair session;
+  2. supplemental verifier/state permanently removed from recovery source/tests/docs;
+  3. recovery completion implemented against the final three-component design;
+  4. a parallel PIN-guess race was found during review and fixed with serialized Firestore `PENDING -> VERIFYING` reservation before cryptography;
+  5. `firebase.js` restored as sole Firebase SDK/service owner including App Check;
+  6. `firebase-app-check.js` deleted;
+  7. auth gate no longer creates a second App Check lifecycle;
+  8. strict single-owner runtime authority gate restored;
+  9. App Check tests strengthened to enforce central ordering;
+  10. Functions scaffold gate strengthened to reject supplemental-verifier regression, require staging App Check OFF, dedicated runtime SA and real completion wiring;
+  11. full security-gate runs #316 and #318 passed after these repairs.
+- No live compromise identified. App Check enforcement remained OFF throughout. No Recovery Function has yet been deployed. Firestore rules, secret and recovery-secret IAM were deliberately completed separately and are recorded above.
 
-CURRENT REBUILD ORDER — CORRECTED AFTER RECOVERY-DOCUMENTATION RECONCILIATION
+CURRENT REBUILD ORDER — SEPTEMBER 6, 2026
 1. COMPLETE — crypto/identity-manager/Firestore/recovery security proving.
-2. COMPLETE — initial dead-code cleanup and recovery Cloud Functions scaffold/documentation.
-3. COMPLETE — deterministic empty Messages state + explicit New Message owner.
-4. COMPLETE — non-cryptographic group transforms materialized; group send fail-closed.
-5. COMPLETE — peer-name/Sign Out overlays removed; Settings lifecycle explicit; Firebase SDK ownership consolidated at protected checkpoint.
-6. COMPLETE (LOOKUP/RESET) — account E2EE bound to Firebase auth lifecycle without changing transport.
-7. COMPLETE (ISOLATED PRE-HANDOFF) — account direct-message v3 crypto + exact repository rules + fail-closed service validated and checkpointed.
-8. DECIDED — Stage C recovery architecture: authenticated Firebase account + exact six-digit account-E2EE PIN + separate Google-hosted recovery authority/Secret Manager boundary. Do not reopen this as an undecided design.
-9. CURRENT PARALLEL WORK — dormant Secret Manager/IAM/Functions-region/API preparation may proceed while App Check enforcement stays OFF and recovery completion stays fail-closed.
-10. CURRENT CODE REPAIR — rectify App Check process/ownership deviation, strengthen gates, rerun complete security gate, and update docs.
-11. AFTER REPAIR + LIVE PROOF — deploy/verify recovery Functions + exact rules in controlled sequence, verify App Check client traffic, and only then consider enforcement/recovery activation.
-12. AFTER LIVE READY PROOF — wire explicit six-digit account-E2EE enrollment/unlock readiness into auth/PIN lifecycle.
-13. AFTER READY PROOF — migrate direct send/receive/Outbox to v3 while retaining explicit e2ee:1/2 readability and receipts.
-14. Remove only matching per-device service-worker transforms after replacement passes; reduce SW to cache/offline only.
-15. Finish Firestore-authoritative encrypted history + UID-scoped cache + serialized Outbox.
-16. Revalidate iPhone/iPad/PWA receipts/offline/Settings/account switching/reinstall/recovery/local PIN.
-17. Only then decide whether to merge/advance `main`.
+2. COMPLETE — initial dead-code cleanup and deterministic UI-owner consolidation.
+3. COMPLETE — account E2EE auth lookup/reset binding without transport cutover.
+4. COMPLETE — account direct-message v3 crypto + exact rules + fail-closed service validated.
+5. COMPLETE — recovery architecture finalized as exactly three components.
+6. COMPLETE — Secret Manager recovery master + dedicated recovery SA + secret-level IAM + `us-central1` decision.
+7. COMPLETE — reviewed Firestore rules deployed and verified live.
+8. COMPLETE — obsolete supplemental recovery verifier/state removed; completion core implemented; concurrent PIN-guess race fixed with VERIFYING reservation.
+9. COMPLETE — App Check second-owner defect repaired; `firebase.js` sole owner restored; second owner deleted; authority gate restored.
+10. COMPLETE — full security-gate run #318 passed on strengthened current source.
+11. CURRENT — final durable documentation reconciliation, then controlled Recovery Functions deployment with minimum Firestore runtime-IAM preflight and post-deploy verification. App Check enforcement stays OFF.
+12. AFTER DEPLOYMENT — controlled recovery proof that same durable identity/keyId/history is restored; no replacement identity.
+13. AFTER LIVE RECOVERY PROOF — wire explicit six-digit account-E2EE enrollment/unlock readiness into auth/PIN lifecycle.
+14. AFTER READY PROOF — migrate direct send/receive/Outbox to v3 while retaining explicit e2ee:1/2 readability and receipts.
+15. Remove only matching per-device service-worker transforms after replacement passes; reduce SW to cache/offline only.
+16. Finish Firestore-authoritative encrypted history + UID-scoped cache + serialized Outbox.
+17. Revalidate iPhone/iPad/PWA receipts/offline/Settings/account switching/reinstall/recovery/local PIN.
+18. Only after legitimate App Check traffic is proven should enforcement be considered.
+19. Only then decide whether to merge/advance `main`.
 
 PIN / LOCAL SECURITY
 - Existing installation-local PIN remains 4–12 digits under current local-security design.
