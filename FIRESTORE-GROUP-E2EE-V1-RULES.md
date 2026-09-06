@@ -66,7 +66,7 @@ Path: `/groups/{groupId}/messages/{messageId}/receipts/{uid}`.
 
 Read: active group members only.
 
-Create/update only by `request.auth.uid == uid`, only if UID is a member represented by the message epoch, and only for an existing encrypted group message. Exact fields are `uid`, `state`, `updatedAt`, where `state` is `delivered` or `read`, and `updatedAt == request.time`. State may advance `delivered -> read`; it may never regress. Delete denied.
+Create/update only by `request.auth.uid == uid`, only if UID is a member represented by the message epoch, and only for an existing encrypted group message. Receipt schema is state-sensitive. Delivered contains exactly `uid,state,updatedAt`. Read contains exactly `uid,state,updatedAt,readAt`. On first Read, both `updatedAt == request.time` and `readAt == request.time`; `readAt` did not exist before and may never be moved. State may advance `delivered -> read`; it may never regress. Repeat Read mutations are denied. Delete remains denied pending the dedicated purge owner.
 
 The sender MUST NOT create or update another member's receipt. Sender UI derives aggregate Sent/Delivered/Read from recipient receipt documents.
 
@@ -103,3 +103,6 @@ Membership-changing group updates now require `keyEpoch + 1` and a matching post
 
 ## 0.9.6.7 repository validation
 Cleaned-branch Rebuild Baseline Security Gate run `34047570212` passed the expanded group E2EE/history-grant rule matrix. The changed repository rules remain undeployed to live Firebase pending the controlled Firebase handoff.
+
+## 0.9.6.10 first-Read authority extension
+The group receipt rules now establish immutable server-backed first-Read authority per recipient UID. Emulator coverage proves Read without `readAt` is denied, first Read with server timestamp succeeds, repeat Read cannot move the timestamp, another member cannot write the receipt, and outsiders remain denied. Rebuild Baseline Security Gate run `34050343201` passed with these rules. Repository validation does not deploy them to live Firebase.

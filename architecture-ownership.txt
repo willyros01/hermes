@@ -135,3 +135,10 @@ GROUP HISTORY SOURCE AUTHORITY — 0.9.6.9
 - app.js/local caches/projected conversation rows are NEVER source authority for a grant.
 - The controller/integration boundary carries only target/boundary intent.
 - Runtime owns secure grant ID generation and boundary/source selection before message-granular re-encryption.
+
+DISAPPEARING FIRST-READ AUTHORITY — 0.9.6.10
+- Policy resource owner: `disappearing-content-policy.js` decides expiry/purge eligibility only.
+- Persistence/write owner: `firebase.js` serializes direct and group receipt transitions and is the only SDK owner writing server-backed `readAt`.
+- Firestore Rules enforce recipient/account ownership and immutable first-Read timestamps.
+- app.js and the group conversation owner may request Delivered/Read transitions but do not choose or persist authoritative timestamps.
+- Future physical purge is a separate mutable resource and must have one dedicated serialized deletion owner; do not scatter deletes among UI/subscription modules.

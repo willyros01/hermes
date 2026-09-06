@@ -144,7 +144,7 @@ Requirements include:
 
 The older plaintext branch now explicitly requires no `e2ee` field. This was added after the dedicated rules matrix found that a mixed E2EE + non-empty plaintext row could otherwise be accepted by the legacy plaintext OR-clause.
 
-Legacy valid plaintext, `e2ee:1` and `e2ee:2` creation remain accepted for migration compatibility. Receipt updates remain state-only.
+Legacy valid plaintext, `e2ee:1` and `e2ee:2` creation remain accepted for migration compatibility. Direct receipt transitions are recipient-authoritative: Sent -> Delivered is state-only; the first Sent/Delivered -> Read transition additionally writes immutable server-backed `readAt`. Repeat Read cannot move `readAt`.
 
 ## Public-key validation
 
@@ -221,3 +221,6 @@ No live Firebase project action has been performed by this repository candidate.
 ## Runtime cutover — September 6, 2026
 
 The raw application runtime now prepares and decrypts direct-message e2ee:3 envelopes through e2ee-account-message-runtime.js. firebase.js remains the sole Firebase SDK/service owner and writes the exact v3 metadata. The service worker no longer rewrites app.js or owns any E2EE semantics. Legacy e2ee:1/e2ee:2 rows remain readable for migration/history compatibility, but new direct sends fail closed unless the durable account identity is READY.
+
+## Direct first-Read authority — 0.9.6.10
+For direct messages, only the non-sender recipient account may establish receipt authority. `firebase.js` serializes the transition in a Firestore transaction. `sent -> delivered` changes only state. The first `sent|delivered -> read` writes `readAt` with `serverTimestamp()`. Firestore Rules require `readAt == request.time`, preserve sender/createdAt/ciphertext and all message fields, and reject a second Read mutation that would move the first-read timestamp. Reopening a conversation is therefore a no-op for the disappearance clock. These repository rules are not automatically deployed to live Firebase.

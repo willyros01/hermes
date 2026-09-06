@@ -111,3 +111,6 @@ Do not weaken unrelated rules to make this suite pass. Do not add a broad wildca
 
 ## 0.9.6.7 cleaned-branch group-history validation
 The expanded group E2EE/history-grant rules matrix was validated as part of Rebuild Baseline Security Gate run `34047570212`, which passed completely after the test fixture was corrected to use the authoritative server timestamp and an isolated restored-member setup for history-grant authorization. This confirms repository-rule behavior only; it does not deploy these rules to live Firebase.
+
+## Disappearing first-Read authority extension — 0.9.6.10
+The direct-message emulator matrix now covers recipient-only receipt authority, server-backed first `readAt`, denial of Read without `readAt`, repeat-Read timestamp immutability and ciphertext-tamper denial. The group E2EE matrix independently covers per-account Delivered/Read schema, first server-backed `readAt`, repeat-Read denial, cross-member denial and outsider denial. `disappearing-read-authority.test.mjs` additionally gates the central transactional write paths and Rules anchors. Rebuild Baseline Security Gate run `34050343201` passed with both emulator matrices and the dedicated source gate. These tests use emulator/demo projects only and do not deploy repository rules to production.

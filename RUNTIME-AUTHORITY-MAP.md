@@ -133,3 +133,10 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - `e2ee-account-group-runtime.js`: grant ID generation, authoritative boundary filtering, source decrypt/re-encrypt and grant serialization.
 - `e2ee-account-group-firebase-adapter.js`: one-shot server-backed retained-message read by wrapping the existing central firebase.js group subscription; cache-only snapshots are not grant authority.
 - `firebase.js`: remains the sole Firebase SDK/service owner.
+
+## Disappearing first-Read authority — 0.9.6.10
+- `disappearing-content-policy.js`: pure recipient-expiry/shared-source eligibility decisions.
+- `firebase.js`: sole receipt persistence owner; direct/group first Read uses a Firestore transaction and server timestamp. Repeat Read returns the already-established authority rather than moving it.
+- Firestore Rules: recipient/account authorization plus immutable `readAt == request.time` boundary.
+- Existing direct app/group conversation owners request receipt state only. They do not supply a disappearance timestamp.
+- Physical purge/anti-resurrection remains a separate future serialized resource owner and is not implemented by this checkpoint.
