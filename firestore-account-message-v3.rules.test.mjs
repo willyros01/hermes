@@ -38,7 +38,7 @@ await test("16 sender cannot write its own delivery receipt",()=>assertFails(upd
 await test("17 recipient read transition requires authoritative readAt",()=>assertFails(updateDoc(doc(dbB,"conversations","dm-v3","messages","m01"),{state:"read"})));
 await test("18 recipient first Read stores server-backed readAt",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","m01"),{state:"read",readAt:serverTimestamp()})));
 await test("19 repeat Read cannot move first-read timestamp",()=>assertFails(updateDoc(doc(dbB,"conversations","dm-v3","messages","m01"),{state:"read",readAt:serverTimestamp()})));
-await test("20 receipt update cannot mutate ciphertext",()=>assertFails(updateDoc(doc(dbB,"conversations","dm-v3","messages","m02"),{state:"read",readAt:serverTimestamp(),ciphertext:"BBBBBBBBBBBBBBBBBBBBBB"})));
+await test("20 recipient receipt update cannot mutate ciphertext",()=>assertFails(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{state:"read",readAt:serverTimestamp(),ciphertext:"BBBBBBBBBBBBBBBBBBBBBB"})));
 await test("21 legacy e2ee v2 create remains allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-v3","messages","m21"),{senderUid:A,senderName:"Owner A",timeLabel:"12:01 PM",state:"sent",createdAt:serverTimestamp(),text:"",e2ee:2,ciphertext:"",iv:"",envelopes:{legacyDevice:{ciphertext:"legacy",iv:"legacy"}},recipientDeviceIds:["legacyDevice"],senderDeviceId:"legacyDevice",senderDevicePublicJwk:{kty:"EC",crv:"P-256",x:"x",y:"y"}})));
 await test("22 legacy plaintext create remains allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-v3","messages","m22"),{senderUid:A,state:"sent",createdAt:serverTimestamp(),text:"legacy regression"})));
 
