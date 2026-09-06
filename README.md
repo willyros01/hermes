@@ -519,3 +519,7 @@ Reason: complete the three pre-attachment checkpoints in one controlled pass whi
 - Permanent focused gates were added to the normal Rebuild Baseline Security Gate. Full gate **34062508968** passed SUCCESS.
 - No rollback or rejected 0.9.4.12-.15 code was restored. No live Firebase or `htest` deployment occurred.
 - Follow-on: attachment transport/data authority begins at 0.9.7.0. Real iPhone/iPad receipt and responsive acceptance remains scheduled for the release-candidate device gate.
+
+## 0.9.7.0–0.9.7.4 attachment send checkpoint — repository validated
+
+Builds 0.9.7.0 through 0.9.7.4 establish one attachment send owner and wire photo, file, audio and video selection/capture through bounded local AES-256-GCM chunk encryption, encrypted Outbox staging, ciphertext-only Firebase Storage upload through `firebase.js`, and the existing direct/group E2EE message commit path. Attachment keys travel only inside E2EE message ciphertext. Size limits are photo 12 MiB, file 20 MiB, audio 25 MiB, video 50 MiB. Storage client delete is denied; disappearing attachment deletion remains reserved for the purge owner in 0.9.7.8. Full Rebuild Baseline Security Gate `34063327957` SUCCESS. No live Firebase or htest deployment occurred. Runtime version is 0.9.7.4. Next build is 0.9.7.5 receive/decrypt/display/play.

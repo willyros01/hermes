@@ -195,3 +195,7 @@ Same-UID installations do not share a device-local expiry authority. Each indepe
 
 ## 0.9.6.28 text closeout checkpoint
 The repository text-only disappearance chain is now covered by one permanent matrix from immutable duration selection through authoritative server absence, local/history/Outbox physical convergence and reconnect anti-replay. Cache-only absence remains non-authoritative, client clocks remain non-authoritative, and no tombstone/accepted-ID registry is introduced. Gate: `34062508968` SUCCESS. Attachment-specific traces remain intentionally owned by the 0.9.7.x phase.
+
+## 0.9.7.0–0.9.7.4 attachment send checkpoint — repository validated
+
+Builds 0.9.7.0 through 0.9.7.4 establish one attachment send owner and wire photo, file, audio and video selection/capture through bounded local AES-256-GCM chunk encryption, encrypted Outbox staging, ciphertext-only Firebase Storage upload through `firebase.js`, and the existing direct/group E2EE message commit path. Attachment keys travel only inside E2EE message ciphertext. Size limits are photo 12 MiB, file 20 MiB, audio 25 MiB, video 50 MiB. Storage client delete is denied; disappearing attachment deletion remains reserved for the purge owner in 0.9.7.8. Full Rebuild Baseline Security Gate `34063327957` SUCCESS. No live Firebase or htest deployment occurred. Runtime version is 0.9.7.4. Next build is 0.9.7.5 receive/decrypt/display/play.

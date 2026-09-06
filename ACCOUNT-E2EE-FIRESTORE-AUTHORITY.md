@@ -272,3 +272,7 @@ The current user-facing runtime still contains legacy per-device envelope behavi
 ## Runtime implementation checkpoint — September 6, 2026
 
 The rebuild branch now wires account-authoritative enrollment/unlock/recovery and e2ee:3 direct-message send/receive. The raw runtime is authoritative and the service worker no longer performs semantic source transforms. All repository security gates are green. Live cutover remains blocked until the first real authenticated account proves READY, stable-keyId recovery, history preservation, and two-device messaging/Outbox behavior.
+
+## 0.9.7.0–0.9.7.4 attachment send checkpoint — repository validated
+
+Builds 0.9.7.0 through 0.9.7.4 establish one attachment send owner and wire photo, file, audio and video selection/capture through bounded local AES-256-GCM chunk encryption, encrypted Outbox staging, ciphertext-only Firebase Storage upload through `firebase.js`, and the existing direct/group E2EE message commit path. Attachment keys travel only inside E2EE message ciphertext. Size limits are photo 12 MiB, file 20 MiB, audio 25 MiB, video 50 MiB. Storage client delete is denied; disappearing attachment deletion remains reserved for the purge owner in 0.9.7.8. Full Rebuild Baseline Security Gate `34063327957` SUCCESS. No live Firebase or htest deployment occurred. Runtime version is 0.9.7.4. Next build is 0.9.7.5 receive/decrypt/display/play.

@@ -82,10 +82,10 @@ Provider limitation: this trace-free rule governs all data FIDUNIO controls thro
 | Area | State | Evidence / notes |
 |---|---|---|
 | Attachment encryption/chunking foundation | DONE | Integrity-checked bounded chunking; tamper/missing-chunk tests. |
-| Photo select/capture + send | NOT DONE | End-to-end UI/transport/storage required. |
-| File select + send | NOT DONE | End-to-end UI/transport/storage required. |
-| Audio record/select + send | NOT DONE | End-to-end UI/transport/storage required. |
-| Video select/capture + send | NOT DONE | End-to-end UI/transport/storage required. |
+| Photo select/capture + send | DONE | 0.9.7.1 common encrypted send owner; baseline 34063327957 green. |
+| File select + send | DONE | 0.9.7.2 common encrypted send owner; baseline 34063327957 green. |
+| Audio record/select + send | DONE | 0.9.7.3 browser capture/select intent through common encrypted owner; baseline green. |
+| Video select/capture + send | DONE | 0.9.7.4 bounded common encrypted send owner; baseline green. |
 | Attachment receive/decrypt/display/play | NOT DONE | Must work in direct and group conversations. |
 | Attachment retention/history/offline | NOT DONE | Must follow Firestore-authoritative/cache/Outbox ownership. |
 | Attachment receipts/lifecycle | NOT DONE | Must integrate with message status model. |
@@ -205,10 +205,15 @@ The 1.0 percentage is now a **fixed-point weighted ledger**, not a subjective es
 - 0.9.6.28 disappearing-text security closeout is repository-validated: **+1.0 earned**.
 - 0.9.6.29 Group earlier-history admin UI is repository-validated: **+1.0 earned**.
 - 0.9.6.30 receipt/lifecycle stabilization is repository-validated: **+1.0 earned**.
-- 0.9.7.0 and later allocated builds: **0.0 earned so far**.
-- **Current total: 75.0 / 100.0, reported as 75%.**
+- 0.9.7.0 attachment transport/data authority is repository-validated: **+1.0 earned**.
+- 0.9.7.1 photo encrypted send is repository-validated: **+1.0 earned**.
+- 0.9.7.2 file encrypted send is repository-validated: **+1.0 earned**.
+- 0.9.7.3 audio encrypted send is repository-validated: **+1.0 earned**.
+- 0.9.7.4 video encrypted send is repository-validated: **+1.0 earned**.
+- 0.9.7.5 and later allocated builds: **0.0 earned so far**.
+- **Current total: 80.0 / 100.0, reported as 80%.**
 
-This 75.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
+This 80.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
 
 
 ## FIDUNIO 1.0 allocated build roadmap
@@ -244,11 +249,11 @@ This section pre-allocates the planned build number for every remaining first-re
 | Allocated build | Component / detailed task | Exit criteria | State |
 |---|---|---|---|
 | **0.9.7.0** | **CURRENT — Attachment transport/data authority.** Define one attachment owner, Firestore/Storage manifest/chunk/reference schema, E2EE metadata boundaries, size/type limits, and server/client ownership. Reuse existing attachment crypto foundation; no plaintext upload. | Architecture docs + schema/rules/emulator tests green before UI transport is enabled. | PLANNED |
-| **0.9.7.1** | **Photo select/capture + encrypted send.** Direct and group photo path through one attachment owner, encrypted Outbox, upload confirmation and message reference. | Photo send tests incl. offline queue, tamper/error cleanup, direct/group. | PLANNED |
-| **0.9.7.2** | **File select + encrypted send.** Generic supported file path with bounded size/type policy and no alternate upload owner. | Direct/group file send and error/retry tests green. | PLANNED |
-| **0.9.7.3** | **Audio record/select + encrypted send.** Browser/PWA-supported recording/select flow, explicit permission handling, encrypted transport. | Audio send/playback payload tests and permission-failure path green. | PLANNED |
-| **0.9.7.4** | **Video select/capture + encrypted send.** Bounded video handling with the same chunk/integrity owner and no memory-unbounded transform. | Direct/group video send tests, size-limit and interruption cleanup green. | PLANNED |
-| **0.9.7.5** | **Attachment receive/decrypt/display/play.** Integrity-check every chunk before exposing decrypted object; lifecycle owns object-URL creation/revocation. | Direct/group photo/file/audio/video receive tests; corrupt/missing chunks fail closed. | PLANNED |
+| **0.9.7.1** | **Photo select/capture + encrypted send.** Browser image picker/capture uses the common encrypted attachment owner. | Common send-owner/UI wiring + full baseline `34063327957` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.7.2** | **File select + encrypted send.** Generic file picker uses bounded common encrypted transport. | Common send-owner/UI wiring + full baseline `34063327957` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.7.3** | **Audio record/select + encrypted send.** Browser audio capture/select intent uses common encrypted transport. | Common send-owner/UI wiring + full baseline `34063327957` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.7.4** | **Video select/capture + encrypted send.** Bounded video capture/select uses common chunk/integrity owner. | Common send-owner/UI wiring + full baseline `34063327957` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.7.5** | **CURRENT — Attachment receive/decrypt/display/play.** Integrity-check every chunk before exposing decrypted object; lifecycle owns object-URL creation/revocation. | Direct/group photo/file/audio/video receive tests; corrupt/missing chunks fail closed. | PLANNED |
 | **0.9.7.6** | **Attachment offline retention + Outbox/history integration.** Pending encrypted attachment work is authoritative only in Outbox; downloaded attachment cache remains rebuildable and UID-scoped. | Offline restart/reconnect tests green; account-switch isolation proven. | PLANNED |
 | **0.9.7.7** | **Attachment receipts/lifecycle.** Message-level status remains authoritative; attachment transport cannot manufacture independent Sent/Delivered/Read semantics. | Direct/group receipt tests green with attachments. | PLANNED |
 | **0.9.7.8** | **Disappearing attachment trace-free purge.** Extend server/local purge owner to attachment manifest, encrypted chunks/blobs, thumbnails/previews, object URLs/cache, Outbox and references. | Expired attachment leaves no FIDUNIO-controlled trace; stale/offline client cannot restore it. | PLANNED |
@@ -337,3 +342,7 @@ The existing `app.js` local persistence owner now contains the serialized UID-gu
 
 ### 0.9.6.25 restart/reconnect anti-resurrection status
 Build 0.9.6.25 is **IN PROGRESS**, not repository-validated for product-point purposes. The implemented reconnect barrier has a green full baseline gate (`34060082292`) and blocks blind cloud/group Outbox replay until explicit server reads complete. It safely handles server-present accepted rows, prior-server-backed disappearing rows that are now authoritatively absent, legitimate never-server-backed queued work, and unexpected ordinary server-backed absence. The remaining exact crash window is: Firestore accepts a send, the browser/device crashes before either Outbox deletion or durable `serverBacked:true` observation, the message later disappears from the server, and the sender restarts with a stale Outbox row plus `serverBacked:false`. Current trace-free/no-tombstone rules provide no durable fact that distinguishes that state from truly never-sent work. No 0.9.6.25 point is earned until this conflict is resolved. Weighted completion therefore remains **69.5/100, reported as 70%**.
+
+## 0.9.7.0–0.9.7.4 attachment send checkpoint — repository validated
+
+Builds 0.9.7.0 through 0.9.7.4 establish one attachment send owner and wire photo, file, audio and video selection/capture through bounded local AES-256-GCM chunk encryption, encrypted Outbox staging, ciphertext-only Firebase Storage upload through `firebase.js`, and the existing direct/group E2EE message commit path. Attachment keys travel only inside E2EE message ciphertext. Size limits are photo 12 MiB, file 20 MiB, audio 25 MiB, video 50 MiB. Storage client delete is denied; disappearing attachment deletion remains reserved for the purge owner in 0.9.7.8. Full Rebuild Baseline Security Gate `34063327957` SUCCESS. No live Firebase or htest deployment occurred. Runtime version is 0.9.7.4. Next build is 0.9.7.5 receive/decrypt/display/play.

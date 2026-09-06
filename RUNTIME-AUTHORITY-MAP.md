@@ -235,3 +235,7 @@ Outbox attempt state is owned and mutated only by `app.js`; authoritative source
 
 ## 0.9.6.29-0.9.6.30 authority reconciliation
 Group earlier-history UI is intent-only: app -> bounded group integration -> controller serialization -> group runtime -> central Firebase transport. Source selection never moves into the DOM/app shell. Direct Read receipt mutation is single-path inside the active direct subscription; group receipt subscription/projection remains owned by `e2ee-account-group-conversation.js`. No new Firebase, IndexedDB, crypto, or receipt owner was introduced.
+
+## 0.9.7.0–0.9.7.4 attachment send checkpoint — repository validated
+
+Builds 0.9.7.0 through 0.9.7.4 establish one attachment send owner and wire photo, file, audio and video selection/capture through bounded local AES-256-GCM chunk encryption, encrypted Outbox staging, ciphertext-only Firebase Storage upload through `firebase.js`, and the existing direct/group E2EE message commit path. Attachment keys travel only inside E2EE message ciphertext. Size limits are photo 12 MiB, file 20 MiB, audio 25 MiB, video 50 MiB. Storage client delete is denied; disappearing attachment deletion remains reserved for the purge owner in 0.9.7.8. Full Rebuild Baseline Security Gate `34063327957` SUCCESS. No live Firebase or htest deployment occurred. Runtime version is 0.9.7.4. Next build is 0.9.7.5 receive/decrypt/display/play.
