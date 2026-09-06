@@ -23,16 +23,13 @@ function aggregateReceipt(row,receipts,myUid,memberUids){
 export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen=()=>false}={}){
   const id=needIdentity(),key=String(groupId);stopAccountGroupConversation(key);
   const receiptStops=new Map(),receiptRows=new Map();
-  let rawRows=[],memberUids=[],closed=false,delivery=Promise.resolve();
+  let rawRows=[],memberUids=[],closed=false,delivery=Promise.resolve(),snapshotMeta={fromCache:true,hasPendingWrites:false};
   const emit=async()=>{
     const live=[];
     for(const row of rawRows){
       let text="[Encrypted group message — account encryption unavailable]",decryptAvailable=false;
       try{text=await decryptAccountGroupMessage({groupId:key,messageId:row.id,row});decryptAvailable=true;}catch(err){onError?.(err);}
-      live.push({id:row.id,mine:row.senderUid===id.uid,senderUid:row.senderUid,text,time:row.timeLabel||"",state:aggregateReceipt(row,receiptRows.get(row.id),id.uid,memberUids),cloud:true,e2ee:4,keyEpoch:row.keyEpoch,createdAt:asDate(row.createdAt),decryptAvailable});
-      // A member must not create normal-message receipts for ciphertext they
-      // cannot decrypt. Explicit history-grant copies have their own authority
-      // and are projected below without retroactive receipt mutation.
+      live.push({id:row.id,mine:row.senderUid===id.uid,senderUid:row.senderUid,text,time:row.timeLabel||"",state:aggregateReceipt(row,receiptRows.get(row.id),id.uid,memberUids),cloud:true,e2ee:4,keyEpoch:row.keyEpoch,createdAt:asDate(row.createdAt),disappearAfterSeconds:row.disappearAfterSeconds??null,decryptAvailable});
       if(decryptAvailable&&row.senderUid!==id.uid){
         try{await updateCloudGroupReceipt(key,row.id,isOpen()?"read":"delivered");}catch(err){onError?.(err);}
       }
@@ -41,11 +38,11 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
     let granted=[];
     try{granted=await loadAccountGroupGrantedHistory(key);}catch(err){onError?.(err);}
     const merged=mergeGroupHistoryProjection(live,granted);
-    if(!closed)onRows?.(merged);
+    if(!closed)onRows?.(merged,snapshotMeta);
   };
   readCloudGroupAuthority(key).then(a=>{memberUids=a.memberUids||[];delivery=delivery.then(emit,emit);}).catch(onError);
-  const unsub=subscribeCloudGroupMessages(key,(rows)=>{
-    rawRows=rows||[];
+  const unsub=subscribeCloudGroupMessages(key,(rows,meta={})=>{
+    rawRows=rows||[];snapshotMeta={fromCache:meta.fromCache===true,hasPendingWrites:meta.hasPendingWrites===true};
     for(const row of rawRows){
       if(row.senderUid===id.uid&&!receiptStops.has(row.id))receiptStops.set(row.id,subscribeCloudGroupReceipts(key,row.id,rs=>{receiptRows.set(row.id,rs||[]);delivery=delivery.then(emit,emit);},onError));
     }
