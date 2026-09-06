@@ -76,6 +76,12 @@ jobs:
         run: npm run test:disappearing-multi-device-convergence
       - name: Disappearing compose policy and UI wiring
         run: npm run test:disappearing-compose-policy
+      - name: Disappearing text end-to-end closeout
+        run: npm run test:disappearing-text-closeout
+      - name: Group earlier-history admin UI
+        run: npm run test:group-history-admin-ui
+      - name: Receipt lifecycle stabilization
+        run: npm run test:receipt-lifecycle-stabilization
       - name: Group history-grant purge barrier
         run: npm run test:group-history-grant-purge-barrier
       - name: Group history-copy purge barrier
