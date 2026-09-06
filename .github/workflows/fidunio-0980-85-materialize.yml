@@ -1,0 +1,23 @@
+name: FIDUNIO 0.9.8.0-0.9.8.5 Materializer
+on:
+  push:
+    branches: [fidunio-complete-rebuild]
+    paths: [.fidunio-0980-85-trigger]
+permissions: {contents: write}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: fidunio-complete-rebuild, fetch-depth: 0}
+      - run: python .fidunio-0980-85-materialize.py
+      - run: npm install --ignore-scripts
+      - run: npm run test:invitation-policy
+      - run: npm run emulator:test:invitation-rules
+      - run: npm run test:invitation-install-closeout
+      - run: |
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add auth-ui-clean.js settings-lifecycle.js firebase.js package.json version.js
+          git commit -m "Build FIDUNIO 0.9.8.0 through 0.9.8.5"
+          git push origin HEAD:fidunio-complete-rebuild
