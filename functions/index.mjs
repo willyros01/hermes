@@ -8,6 +8,7 @@ import { createRecoveryFirestoreAdminRepositories } from "./recovery/e2ee-recove
 if (!getApps().length) initializeApp();
 
 const RECOVERY_MASTER = defineSecret("FIDUNIO_RECOVERY_MASTER_V1");
+const RECOVERY_SERVICE_ACCOUNT = "fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com";
 const db = getFirestore();
 const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({ db });
 
@@ -19,23 +20,28 @@ function decodeMasterSecret() {
   return bytes;
 }
 
-// The completion endpoint remains deliberately fail-closed until the approved
-// supplemental recovery verifier is implemented and reviewed. This prevents an
-// accidental scaffold deployment from releasing a Recovery Unlock Key.
-async function supplementalVerifier() { return false; }
+// App Check is deliberately NOT enforced during the current staging period.
+// Authentication, UID binding, the six-digit account-E2EE PIN, server-owned
+// recovery session, keyId/revision binding, retry limits, IAM and Secret Manager
+// remain mandatory. Production App Check enforcement is a later code/config
+// change after legitimate Safari/PWA traffic has been verified.
+const REQUIRE_APP_CHECK = false;
 
 const core = createRecoveryCallableCore({
   masterSecretProvider: async () => decodeMasterSecret(),
   identityRepo,
   sessionRepo,
-  supplementalVerifier
+  requireAppCheck: REQUIRE_APP_CHECK
 });
 
 function mapError(error) {
   const code = String(error?.code || "");
   if (code === "INVALID_INPUT") return new HttpsError("invalid-argument", "Recovery request is invalid.");
   if (code === "APP_CHECK_REQUIRED") return new HttpsError("failed-precondition", "Recovery authorization failed.");
-  if (["SESSION_EXPIRED","SESSION_LOCKED","SESSION_CONSUMED","RECOVERY_STALE","RECOVERY_DENIED","ACCOUNT_HOLD","IDENTITY_MISSING"].includes(code)) {
+  if ([
+    "SESSION_EXPIRED","SESSION_LOCKED","SESSION_CONSUMED","SESSION_CONFLICT","SESSION_MISSING",
+    "RECOVERY_STALE","RECOVERY_DENIED","ACCOUNT_HOLD","ACCOUNT_CONFLICT","IDENTITY_MISSING"
+  ].includes(code)) {
     return new HttpsError("permission-denied", "Recovery authorization failed.");
   }
   console.error("FIDUNIO recovery callable failed", { code: code || "INTERNAL" });
@@ -56,7 +62,8 @@ async function invoke(handler, request) {
 
 const common = Object.freeze({
   region: "us-central1",
-  enforceAppCheck: true,
+  serviceAccount: RECOVERY_SERVICE_ACCOUNT,
+  enforceAppCheck: REQUIRE_APP_CHECK,
   timeoutSeconds: 30,
   memory: "256MiB",
   maxInstances: 10
@@ -73,11 +80,6 @@ export const startE2EERecoveryV1 = onCall(
 );
 
 export const completeE2EERecoveryV1 = onCall(
-  { ...common, secrets: [RECOVERY_MASTER], consumeAppCheckToken: true },
-  async () => {
-    throw new HttpsError(
-      "failed-precondition",
-      "E2EE recovery completion is not enabled until supplemental verification is configured."
-    );
-  }
+  { ...common, secrets: [RECOVERY_MASTER] },
+  request => invoke(core.completeE2EERecoveryV1, request)
 );
