@@ -372,3 +372,13 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Repository Firestore rules changed but were NOT deployed to live Firebase. htest was not touched. App Check enforcement remains OFF; FCM remains deferred to 1.1.
 - This checkpoint does not physically purge content. One serialized purge/delete owner, history-grant purge, local/offline convergence, attachments and stale-device anti-resurrection remain unfinished.
 - Overall first complete rebuild estimate remains approximately 65%.
+
+2026-09-06 — 0.9.6.11 USER-SELECTED DISAPPEARING DURATION
+- User explicitly decided that the disappearing duration is user-selected; FIDUNIO must not impose one universal duration.
+- `disappearing-content-policy.js` remains the pure policy owner and now defines `DISAPPEARING_DURATION_FIELD = "disappearAfterSeconds"`.
+- Off/non-disappearing is represented by no duration field. A selected duration is an exact integer number of seconds, currently bounded to 1..31536000 (one year).
+- Each disappearing message must eventually persist the resolved duration immutably. UI presets or conversation defaults may assist selection, but later preference changes must not modify the duration of a message already sent.
+- Expiry authority remains recipient first server-backed Read (`readAt`) from 0.9.6.10; group recipients retain independent clocks.
+- 0.9.6.11 adds policy/test coverage only. Direct/group Firestore message schema persistence and rules for `disappearAfterSeconds`, purge execution, local/offline anti-resurrection, attachments, and final UI remain IN PROGRESS.
+- Live Firebase and htest remain untouched. App Check enforcement remains OFF; FCM remains deferred to 1.1.
+- Overall first complete rebuild estimate remains approximately 65%.

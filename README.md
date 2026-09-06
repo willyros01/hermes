@@ -314,3 +314,16 @@ Release transition: **0.9.6.9 -> 0.9.6.10**.
 - This release establishes timer-start authority only. It does **not** yet physically purge messages, history-grant copies, receipts, local cache, Outbox traces, attachments, or stale-device material. Purge execution and anti-resurrection remain IN PROGRESS.
 - Repository Firestore rules changed but were **not deployed to live Firebase**. `htest` was not touched; FCM remains deferred to 1.1 and App Check enforcement remains OFF/deferred to 1.2.
 - Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.11 — user-selected disappearing duration policy
+
+Release transition: **0.9.6.10 -> 0.9.6.11**.
+
+- Product decision: the user chooses the disappearing duration rather than FIDUNIO forcing one universal duration.
+- The pure `disappearing-content-policy.js` owner now defines one canonical per-message metadata field, `disappearAfterSeconds`, with `off` represented by absence of that field.
+- A disappearing duration is normalized to an exact integer number of seconds. Current policy bounds are 1 second through 31,536,000 seconds (one year).
+- UI presets or conversation defaults may be added later for convenience, but they are not authority. Each sent disappearing message must persist its resolved immutable duration so changing a later preference cannot retroactively alter an already-sent message's expiry window.
+- Expiry still starts from the recipient account's immutable server-backed first `readAt` established in 0.9.6.10. In groups, each recipient has an independent first-Read clock.
+- This checkpoint defines and gates duration-selection semantics only. Message-schema persistence/rules, physical purge, local/offline convergence, attachment purge, anti-resurrection, and final UI remain unfinished.
+- No live Firebase deployment, no `htest` deployment, no FCM activation, and no App Check enforcement change.
+- Overall first-rebuild estimate remains approximately 65%.
