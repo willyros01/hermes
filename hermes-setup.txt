@@ -7,6 +7,7 @@ CURRENT DEVELOPMENT BRANCH
 - Authoritative in-progress branch: fidunio-complete-rebuild
 - Product name: FIDUNIO
 - GitHub repository name: hermes
+- Current repository checkpoint: 0.9.6.10; immutable first-Read authority is repository-materialized, while physical disappearing-content purge remains unfinished.
 - main contains a curated recovery-document mirror only; do not treat application code on main as the current rebuild until final deliberate promotion.
 
 RELEASE ROADMAP / SCOPE
