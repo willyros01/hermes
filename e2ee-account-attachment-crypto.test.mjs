@@ -1,0 +1,15 @@
+import {webcrypto} from "node:crypto";
+if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
+if(!globalThis.btoa)globalThis.btoa=s=>Buffer.from(s,"binary").toString("base64");
+if(!globalThis.atob)globalThis.atob=s=>Buffer.from(s,"base64").toString("binary");
+const {encryptAttachmentBytes,decryptAttachmentBytes,attachmentChunkSize}=await import("./e2ee-account-attachment-crypto.js");
+let failed=0;const ok=(name,v)=>{console.log(v?"PASS":"FAIL",name);if(!v)failed++;};
+const size=attachmentChunkSize()*2+137,input=webcrypto.getRandomValues(new Uint8Array(size));
+const enc=await encryptAttachmentBytes({attachmentId:"att-1",bytes:input,meta:{name:"photo.jpg",type:"image/jpeg"}});
+ok("attachment split into bounded chunks",enc.chunks.length===3&&enc.manifest.totalChunks===3);
+ok("manifest carries safe metadata",enc.manifest.name==="photo.jpg"&&enc.manifest.type==="image/jpeg"&&enc.manifest.size===size);
+ok("ciphertext does not expose plaintext",!enc.chunks.some(c=>c.ciphertext.includes(Buffer.from(input.subarray(0,24)).toString("base64"))));
+const out=await decryptAttachmentBytes(enc);ok("attachment decrypts byte-for-byte",Buffer.compare(Buffer.from(out),Buffer.from(input))===0);
+const tampered=structuredClone(enc);tampered.chunks[1].attachmentId="other";let rejected=false;try{await decryptAttachmentBytes(tampered);}catch{rejected=true;}ok("chunk binding tamper rejected",rejected);
+const missing={...enc,chunks:enc.chunks.slice(1)};rejected=false;try{await decryptAttachmentBytes(missing);}catch{rejected=true;}ok("missing chunk rejected",rejected);
+console.log(`\n${6-failed}/6 attachment crypto assertions passed.`);if(failed)process.exitCode=1;
