@@ -12,5 +12,6 @@ must(service.includes('getAccountE2EERuntimeIdentity'),"service uses durable acc
 must(!service.includes("deviceId"),"service has no device-identity dependency");
 must(runtime.includes("revalidateQueued"),"runtime exposes queued epoch revalidation");
 must(runtime.includes('transport.readRetainedGroupMessages(gid)'),"runtime obtains history sources from transport authority");
-must(/createHistoryGrant\(\{groupId,grantId,targetUid,boundary\}\)/.test(runtime),"history grant API accepts intent only, not caller source rows");
+must(/createHistoryGrant\(\{groupId,grantId=null,targetUid,boundary\}\)/.test(runtime),"history grant API accepts intent plus optional runtime/testing grant ID, not caller source rows");
+must(/grant=grantId\?text\(grantId,"Grant ID"\):newGrantId\(\)/.test(runtime),"runtime securely owns production history grant ID generation");
 console.log("Group E2EE service ownership wiring passes");
