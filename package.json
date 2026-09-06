@@ -22,6 +22,7 @@
     "test:disappearing-purge-executor":"node disappearing-purge-executor.test.mjs",
     "test:disappearing-group-grant-trace-plan":"node disappearing-group-grant-trace-plan.test.mjs",
     "test:disappearing-purge-firestore":"node disappearing-purge-firestore-admin-adapter.test.mjs",
+    "test:disappearing-local-convergence":"node disappearing-local-convergence.test.mjs",
     "test:group-history-grant-purge-barrier":"node group-history-grant-purge-barrier.test.mjs",
     "test:group-history-copy-purge-barrier":"node group-history-copy-purge-barrier.test.mjs",
     "test:group-receipt-purge-barrier":"node group-receipt-purge-barrier.test.mjs",
