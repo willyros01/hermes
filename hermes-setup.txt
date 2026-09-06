@@ -52,12 +52,12 @@ PROTECTED FILES / REPOSITORY RULES
 - Do not restore MutationObserver-based structural self-repair or competing lifecycle/Firebase owners.
 
 CURRENT PRODUCT STATUS
-Use FIDUNIO-BUILD-CHECKLIST.md as the authoritative completion ledger. At this guide's reconciliation, the first complete rebuild estimate remains approximately 65%. Core account/authentication, account-authoritative E2EE, direct messaging, encrypted Outbox, group encrypted messaging, Settings lifecycle, and responsive foundations are substantially integrated. Major unfinished first-release areas include real group administration, complete attachment transport/UI/lifecycle, disappearing-content implementation, invitations, safe install integration, remaining placeholder/simulation removal, final full-product gate, and final deployment. FCM is tracked for 1.1 and App Check enforcement for 1.2, outside the first-rebuild completion gate.
+Use FIDUNIO-BUILD-CHECKLIST.md as the authoritative completion ledger. At this guide's reconciliation, the first complete rebuild estimate remains approximately 65%. Core account/authentication, account-authoritative E2EE, direct messaging, encrypted Outbox, group encrypted messaging, Settings lifecycle, and responsive foundations are substantially integrated. Major unfinished first-release areas include completion of group earlier-history/admin-role controls, complete attachment transport/UI/lifecycle, disappearing-content implementation, invitations, safe install integration, remaining placeholder/simulation removal, final full-product gate, and final deployment. FCM is tracked for 1.1 and App Check enforcement for 1.2, outside the first-rebuild completion gate.
 
 GROUP REQUIREMENTS
 - Group messages use e2ee:4 and the fidunio-group-message-v1 format.
 - Membership changes rotate keyEpoch before subsequent messages.
-- New members receive only the new epoch by default; historyPolicy is fromJoin unless an explicit later history-grant feature is implemented.
+- New members receive only the new epoch by default; historyPolicy is fromJoin. Explicit earlier-history sharing uses an admin-selected starting point/date (including Beginning of conversation) and must be message-granular so no content before the chosen boundary becomes decryptable.
 - Removed members receive no new epoch envelope.
 - Group receipts are per-account UID.
 - Group Outbox retry must revalidate the current epoch and re-encrypt when required.

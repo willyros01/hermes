@@ -56,7 +56,7 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 | Group add member | DONE | Real cloud users; membership/member doc/new E2EE epoch committed atomically. |
 | Group remove member | DONE | Admin removal atomically rotates epoch; removed member is excluded from replacement envelopes. |
 | Leave group | DONE | Non-owner self-leave is atomic with epoch replacement; immutable owner intentionally cannot leave. |
-| Group history policy/admin controls | IN PROGRESS | `historyPolicy:"fromJoin"` contract exists; real management UI/backend controls unfinished. |
+| Group history policy/admin controls | IN PROGRESS | Date/message-bounded earlier-history policy approved; isolated per-message account-E2EE grant crypto is gated. Firestore schema/rules/runtime/UI and purge linkage remain unfinished. |
 
 ## Disappearing content
 
@@ -108,7 +108,7 @@ Provider limitation: this trace-free rule governs all data FIDUNIO controls thro
 | Settings deterministic lifecycle owner | DONE | Explicit lifecycle owner; observer self-repair rejected. |
 | iPad/tablet/desktop two-pane foundation | DONE | Mandatory responsive owner retained. |
 | iPhone single-pane/back/wrap fixes | DONE | Protected behavior retained; final device regression still required. |
-| Group Info real management UI | IN PROGRESS | Rename/add/remove/leave are real; explicit earlier-history/admin-role controls and unrelated tool placeholders remain. |
+| Group Info real management UI | IN PROGRESS | Rename/add/remove/leave are real. Earlier-history grant policy + crypto foundation exist, but the control remains disabled until schema/rules/runtime/purge validation. Admin-role controls and unrelated placeholders remain. |
 | Direct Chat Info complete | NOT DONE | Remaining placeholder behavior. |
 | Remove remaining prototype/test banners | NOT DONE | Only after corresponding real functionality is complete. |
 | Remove remaining simulated local message-state timers | NOT DONE | Real product must not simulate sent/delivered/read. |
@@ -173,3 +173,4 @@ Approximately **65%** of the first complete rebuild release acceptance criteria.
 - 2026-09-06 — Reconciled hermes-setup.txt from obsolete 0.8.1.9 instructions to the current complete-rebuild architecture and recovery procedure.
 - 2026-09-06 — Real group administration materialized: cloud-backed rename/add/remove/non-owner leave; membership changes atomically rotate E2EE epoch and exclude departed members. Firestore/runtime tests extended. Explicit earlier-history/admin-role controls remain IN PROGRESS.
 - 2026-09-06 — Group administration validation checkpoint: materializer group runtime/app/rules/authority tests passed, then full Rebuild Baseline Security Gate run `34045259037` passed on the cleaned authoritative branch. Temporary group-administration materializer/trigger workflows were removed.
+- 2026-09-06 — Earlier-history grant foundation: user approved an admin-selected starting point/date including Beginning of conversation. `e2ee-account-group-history-crypto.js` now provides message-granular account-to-account grant encryption so a date boundary never requires disclosure of an entire historical epoch. Dedicated crypto tests are part of the security gate. Overall first-rebuild estimate remains approximately 65% until Firestore/runtime/UI/purge integration completes.

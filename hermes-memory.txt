@@ -275,3 +275,13 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Focused materializer validation passed group runtime, group service/controller/integration ownership, Firestore group E2EE rules, and runtime authority tests.
 - Full Rebuild Baseline Security Gate run `34045259037` then passed every substantive step on the cleaned authoritative branch after temporary group-administration workflows were removed.
 - Group rename/add/remove/non-owner leave are therefore repository-validated DONE. Explicit earlier-history grants/admin-role controls remain IN PROGRESS; no `htest` deployment was performed.
+
+
+2026-09-06 — GROUP EARLIER-HISTORY GRANT FOUNDATION
+- User approved administrator-selected starting point/date for explicit earlier-history sharing; Beginning of conversation is a valid choice and resolves to the earliest still-retained eligible message.
+- Security boundary: an exact date/message grant must not disclose a whole historical epoch key when that would expose older messages.
+- Added isolated `e2ee-account-group-history-crypto.js`: account ECDH P-256 + HKDF-SHA256 + AES-256-GCM re-encrypts one selected source message to one target account. Grant/group/source-message/grantor/target identities are cryptographically bound; device IDs are absent.
+- Added dedicated crypto test and security-gate step. This is foundation only: Firestore grant schema/rules, runtime/service/transport integration, Group Info control, disappearing-content purge linkage and emulator tests remain required.
+- Version checkpoint advanced to 0.9.6.5.
+- Overall first complete rebuild estimate remains approximately 65%; do not inflate it for this isolated foundation.
+- Reporting rule reinforced by user: after every substantive build run report the overall rebuild percentage even when unchanged, and reconcile all affected durable docs.

@@ -109,3 +109,11 @@ No new MutationObserver, reload repair, source transform, competing Firebase ini
 
 ## Group administration materialization — 2026-09-06
 Group Info mutations now route `app.js -> group app integration/controller -> account group runtime -> Firebase adapter -> firebase.js`. Membership changes are a single serialized cryptographic+Firestore operation; the runtime prepares an epoch for the exact post-change members and `firebase.js` atomically commits membership, member document, key epoch and epoch record. Rename uses the same serialized bridge but does not rotate the key because membership is unchanged.
+
+
+## Group earlier-history grant foundation — 2026-09-06
+- `e2ee-account-group-history-crypto.js`: isolated message-granular grant cryptographic transform only.
+- Existing group runtime remains the only authorized path that may decrypt source group messages; the grant crypto owner never reads Firestore or epochs itself.
+- Future grant creation path remains `app.js intent -> group app controller -> serialized group runtime/service -> firebase.js opaque persistence`.
+- Historical epoch keys are never handed to the target merely to satisfy a date boundary.
+- Group Info history-grant UI remains disabled until Firestore schema/rules, runtime integration, source-boundary selection, purge linkage and emulator tests are green.
