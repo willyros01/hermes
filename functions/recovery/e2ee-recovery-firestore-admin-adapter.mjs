@@ -60,6 +60,18 @@ export function createRecoveryFirestoreAdminRepositories({ db } = {}) {
       const data = dataOf(snap);
       return data ? requireInt(data.consecutivePinFailures ?? 0, "consecutivePinFailures") : 0;
     },
+    async beginPinAttempt(session) {
+      return db.runTransaction(async tx => {
+        const ref = sessionRef(requireText(session?.sessionId, "sessionId"));
+        const snap = await tx.get(ref);
+        const old = dataOf(snap);
+        assertStableSession(old, session);
+        if (old.status !== "PENDING") throw fail("SESSION_CONFLICT", "Recovery session is already being verified or is no longer active.");
+        if (requireInt(old.failedPinAttempts ?? 0, "stored failedPinAttempts") !== requireInt(session.failedPinAttempts ?? 0, "failedPinAttempts")) throw fail("SESSION_CONFLICT", "Recovery PIN failure counter raced.");
+        tx.update(ref, { status: "VERIFYING" });
+        return { ...old, status: "VERIFYING" };
+      });
+    },
     async saveFailedPinAttempt({ session, accountConsecutivePinFailures, accountHold }) {
       const nextSessionFailures = requireInt(session?.failedPinAttempts, "failedPinAttempts", 1);
       const nextAccountFailures = requireInt(accountConsecutivePinFailures, "accountConsecutivePinFailures", 1);
@@ -70,9 +82,8 @@ export function createRecoveryFirestoreAdminRepositories({ db } = {}) {
         const [sSnap, aSnap] = await Promise.all([tx.get(sRef), tx.get(aRef)]);
         const oldSession = dataOf(sSnap);
         assertStableSession(oldSession, session);
+        if (oldSession.status !== "VERIFYING") throw fail("SESSION_CONFLICT", "Recovery session is not verifying a PIN.");
         if (requireInt(oldSession.failedPinAttempts ?? 0, "stored failedPinAttempts") + 1 !== nextSessionFailures) throw fail("SESSION_CONFLICT", "Recovery PIN failure counter raced.");
-        if (["CONSUMED","EXPIRED","LOCKED"].includes(oldSession.status)) throw fail("SESSION_CONFLICT", "Terminal recovery session cannot record another PIN attempt.");
-        if (oldSession.status !== "PENDING") throw fail("SESSION_CONFLICT", "Only a pending recovery session may record a PIN attempt.");
         const oldAccountFailures = dataOf(aSnap)?.consecutivePinFailures ?? 0;
         if (requireInt(oldAccountFailures, "stored consecutivePinFailures") + 1 !== nextAccountFailures) throw fail("ACCOUNT_CONFLICT", "Account recovery failure counter raced.");
         tx.update(sRef, { status: session.status, failedPinAttempts: nextSessionFailures });
@@ -90,7 +101,7 @@ export function createRecoveryFirestoreAdminRepositories({ db } = {}) {
         const sSnap = await tx.get(sRef);
         const old = dataOf(sSnap);
         assertStableSession(old, session);
-        if (old.status !== "PENDING") throw fail("SESSION_CONFLICT", "Only a pending recovery session may be consumed.");
+        if (old.status !== "VERIFYING") throw fail("SESSION_CONFLICT", "Only the active verification attempt may consume a recovery session.");
         tx.update(sRef, { status: "CONSUMED", consumedAtMs: session.consumedAtMs });
         tx.set(aRef, { uid, consecutivePinFailures: 0, hold: false }, { merge: true });
         return { status: "CONSUMED", accountConsecutivePinFailures: 0 };
