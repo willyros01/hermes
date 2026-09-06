@@ -2,30 +2,85 @@ from pathlib import Path
 
 def read(p): return Path(p).read_text()
 def write(p,s): Path(p).write_text(s)
+def rep(p,a,b):
+ s=read(p)
+ if a not in s: raise SystemExit(f'missing anchor in {p}: {a!r}')
+ write(p,s.replace(a,b,1))
+def append(p,marker,block):
+ s=read(p)
+ if marker not in s: write(p,s.rstrip()+"\n\n"+block.strip()+"\n")
 
-p='firebase.js'; s=read(p)
-s=s.replace('row={...envelope,senderUid:authUser.uid,state:"sent",createdAt:s.fsSdk.serverTimestamp()}', 'row={...envelope,senderUid:authUser.uid,state:"sent",createdAt:s.fsSdk.serverTimestamp(),receiptRevision:0}',1)
-old='const ref=s.fsSdk.doc(s.db,"groups",groupId,"messages",messageId,"receipts",authUser.uid);return s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref),current=snap.exists()?snap.data():null;if(current?.state==="read")return{state:"read",readAt:current.readAt||null};if(state==="delivered"&&current?.state==="delivered")return{state:"delivered"};const now=s.fsSdk.serverTimestamp();if(state==="read"){if(snap.exists())tx.update(ref,{state:"read",updatedAt:now,readAt:now});else tx.set(ref,{uid:authUser.uid,state:"read",updatedAt:now,readAt:now});}else{if(snap.exists())throw new Error("Group receipt cannot regress or repeat.");tx.set(ref,{uid:authUser.uid,state:"delivered",updatedAt:now});}return{state};});}'
-new='const messageRef=s.fsSdk.doc(s.db,"groups",groupId,"messages",messageId),ref=s.fsSdk.doc(s.db,"groups",groupId,"messages",messageId,"receipts",authUser.uid);return s.fsSdk.runTransaction(s.db,async tx=>{const [messageSnap,snap]=await Promise.all([tx.get(messageRef),tx.get(ref)]);if(!messageSnap.exists())throw new Error("Group message was not found.");const message=messageSnap.data(),current=snap.exists()?snap.data():null;if(current?.state==="read")return{state:"read",readAt:current.readAt||null};if(state==="delivered"&&current?.state==="delivered")return{state:"delivered"};const nextRevision=Number(message.receiptRevision||0)+1,now=s.fsSdk.serverTimestamp();tx.update(messageRef,{receiptRevision:nextRevision});if(state==="read"){if(snap.exists())tx.update(ref,{state:"read",updatedAt:now,readAt:now});else tx.set(ref,{uid:authUser.uid,state:"read",updatedAt:now,readAt:now});}else{if(snap.exists())throw new Error("Group receipt cannot regress or repeat.");tx.set(ref,{uid:authUser.uid,state:"delivered",updatedAt:now});}return{state};});}'
-if old not in s: raise SystemExit('firebase receipt anchor missing')
-s=s.replace(old,new,1); write(p,s)
+rep('version.js','version: "0.9.6.18"','version: "0.9.6.19"')
+rep('README.md','- Current checkpoint version: **0.9.6.18**','- Current checkpoint version: **0.9.6.19**')
+append('README.md','### 0.9.6.19 — group receipt purge barrier','''
+### 0.9.6.19 — group receipt purge barrier
 
-p='firestore.rules'; s=read(p)
-s=s.replace('"createdAt","timeLabel","disappearAfterSeconds"]) &&', '"createdAt","timeLabel","disappearAfterSeconds","receiptRevision"]) && d.receiptRevision==0 &&',1)
-anchor='function validGroupReceiptUpdate(uid,d,old){return old.uid==uid&&d.uid==uid&&old.state=="delivered"&&d.state=="read"&&!("readAt" in old)&&d.updatedAt==request.time&&d.readAt==request.time&&d.diff(old).affectedKeys().hasOnly(["state","updatedAt","readAt"]);}'
-addition=anchor+'\n    function groupReceiptPath(groupId,messageId,uid){return /databases/$(database)/documents/groups/$(groupId)/messages/$(messageId)/receipts/$(uid);}\n    function groupReceiptParentBarrier(groupId,messageId){let before=groupMessage(groupId,messageId).data;let after=getAfter(groupMessagePath(groupId,messageId)).data;return after.receiptRevision is int&&after.receiptRevision==before.receiptRevision+1&&after.diff(before).affectedKeys().hasOnly(["receiptRevision"])&&getAfter(groupReceiptPath(groupId,messageId,request.auth.uid)).data.updatedAt==request.time;}\n    function validGroupReceiptParentUpdate(groupId,messageId,d,old){return d.receiptRevision is int&&d.receiptRevision==old.receiptRevision+1&&d.diff(old).affectedKeys().hasOnly(["receiptRevision"])&&getAfter(groupReceiptPath(groupId,messageId,request.auth.uid)).data.updatedAt==request.time;}'
-if anchor not in s: raise SystemExit('rules receipt anchor missing')
-s=s.replace(anchor,addition,1)
-oldmatch='match /messages/{messageId}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&validGroupMessage(groupId,request.resource.data);allow update,delete: if false;match /receipts/{uid}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptCreate(uid,request.resource.data);allow update: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptUpdate(uid,request.resource.data,resource.data);allow delete: if false;}}'
-newmatch='match /messages/{messageId}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&validGroupMessage(groupId,request.resource.data);allow update: if isGroupMember(groupId)&&validGroupReceiptParentUpdate(groupId,messageId,request.resource.data,resource.data);allow delete: if false;match /receipts/{uid}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptCreate(uid,request.resource.data)&&groupReceiptParentBarrier(groupId,messageId);allow update: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptUpdate(uid,request.resource.data,resource.data)&&groupReceiptParentBarrier(groupId,messageId);allow delete: if false;}}'
-if oldmatch not in s: raise SystemExit('rules group message match anchor missing')
-s=s.replace(oldmatch,newmatch,1); write(p,s)
+Release transition: **0.9.6.18 -> 0.9.6.19**.
 
-p='firestore-group-e2ee-v1.rules.test.mjs'; s=read(p)
-s=s.replace('state:"sent",createdAt:serverTimestamp(),...extra', 'state:"sent",createdAt:serverTimestamp(),receiptRevision:0,...extra',1)
-s=s.replace('await test("13 member can write own delivered receipt",()=>assertSucceeds(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"delivered",updatedAt:serverTimestamp()})));', 'await test("13 standalone delivered receipt without parent barrier is denied",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"delivered",updatedAt:serverTimestamp()})));\nawait test("13a member atomically writes own delivered receipt and advances parent revision",async()=>{const b=writeBatch(dbB);b.update(doc(dbB,"groups","g1","messages","m1"),{receiptRevision:1});b.set(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"delivered",updatedAt:serverTimestamp()});return assertSucceeds(b.commit());});',1)
-s=s.replace('await test("15 member first Read stores server-backed readAt",()=>assertSucceeds(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));', 'await test("15 standalone first Read without parent barrier is denied",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));\nawait test("15a member first Read atomically stores server-backed readAt and advances parent revision",async()=>{const b=writeBatch(dbB);b.update(doc(dbB,"groups","g1","messages","m1"),{receiptRevision:2});b.set(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()});return assertSucceeds(b.commit());});',1)
-write(p,s)
+- Clean Rebuild Baseline Security Gate run `34055638377` passed every step, including the new group receipt purge barrier and expanded group Firestore emulator matrix.
+- New encrypted group messages now begin with `receiptRevision: 0` as outer non-cryptographic purge-concurrency metadata.
+- Every actual group Delivered/Read receipt mutation is serialized in the existing Firebase transaction with the parent message and atomically advances `receiptRevision` by exactly one.
+- Firestore Rules permit a parent group-message update only for that exact +1 revision and only when the caller's receipt in the same atomic request has `updatedAt == request.time`. Receipt create/update likewise requires the matching parent revision barrier.
+- Repeat Delivered/Read no-ops do not advance the revision. Ciphertext, epoch, sender, disappearing duration and all other message authority remain immutable.
+- This closes the orphan-receipt race: a newly created or advanced receipt necessarily changes the parent message already included in the server purge basis, forcing stale purge plans to retry.
+- Group physical deletion remains fail-closed pending the bounded server trace commit and local/offline anti-resurrection work.
+- Repository Firestore Rules changed only; **no live Firebase deployment** occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
+- Overall first-rebuild estimate remains approximately 65%.
+''')
+append('hermes-memory.txt','0.9.6.19 GROUP RECEIPT PURGE BARRIER','''
+2026-09-06 — 0.9.6.19 GROUP RECEIPT PURGE BARRIER
+- Clean gate `34055638377` passed all baseline steps, including the dedicated receipt barrier and group emulator coverage.
+- New e2ee:4 group messages carry outer `receiptRevision: 0`.
+- Existing `firebase.js` receipt transaction now reads parent message + own receipt together and advances parent `receiptRevision` exactly once for each real Delivered/Read mutation.
+- Rules couple receipt create/update to the same atomic parent +1 revision and allow no other client mutation of the group message.
+- Repeat receipt no-ops do not advance the barrier. First Read remains immutable/server-backed as before.
+- Because group purge basis already includes the source message update time, concurrent receipt creation/advance is now basis-visible and cannot leave an orphan receipt behind a stale source purge.
+- Group source delete remains disabled pending the server trace commit and local/offline anti-resurrection.
+- Version 0.9.6.18 -> 0.9.6.19. No live Firebase, htest, App Check enforcement or FCM change.
+- Overall first complete rebuild remains approximately 65%.
+''')
+append('FIDUNIO-BUILD-CHECKLIST.md','0.9.6.19 group receipt purge barrier','''
+- 2026-09-06 — 0.9.6.19 group receipt purge barrier: new group messages start `receiptRevision:0`; each real own-receipt Delivered/Read mutation atomically advances the parent revision by one and Rules require the coupled request. Concurrent receipts are therefore source-basis-visible. Gate `34055638377` green. Physical group trace commit and local/offline convergence remain unfinished; no live Firebase/htest change; overall estimate remains approximately 65%.
+''')
+append('DISAPPEARING-PURGE-AUTHORITY.md','## Group receipt purge barrier — 0.9.6.19','''
+## Group receipt purge barrier — 0.9.6.19
 
-p='package.json'; s=read(p); s=s.replace('"test:group-history-copy-purge-barrier":"node group-history-copy-purge-barrier.test.mjs",','"test:group-history-copy-purge-barrier":"node group-history-copy-purge-barrier.test.mjs",\n    "test:group-receipt-purge-barrier":"node group-receipt-purge-barrier.test.mjs",',1); write(p,s)
-print('materialized 0.9.6.19 receipt barrier candidate')
+Every new encrypted group source begins with outer `receiptRevision: 0`. A real Delivered or first Read receipt mutation must atomically advance that source revision by exactly one. Firestore Rules couple both sides: the source update may affect only `receiptRevision` and requires the caller's receipt `updatedAt == request.time`; the receipt create/update requires the corresponding parent revision advance.
+
+The server purge basis already binds the source message Firestore update time. Therefore a receipt that appears or advances after planning changes the source version and causes final purge revalidation to fail/retry rather than deleting the source while leaving an orphan receipt. Repeat receipt no-ops do not manufacture revision changes.
+
+This barrier does not grant browser delete authority. Group physical deletion remains server-only and fail-closed until the full revalidated trace commit is materialized.
+''')
+append('architecture-ownership.txt','GROUP RECEIPT PURGE BARRIER — 0.9.6.19','''
+GROUP RECEIPT PURGE BARRIER — 0.9.6.19
+- `firebase.js` remains the sole browser Firestore receipt transport owner.
+- Group message `receiptRevision` is outer purge-concurrency metadata, not ciphertext or cryptographic envelope state.
+- The existing receipt transaction owns both the own-receipt mutation and exact +1 parent revision in one serialized write path.
+- Firestore Rules allow no unrelated parent-message mutation and require the matching receipt request-time write.
+- Server purge repository remains sole physical-delete owner.
+''')
+append('RUNTIME-AUTHORITY-MAP.md','Group receipt purge barrier — 0.9.6.19','''
+## Group receipt purge barrier — 0.9.6.19
+- New e2ee:4 group source: `receiptRevision: 0`.
+- `firebase.js` group receipt transaction: parent message + caller receipt -> one atomic real-state transition + exact parent revision increment.
+- Firestore Rules bind the two writes and prohibit unrelated group-message mutation.
+- Server purge basis already contains the source update version, so receipt changes now invalidate stale purge plans.
+- Physical group delete authority remains server-only/fail-closed.
+''')
+append('ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md','### Receipt purge barrier — 0.9.6.19','''
+### Receipt purge barrier — 0.9.6.19
+Encrypted group message documents carry outer integer `receiptRevision`, initialized to `0`. This field is not authenticated plaintext and does not alter the E2EE envelope. Each actual per-account Delivered/Read receipt transition atomically increments the parent revision exactly once. Rules allow no other parent mutation. The field exists so receipt-subcollection concurrency is visible to disappearing-source purge revalidation.
+''')
+append('FIRESTORE-E2EE-V1-EMULATOR-TESTS.md','## Group receipt purge barrier — 0.9.6.19','''
+## Group receipt purge barrier — 0.9.6.19
+The group emulator matrix now proves standalone Delivered and first-Read receipt writes are denied, while each succeeds when atomically paired with the exact next parent `receiptRevision`. Dedicated `group-receipt-purge-barrier.test.mjs` gates the central Firebase transaction and Rules anchors. Rebuild Baseline Security Gate run `34055638377` passed. Repository Rules remain undeployed to live Firebase.
+''')
+append('hermes-setup.txt','## 0.9.6.19 group receipt purge barrier','''
+## 0.9.6.19 group receipt purge barrier
+Repository group receipt writes now require an atomic parent-message `receiptRevision` advance. Do not deploy these Rules yet and do not enable disappearing/history-sharing UI. Group physical purge remains server-only and fail-closed until the complete trace commit and anti-resurrection work are repository-tested.
+''')
+append('CURRENT-REBUILD.md','0.9.6.19 receipt purge barrier','''
+## 0.9.6.19 receipt purge barrier
+Group receipt creation/advance is now purge-basis-visible through an atomic parent `receiptRevision`. Clean gate `34055638377` passed. Group physical trace deletion remains fail-closed; next work is the bounded server trace commit, then local/offline anti-resurrection. Live Firebase and htest remain untouched.
+''')
+print('0.9.6.19 docs reconciled')
