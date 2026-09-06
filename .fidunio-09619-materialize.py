@@ -1,0 +1,40 @@
+from pathlib import Path
+
+def read(p): return Path(p).read_text()
+def write(p,s): Path(p).write_text(s)
+def rep(p,a,b):
+ s=read(p)
+ if a not in s: raise SystemExit(f'missing anchor in {p}: {a[:120]!r}')
+ write(p,s.replace(a,b,1))
+
+# Browser transport: parent message revision and receipt mutate in one transaction.
+p='firebase.js'; s=read(p)
+s=s.replace('row={...envelope,senderUid:authUser.uid,state:"sent",createdAt:s.fsSdk.serverTimestamp()}', 'row={...envelope,senderUid:authUser.uid,state:"sent",createdAt:s.fsSdk.serverTimestamp(),receiptRevision:0}',1)
+old='const ref=s.fsSdk.doc(s.db,"groups",groupId,"messages",messageId,"receipts",authUser.uid);return s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref),current=snap.exists()?snap.data():null;if(current?.state==="read")return{state:"read",readAt:current.readAt||null};if(state==="delivered"&&current?.state==="delivered")return{state:"delivered"};const now=s.fsSdk.serverTimestamp();if(state==="read"){if(snap.exists())tx.update(ref,{state:"read",updatedAt:now,readAt:now});else tx.set(ref,{uid:authUser.uid,state:"read",updatedAt:now,readAt:now});}else{if(snap.exists())throw new Error("Group receipt cannot regress or repeat.");tx.set(ref,{uid:authUser.uid,state:"delivered",updatedAt:now});}return{state};});}'
+new='const messageRef=s.fsSdk.doc(s.db,"groups",groupId,"messages",messageId),ref=s.fsSdk.doc(s.db,"groups",groupId,"messages",messageId,"receipts",authUser.uid);return s.fsSdk.runTransaction(s.db,async tx=>{const [messageSnap,snap]=await Promise.all([tx.get(messageRef),tx.get(ref)]);if(!messageSnap.exists())throw new Error("Group message was not found.");const message=messageSnap.data(),current=snap.exists()?snap.data():null;if(current?.state==="read")return{state:"read",readAt:current.readAt||null};if(state==="delivered"&&current?.state==="delivered")return{state:"delivered"};const nextRevision=Number(message.receiptRevision||0)+1,now=s.fsSdk.serverTimestamp();tx.update(messageRef,{receiptRevision:nextRevision});if(state==="read"){if(snap.exists())tx.update(ref,{state:"read",updatedAt:now,readAt:now});else tx.set(ref,{uid:authUser.uid,state:"read",updatedAt:now,readAt:now});}else{if(snap.exists())throw new Error("Group receipt cannot regress or repeat.");tx.set(ref,{uid:authUser.uid,state:"delivered",updatedAt:now});}return{state};});}'
+if old not in s: raise SystemExit('firebase receipt anchor missing')
+s=s.replace(old,new,1); write(p,s)
+
+# Rules: receiptRevision is immutable except exact +1 receipt-coupled parent update.
+p='firestore.rules'; s=read(p)
+s=s.replace('"createdAt","timeLabel","disappearAfterSeconds"]) &&', '"createdAt","timeLabel","disappearAfterSeconds","receiptRevision"]) && d.receiptRevision==0 &&',1)
+anchor='function validGroupReceiptUpdate(uid,d,old){return old.uid==uid&&d.uid==uid&&old.state=="delivered"&&d.state=="read"&&!("readAt" in old)&&d.updatedAt==request.time&&d.readAt==request.time&&d.diff(old).affectedKeys().hasOnly(["state","updatedAt","readAt"]);}'
+addition=anchor+'\n    function groupReceiptPath(groupId,messageId,uid){return /databases/$(database)/documents/groups/$(groupId)/messages/$(messageId)/receipts/$(uid);}\n    function groupReceiptParentBarrier(groupId,messageId){let before=groupMessage(groupId,messageId).data;let after=getAfter(groupMessagePath(groupId,messageId)).data;return after.receiptRevision is int&&after.receiptRevision==before.receiptRevision+1&&after.diff(before).affectedKeys().hasOnly(["receiptRevision"])&&getAfter(groupReceiptPath(groupId,messageId,request.auth.uid)).data.updatedAt==request.time;}\n    function validGroupReceiptParentUpdate(groupId,messageId,d,old){return d.receiptRevision is int&&d.receiptRevision==old.receiptRevision+1&&d.diff(old).affectedKeys().hasOnly(["receiptRevision"])&&getAfter(groupReceiptPath(groupId,messageId,request.auth.uid)).data.updatedAt==request.time;}'
+if anchor not in s: raise SystemExit('rules receipt function anchor missing')
+s=s.replace(anchor,addition,1)
+oldmatch='match /messages/{messageId}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&validGroupMessage(groupId,request.resource.data);allow update,delete: if false;match /receipts/{uid}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptCreate(uid,request.resource.data);allow update: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptUpdate(uid,request.resource.data,resource.data);allow delete: if false;}}'
+newmatch='match /messages/{messageId}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&validGroupMessage(groupId,request.resource.data);allow update: if isGroupMember(groupId)&&validGroupReceiptParentUpdate(groupId,messageId,request.resource.data,resource.data);allow delete: if false;match /receipts/{uid}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptCreate(uid,request.resource.data)&&groupReceiptParentBarrier(groupId,messageId);allow update: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptUpdate(uid,request.resource.data,resource.data)&&groupReceiptParentBarrier(groupId,messageId);allow delete: if false;}}'
+if oldmatch not in s: raise SystemExit('rules group message match anchor missing')
+s=s.replace(oldmatch,newmatch,1); write(p,s)
+
+# Emulator: messages carry revision; standalone receipt denied; atomic receipt+parent succeeds.
+p='firestore-group-e2ee-v1.rules.test.mjs'; s=read(p)
+s=s.replace('state:"sent",createdAt:serverTimestamp(),...extra', 'state:"sent",createdAt:serverTimestamp(),receiptRevision:0,...extra',1)
+s=s.replace('await test("13 member can write own delivered receipt",()=>assertSucceeds(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"delivered",updatedAt:serverTimestamp()})));', 'await test("13 standalone delivered receipt without parent barrier is denied",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"delivered",updatedAt:serverTimestamp()})));\nawait test("13a member atomically writes own delivered receipt and advances parent revision",async()=>{const b=writeBatch(dbB);b.update(doc(dbB,"groups","g1","messages","m1"),{receiptRevision:1});b.set(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"delivered",updatedAt:serverTimestamp()});return assertSucceeds(b.commit());});',1)
+s=s.replace('await test("15 member first Read stores server-backed readAt",()=>assertSucceeds(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));', 'await test("15 standalone first Read without parent barrier is denied",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));\nawait test("15a member first Read atomically stores server-backed readAt and advances parent revision",async()=>{const b=writeBatch(dbB);b.update(doc(dbB,"groups","g1","messages","m1"),{receiptRevision:2});b.set(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()});return assertSucceeds(b.commit());});',1)
+write(p,s)
+
+# Register gate.
+p='package.json'; s=read(p); s=s.replace('"test:group-history-copy-purge-barrier":"node group-history-copy-purge-barrier.test.mjs",','"test:group-history-copy-purge-barrier":"node group-history-copy-purge-barrier.test.mjs",\n    "test:group-receipt-purge-barrier":"node group-receipt-purge-barrier.test.mjs",',1); write(p,s)
+p='.github/workflows/rebuild-baseline-security.yml'; s=read(p); s=s.replace('      - name: Recovery server crypto\n', '      - name: Group receipt purge barrier\n        run: npm run test:group-receipt-purge-barrier\n      - name: Recovery server crypto\n',1); write(p,s)
+print('materialized 0.9.6.19 receipt barrier candidate')
