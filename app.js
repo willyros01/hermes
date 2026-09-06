@@ -257,6 +257,15 @@ async function removeOutboxMessage(id){
   tx.objectStore("outbox").delete(id);
   await txDone(tx);
 }
+async function markOutboxSendAttempted(id){
+  const db=await openDb();
+  const tx=db.transaction("outbox","readwrite");
+  const store=tx.objectStore("outbox");
+  const record=await idbRequest(store.get(id));
+  if(!record){tx.abort();throw new Error("Outbox record disappeared before send attempt marker.");}
+  store.put({...record,sendAttempted:true});
+  await txDone(tx);
+}
 async function decryptOutboxRecord(record){
   const payload=await decryptLocal(record.payload);
   return {
@@ -1329,7 +1338,7 @@ async function reconcileOutboxBeforeReplay(){
       const isGroup=payload.kind==="group-e2ee-v1";
       const isCloud=isGroup||payload.cloud===true;
       if(!isCloud||!conversationId)continue;
-      decoded.push({id:record.id,messageId:payload.messageId||record.id,conversationId,groupId:isGroup?conversationId:null});
+      decoded.push({id:record.id,messageId:payload.messageId||record.id,conversationId,groupId:isGroup?conversationId:null,sendAttempted:record.sendAttempted===true});
       authorityKind.set(conversationId,isGroup?"group":"direct");
     }
     for(const [conversationId,kind] of authorityKind){
@@ -1346,6 +1355,12 @@ async function reconcileOutboxBeforeReplay(){
       await removeOutboxMessage(id);
     }
     if(plan.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,plan.purgeMessageIds);
+    for(const id of plan.blockedMessageIds){
+      for(const list of Object.values(state.messages)){
+        const row=Array.isArray(list)?list.find(x=>String(x?.id)===String(id)):null;
+        if(row&&["queued","sending","failed"].includes(row.state))row.state="failed";
+      }
+    }
     await persistState();
     return plan;
   });
@@ -1395,6 +1410,7 @@ async function flushQueued({allowedCloudMessageIds=null}={}){
       if(!firebaseUser){m.state="queued";await persistState();continue;}
       try{
         m.state="sending";await persistState();
+        await markOutboxSendAttempted(payload.messageId);
         await flushGroupOutboxForApp(payload,{removeEncryptedOutbox:removeOutboxMessage});
         m.state="sent";await persistState();
       }catch(err){m.state="failed";firebaseError=err?.message||String(err);await persistState();}
@@ -1414,6 +1430,7 @@ async function flushQueued({allowedCloudMessageIds=null}={}){
         const peerUid=await resolvePeerUidForConversation(payload.conversationId);
         if(!peerUid)throw new Error("Recipient account identity is unavailable.");
         const encrypted=await prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text});
+        await markOutboxSendAttempted(payload.messageId);
         await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null});
 
         m.state="sent";
