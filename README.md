@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.9.5**
+- Current checkpoint version: **0.9.9.6**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -201,7 +201,7 @@ The full Rebuild Baseline Security Gate run **34046337123** passed after that re
 
 ## Current first-rebuild completion state
 
-Exactly **95.5 / 100.0 weighted product points (reported as 96%)** of the first complete rebuild acceptance criteria are repository-validated. This deterministic ledger excludes FCM 1.1 and App Check 1.2 work.
+Exactly **96.0 / 100.0 weighted product points (reported as 96%)** of the first complete rebuild acceptance criteria are repository-validated. This deterministic ledger excludes FCM 1.1 and App Check 1.2 work.
 
 Major completed areas include deterministic runtime/Firebase ownership, account E2EE identity/recovery, direct/group E2EE and administration, earlier-history grant UI/runtime, disappearing text and attachment anti-resurrection foundations, encrypted attachment send/receive/offline/lifecycle/purge, invitation-only enrollment, and independent safe install guidance.
 
@@ -540,3 +540,10 @@ Runtime 0.9.8.5 completes the invitation/join/install phase. `invitation-owner.j
 Group Info now uses the established tablet-responsive secondary-screen owner, including the previously deferred landscape treatment, while retaining the validated earlier-history grant controls. Direct Chat Info exposes only real cloud security information; unsupported local-only placeholder behavior was removed. Prototype test banners, fake local receipt timers, and unsupported Contact/Checklist/Schedule/Saved tool alerts were retired; legacy local-only transport now fails closed instead of manufacturing delivery states.
 
 The permanent `release-candidate-ui.test.mjs` gate protects these decisions alongside the existing runtime, receipt, Settings, attachment, invitation, disappearing-content, group, recovery and E2EE gates. Full Rebuild Baseline Security Gate **34066875377** completed SUCCESS on the clean candidate source. 0.9.9.5 reconciles cumulative documentation and prepares the coherent candidate for one atomic `htest` deployment. Live Firebase remains untouched; real iPhone/iPad acceptance remains a separate 0.9.9.7 requirement.
+
+
+### 0.9.9.6 — atomic `htest` candidate deployment
+
+Runtime version advanced 0.9.9.5 -> 0.9.9.6 solely to materialize the deployment candidate. Full Rebuild Baseline Security Gate **34067021824** completed SUCCESS on commit `31dac2c0b551429a5a4ba7cf7c967e6316e9a9e6`. The `htest` branch was then created directly at that exact commit, so the deployed test source and version are identical to the gated candidate. No live Firebase configuration, rules, Functions, App Check enforcement or production branch was changed.
+
+The next checkpoint is 0.9.9.7 and is intentionally **BLOCKED — USER DEVICE PROOF** until real iPhone/iPad/two-account/offline/disappearing/attachment/invitation/install/recovery acceptance is performed.

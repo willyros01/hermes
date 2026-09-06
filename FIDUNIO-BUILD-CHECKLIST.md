@@ -227,10 +227,11 @@ The 1.0 percentage is now a **fixed-point weighted ledger**, not a subjective es
 - 0.9.9.3 responsive/lifecycle regression hardening is repository-validated: **+1.0 earned**.
 - 0.9.9.4 complete 1.0 repository candidate gate is repository-validated: **+1.0 earned**.
 - 0.9.9.5 final docs/setup/package reconciliation is repository-validated: **+0.5 earned**.
-- 0.9.9.6 and later allocated builds: **0.0 earned so far**.
-- **Current total: 95.5 / 100.0, reported as 96%.**
+- 0.9.9.6 atomic deployment to `htest` is validated: **+0.5 earned**.
+- 0.9.9.7 and later allocated builds: **0.0 earned so far**.
+- **Current total: 96.0 / 100.0, reported as 96%.**
 
-This 95.5-point ledger is authoritative until another allocated build earns points or a validated item regresses.
+This 96.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
 
 
 ## FIDUNIO 1.0 allocated build roadmap
@@ -297,8 +298,8 @@ This section pre-allocates the planned build number for every remaining first-re
 | **0.9.9.3** | **Responsive/lifecycle regression hardening.** Group Info joins the established responsive route owner; protected phone/tablet structures and deliberate receipt recovery remain intact. | Candidate UI/lifecycle, runtime-authority and receipt gates + full baseline `34066875377` SUCCESS. Real-device acceptance remains 0.9.9.7. | REPOSITORY-VALIDATED |
 | **0.9.9.4** | **Complete 1.0 repository candidate gate.** All required repository rules/E2EE/recovery/group/disappearing/attachment/invitation/offline/runtime/UI gates run together. | Full Rebuild Baseline Security Gate `34066875377` SUCCESS. FCM 1.1 and App Check enforcement 1.2 excluded. | REPOSITORY-VALIDATED |
 | **0.9.9.5** | **Final documentation/setup/package reconciliation.** Cumulative recovery docs reconciled to candidate; one-shot implementation helpers removed; protected configs remain excluded from release authority. | Docs/source reconcile against full gate `34066875377` SUCCESS; coherent candidate checkpoint ready for `htest`. | REPOSITORY-VALIDATED |
-| **0.9.9.6** | **CURRENT — Atomic deployment to `htest`.** Deploy only the coherent 1.0 release candidate, not incremental slices. | htest source/version exactly matches gated candidate. | CURRENT |
-| **0.9.9.7** | **User-device acceptance pass.** iPhone + iPad + two-account/two-device + offline/reconnect + disappearing + attachments + invitation/install + recovery proof. Fire HD constraints verified where applicable. | User/device acceptance recorded; recovery item can leave `BLOCKED — USER DEVICE PROOF`. | PLANNED |
+| **0.9.9.6** | **Atomic deployment to `htest`.** Coherent candidate commit `31dac2c0b551429a5a4ba7cf7c967e6316e9a9e6` was gated and deployed atomically as the `htest` branch. | Full gate `34067021824` SUCCESS; `htest` points exactly to `31dac2c0b551429a5a4ba7cf7c967e6316e9a9e6` with runtime 0.9.9.6. | REPOSITORY-VALIDATED |
+| **0.9.9.7** | **CURRENT — User-device acceptance pass.** iPhone + iPad + two-account/two-device + offline/reconnect + disappearing + attachments + invitation/install + recovery proof. Fire HD constraints verified where applicable. | User/device acceptance recorded; recovery item can leave `BLOCKED — USER DEVICE PROOF`. | BLOCKED — USER DEVICE PROOF |
 | **0.9.9.8** | **Reserved release-candidate stabilization build.** Apply only defects discovered by 0.9.9.7 using normal owner/debug-first rules; no opportunistic feature expansion. | All acceptance regressions closed and complete security gate green again. | PLANNED |
 | **0.9.9.9** | **1.0 promotion readiness.** Freeze feature scope, verify no required 1.0 checklist item remains NOT DONE/IN PROGRESS/BLOCKED, and prepare controlled production/Firebase handoff without enabling 1.1/1.2 work. | Explicit go/no-go record for 1.0.0. | PLANNED |
 
