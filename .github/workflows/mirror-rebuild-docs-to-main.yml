@@ -3,6 +3,22 @@ name: Mirror Rebuild Recovery Docs to Main
 on:
   push:
     branches: [fidunio-complete-rebuild]
+    paths:
+      - CURRENT-REBUILD.md
+      - hermes-memory.txt
+      - FIDUNIO-BUILD-CHECKLIST.md
+      - hermes-setup.txt
+      - CODING-GUIDELINES.md
+      - RUNTIME-AUTHORITY-MAP.md
+      - architecture-ownership.txt
+      - ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md
+      - ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md
+      - ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md
+      - E2EE-RECOVERY-PROTOCOL.md
+      - DETERMINISTIC-UI-LIFECYCLE.md
+      - DISAPPEARING-PURGE-AUTHORITY.md
+      - BUG-LIST.md
+      - .github/workflows/mirror-rebuild-docs-to-main.yml
   workflow_dispatch:
 
 permissions:
@@ -13,26 +29,74 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  reconcile-09619:
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Trigger 0.9.6.19 documentation reconciliation' }}
+  mirror:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out rebuild source
+        uses: actions/checkout@v4
         with:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
-      - name: Reconcile 0.9.6.19 docs
-        run: python3 .fidunio-09619-materialize.py
-      - name: Commit reconciliation
+
+      - name: Snapshot curated recovery documents
+        shell: bash
         run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fidunio-doc-mirror"
+          docs=(
+            CURRENT-REBUILD.md
+            hermes-memory.txt
+            FIDUNIO-BUILD-CHECKLIST.md
+            hermes-setup.txt
+            CODING-GUIDELINES.md
+            RUNTIME-AUTHORITY-MAP.md
+            architecture-ownership.txt
+            ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md
+            ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md
+            ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md
+            E2EE-RECOVERY-PROTOCOL.md
+            DETERMINISTIC-UI-LIFECYCLE.md
+            DISAPPEARING-PURGE-AUTHORITY.md
+            BUG-LIST.md
+          )
+          for f in "${docs[@]}"; do
+            test -f "$f" || { echo "Required mirror source missing: $f" >&2; exit 1; }
+            cp -- "$f" "$RUNNER_TEMP/fidunio-doc-mirror/$f"
+          done
+          git rev-parse HEAD > "$RUNNER_TEMP/fidunio-doc-mirror/SOURCE_COMMIT"
+
+      - name: Update only curated docs on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(cat "$RUNNER_TEMP/fidunio-doc-mirror/SOURCE_COMMIT")"
+          git fetch origin main
+          git checkout -B main origin/main
+          docs=(
+            CURRENT-REBUILD.md
+            hermes-memory.txt
+            FIDUNIO-BUILD-CHECKLIST.md
+            hermes-setup.txt
+            CODING-GUIDELINES.md
+            RUNTIME-AUTHORITY-MAP.md
+            architecture-ownership.txt
+            ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md
+            ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md
+            ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md
+            E2EE-RECOVERY-PROTOCOL.md
+            DETERMINISTIC-UI-LIFECYCLE.md
+            DISAPPEARING-PURGE-AUTHORITY.md
+            BUG-LIST.md
+          )
+          for f in "${docs[@]}"; do
+            cp -- "$RUNNER_TEMP/fidunio-doc-mirror/$f" "$f"
+          done
+          git add -- "${docs[@]}"
+          if git diff --cached --quiet; then
+            echo "Main recovery mirror already matches rebuild docs."
+            exit 0
+          fi
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add version.js README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md DISAPPEARING-PURGE-AUTHORITY.md architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md FIRESTORE-E2EE-V1-EMULATOR-TESTS.md hermes-setup.txt CURRENT-REBUILD.md
-          git commit -m "Reconcile 0.9.6.19 group receipt purge barrier"
-          git push origin HEAD:fidunio-complete-rebuild
-
-  mirror:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Normal mirror temporarily paused during bounded 0.9.6.19 reconciliation."
+          git commit -m "Mirror rebuild recovery docs from ${source_commit:0:12}"
+          git push origin HEAD:main
