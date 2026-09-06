@@ -70,6 +70,8 @@ jobs:
         run: npm run test:disappearing-authoritative-projection
       - name: Disappearing local physical purge wiring
         run: npm run test:disappearing-local-storage
+      - name: Disappearing restart reconnect recovery
+        run: npm run test:disappearing-reconnect-recovery
       - name: Group history-grant purge barrier
         run: npm run test:group-history-grant-purge-barrier
       - name: Group history-copy purge barrier
