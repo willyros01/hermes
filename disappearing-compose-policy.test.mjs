@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {DISAPPEARING_COMPOSE_PRESETS,resolveComposeDisappearSelection,composeDisappearLabel,stampOutgoingDisappearSelection,DISAPPEARING_COMPOSE_POLICY_V1} from './disappearing-compose-policy.js';
 if(resolveComposeDisappearSelection('off')!==null||resolveComposeDisappearSelection(3600)!==3600)throw new Error('selection normalization failed');
 if(composeDisappearLabel(3600)!=='1 hour'||DISAPPEARING_COMPOSE_PRESETS.length<5)throw new Error('preset presentation failed');
@@ -6,4 +7,7 @@ if(sent.disappearAfterSeconds!==86400||Object.hasOwn(original,'disappearAfterSec
 const later=stampOutgoingDisappearSelection({id:'b',text:'later'},300);
 if(sent.disappearAfterSeconds!==86400||later.disappearAfterSeconds!==300)throw new Error('later preference retroactively changed sent metadata');
 if(!DISAPPEARING_COMPOSE_POLICY_V1.selectionAppliesOnlyToFutureMessages||!DISAPPEARING_COMPOSE_POLICY_V1.sentMessageMetadataImmutable)throw new Error('compose policy contract weakened');
-console.log('Disappearing compose policy gate passed');
+const app=fs.readFileSync('./app.js','utf8');
+for(const anchor of ['stampOutgoingDisappearSelection','disappearingTextSeconds','id="disappearSelect"','Disappearing:','disappearAfterSeconds:m.disappearAfterSeconds??null'])if(!app.includes(anchor))throw new Error('app disappearing UI/send anchor missing: '+anchor);
+if(!/queueGroupTextForApp\(\{groupId:conversationId,messageId:m\.id,text,time:m\.time,disappearAfterSeconds:m\.disappearAfterSeconds\?\?null/.test(app))throw new Error('group send path does not receive selected immutable duration');
+console.log('Disappearing compose policy/UI wiring gate passed');
