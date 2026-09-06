@@ -118,3 +118,6 @@ The rebuild now contains a repository-only serialized disappearing purge executo
 
 ## 0.9.6.15 server purge repository boundary
 Repository source now includes a server-only Firestore purge adapter and tests. Do not deploy it, create a purge scheduler, or open client delete rules yet. Direct transactional deletion is repository-proven only. Group commit intentionally fails closed until history-grant/receipt trace deletion is added. The later deployment package must preserve one purge-policy owner rather than duplicating root policy logic inside Functions.
+
+## 0.9.6.16 group grant purge-trace boundary
+The repository now has deterministic group history-grant trace planning and group purge reads include grant/copy Firestore versions. Do not deploy a purge Function, open client delete rules, or enable disappearing/history-sharing UI from this checkpoint. Group commit still intentionally fails closed. The next repository change must first make new grant creation mutate a basis-visible group authority, then test one revalidated receipt/grant/source commit before any live Firebase handoff.

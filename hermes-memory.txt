@@ -424,3 +424,14 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Version advanced 0.9.6.14 -> 0.9.6.15. No scheduler/deployment/client delete rules/live Firebase/htest changes.
 - Next: group subordinate trace plan/reconciliation, then local cache/Outbox anti-resurrection and attachment lifecycle integration.
 - Overall first complete rebuild remains approximately 65%.
+
+2026-09-06 — 0.9.6.16 GROUP HISTORY-GRANT PURGE TRACE PLANNING
+- Clean 0.9.6.15 gate `34053702432` passed before this slice.
+- Added pure `disappearing-group-grant-trace-plan.js`: for a disappearing group source it deterministically plans matching grant-copy deletion, whole-grant deletion when no copies remain, or metadata reconciliation (`totalCopies`, earliest retained `firstSharedMessageId`/`firstSharedAt`) when other retained copies remain.
+- Planner fails closed on metadata/copy count mismatch, cross-group/cross-grant copy authority, duplicate source copies, or invalid source times. Incomplete building grants therefore cannot be ignored during purge.
+- Server Firestore purge repository now includes history-grant docs + copies in authoritative group read state and in the opaque update-time purge basis; the existing pure purge eligibility owner remains unchanged.
+- Group physical delete intentionally remains `GROUP_PURGE_TRACE_DELETE_NOT_READY`. Do not bypass this until concurrent grant creation is made basis-visible and the final one-path receipt/grant/source commit is validated.
+- Dedicated planner/repository tests are permanent security-gate steps. Gate `34054137154` passed all substantive steps.
+- Version advanced 0.9.6.15 -> 0.9.6.16. No live Firebase/htest/App Check/FCM change.
+- Next: history-grant creation barrier through group authority update-time, then atomic/revalidated group trace commit, followed by UID-scoped local cache/Outbox anti-resurrection.
+- Overall first complete rebuild remains approximately 65%.

@@ -36,3 +36,6 @@ The copies on `main` are for discovery, outage recovery, and handover. The autho
 ## Mirror rule
 
 When any mirrored source document changes on `fidunio-complete-rebuild`, the workflow updates only these curated documentation files on `main`. It does not merge or copy unfinished application code.
+
+## 0.9.6.16 purge continuation
+Group disappearing purge now has deterministic history-grant trace planning and grant/copy versions in its server read basis. Physical group deletion remains deliberately fail-closed pending a race-safe new-grant barrier and one revalidated receipt/grant/source commit. Live Firebase and htest remain untouched.

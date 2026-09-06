@@ -173,3 +173,11 @@ DISAPPEARING FIRESTORE PURGE REPOSITORY — 0.9.6.15
 - Direct read/commit owns only authoritative server state + transactional source deletion under opaque update-time basis revalidation.
 - Group read owns only authoritative source/group/epoch/receipt state acquisition. Group physical delete remains fail-closed until subordinate receipt/history-grant trace cleanup is complete.
 - Eligibility remains exclusively in `disappearing-purge-policy.js`; orchestration remains exclusively in `disappearing-purge-executor.js`.
+
+DISAPPEARING GROUP GRANT TRACE PLANNER — 0.9.6.16
+- `disappearing-group-grant-trace-plan.js`: pure subordinate history-grant reconciliation owner only.
+- Inputs: complete grant metadata/copy rows for one group plus disappearing `sourceMessageId`.
+- Outputs: copies to delete, grants to delete, and grants to update with recomputed count/earliest retained source.
+- It owns no Firebase/Admin SDK, Firestore write, crypto, UI, cache, timer or scheduler.
+- `disappearing-purge-firestore-admin-adapter.mjs` remains server read/write repository owner and now includes grant/copy update times in group purge basis.
+- Group physical commit remains fail-closed until concurrent grant creation changes a basis-visible authority and all receipt/grant/source writes can be revalidated together.

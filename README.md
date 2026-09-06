@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.15**
+- Current checkpoint version: **0.9.6.16**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -383,4 +383,19 @@ Release transition: **0.9.6.14 -> 0.9.6.15**.
 - Added `disappearing-purge-firestore-admin-adapter.test.mjs` and normal gate coverage for direct basis/read/delete/idempotency/stale rejection, group authority reads, server-only SDK ownership, and the explicit group fail-closed boundary. Rebuild Baseline Security Gate run `34053462019` passed all steps on the implementation/gate commit.
 - This is repository-only. No scheduled purge Function was added or deployed, no client delete rule was opened, live Firebase and `htest` were untouched, FCM remains deferred to 1.1, and App Check enforcement remains OFF/deferred to 1.2.
 - Next secure slice: materialize group history-grant trace planning/reconciliation and receipt deletion so a group source can be physically removed only after subordinate traces are safely handled; then add UID-scoped local cache/Outbox anti-resurrection convergence.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.16 — group history-grant purge trace planning
+
+Release transition: **0.9.6.15 -> 0.9.6.16**.
+
+- Clean 0.9.6.15 Rebuild Baseline Security Gate run `34053702432` passed every step before this slice.
+- Added pure `disappearing-group-grant-trace-plan.js`. It owns only deterministic reconciliation of group earlier-history grant metadata/copies when one disappearing source is removed; it has no Firebase/Admin SDK, storage, UI, timer, crypto or delete ownership.
+- A matching grant copy is planned for deletion. If it was the grant's only copy, the grant metadata is planned for deletion. If retained copies remain, the plan recomputes `totalCopies`, `firstSharedMessageId`, and `firstSharedAt` from the earliest still-retained source rather than leaving stale grant metadata.
+- The planner fails closed when grant metadata and actual copy count disagree, a copy belongs to another group/grant, or duplicate source copies exist. A partially written/building grant therefore blocks final source purge until its trace set becomes internally consistent or is handled by a later cleanup owner.
+- `disappearing-purge-firestore-admin-adapter.mjs` now reads history-grant metadata and copies as part of authoritative group purge state, includes their Firestore update times in the opaque purge basis, and returns the pure grant trace plan to the serialized executor path.
+- Group source deletion remains deliberately fail-closed. This checkpoint does not yet perform receipt/grant/source mutation because a race-safe grant-creation barrier and one transaction/precondition commit path must exist first.
+- Added dedicated planner tests plus repository integration tests. Rebuild Baseline Security Gate run `34054137154` passed all steps including the new group grant trace plan and Firestore purge repository gates.
+- No live Firebase rules/functions/deletes, no `htest` deployment, no client delete permission, no App Check enforcement change, and no FCM activation.
+- Next secure slice: bind new history-grant creation to the group authority update-time so concurrent grant creation invalidates a purge basis, then materialize one revalidated group commit that deletes receipts, source grant copies/reconciles grant metadata, and finally deletes the source without partial trace loss.
 - Overall first-rebuild estimate remains approximately 65%.

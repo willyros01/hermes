@@ -115,3 +115,15 @@ Direct state basis includes the direct conversation and source-message Firestore
 Group state basis includes the group document, source message, immutable source epoch document, and every current per-message receipt update time. The read returns source-epoch member UIDs, current entitlement member UIDs and receipt data to the existing pure eligibility owner. Group physical deletion is intentionally unavailable until history-grant copies/references and group receipts can be removed/reconciled without violating trace-free purge. The adapter therefore fails closed rather than deleting the group source prematurely.
 
 This repository foundation is not a scheduler or deployed Function and does not authorize client delete rules.
+
+## Group history-grant trace planning — 0.9.6.16
+
+`disappearing-group-grant-trace-plan.js` is the pure subordinate-history reconciliation owner. For one disappearing group source it receives complete grant metadata + copy rows and produces only a deterministic plan:
+
+- delete every grant copy whose `sourceMessageId` equals the disappearing source;
+- delete a grant document when that was its last copy;
+- otherwise recompute `totalCopies` and the earliest retained `firstSharedMessageId` / `firstSharedAt` so grant metadata does not retain a stale reference to the purged source.
+
+The planner fails closed if metadata `totalCopies` does not equal the observed copy count, if copy authority does not match its group/grant, if duplicate source copies exist, or if source times are invalid. A partially constructed grant cannot be silently ignored.
+
+The server Firestore repository now reads grant metadata and copy subcollections during group purge state acquisition and includes every observed grant/copy update time in the opaque basis. Physical group deletion remains disabled until new grant creation is guaranteed to mutate a basis-visible authority and the final commit can re-read/reconcile receipts, grants/copies and source under one serialized path.

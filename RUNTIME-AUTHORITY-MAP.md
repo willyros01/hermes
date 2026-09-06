@@ -171,3 +171,9 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Direct source deletion: transaction re-reads conversation/message, compares opaque update-time basis, then deletes only on unchanged authority; stale basis fails closed and absence is idempotent.
 - Group read: authoritative group + source + source epoch + per-account receipts, all bound into the opaque basis supplied to the pure eligibility owner.
 - Group source deletion: intentionally unavailable until history-grant/receipt subordinate trace deletion is materialized. No independent/partial group delete path is permitted.
+
+## Disappearing group grant trace planning — 0.9.6.16
+- `disappearing-group-grant-trace-plan.js`: pure plan only; no mutable authority.
+- Group purge repository read now enumerates group history grants + grant copy subcollections, validates them through the pure planner, and incorporates their Firestore update times into the opaque purge basis.
+- Incomplete/inconsistent grant construction fails closed rather than allowing source deletion to bypass subordinate traces.
+- Group commit remains intentionally disabled pending a basis-visible concurrent-grant barrier and final receipt/grant/source transaction/precondition implementation.
