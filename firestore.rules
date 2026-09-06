@@ -67,7 +67,7 @@ service cloud.firestore {
         allow create: if isGroupAdmin(groupId)&&validHistoryGrantCreate(groupId,grantId,request.resource.data)&&historyGrantBarrier(groupId);
         allow update: if isGroupAdmin(groupId)&&resource.data.grantorUid==request.auth.uid&&validHistoryGrantActivate(groupId,request.resource.data,resource.data);
         allow delete: if false;
-        match /messages/{messageId}{allow get,list: if isGroupMember(groupId)&&(isGroupAdmin(groupId)||(historyGrant(groupId,grantId).data.targetUid==request.auth.uid&&historyGrant(groupId,grantId).data.status=="active"));allow create: if isGroupAdmin(groupId)&&validHistoryGrantCopy(groupId,grantId,messageId,request.resource.data);allow update,delete: if false;}
+        match /messages/{messageId}{allow get,list: if isGroupMember(groupId)&&(isGroupAdmin(groupId)||(historyGrant(groupId,grantId).data.targetUid==request.auth.uid&&historyGrant(groupId,grantId).data.status=="active"));allow create: if isGroupAdmin(groupId)&&validHistoryGrantCopy(groupId,grantId,messageId,request.resource.data)&&historyGrantBarrier(groupId);allow update,delete: if false;}
       }
       match /messages/{messageId}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&validGroupMessage(groupId,request.resource.data);allow update,delete: if false;match /receipts/{uid}{allow read: if isGroupMember(groupId);allow create: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptCreate(uid,request.resource.data);allow update: if isGroupMember(groupId)&&request.auth.uid==uid&&validGroupReceiptUpdate(uid,request.resource.data,resource.data);allow delete: if false;}}
     }

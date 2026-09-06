@@ -45,7 +45,8 @@ await test("24 timestamp grant cannot start before requested boundary",()=>asser
 await test("25a admin history grant without basis-visible group touch denied",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-no-barrier"),grant("hg-no-barrier"))));
 await test("25 admin creates building beginning grant with group barrier",async()=>{const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{updatedAt:serverTimestamp()});b.set(doc(dbA,"groups","g1","historyGrants","hg1"),grant());return assertSucceeds(b.commit());});
 await test("26 target cannot read building grant",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1"))));
-await test("27 admin writes bounded history copy while building",()=>assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1","messages","m1"),grantCopy())));
+await test("27a standalone history copy without basis-visible group touch denied",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg1","messages","m1"),grantCopy())));
+await test("27 admin writes bounded history copy with group barrier while building",async()=>{const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{updatedAt:serverTimestamp()});b.set(doc(dbA,"groups","g1","historyGrants","hg1","messages","m1"),grantCopy());return assertSucceeds(b.commit());});
 await test("28 target cannot read copy before activation",()=>assertFails(getDoc(doc(dbB,"groups","g1","historyGrants","hg1","messages","m1"))));
 await test("29 grantor activates completed grant metadata",async()=>{const before=await getDoc(doc(dbA,"groups","g1","historyGrants","hg1"));return assertSucceeds(setDoc(doc(dbA,"groups","g1","historyGrants","hg1"),{...before.data(),status:"active",activatedAt:serverTimestamp()}));});
 await test("30 target reads active grant",()=>assertSucceeds(getDoc(doc(dbB,"groups","g1","historyGrants","hg1"))));
