@@ -11,9 +11,17 @@ Before changing code in any build session:
 4. Do not mark an item `DONE` merely because code exists. `DONE` requires the implementation to be integrated into the real app and the applicable repository tests/security gate to pass.
 5. After every substantive build run/commit, update this file in the same work session with the actual state and evidence/commit. If no checklist state changed, update the Build Log only when there is material evidence worth preserving.
 6. If a completed feature regresses, change it back to `IN PROGRESS` or `NOT DONE`; never preserve a false green status.
-7. Completion percentage is based on the complete product acceptance criteria, not file count. Report a new percentage to the user only after a meaningful milestone is completed.
+7. Completion percentage is based on the complete product acceptance criteria for the current release target, not file count. Report a new percentage to the user only after a meaningful milestone is completed.
 
-Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE PROOF`.
+Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE PROOF`, `DEFERRED — 1.1`, `DEFERRED — 1.2`.
+
+## Release scope
+
+- First complete rebuild release: core FIDUNIO messaging product, account E2EE, groups, attachments, disappearing content, invitations/install, responsive UI, offline behavior, receipts, and final device validation.
+- FCM notifications are **not required to be active in the first rebuild release**. FCM implementation/activation is explicitly targeted for **FIDUNIO 1.1**.
+- Firebase App Check enforcement is **not required to be active in the first rebuild release**. App Check production activation/enforcement is explicitly targeted for **FIDUNIO 1.2**.
+- Existing App Check client ownership/configuration may remain in place with enforcement OFF; this does not block the first rebuild release.
+- Do not allow deferred 1.1/1.2 work to block the first rebuild release gate.
 
 ## Architecture / security foundation
 
@@ -28,7 +36,7 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 | Direct-message account E2EE v3 | DONE | `e2ee:3`, runtime/service/rules/tests integrated. |
 | Serialized encrypted Outbox foundation | DONE | Firestore confirmation required before removal. |
 | Local PIN/security serialized mutations | DONE | Remaining UI callers repaired in `013508078f1cda925a54c99cf7e7ffb3c986f8e7`. |
-| App Check client ownership | DONE | Centralized in firebase.js; enforcement intentionally OFF pending legitimate-device validation. |
+| App Check client ownership | DONE | Centralized in firebase.js; enforcement intentionally OFF. Production enforcement deferred to 1.2. |
 
 ## Core messaging product
 
@@ -106,43 +114,52 @@ Provider limitation: this trace-free rule governs all data FIDUNIO controls thro
 | Remove remaining simulated local message-state timers | NOT DONE | Real product must not simulate sent/delivered/read. |
 | Remove remaining tool-button alert placeholders | NOT DONE | Replace with real supported functions or deliberately remove unsupported tools. |
 
-## FCM / notifications
+## FCM / notifications — FIDUNIO 1.1
 
-**Required architecture:** Firebase Cloud Messaging (FCM) is part of the complete FIDUNIO notification system wherever the installed PWA/browser platform supports it. FCM is an endpoint wake/notification mechanism, not message authority. Firestore remains authoritative for conversations/messages. Device registrations/tokens are replaceable endpoints associated with an authenticated account; they do not own account history or E2EE identity. FIDUNIO must not rely on FCM alone for platforms where FCM is unavailable or unreliable, including the Fire OS target.
-
-**Privacy rule:** push payloads must not contain plaintext message or attachment content by default. A notification may signal that new encrypted content is available and identify only the minimum routing/account information needed to open/synchronize FIDUNIO. Message content is obtained from Firestore and decrypted by the normal account-authoritative E2EE runtime after the app is active/unlocked.
+FCM is intentionally deferred from the first rebuild release. The first rebuild release must remain fully usable through Firestore synchronization when the app is opened. FCM will be implemented/activated in **FIDUNIO 1.1**.
 
 | Area | State | Evidence / notes |
 |---|---|---|
-| FCM architecture / single owner boundary | NOT DONE | Define one notification owner/service. `firebase.js` remains the sole Firebase SDK owner; UI and message crypto modules must not independently initialize Firebase Messaging. |
-| FCM permission/enrollment UX | NOT DONE | Request notification permission deliberately from supported installed-PWA/browser UX; no hidden permission prompts. |
-| FCM device-token registration | NOT DONE | Register supported device/browser FCM token automatically after permission and authenticated account binding; associate token with UID plus replaceable endpoint/device registration, not E2EE identity ownership. |
-| FCM token refresh/replacement | NOT DONE | Detect/reconcile token changes and retire obsolete registrations so pushes are not sent indefinitely to stale endpoints. |
-| Multi-device notification fan-out | NOT DONE | One UID may have multiple active notification endpoints; send to appropriate active endpoints without changing one-account/one-E2EE-identity authority. |
-| Sign-out/device revocation cleanup | NOT DONE | Remove or deactivate the local endpoint registration when account/device access is revoked; prevent cross-account notification leakage on a reused browser/device. |
-| Direct-message FCM notifications | NOT DONE | New direct messages trigger privacy-preserving notification/wake flow; normal Firestore + direct E2EE v3 path remains authoritative. |
-| Group-message FCM notifications | NOT DONE | Fan out to active group-member account endpoints while respecting membership and group E2EE v4; never expose plaintext group content in push payload. |
-| Attachment FCM notifications | NOT DONE | Notification may indicate new content but must not include attachment plaintext, preview, filename/content details that violate the privacy policy, or decrypted media. |
-| Disappearing-content notification purge | NOT DONE | Application-controlled notification records/payload caches associated with disappearing content must follow the same trace-free purge requirement and must not resurrect expired content. |
-| Notification tap/open routing | NOT DONE | Route to the intended conversation only after authenticated account state is established; then synchronize/decrypt through normal owners. No crypto/private keys in notification code. |
-| Foreground/background behavior | NOT DONE | Define supported behavior for active PWA vs browser/OS background limitations; never assume background execution is guaranteed on iOS/browser suspension. |
-| Fire OS/non-FCM fallback behavior | NOT DONE | FIDUNIO must remain usable and synchronize from Firestore when opened even when push is unavailable; no Google Play Services dependency for core messaging. |
-| FCM privacy/security/rules tests | NOT DONE | Test UID/token ownership, stale/revoked token rejection/cleanup, cross-account isolation, group membership fan-out, no plaintext payloads, and disappearing-content interaction. |
+| FCM architecture / single owner boundary | DEFERRED — 1.1 | `firebase.js` remains the sole Firebase SDK owner when Messaging is added. |
+| FCM permission/enrollment UX | DEFERRED — 1.1 | Deliberate supported-PWA/browser permission flow. |
+| FCM device-token registration | DEFERRED — 1.1 | UID-bound replaceable endpoint registration. |
+| FCM token refresh/replacement | DEFERRED — 1.1 | Reconcile and retire stale tokens. |
+| Multi-device notification fan-out | DEFERRED — 1.1 | One UID may have multiple active endpoints. |
+| Sign-out/device revocation cleanup | DEFERRED — 1.1 | Prevent cross-account notification leakage. |
+| Direct-message FCM notifications | DEFERRED — 1.1 | Privacy-preserving wake/notification only; Firestore/E2EE remains authority. |
+| Group-message FCM notifications | DEFERRED — 1.1 | Membership-aware privacy-preserving fan-out. |
+| Attachment FCM notifications | DEFERRED — 1.1 | No plaintext attachment content/previews in push payloads. |
+| Disappearing-content notification purge | DEFERRED — 1.1 | Must obey trace-free purge when FCM is introduced. |
+| Notification tap/open routing | DEFERRED — 1.1 | Authenticate, synchronize, then decrypt through normal owners. |
+| Foreground/background behavior | DEFERRED — 1.1 | Respect iOS/browser suspension limits. |
+| Fire OS/non-FCM fallback behavior | DEFERRED — 1.1 | Core messaging must continue without Google Play Services/FCM. |
+| FCM privacy/security/rules tests | DEFERRED — 1.1 | Token ownership, isolation, no plaintext payloads, expiry interaction. |
 
-## Final product gate / deployment
+## App Check production enforcement — FIDUNIO 1.2
+
+App Check client ownership/configuration already exists in `firebase.js`, but **production enforcement remains OFF for the first rebuild release and for 1.1 unless separately changed by deliberate release work**. Production activation/enforcement is targeted for **FIDUNIO 1.2** after the base rebuild and FCM release have been validated.
 
 | Area | State | Evidence / notes |
 |---|---|---|
-| Full repository security/regression gate on complete candidate | NOT DONE | Required after feature completion. |
+| App Check production enforcement | DEFERRED — 1.2 | Keep enforcement OFF for first rebuild release. |
+| App Check legitimate-device validation | DEFERRED — 1.2 | Validate supported browser/PWA/device flows before enforcement. |
+| App Check recovery callable enforcement | DEFERRED — 1.2 | Do not enable until production validation is complete. |
+| App Check rollout/regression gate | DEFERRED — 1.2 | Must prove no legitimate-client lockout before release. |
+
+## Final product gate / deployment — first rebuild release
+
+| Area | State | Evidence / notes |
+|---|---|---|
+| Full repository security/regression gate on complete first-rebuild candidate | NOT DONE | Required after first-release feature completion. FCM 1.1 and App Check 1.2 are excluded from this gate. |
 | Cumulative `hermes-memory.txt` final reconciliation | IN PROGRESS | Keep one cumulative root file. |
-| Reusable `hermes-setup.txt` final reconciliation | IN PROGRESS | Current rebuild/recovery guide reconciled 2026-09-06; keep updating as architecture/product state changes. |
+| Reusable `hermes-setup.txt` final reconciliation | IN PROGRESS | Keep current release/deferred-roadmap scope explicit. |
 | Remove temporary one-shot build workflows | IN PROGRESS | Delete after each one-shot job has served its purpose. |
 | Atomic complete deployment to `htest` | NOT DONE | Current htest is stale/incomplete; do not continuously sync. |
-| Final iPhone/iPad/two-device/offline/recovery test candidate | NOT DONE | User tests only after complete coherent candidate is deployed. |
+| Final iPhone/iPad/two-device/offline/recovery test candidate | NOT DONE | User tests only after complete coherent first-rebuild candidate is deployed. |
 
 ## Current completion estimate
 
-Approximately **65%** of the complete FIDUNIO acceptance criteria. Restored disappearing-content and explicit FCM requirements expand the remaining acceptance criteria; retain 65% as the working estimate until the next meaningful product milestone is completed and the denominator is reconciled. This number must not be advanced for minor cleanup.
+Approximately **65%** of the first complete rebuild release acceptance criteria. FCM 1.1 and App Check 1.2 are tracked roadmap work and are not part of this percentage or first-release completion gate.
 
 ## Build Log
 
@@ -151,5 +168,6 @@ Approximately **65%** of the complete FIDUNIO acceptance criteria. Restored disa
 - 2026-09-06 — Group account-authoritative send/read/receipts/Outbox integration is present in the rebuild; group administration remains the next major messaging milestone.
 - 2026-09-06 — Restored disappearing messages and attachments to the complete-product acceptance criteria, including direct/group, attachments, offline/reconnect, multi-device convergence, UI, and security/rules testing.
 - 2026-09-06 — Disappearing-content requirement tightened: all application-controlled traces must be physically purged at expiry, including Firestore message records and attachments; no per-message tombstone/expired record is permitted.
-- 2026-09-06 — Restored FCM as an explicit complete-product requirement: supported endpoint token registration/refresh/revocation, multi-device fan-out, direct/group/attachment notifications, privacy-preserving payloads, disappearing-content interaction, and non-FCM fallback behavior.
+- 2026-09-06 — FCM notification architecture retained in roadmap but explicitly deferred to FIDUNIO 1.1; it does not block the first complete rebuild release.
+- 2026-09-06 — App Check production activation/enforcement explicitly deferred to FIDUNIO 1.2; client ownership/config may remain present with enforcement OFF and does not block the first complete rebuild release.
 - 2026-09-06 — Reconciled hermes-setup.txt from obsolete 0.8.1.9 instructions to the current complete-rebuild architecture and recovery procedure.
