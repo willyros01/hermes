@@ -3,6 +3,7 @@ CUMULATIVE PROJECT MEMORY
 
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
+- `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.
 - At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-E2EE-V1-EMULATOR-TESTS.md`, `E2EE-RECOVERY-PROTOCOL.md`, `FIREBASE-RECOVERY-PROJECT-CONFIG.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `RUNTIME-AUTHORITY-MAP.md`, `REBUILD-BASELINE-AUDIT.md`, `architecture-ownership.txt`, `BUG-LIST.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md` and `ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md`.
 - Core: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 - ENFORCEMENT RULE: if the mandatory first read has not been completed in the current work session, STOP. Do not code, change architecture, alter a guardrail, or give consequential Firebase/Google console instructions until the documents have been reread and reconciled with the requested task.
