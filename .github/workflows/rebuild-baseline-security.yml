@@ -68,6 +68,8 @@ jobs:
         run: npm run test:group-history-grant-purge-barrier
       - name: Group history-copy purge barrier
         run: npm run test:group-history-copy-purge-barrier
+      - name: Group receipt purge barrier
+        run: npm run test:group-receipt-purge-barrier
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
