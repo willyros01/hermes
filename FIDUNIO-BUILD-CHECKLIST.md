@@ -285,7 +285,7 @@ This section pre-allocates the planned build number for every remaining first-re
 
 | Allocated build | Component / detailed task | Exit criteria | State |
 |---|---|---|---|
-| **0.9.9.0** | **CURRENT — Group Info completion.** Integrate earlier-history controls from 0.9.6.29, remove obsolete placeholders, and finish tablet landscape layout without redesigning established two-pane behavior. | Group Info functional + responsive tests green. | PLANNED |
+| **0.9.9.0** | **CURRENT — Group Info completion.** Integrate earlier-history controls from 0.9.6.29, remove obsolete placeholders, and finish tablet landscape layout without redesigning established two-pane behavior. | Group Info functional + responsive tests green. | CURRENT |
 | **0.9.9.1** | **Direct Chat Info completion.** Replace remaining placeholder behavior with supported real actions or remove unsupported controls deliberately. | No Direct Chat Info placeholder actions remain. | PLANNED |
 | **0.9.9.2** | **Prototype/simulation cleanup.** Remove remaining test banners, simulated local message-state timers and tool-button alert placeholders only after their real replacements exist. | Search/runtime gates prove no forbidden simulation owner remains. | PLANNED |
 | **0.9.9.3** | **Responsive/lifecycle regression hardening.** Verify iPhone single-pane + prominent Back/wrap, iPad/tablet/desktop two-pane, Group Info landscape, Settings lifecycle, rotation/resize and live receipts. | Repository UI/lifecycle gates green with no observer/timer/reload rescue architecture. | PLANNED |
