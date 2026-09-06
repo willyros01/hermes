@@ -238,3 +238,5 @@ LOCAL PHYSICAL PURGE — 0.9.6.22
 0.9.6.25 replay ownership: app.js remains the sole IndexedDB/Outbox mutation owner and writes the local send-attempt marker before cloud transmission. disappearing-reconnect-recovery.js remains a pure decision owner. firebase.js remains the sole client server-read/write owner. Ambiguous attempted+authoritatively-absent work fails closed; no new persistence owner or server tombstone exists.
 
 0.9.6.26-27: multi-device convergence introduces no cross-device local owner; each installation converges only from server-backed authority through existing projection/purge owners. `disappearing-compose-policy.js` owns only pure compose selection normalization/labels. `app.js` owns the persisted future-message preference and stamps new rows; message/Outbox/Firebase owners remain unchanged.
+
+0.9.6.29-0.9.6.30: Group Info history controls are intent-only and delegate through the existing group integration/controller/runtime chain; app.js does not select grant source messages. Direct Read mutation was reduced to one subscription path; group receipt ownership remains in e2ee-account-group-conversation.js. Full gate 34062508968 SUCCESS.

@@ -67,3 +67,9 @@ This file is the durable working bug list for current development. Keep it conci
 ## 0.9.6.3 validation boundary
 
 No repository-gate failure is open for the account-E2EE v3 materialization. The remaining item is a required live-device validation gate, not a known code defect: first authenticated enrollment/unlock/recovery with stable keyId/history, followed by two-device e2ee:3 send/read/offline-Outbox verification. App Check remains OFF until that succeeds.
+
+### iPad/two-pane Sent -> Read repository stabilization — 0.9.6.30
+- The duplicate direct-message pre-projection Read mutation path was removed; the active direct subscription now owns one deterministic Read write/projection path.
+- Foreground visibility/pageshow recovery remains explicit and group receipt updates remain serialized by the group conversation owner.
+- Permanent lifecycle gate and full baseline `34062508968` pass.
+- Status: **repository stabilization complete; real iPad/iPhone acceptance remains scheduled for 0.9.9.7 and is not claimed from repository tests alone.**

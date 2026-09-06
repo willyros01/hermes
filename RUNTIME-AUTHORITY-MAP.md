@@ -232,3 +232,6 @@ Outbox attempt state is owned and mutated only by `app.js`; authoritative source
 
 ### 0.9.6.27 disappearing compose selection
 `disappearing-compose-policy.js` is pure normalization/presentation policy only. `app.js` owns the persisted user selection and snapshots it when constructing a new outgoing row. Existing direct/group Outbox and message owners carry the immutable `disappearAfterSeconds`; no UI preference becomes expiry or purge authority.
+
+## 0.9.6.29-0.9.6.30 authority reconciliation
+Group earlier-history UI is intent-only: app -> bounded group integration -> controller serialization -> group runtime -> central Firebase transport. Source selection never moves into the DOM/app shell. Direct Read receipt mutation is single-path inside the active direct subscription; group receipt subscription/projection remains owned by `e2ee-account-group-conversation.js`. No new Firebase, IndexedDB, crypto, or receipt owner was introduced.

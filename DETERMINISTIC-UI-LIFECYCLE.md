@@ -215,3 +215,6 @@ Rename/add/remove/leave no longer mutate sample/local group state. Group Info em
 
 ## Granted-history conversation projection — 0.9.6.8
 Earlier-history display now follows the same deterministic chat projection lifecycle as normal group messages. The group conversation owner merges ordinary rows and active grant rows before invoking the single `app.js` projection callback. The DOM does not discover or append historical rows independently, and no observer/timer/orientation repair path exists. Ordinary decryptable content wins over grant copies for the same source ID.
+
+## 0.9.6.30 receipt/lifecycle stabilization
+Direct-message Read updates now have one deterministic subscription mutation path after authoritative projection/persistence; the earlier duplicate pre-projection mutation was removed. Foreground `visibilitychange` and `pageshow` continue to re-establish the active cloud subscription deliberately, without MutationObserver, reload, orientation timer, or render-triggered listener churn. Group receipt projection remains serialized in the group conversation owner. Repository gate `34062508968` is green; final iPad/iPhone behavior remains a real-device acceptance item.

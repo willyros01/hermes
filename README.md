@@ -8,8 +8,8 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.27**
-- Current weighted FIDUNIO 1.0 completion: **72%**
+- Current checkpoint version: **0.9.6.30**
+- Current weighted FIDUNIO 1.0 completion: **75%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
 - `htest` is reserved for coherent final-stage testing deployments and is not continuously synchronized with intermediate rebuild work.
@@ -509,3 +509,13 @@ The restart/reconnect anti-resurrection slice is repository-validated. FIDUNIO n
 
 ### 0.9.6.26 + 0.9.6.27 combined build pass
 Per user instruction these two pre-allocated checkpoints were built in one continuous pass while retaining separate exit criteria. 0.9.6.26 adds permanent same-UID multi-device disappearance convergence proof: independent installations converge source/history/Outbox traces only from authoritative server absence, and stale attempted Outbox work cannot resurrect a purged source. 0.9.6.27 adds the user-facing disappearing-text selection (Off, 5 minutes, 1 hour, 1 day, 7 days) directly at the composer and snapshots that choice into each new direct/group message's immutable `disappearAfterSeconds`. Changing the preference later does not alter already-sent messages. Runtime version advanced 0.9.6.25 -> 0.9.6.27 because both allocated builds completed together. Full Rebuild Baseline Security Gate `34061730677` passed on `b3086fb894b2e9d904264300b60c04a68668f3dc`. Both are REPOSITORY-VALIDATED; weighted completion is **72%**. No live Firebase or `htest` change.
+
+## 0.9.6.27 -> 0.9.6.30 combined validated pass — 2026-09-06
+Reason: complete the three pre-attachment checkpoints in one controlled pass while preserving separate build ownership and exit criteria.
+
+- **0.9.6.28:** added a permanent end-to-end disappearing-text matrix covering immutable duration policy, authoritative absence, cache-only non-authority, physical local/history/Outbox removal, and restart/reconnect anti-replay.
+- **0.9.6.29:** Group Info administrators can deliberately grant retained earlier history either from the beginning or from a selected date. The UI delegates target/boundary intent through the existing bounded group app/controller/runtime owner; it does not select cached source rows or manufacture local grant state.
+- **0.9.6.30:** removed the duplicate direct-message pre-projection Read mutation path so direct receipts have one deterministic subscription write path; retained foreground/pageshow subscription recovery and the existing serialized group receipt projection.
+- Permanent focused gates were added to the normal Rebuild Baseline Security Gate. Full gate **34062508968** passed SUCCESS.
+- No rollback or rejected 0.9.4.12-.15 code was restored. No live Firebase or `htest` deployment occurred.
+- Follow-on: attachment transport/data authority begins at 0.9.7.0. Real iPhone/iPad receipt and responsive acceptance remains scheduled for the release-candidate device gate.

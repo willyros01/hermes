@@ -202,10 +202,13 @@ The 1.0 percentage is now a **fixed-point weighted ledger**, not a subjective es
 - 0.9.6.25 is repository-validated after the user-approved fail-closed replay resolution: **+0.5 earned**.
 - 0.9.6.26 multi-device expiry convergence is repository-validated: **+1.0 earned**.
 - 0.9.6.27 disappearing-text settings/UI wiring is repository-validated: **+1.0 earned**.
-- 0.9.6.28 and later allocated builds: **0.0 earned so far**.
-- **Current total: 72.0 / 100.0, reported as 72%.**
+- 0.9.6.28 disappearing-text security closeout is repository-validated: **+1.0 earned**.
+- 0.9.6.29 Group earlier-history admin UI is repository-validated: **+1.0 earned**.
+- 0.9.6.30 receipt/lifecycle stabilization is repository-validated: **+1.0 earned**.
+- 0.9.7.0 and later allocated builds: **0.0 earned so far**.
+- **Current total: 75.0 / 100.0, reported as 75%.**
 
-This 72.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
+This 75.0-point ledger is authoritative until another allocated build earns points or a validated item regresses.
 
 
 ## FIDUNIO 1.0 allocated build roadmap
@@ -232,15 +235,15 @@ This section pre-allocates the planned build number for every remaining first-re
 | **0.9.6.25** | **Restart/reconnect stale-client anti-resurrection proof.** Local Outbox records are durably marked `sendAttempted:true` before direct/group cloud transmission. Authoritative absence of an attempted row fails closed and never auto-replays; sender may deliberately create a new message. No server tombstone/accepted-ID registry. | Focused replay barrier + full baseline `34060880885` SUCCESS; post-commit/pre-observation ambiguity closed conservatively. | REPOSITORY-VALIDATED |
 | **0.9.6.26** | **Multi-device expiry convergence foundation.** Same-UID installations independently converge server-backed disappearing message state, encrypted history and Outbox traces after authoritative source absence. Cache-only/local absence remains non-authoritative. | Permanent multi-device simulation proves both devices independently purge source/history/Outbox and neither can replay; full gate `34061730677` SUCCESS. | REPOSITORY-VALIDATED |
 | **0.9.6.27** | **Disappearing text settings/UI wiring.** Composer exposes Off / 5 minutes / 1 hour / 1 day / 7 days through one persisted preference. Each new direct/group message snapshots the selected immutable outer `disappearAfterSeconds`; later preference changes cannot alter sent rows. | Pure compose-policy + app source wiring gate proves direct/group propagation and immutable prior-message metadata; full gate `34061730677` SUCCESS. | REPOSITORY-VALIDATED |
-| **0.9.6.28** | **CURRENT — Disappearing text end-to-end security closeout.** Reconcile direct/group text purge, receipts, history grants, local cache, Outbox, stale clients and multi-device behavior as one release checkpoint. | Complete disappearing-text repository matrix green; checklist text-message items can move to DONE except attachment-specific work. |CURRENT |
-| **0.9.6.29** | **Group earlier-history admin UI.** Enable Group Info date/beginning grant controls only against already-validated server-backed history source selection and grant runtime; preserve admin-only intent and from-join default. | UI integration + group history rules/runtime/projection tests green; no cache-only grant source. | PLANNED |
-| **0.9.6.30** | **Receipt/lifecycle stabilization before attachment phase.** Close remaining iPad/two-pane live Sent->Read refresh behavior and verify direct/group receipt projection does not regress under disappearance handling. | Repository lifecycle tests green; ready for real-device proof later in 0.9.9.x. | PLANNED |
+| **0.9.6.28** | **Disappearing text end-to-end security closeout.** Reconcile direct/group text purge, receipts, history grants, local cache, Outbox, stale clients and multi-device behavior as one release checkpoint. | Permanent closeout matrix plus full baseline `34062508968` SUCCESS. | REPOSITORY-VALIDATED |
+| **0.9.6.29** | **Group earlier-history admin UI.** Enable Group Info date/beginning grant controls only against already-validated server-backed history source selection and grant runtime; preserve admin-only intent and from-join default. | Permanent UI wiring gate + group history runtime/rules/projection gates + full baseline `34062508968` SUCCESS; no cache-only grant source. | REPOSITORY-VALIDATED |
+| **0.9.6.30** | **Receipt/lifecycle stabilization before attachment phase.** Remove duplicate direct Read mutation ownership, preserve deterministic foreground/pageshow subscription recovery, and gate direct/group receipt projection before attachments. | Permanent receipt/lifecycle gate + full baseline `34062508968` SUCCESS; repository stabilization complete and real-device proof remains in 0.9.9.7. | REPOSITORY-VALIDATED |
 
 ### 0.9.7.x — attachments / rich messaging required for 1.0
 
 | Allocated build | Component / detailed task | Exit criteria | State |
 |---|---|---|---|
-| **0.9.7.0** | **Attachment transport/data authority.** Define one attachment owner, Firestore/Storage manifest/chunk/reference schema, E2EE metadata boundaries, size/type limits, and server/client ownership. Reuse existing attachment crypto foundation; no plaintext upload. | Architecture docs + schema/rules/emulator tests green before UI transport is enabled. | PLANNED |
+| **0.9.7.0** | **CURRENT — Attachment transport/data authority.** Define one attachment owner, Firestore/Storage manifest/chunk/reference schema, E2EE metadata boundaries, size/type limits, and server/client ownership. Reuse existing attachment crypto foundation; no plaintext upload. | Architecture docs + schema/rules/emulator tests green before UI transport is enabled. | PLANNED |
 | **0.9.7.1** | **Photo select/capture + encrypted send.** Direct and group photo path through one attachment owner, encrypted Outbox, upload confirmation and message reference. | Photo send tests incl. offline queue, tamper/error cleanup, direct/group. | PLANNED |
 | **0.9.7.2** | **File select + encrypted send.** Generic supported file path with bounded size/type policy and no alternate upload owner. | Direct/group file send and error/retry tests green. | PLANNED |
 | **0.9.7.3** | **Audio record/select + encrypted send.** Browser/PWA-supported recording/select flow, explicit permission handling, encrypted transport. | Audio send/playback payload tests and permission-failure path green. | PLANNED |
@@ -266,7 +269,7 @@ This section pre-allocates the planned build number for every remaining first-re
 
 | Allocated build | Component / detailed task | Exit criteria | State |
 |---|---|---|---|
-| **0.9.9.0** | **Group Info completion.** Integrate earlier-history controls from 0.9.6.28, remove obsolete placeholders, and finish tablet landscape layout without redesigning established two-pane behavior. | Group Info functional + responsive tests green. | PLANNED |
+| **0.9.9.0** | **Group Info completion.** Integrate earlier-history controls from 0.9.6.29, remove obsolete placeholders, and finish tablet landscape layout without redesigning established two-pane behavior. | Group Info functional + responsive tests green. | PLANNED |
 | **0.9.9.1** | **Direct Chat Info completion.** Replace remaining placeholder behavior with supported real actions or remove unsupported controls deliberately. | No Direct Chat Info placeholder actions remain. | PLANNED |
 | **0.9.9.2** | **Prototype/simulation cleanup.** Remove remaining test banners, simulated local message-state timers and tool-button alert placeholders only after their real replacements exist. | Search/runtime gates prove no forbidden simulation owner remains. | PLANNED |
 | **0.9.9.3** | **Responsive/lifecycle regression hardening.** Verify iPhone single-pane + prominent Back/wrap, iPad/tablet/desktop two-pane, Group Info landscape, Settings lifecycle, rotation/resize and live receipts. | Repository UI/lifecycle gates green with no observer/timer/reload rescue architecture. | PLANNED |

@@ -192,3 +192,6 @@ Before any direct/group cloud send, the existing local Outbox owner durably mark
 
 ### 0.9.6.26 multi-device convergence
 Same-UID installations do not share a device-local expiry authority. Each independently treats authoritative server source absence plus its own prior server-backed observation as the convergence signal, then physically removes its local projection/history/Outbox traces through the existing local owner. Cache-only absence cannot purge and attempted stale Outbox state cannot resurrect the source.
+
+## 0.9.6.28 text closeout checkpoint
+The repository text-only disappearance chain is now covered by one permanent matrix from immutable duration selection through authoritative server absence, local/history/Outbox physical convergence and reconnect anti-replay. Cache-only absence remains non-authoritative, client clocks remain non-authoritative, and no tombstone/accepted-ID registry is introduced. Gate: `34062508968` SUCCESS. Attachment-specific traces remain intentionally owned by the 0.9.7.x phase.

@@ -156,3 +156,6 @@ While an earlier-history grant is building, each chunk that creates one or more 
 
 ### Receipt purge barrier — 0.9.6.19
 Encrypted group message documents carry outer integer `receiptRevision`, initialized to `0`. This field is not authenticated plaintext and does not alter the E2EE envelope. Each actual per-account Delivered/Read receipt transition atomically increments the parent revision exactly once. Rules allow no other parent mutation. The field exists so receipt-subcollection concurrency is visible to disappearing-source purge revalidation.
+
+## 0.9.6.29 Group Info history-grant intent
+Group Info now exposes admin-only `beginning` and selected-date history-grant intent. `app.js` supplies only target UID plus boundary to `grantGroupHistoryForApp`; source selection remains inside the serialized group runtime and `readRetainedGroupMessages` server authority. The UI does not use cache-only rows as grant source and does not fabricate local history-access state. Gate: `34062508968` SUCCESS.
