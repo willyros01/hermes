@@ -9,23 +9,23 @@ concurrency:
   group: fidunio-rebuild-doc-mirror
   cancel-in-progress: false
 jobs:
-  docs-09622:
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Trigger 0.9.6.22 documentation reconciliation' }}
+  finalize-09622:
+    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'Trigger 0.9.6.22 validated ledger finalization' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
-      - run: python3 .fidunio-09622-docs.py
+      - run: python3 .fidunio-09622-finalize.py
       - run: |
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt DISAPPEARING-PURGE-AUTHORITY.md architecture-ownership.txt RUNTIME-AUTHORITY-MAP.md CURRENT-REBUILD.md
-          git commit -m "Document 0.9.6.22 local purge wiring"
+          git add README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt CURRENT-REBUILD.md
+          git commit -m "Validate 0.9.6.22 and advance weighted ledger to 68 percent"
           git push origin HEAD:fidunio-complete-rebuild
   mirror:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Normal mirror temporarily paused for bounded 0.9.6.22 documentation."
+      - run: echo "Normal mirror temporarily paused for bounded 0.9.6.22 finalization."
