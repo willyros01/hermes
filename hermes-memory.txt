@@ -435,3 +435,14 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Version advanced 0.9.6.15 -> 0.9.6.16. No live Firebase/htest/App Check/FCM change.
 - Next: history-grant creation barrier through group authority update-time, then atomic/revalidated group trace commit, followed by UID-scoped local cache/Outbox anti-resurrection.
 - Overall first complete rebuild remains approximately 65%.
+
+2026-09-06 — 0.9.6.17 HISTORY-GRANT PURGE BARRIER
+- Clean gate `34054522196` passed the complete baseline including the dedicated grant-barrier and updated group emulator tests.
+- `beginCloudGroupHistoryGrant` now uses one Firestore transaction and one `serverTimestamp()` to update group `updatedAt` and create a new building grant together.
+- Firestore Rules require `historyGrantBarrier(groupId)`: the same request must change only group `updatedAt` and set it to `request.time`; standalone history-grant creation is denied.
+- The group purge basis already includes the group document Firestore update time. Therefore a concurrent new grant is now basis-visible and cannot appear as an unobserved subordinate trace after purge planning.
+- Existing matching building-grant retry remains idempotent and does not touch group authority again.
+- No group source deletion is enabled yet; `GROUP_PURGE_TRACE_DELETE_NOT_READY` remains intentional until one revalidated receipt/grant/source commit is materialized.
+- Version advanced 0.9.6.16 -> 0.9.6.17. Repository rules changed only; live Firebase/htest untouched; App Check OFF; FCM deferred.
+- Next: atomic/revalidated group physical trace commit, then UID-scoped local cache/Outbox anti-resurrection and attachment integration.
+- Overall first complete rebuild remains approximately 65%.

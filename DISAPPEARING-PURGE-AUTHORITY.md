@@ -127,3 +127,11 @@ This repository foundation is not a scheduler or deployed Function and does not 
 The planner fails closed if metadata `totalCopies` does not equal the observed copy count, if copy authority does not match its group/grant, if duplicate source copies exist, or if source times are invalid. A partially constructed grant cannot be silently ignored.
 
 The server Firestore repository now reads grant metadata and copy subcollections during group purge state acquisition and includes every observed grant/copy update time in the opaque basis. Physical group deletion remains disabled until new grant creation is guaranteed to mutate a basis-visible authority and the final commit can re-read/reconcile receipts, grants/copies and source under one serialized path.
+
+## History-grant creation purge barrier — 0.9.6.17
+
+A new group history grant must now mutate a basis-visible group authority in the same transaction that creates its metadata. `beginCloudGroupHistoryGrant` uses one server timestamp to update `groups/{groupId}.updatedAt` and create `historyGrants/{grantId}`. Firestore Rules enforce the same-request barrier through `historyGrantBarrier(groupId)`, which permits only an `updatedAt` change and requires that timestamp to equal `request.time`.
+
+Because the group purge basis includes the group document Firestore update time, a concurrent new grant now invalidates/retries an in-flight purge transaction instead of becoming a phantom subordinate trace outside the observed grant set. Existing matching building-grant retry is idempotent and does not manufacture a new barrier event.
+
+This closes the prerequisite race only. The group physical-delete commit remains fail-closed until receipts, grant copies, grant metadata reconciliation and source deletion are performed under one revalidated path.

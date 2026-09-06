@@ -177,3 +177,9 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Group purge repository read now enumerates group history grants + grant copy subcollections, validates them through the pure planner, and incorporates their Firestore update times into the opaque purge basis.
 - Incomplete/inconsistent grant construction fails closed rather than allowing source deletion to bypass subordinate traces.
 - Group commit remains intentionally disabled pending a basis-visible concurrent-grant barrier and final receipt/grant/source transaction/precondition implementation.
+
+## Group history-grant purge barrier — 0.9.6.17
+- `firebase.js` history-grant create transaction now updates group `updatedAt` and creates the grant with one server timestamp.
+- Firestore Rules require `historyGrantBarrier(groupId)` and reject grant creation lacking that exact group touch.
+- The server purge repository already includes group update-time in the opaque basis, making new-grant creation conflict/basis-visible.
+- Physical group trace deletion remains exclusively server-side and not yet enabled.

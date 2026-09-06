@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.16**
+- Current checkpoint version: **0.9.6.17**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -398,4 +398,18 @@ Release transition: **0.9.6.15 -> 0.9.6.16**.
 - Added dedicated planner tests plus repository integration tests. Rebuild Baseline Security Gate run `34054137154` passed all steps including the new group grant trace plan and Firestore purge repository gates.
 - No live Firebase rules/functions/deletes, no `htest` deployment, no client delete permission, no App Check enforcement change, and no FCM activation.
 - Next secure slice: bind new history-grant creation to the group authority update-time so concurrent grant creation invalidates a purge basis, then materialize one revalidated group commit that deletes receipts, source grant copies/reconciles grant metadata, and finally deletes the source without partial trace loss.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.17 — history-grant purge barrier
+
+Release transition: **0.9.6.16 -> 0.9.6.17**.
+
+- Clean Rebuild Baseline Security Gate run `34054522196` passed every substantive step on the cleaned barrier implementation, including the group emulator matrix and dedicated history-grant purge-barrier gate.
+- New earlier-history grant creation now atomically updates the authoritative group `updatedAt` in the same Firestore transaction that creates the building grant. The grant and group touch share one `serverTimestamp()` authority.
+- Firestore Rules now require `historyGrantBarrier(groupId)`: a grant create is accepted only when the same write changes exactly group `updatedAt` to `request.time`. A standalone grant create is denied.
+- This closes the purge-basis phantom-grant race: group purge basis already includes the group document update time, so a concurrent new history grant invalidates/retries the purge transaction rather than escaping the previously observed grant/copy trace set.
+- Idempotent retry of an already-existing matching building grant does not create another barrier write.
+- Added `group-history-grant-purge-barrier.test.mjs` plus emulator coverage proving missing barrier denial and atomic barrier success.
+- Group physical purge remains deliberately fail-closed. The next repository slice is the one revalidated group commit that removes receipts, affected grant copies, deletes/reconciles grant metadata, and only then removes the source.
+- Repository Firestore Rules changed, but **no live Firebase rules were deployed**. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
 - Overall first-rebuild estimate remains approximately 65%.

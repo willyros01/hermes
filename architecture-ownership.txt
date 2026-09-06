@@ -181,3 +181,10 @@ DISAPPEARING GROUP GRANT TRACE PLANNER — 0.9.6.16
 - It owns no Firebase/Admin SDK, Firestore write, crypto, UI, cache, timer or scheduler.
 - `disappearing-purge-firestore-admin-adapter.mjs` remains server read/write repository owner and now includes grant/copy update times in group purge basis.
 - Group physical commit remains fail-closed until concurrent grant creation changes a basis-visible authority and all receipt/grant/source writes can be revalidated together.
+
+GROUP HISTORY-GRANT PURGE BARRIER — 0.9.6.17
+- New history-grant creation remains owned by `firebase.js` browser Firestore transport.
+- Resource coupling required for purge safety: a genuinely new grant atomically touches only group `updatedAt` plus the new grant document.
+- Firestore Rules enforce the same-request barrier; callers cannot create a grant without a basis-visible group authority change.
+- Group purge repository continues to own server read/delete authority and includes group update-time in its opaque basis.
+- No second purge/grant owner is introduced.
