@@ -50,18 +50,23 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 | Leave group | NOT DONE | Real cloud membership mutation + epoch handling required. |
 | Group history policy/admin controls | IN PROGRESS | `historyPolicy:"fromJoin"` contract exists; real management UI/backend controls unfinished. |
 
-## Disappearing / self-destructing content
+## Disappearing content
+
+**Non-negotiable purge rule:** when disappearing content expires, every application-controlled trace of that content must be purged. The Firestore message document itself must be physically deleted, not merely hidden or marked expired. No per-message tombstone, plaintext, ciphertext, receipt record, attachment metadata, attachment blob/chunk, thumbnail, preview, local history record, cached decrypted object, Outbox copy, notification payload, or other application-controlled content record may remain after purge. This applies to sender and recipient devices/accounts and to direct and group content.
 
 | Area | State | Evidence / notes |
 |---|---|---|
 | Disappearing-message policy/model | NOT DONE | Define authenticated E2EE expiry metadata and deterministic start condition/timer semantics; must work across devices without relying on a single device clock as authority. |
-| Direct disappearing text messages | NOT DONE | Expiry must remove durable encrypted message data and rebuildable local cached plaintext/ciphertext according to the policy. |
-| Group disappearing text messages | NOT DONE | Must integrate with group E2EE epochs, membership, per-account receipts, and deterministic expiry. |
-| Disappearing/self-destructing attachments | NOT DONE | Attachment metadata, encrypted chunks/blobs, thumbnails/previews, local decrypted object URLs/cache, and durable references must expire together. |
-| Offline/reconnect expiry behavior | NOT DONE | Expired content must not resurrect from Outbox, IndexedDB history, stale snapshots, or reconnect reconciliation. |
-| Multi-device expiry convergence | NOT DONE | Same account on multiple devices must converge on the same expired state; deletion/expiry cannot be installation-local only. |
-| Expiry UI/settings | NOT DONE | Provide clear per-conversation/default or per-message controls only after the underlying authority model is defined; UI must show the effective disappearing policy. |
-| Expiry security/rules/tests | NOT DONE | Firestore rules/runtime tests must reject expiry tampering and prove expired content cannot be reintroduced by normal clients. |
+| Firestore trace-free purge | NOT DONE | At expiry, physically delete the Firestore message record and every application-owned subordinate/reference record associated only with that content. Do not leave an `expired` document or per-message tombstone. |
+| Direct disappearing text messages | NOT DONE | Purge cloud ciphertext/message doc, per-message receipts/references, local plaintext/ciphertext/cache, and any pending copy on all participating devices. |
+| Group disappearing text messages | NOT DONE | Same trace-free purge rule plus integration with group E2EE epochs, membership, and per-account receipts; no expired message record remains in Firestore. |
+| Disappearing attachments | NOT DONE | Purge attachment metadata, encrypted chunks/blobs, thumbnails/previews, local decrypted object URLs/cache, message references, and attachment-specific receipts together. |
+| Offline/reconnect expiry behavior | NOT DONE | Expired content must not resurrect from Outbox, IndexedDB history, stale snapshots, cached attachments, or reconnect reconciliation. Normal clients must discard stale expired material rather than re-upload it. |
+| Multi-device expiry convergence | NOT DONE | Same account on multiple devices must converge on the same absence of the expired content; purge cannot be installation-local only. |
+| Expiry UI/settings | NOT DONE | Provide clear per-conversation/default or per-message controls only after the underlying authority model is defined; UI must show the effective disappearing policy before expiry and no residual content after expiry. |
+| Expiry security/rules/tests | NOT DONE | Tests must prove Firestore records are physically deleted, subordinate content/receipts are purged, local caches are cleared, and stale clients do not reintroduce expired content. |
+
+Provider limitation: this trace-free rule governs all data FIDUNIO controls through Firestore/Firebase application APIs and local device storage. Cloud-provider internal infrastructure such as transient service logs or provider-managed backups, if any are enabled or retained outside application-level control, must be separately audited/configured; the app must never intentionally create or retain its own archival copy of disappearing content.
 
 ## Attachments / rich messaging
 
@@ -122,12 +127,13 @@ Status vocabulary: `DONE`, `IN PROGRESS`, `NOT DONE`, `BLOCKED — USER DEVICE P
 
 ## Current completion estimate
 
-Approximately **65%** of the complete FIDUNIO acceptance criteria. The newly restored disappearing-content requirement expands the remaining acceptance criteria; retain 65% as the working estimate until the next meaningful product milestone is completed and the denominator is reconciled. This number must not be advanced for minor cleanup.
+Approximately **65%** of the complete FIDUNIO acceptance criteria. The restored disappearing-content requirement expands the remaining acceptance criteria; retain 65% as the working estimate until the next meaningful product milestone is completed and the denominator is reconciled. This number must not be advanced for minor cleanup.
 
 ## Build Log
 
 - 2026-09-06 — Created this authoritative checklist at user request so every build session has an explicit done/not-done ledger.
 - 2026-09-06 — Local-security Settings callers now await serialized timeout/device-unlock mutations; commit `013508078f1cda925a54c99cf7e7ffb3c986f8e7`; Local PIN/security serialized mutations marked DONE.
 - 2026-09-06 — Group account-authoritative send/read/receipts/Outbox integration is present in the rebuild; group administration remains the next major messaging milestone.
-- 2026-09-06 — Restored disappearing/self-destructing messages and attachments to the complete-product acceptance criteria, including direct/group, attachments, offline/reconnect, multi-device convergence, UI, and security/rules testing.
+- 2026-09-06 — Restored disappearing messages and attachments to the complete-product acceptance criteria, including direct/group, attachments, offline/reconnect, multi-device convergence, UI, and security/rules testing.
+- 2026-09-06 — Disappearing-content requirement tightened: all application-controlled traces must be physically purged at expiry, including Firestore message records and attachments; no per-message tombstone/expired record is permitted.
 - 2026-09-06 — Reconciled hermes-setup.txt from obsolete 0.8.1.9 instructions to the current complete-rebuild architecture and recovery procedure.
