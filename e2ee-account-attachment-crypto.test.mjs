@@ -4,7 +4,7 @@ if(!globalThis.btoa)globalThis.btoa=s=>Buffer.from(s,"binary").toString("base64"
 if(!globalThis.atob)globalThis.atob=s=>Buffer.from(s,"base64").toString("binary");
 const {encryptAttachmentBytes,decryptAttachmentBytes,attachmentChunkSize}=await import("./e2ee-account-attachment-crypto.js");
 let failed=0;const ok=(name,v)=>{console.log(v?"PASS":"FAIL",name);if(!v)failed++;};
-const size=attachmentChunkSize()*2+137,input=webcrypto.getRandomValues(new Uint8Array(size));
+const size=attachmentChunkSize()*2+137,input=new Uint8Array(size);for(let i=0;i<input.length;i+=65536)webcrypto.getRandomValues(input.subarray(i,Math.min(input.length,i+65536)));
 const enc=await encryptAttachmentBytes({attachmentId:"att-1",bytes:input,meta:{name:"photo.jpg",type:"image/jpeg"}});
 ok("attachment split into bounded chunks",enc.chunks.length===3&&enc.manifest.totalChunks===3);
 ok("manifest carries safe metadata",enc.manifest.name==="photo.jpg"&&enc.manifest.type==="image/jpeg"&&enc.manifest.size===size);
