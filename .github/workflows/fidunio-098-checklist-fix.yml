@@ -1,0 +1,16 @@
+name: FIDUNIO 0.9.8 Checklist Fix
+on: {push: {branches: [fidunio-complete-rebuild], paths: [.fidunio-098-checklist-fix-trigger]}}
+permissions: {contents: write}
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: fidunio-complete-rebuild, fetch-depth: 0}
+      - run: python .fidunio-098-checklist-fix.py
+      - run: |
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add FIDUNIO-BUILD-CHECKLIST.md
+          git commit -m "Record validated 0.9.8 ledger and roadmap"
+          git push origin HEAD:fidunio-complete-rebuild
