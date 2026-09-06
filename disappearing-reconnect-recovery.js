@@ -43,8 +43,18 @@ export function planReconnectOutboxConvergence({messagesByConversation={},outbox
       continue;
     }
 
-    // Only work that has never been observed server-backed may be replayed.
-    // Unexpected absence of an already-server-backed ordinary row fails closed.
+    // Fail closed across the post-commit/pre-observation crash gap. An Outbox
+    // record is marked sendAttempted durably before its first cloud write. If
+    // it is later absent from authoritative Firestore, we cannot distinguish
+    // a definite pre-commit failure from accepted-then-expired content. It is
+    // therefore never auto-replayed. The sender may deliberately send a new
+    // message; FIDUNIO does not retain a server tombstone or accepted-ID log.
+    if(record?.sendAttempted===true){
+      blockedMessageIds.push(messageId);
+      continue;
+    }
+
+    // Only never-attempted, never-server-backed work may be replayed.
     if(!local||local.serverBacked!==true)replayMessageIds.push(messageId);
     else blockedMessageIds.push(messageId);
   }
@@ -61,9 +71,13 @@ export const DISAPPEARING_RECONNECT_RECOVERY_V1=Object.freeze({
   requiresServerReadBeforeReplay:true,
   serverPresentOutboxIsAccepted:true,
   priorServerBackedDisappearingAbsenceCanPurge:true,
-  neverServerBackedAbsenceCanReplay:true,
+  neverAttemptedNeverServerBackedAbsenceCanReplay:true,
+  attemptedAuthoritativeAbsenceFailsClosed:true,
+  automaticRetryAfterAmbiguousAttempt:false,
+  manualNewMessageResendPermitted:true,
   cacheOnlyAuthority:false,
   clientClockIsAuthority:false,
   createsTombstones:false,
-  postCommitPreObservationCrashGapClosed:false
+  retainsServerAcceptedIdRegistry:false,
+  postCommitPreObservationCrashGapClosed:true
 });
