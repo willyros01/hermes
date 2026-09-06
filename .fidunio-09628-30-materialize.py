@@ -2,11 +2,10 @@ from pathlib import Path
 import json
 
 def rep(path, old, new):
- p=Path(path); s=p.read_text();
+ p=Path(path); s=p.read_text()
  if old not in s: raise SystemExit(f'anchor missing in {path}: {old[:80]}')
  p.write_text(s.replace(old,new,1))
 
-# 0.9.6.29: wire the already-validated history-grant runtime into Group Info.
 rep('app.js','renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp }','renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp }')
 rep('app.js','${m.historyAccess==="from_join"?\'<span class="history-lock">Earlier history hidden</span>\':m.historyAccess==="all"?\'<span class="history-lock">Earlier history available</span>\':""}','${m.historyAccess==="from_join"?\'<span class="history-lock">Earlier history hidden</span>\':m.historyAccess==="all"?\'<span class="history-lock">Earlier history available</span>\':""}${isAdmin&&m.id!==myUid?`<button class="row-action historyGrantBtn" data-id="${m.id}">Grant earlier history</button>`:""}')
 rep('app.js','  const add=document.querySelector("#addMemberBtn");if(add)add.onclick=()=>openAddMemberModal();','  const add=document.querySelector("#addMemberBtn");if(add)add.onclick=()=>openAddMemberModal();\n  document.querySelectorAll(".historyGrantBtn").forEach(btn=>btn.onclick=()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member)return;state.modal={type:"history",memberId:member.id,historyChoice:"beginning",historyDate:""};render();});')
@@ -48,8 +47,6 @@ new='''    host.querySelectorAll('input[name="history"]').forEach(r=>r.onchange=
       catch(err){firebaseError=err?.message||String(err);confirmBtn.disabled=false;alert(firebaseError);}
     };'''
 rep('app.js',old,new)
-
-# 0.9.6.30: remove the duplicate pre-projection direct receipt mutation/read write.
 old='''      if(!meta.fromCache){
         const rawStateById=new Map(rows.map(r=>[r.id,r.state||"sent"]));
         let receiptChanged=false;
@@ -62,20 +59,8 @@ old='''      if(!meta.fromCache){
       }
 '''
 rep('app.js',old,'')
-
-# Permanent focused gates.
-Path('disappearing-text-e2e-closeout.test.mjs').write_text('''import assert from "node:assert/strict";\nimport {normalizeDisappearSelection} from "./disappearing-content-policy.js";\nimport {planLocalDisappearingConvergence} from "./disappearing-local-convergence.js";\nimport {planPhysicalLocalMessagePurge} from "./disappearing-local-storage-plan.js";\nimport {planAuthoritativeMessageProjection} from "./disappearing-authoritative-projection.js";\nimport {planReconnectOutboxConvergence} from "./disappearing-reconnect-recovery.js";\nassert.equal(normalizeDisappearSelection(300),300);\nconst local=[{id:"gone",disappearAfterSeconds:300,serverBacked:true,mine:true,state:"sent"},{id:"keep",disappearAfterSeconds:null,serverBacked:true}];\nconst c=planLocalDisappearingConvergence({localMessages:local,authoritativeRemoteIds:["keep"],outboxMessageIds:["gone"]});\nassert.deepEqual([...c.purgeMessageIds],["gone"]);assert.deepEqual([...c.purgeOutboxMessageIds],["gone"]);\nconst p=planPhysicalLocalMessagePurge({messagesByConversation:{x:local},historyRecords:[{conversationId:"x",messages:local}],outboxRecords:[{id:"gone",payload:{messageId:"gone"}}],purgeMessageIds:["gone"]});\nassert.equal(p.messagesByConversation.x.some(x=>x.id==="gone"),false);assert.deepEqual([...p.outboxDeleteIds],["gone"]);\nconst a=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[{id:"keep"}],snapshotMeta:{fromCache:false},outboxMessageIds:["gone"]});assert.deepEqual([...a.purgeMessageIds],["gone"]);\nconst cache=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[],snapshotMeta:{fromCache:true},outboxMessageIds:["gone"]});assert.equal(cache.purgeMessageIds.length,0);\nconst replay=planReconnectOutboxConvergence({outboxRows:[{id:"gone",payload:{messageId:"gone",disappearAfterSeconds:300,serverBacked:true,sendAttempted:true}}],serverMessageIds:[]});assert.equal(replay.replayRows.length,0);\nconsole.log("Disappearing text end-to-end closeout matrix passed");\n''')
+Path('disappearing-text-e2e-closeout.test.mjs').write_text('''import assert from "node:assert/strict";\nimport {normalizeDisappearSelection} from "./disappearing-content-policy.js";import {planLocalDisappearingConvergence} from "./disappearing-local-convergence.js";import {planPhysicalLocalMessagePurge} from "./disappearing-local-storage-plan.js";import {planAuthoritativeMessageProjection} from "./disappearing-authoritative-projection.js";import {planReconnectOutboxConvergence} from "./disappearing-reconnect-recovery.js";\nassert.equal(normalizeDisappearSelection(300),300);const local=[{id:"gone",disappearAfterSeconds:300,serverBacked:true,mine:true,state:"sent"},{id:"keep",disappearAfterSeconds:null,serverBacked:true}];const c=planLocalDisappearingConvergence({localMessages:local,authoritativeRemoteIds:["keep"],outboxMessageIds:["gone"]});assert.deepEqual([...c.purgeMessageIds],["gone"]);assert.deepEqual([...c.purgeOutboxMessageIds],["gone"]);const p=planPhysicalLocalMessagePurge({messagesByConversation:{x:local},historyRecords:[{conversationId:"x",messages:local}],outboxRecords:[{id:"gone",payload:{messageId:"gone"}}],purgeMessageIds:["gone"]});assert.equal(p.messagesByConversation.x.some(x=>x.id==="gone"),false);assert.deepEqual([...p.outboxDeleteIds],["gone"]);const a=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[{id:"keep"}],snapshotMeta:{fromCache:false},outboxMessageIds:["gone"]});assert.deepEqual([...a.purgeMessageIds],["gone"]);const cache=planAuthoritativeMessageProjection({existingRows:local,remoteRows:[],snapshotMeta:{fromCache:true},outboxMessageIds:["gone"]});assert.equal(cache.purgeMessageIds.length,0);const replay=planReconnectOutboxConvergence({outboxRows:[{id:"gone",payload:{messageId:"gone",disappearAfterSeconds:300,serverBacked:true,sendAttempted:true}}],serverMessageIds:[]});assert.equal(replay.replayRows.length,0);console.log("Disappearing text end-to-end closeout matrix passed");\n''')
 Path('group-history-admin-ui.test.mjs').write_text('''import fs from "node:fs";import assert from "node:assert/strict";const s=fs.readFileSync("app.js","utf8");assert.match(s,/grantGroupHistoryForApp/);assert.match(s,/historyGrantBtn/);assert.match(s,/kind:\\"beginning\\"/);assert.match(s,/kind:\\"timestamp\\",at/);assert.match(s,/type=\\"date\\"/);assert.doesNotMatch(s,/member\\.historyAccess=granted/);console.log("Group earlier-history admin UI wiring passed");\n''')
 Path('receipt-lifecycle-stabilization.test.mjs').write_text('''import fs from "node:fs";import assert from "node:assert/strict";const app=fs.readFileSync("app.js","utf8"),group=fs.readFileSync("e2ee-account-group-conversation.js","utf8");const directWrites=(app.match(/updateCloudMessageState\\(conversationId,m\\.id,\\"read\\"\\)/g)||[]).length;assert.equal(directWrites,1,"direct subscription must have one deterministic read-write path");assert.match(app,/visibilitychange/);assert.match(app,/pageshow/);assert.match(app,/ensureActiveCloudMessageSubscription\\(true\\)/);assert.match(group,/subscribeCloudGroupReceipts/);assert.match(group,/delivery=delivery\\.then\\(emit,emit\\)/);assert.match(group,/isOpen\\(\\)\\?\\"read\\":\\"delivered\\"/);console.log("Receipt and lifecycle stabilization anchors passed");\n''')
-
-pkg=json.loads(Path('package.json').read_text())
-pkg['scripts']['test:disappearing-text-closeout']='node disappearing-text-e2e-closeout.test.mjs'
-pkg['scripts']['test:group-history-admin-ui']='node group-history-admin-ui.test.mjs'
-pkg['scripts']['test:receipt-lifecycle-stabilization']='node receipt-lifecycle-stabilization.test.mjs'
-Path('package.json').write_text(json.dumps(pkg,separators=(',',':'))+'\n')
-
-wf=Path('.github/workflows/rebuild-baseline-security.yml'); w=wf.read_text(); anchor='      - name: Disappearing compose policy\n        run: npm run test:disappearing-compose-policy\n';
-if anchor not in w: raise SystemExit('baseline anchor missing')
-w=w.replace(anchor,anchor+'      - name: Disappearing text end-to-end closeout\n        run: npm run test:disappearing-text-closeout\n      - name: Group earlier-history admin UI\n        run: npm run test:group-history-admin-ui\n      - name: Receipt lifecycle stabilization\n        run: npm run test:receipt-lifecycle-stabilization\n',1);wf.write_text(w)
-
+pkg=json.loads(Path('package.json').read_text());pkg['scripts']['test:disappearing-text-closeout']='node disappearing-text-e2e-closeout.test.mjs';pkg['scripts']['test:group-history-admin-ui']='node group-history-admin-ui.test.mjs';pkg['scripts']['test:receipt-lifecycle-stabilization']='node receipt-lifecycle-stabilization.test.mjs';Path('package.json').write_text(json.dumps(pkg,separators=(',',':'))+'\n')
 Path('version.js').write_text('globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "0.9.6.30" });\n')
