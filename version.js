@@ -1,1 +1,1 @@
-globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "0.9.7.4" });
+globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "0.9.7.9" });
