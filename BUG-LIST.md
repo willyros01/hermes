@@ -73,3 +73,9 @@ No repository-gate failure is open for the account-E2EE v3 materialization. The 
 - Foreground visibility/pageshow recovery remains explicit and group receipt updates remain serialized by the group conversation owner.
 - Permanent lifecycle gate and full baseline `34062508968` pass.
 - Status: **repository stabilization complete; real iPad/iPhone acceptance remains scheduled for 0.9.9.7 and is not claimed from repository tests alone.**
+
+## 0.9.8.0–0.9.8.5 invitation/install checkpoint — repository validated
+
+Runtime 0.9.8.5 completes the invitation/join/install phase. `invitation-owner.js` is the sole serialized invitation mutation coordinator while `firebase.js` remains the sole Firebase repository/SDK owner. Pure `invitation-policy.js` enforces single-use lifecycle, issuer roles and target roles. Auth and Settings request invitation work through that owner. Firestore emulator coverage proves anonymous validation of a known token, unauthorized issuance/revocation denial, owner issuance/revocation, atomic accepted-invitation + active-profile enrollment, and second-redemption denial. Joined active profiles flow into existing direct/group discovery without device binding.
+
+`install-guidance.js` owns only an optional predefined Settings Install panel. It never mutates invitation, account, messaging or service-worker state and never uses automatic install prompting. iOS uses Safari Share -> Add to Home Screen; Android/Fire and desktop use browser-provided install/add/shortcut commands when available. The rejected 0.9.4.12–0.9.4.15 invite/install logic was not restored or adapted. Protected iPhone Back/wrap, Settings deterministic ownership and two-pane architecture remain gated. Full Rebuild Baseline Security Gate `34065528714` SUCCESS. No live Firebase or htest deployment occurred. Next allocated build: 0.9.9.0 Group Info completion.

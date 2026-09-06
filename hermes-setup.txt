@@ -7,7 +7,7 @@ CURRENT DEVELOPMENT BRANCH
 - Authoritative in-progress branch: fidunio-complete-rebuild
 - Product name: FIDUNIO
 - GitHub repository name: hermes
-- Current repository checkpoint: 0.9.6.10; immutable first-Read authority is repository-materialized, while physical disappearing-content purge remains unfinished.
+- Current repository checkpoint: 0.9.8.5; invitation-only enrollment and independent safe install guidance are repository-validated; next allocated build is 0.9.9.0 Group Info completion.
 - main contains a curated recovery-document mirror only; do not treat application code on main as the current rebuild until final deliberate promotion.
 
 RELEASE ROADMAP / SCOPE
@@ -133,3 +133,9 @@ Repository group receipt writes now require an atomic parent-message `receiptRev
 
 ## 0.9.6.20 group physical trace commit
 The repository now contains the server-only atomic group Firestore trace commit, but it is not deployed. Do not open browser delete Rules or deploy a scheduler yet. Complete local/offline anti-resurrection and remaining trace owners first, then perform controlled Firebase handoff and device validation.
+
+## 0.9.8.0–0.9.8.5 invitation/install checkpoint — repository validated
+
+Runtime 0.9.8.5 completes the invitation/join/install phase. `invitation-owner.js` is the sole serialized invitation mutation coordinator while `firebase.js` remains the sole Firebase repository/SDK owner. Pure `invitation-policy.js` enforces single-use lifecycle, issuer roles and target roles. Auth and Settings request invitation work through that owner. Firestore emulator coverage proves anonymous validation of a known token, unauthorized issuance/revocation denial, owner issuance/revocation, atomic accepted-invitation + active-profile enrollment, and second-redemption denial. Joined active profiles flow into existing direct/group discovery without device binding.
+
+`install-guidance.js` owns only an optional predefined Settings Install panel. It never mutates invitation, account, messaging or service-worker state and never uses automatic install prompting. iOS uses Safari Share -> Add to Home Screen; Android/Fire and desktop use browser-provided install/add/shortcut commands when available. The rejected 0.9.4.12–0.9.4.15 invite/install logic was not restored or adapted. Protected iPhone Back/wrap, Settings deterministic ownership and two-pane architecture remain gated. Full Rebuild Baseline Security Gate `34065528714` SUCCESS. No live Firebase or htest deployment occurred. Next allocated build: 0.9.9.0 Group Info completion.

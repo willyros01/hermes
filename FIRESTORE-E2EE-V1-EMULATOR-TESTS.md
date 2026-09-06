@@ -123,3 +123,9 @@ The group emulator matrix now denies an administrator's standalone history-grant
 
 ## Group receipt purge barrier — 0.9.6.19
 The group emulator matrix now proves standalone Delivered and first-Read receipt writes are denied, while each succeeds when atomically paired with the exact next parent `receiptRevision`. Dedicated `group-receipt-purge-barrier.test.mjs` gates the central Firebase transaction and Rules anchors. Rebuild Baseline Security Gate run `34055638377` passed. Repository Rules remain undeployed to live Firebase.
+
+## 0.9.8.0–0.9.8.5 invitation/install checkpoint — repository validated
+
+Runtime 0.9.8.5 completes the invitation/join/install phase. `invitation-owner.js` is the sole serialized invitation mutation coordinator while `firebase.js` remains the sole Firebase repository/SDK owner. Pure `invitation-policy.js` enforces single-use lifecycle, issuer roles and target roles. Auth and Settings request invitation work through that owner. Firestore emulator coverage proves anonymous validation of a known token, unauthorized issuance/revocation denial, owner issuance/revocation, atomic accepted-invitation + active-profile enrollment, and second-redemption denial. Joined active profiles flow into existing direct/group discovery without device binding.
+
+`install-guidance.js` owns only an optional predefined Settings Install panel. It never mutates invitation, account, messaging or service-worker state and never uses automatic install prompting. iOS uses Safari Share -> Add to Home Screen; Android/Fire and desktop use browser-provided install/add/shortcut commands when available. The rejected 0.9.4.12–0.9.4.15 invite/install logic was not restored or adapted. Protected iPhone Back/wrap, Settings deterministic ownership and two-pane architecture remain gated. Full Rebuild Baseline Security Gate `34065528714` SUCCESS. No live Firebase or htest deployment occurred. Next allocated build: 0.9.9.0 Group Info completion.
