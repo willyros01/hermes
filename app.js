@@ -34,7 +34,7 @@ import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
-import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp } from "./e2ee-account-group-app-integration.js";
+import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
 import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
@@ -741,16 +741,6 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
     firebaseUser.uid,
     async (rows,meta={})=>{
       const existing=state.messages[conversationId] || [];
-      if(!meta.fromCache){
-        const rawStateById=new Map(rows.map(r=>[r.id,r.state||"sent"]));
-        let receiptChanged=false;
-        for(const local of existing){if(!local?.mine)continue;const next=rawStateById.get(local.id);if(next&&next!==local.state){local.state=next;receiptChanged=true;}}
-        if(receiptChanged&&state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
-        if(state.route==="chat"&&String(state.selectedId)===String(conversationId)){
-          const unreadRows=rows.filter(r=>r.senderUid!==firebaseUser.uid&&(r.state||"sent")!=="read");
-          if(unreadRows.length)await Promise.allSettled(unreadRows.map(r=>updateCloudMessageState(conversationId,r.id,"read")));
-        }
-      }
       const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});
       const remote=[];
       for(const m of rows){
@@ -1536,7 +1526,7 @@ ${c.members.map(m=>`
     <div class="row-main">
       <strong>${esc(m.name)}</strong>
       <span>${esc(m.joinedAt)}</span>
-      ${m.historyAccess==="from_join"?'<span class="history-lock">Earlier history hidden</span>':m.historyAccess==="all"?'<span class="history-lock">Earlier history available</span>':""}
+      ${m.historyAccess==="from_join"?'<span class="history-lock">Earlier history hidden</span>':m.historyAccess==="all"?'<span class="history-lock">Earlier history available</span>':""}${isAdmin&&m.id!==myUid?`<button class="row-action historyGrantBtn" data-id="${m.id}">Grant earlier history</button>`:""}
     </div>
     <div>${m.role!=="Member"?`<span class="role-tag">${esc(m.role)}</span>`:""}${isAdmin&&m.id!==c.ownerUid&&m.id!==myUid?` <button class="row-action removeMemberBtn" data-id="${m.id}">Remove</button>`:""}</div>
   </div>`).join("")}
@@ -1556,6 +1546,7 @@ ${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':
   document.querySelector("#backBtn").onclick=()=>{state.route="chat";render()};
   const rename=document.querySelector("#renameBtn");if(rename)rename.onclick=async()=>{const name=prompt("Rename group:",c.name);if(!name?.trim()||name.trim()===c.name)return;rename.disabled=true;try{await renameGroupForApp(c.id,name.trim());}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
   const add=document.querySelector("#addMemberBtn");if(add)add.onclick=()=>openAddMemberModal();
+  document.querySelectorAll(".historyGrantBtn").forEach(btn=>btn.onclick=()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member)return;state.modal={type:"history",memberId:member.id,historyChoice:"beginning",historyDate:""};render();});
   document.querySelectorAll(".removeMemberBtn").forEach(btn=>btn.onclick=async()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member||!confirm(`Remove ${member.name} from this group?`))return;btn.disabled=true;try{await removeGroupMemberForApp(c.id,member.id);}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}});
   document.querySelectorAll(".placeholderBtn").forEach(btn=>btn.onclick=()=>alert("This control is represented for UX review and will be implemented in a later prototype."));
   document.querySelector(".toggle").onclick=e=>e.currentTarget.classList.toggle("on");
@@ -1678,16 +1669,9 @@ function renderModal(){
         <h2>History Access</h2>
         <p>${esc(member.name)} normally sees messages only from the time they joined. As admin, you can explicitly grant earlier history.</p>
         <div class="permission-box">
-          ${[
-            ["24h","Last 24 hours"],
-            ["7d","Last 7 days"],
-            ["date","From selected date"],
-            ["all","Entire available history"]
-          ].map(([v,label])=>`
-            <label class="radio-row">
-              <input type="radio" name="history" value="${v}" ${modal.historyChoice===v?"checked":""}>
-              <span><strong>${label}</strong>${v==="all"?'<div class="small-note">Shares all historical material available to the group.</div>':""}</span>
-            </label>`).join("")}
+          <label class="radio-row"><input type="radio" name="history" value="beginning" ${modal.historyChoice==="beginning"?"checked":""}><span><strong>From beginning</strong><div class="small-note">Share all retained earlier history that is still available.</div></span></label>
+          <label class="radio-row"><input type="radio" name="history" value="date" ${modal.historyChoice==="date"?"checked":""}><span><strong>From selected date</strong><div class="small-note">Only retained messages on or after this date are eligible.</div></span></label>
+          <label class="form-label" for="historyDate">Selected date</label><input class="text-input" id="historyDate" type="date" value="${esc(modal.historyDate||"")}" ${modal.historyChoice==="date"?"":"disabled"}>
         </div>
         <div class="modal-actions">
           <button class="modal-cancel" id="modalCancel">Cancel</button>
@@ -1695,14 +1679,15 @@ function renderModal(){
         </div>
       </div>`;
     document.body.appendChild(host);
-    host.querySelectorAll('input[name="history"]').forEach(r=>r.onchange=()=>state.modal.historyChoice=r.value);
+    host.querySelectorAll('input[name="history"]').forEach(r=>r.onchange=()=>{state.modal.historyChoice=r.value;const d=host.querySelector("#historyDate");if(d)d.disabled=r.value!=="date";});
+    const historyDate=host.querySelector("#historyDate");if(historyDate)historyDate.onchange=()=>state.modal.historyDate=historyDate.value;
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
-    host.querySelector("#modalConfirm").onclick=()=>{
-      const granted=state.modal.historyChoice;
-      member.historyAccess=granted==="all"?"all":granted;
-      state.modal=null;
-      host.remove();
-      render();
+    host.querySelector("#modalConfirm").onclick=async()=>{
+      const modalNow=state.modal;if(!modalNow||modalNow.type!=="history")return;
+      let boundary;if(modalNow.historyChoice==="beginning")boundary={kind:"beginning"};else{if(!modalNow.historyDate)return alert("Choose the first date to share.");const at=new Date(`${modalNow.historyDate}T00:00:00`);if(Number.isNaN(at.getTime()))return alert("Choose a valid date.");boundary={kind:"timestamp",at};}
+      const confirmBtn=host.querySelector("#modalConfirm");confirmBtn.disabled=true;
+      try{const result=await grantGroupHistoryForApp(c.id,member.id,boundary);state.modal=null;host.remove();alert(`Earlier history granted (${result.totalCopies} message${result.totalCopies===1?"":"s"}).`);render();}
+      catch(err){firebaseError=err?.message||String(err);confirmBtn.disabled=false;alert(firebaseError);}
     };
   }
   host.onclick=e=>{if(e.target===host){state.modal=null;host.remove();render()}};
