@@ -1,4 +1,4 @@
-name: Materialize Group History Persistence Once
+name: Repair Group History Rules Test Once
 on:
   push:
     branches: [fidunio-complete-rebuild]
@@ -6,19 +6,19 @@ permissions:
   contents: write
 jobs:
   update:
-    if: github.event.head_commit.message == 'Run registered group history persistence materializer'
+    if: github.event.head_commit.message == 'Run group history rules test repair'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
-      - name: Apply reviewed materializer
-        run: python materialize-group-history-persistence.py
-      - name: Commit materialized slice
+      - name: Repair test chronology
+        run: python fix-group-history-rules-test.py
+      - name: Commit repair
         run: |
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add firestore.rules firebase.js e2ee-account-group-firebase-adapter.js e2ee-account-group-runtime.js e2ee-account-group-service.js e2ee-account-group-runtime.test.mjs firestore-group-e2ee-v1.rules.test.mjs version.js README.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md FIRESTORE-GROUP-E2EE-V1-RULES.md FIRESTORE-E2EE-V1-EMULATOR-TESTS.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt group-data-model.txt FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
-          git commit -m "Materialize group history persistence foundation"
+          git add firestore-group-e2ee-v1.rules.test.mjs
+          git commit -m "Repair group history rules test chronology"
           git push origin HEAD:fidunio-complete-rebuild
