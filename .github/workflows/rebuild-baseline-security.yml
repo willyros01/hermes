@@ -2,7 +2,7 @@ name: Rebuild Baseline Security Gate
 
 on:
   push:
-    branches: [fidunio-rebuild-baseline-2026-09-05]
+    branches: [fidunio-complete-rebuild]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -32,6 +32,10 @@ jobs:
         run: npm run emulator:test:e2ee-rules
       - name: Account direct-message rules gate
         run: npm run emulator:test:account-message-rules
+      - name: Group E2EE rules baseline gate
+        run: npm run emulator:test:group-e2ee-rules
+      - name: Account group-message crypto
+        run: npm run test:e2ee-account-group-crypto
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
