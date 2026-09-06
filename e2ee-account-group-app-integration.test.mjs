@@ -1,7 +1,7 @@
 import fs from "node:fs";
 const src=fs.readFileSync(new URL("./e2ee-account-group-app-integration.js",import.meta.url),"utf8");
 const checks=[
- ["bridge delegates group send preparation",/prepareGroupSend\(\{groupId,messageId,text\}\)/.test(src)],
+ ["bridge delegates group send preparation with outer disappearing metadata",/prepareGroupSend\(\{groupId,messageId,text,disappearAfterSeconds\}\)/.test(src)],
  ["bridge persists only through injected encrypted Outbox callback",/await persistEncryptedOutbox\(payload\)/.test(src)&&!/indexedDB|openDb\(/.test(src)],
  ["bridge flushes before Outbox removal",src.indexOf("await flushGroupSend(payload)")<src.indexOf("await removeEncryptedOutbox(payload.messageId)")],
  ["bridge rejects non-group Outbox payloads",/isGroupOutboxPayload\(payload\)/.test(src)],
