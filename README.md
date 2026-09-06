@@ -482,8 +482,12 @@ Significant changes:
 - Group snapshot metadata is propagated through the existing group conversation owner. Earlier-history grant reads now require server reads so a stale cached grant copy cannot be treated as authoritative after server purge; offline/cache projections preserve the already encrypted local projection rather than gaining delete authority.
 - No tombstone, `expired:true`, client-clock purge authority, competing Firebase owner, service-worker semantic owner, live Firebase deployment, or htest deployment was introduced.
 
-Validation: full `Rebuild Baseline Security Gate` run **34058866151** completed **SUCCESS**, including the permanent `Disappearing authoritative projection convergence` step and all prior E2EE/rules/recovery/runtime gates.
+Validation: full `Rebuild Baseline Security Gate` run **34059145963** completed **SUCCESS**, including the permanent `Disappearing authoritative projection convergence` step and all prior E2EE/rules/recovery/runtime gates.
 
 Rollback/rejection status: no validated checkpoint was rejected or rolled back. The historical rejected 0.9.4.12–0.9.4.15 invite/install implementation remains excluded.
 
 Follow-on constraint: 0.9.6.24 owns cold-start/restart/reconnect ordering proof. In particular, an authoritative server snapshot must converge/purge stale server-backed disappearing traces before any reconnect Outbox replay can recreate them. The existing reconnect retry timers are not accepted as purge authority and must not be used as a semantic rescue mechanism.
+
+### 0.9.6.23 final grant-source authority strengthening
+Final review caught and closed a subtle group-history resurrection boundary: a grant-only projected copy is not proof that its original source message still exists. `e2ee-account-group-history-projection.js` now marks ordinary retained source rows `authoritativeSource:true` and grant-only rows `authoritativeSource:false`; `disappearing-authoritative-projection.js` excludes grant-only rows from authoritative source-presence IDs and suppresses a grant-only row when authoritative source absence plans that disappearing ID for purge. The permanent projection and group-conversation gates cover this distinction. Full baseline security gate `34059145963` passed on the strengthened implementation. Live Firebase and `htest` were not touched.
+

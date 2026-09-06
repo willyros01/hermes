@@ -513,10 +513,14 @@ WEIGHTED 1.0 COMPLETION LEDGER — USER REQUIREMENT
 
 FIDUNIO 0.9.6.23 AUTHORITATIVE PROJECTION CONVERGENCE (2026-09-06)
 - Runtime version: 0.9.6.23.
-- Full baseline security gate 34058866151: SUCCESS.
+- Full baseline security gate 34059145963: SUCCESS.
 - New pure owner `disappearing-authoritative-projection.js`: cache-only snapshots can merge but never purge; server snapshots mark observed rows serverBacked and plan exact disappearing absence convergence.
 - app.js direct/group projection paths call the existing serialized active-UID local physical purge owner before authoritative projection persistence. Matching encrypted Outbox/history/live state traces are physically removed; no tombstone is created.
 - Group conversation owner propagates Firestore snapshot metadata and preserves `disappearAfterSeconds`. Group history-grant authority reads are server-only when recomputing projection, preventing stale cached grant copies from being accepted as authoritative after source purge; offline local history remains cache-only and non-purge-authoritative.
 - Live Firebase and htest were NOT touched. FCM remains 1.1; App Check enforcement remains OFF/deferred to 1.2.
 - Weighted 1.0 ledger: 69.0/100.0 = 69%.
 - NEXT: 0.9.6.24 restart/reconnect stale-client anti-resurrection proof. Must prove convergence occurs before Outbox retry after cold start/reconnect and must not use client time, tombstones, reload, or retry timers as semantic authority.
+
+### 0.9.6.23 final grant-source authority strengthening
+Final review caught and closed a subtle group-history resurrection boundary: a grant-only projected copy is not proof that its original source message still exists. `e2ee-account-group-history-projection.js` now marks ordinary retained source rows `authoritativeSource:true` and grant-only rows `authoritativeSource:false`; `disappearing-authoritative-projection.js` excludes grant-only rows from authoritative source-presence IDs and suppresses a grant-only row when authoritative source absence plans that disappearing ID for purge. The permanent projection and group-conversation gates cover this distinction. Full baseline security gate `34059145963` passed on the strengthened implementation. Live Firebase and `htest` were not touched.
+
