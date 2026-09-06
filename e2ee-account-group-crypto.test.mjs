@@ -1,5 +1,5 @@
 import { webcrypto } from "node:crypto";
-globalThis.crypto=webcrypto;
+if(!globalThis.crypto)Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
 if(!globalThis.btoa)globalThis.btoa=s=>Buffer.from(s,"binary").toString("base64");
 if(!globalThis.atob)globalThis.atob=s=>Buffer.from(s,"base64").toString("binary");
 import {createGroupEpoch,unwrapGroupEpoch,encryptAccountGroupMessage,decryptAccountGroupMessage} from "./e2ee-account-group-crypto.js";
