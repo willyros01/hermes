@@ -468,3 +468,12 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Group source delete remains disabled pending the server trace commit and local/offline anti-resurrection.
 - Version 0.9.6.18 -> 0.9.6.19. No live Firebase, htest, App Check enforcement or FCM change.
 - Overall first complete rebuild remains approximately 65%.
+
+2026-09-06 — 0.9.6.20 ATOMIC GROUP PHYSICAL TRACE COMMIT
+- `disappearing-purge-firestore-admin-adapter.mjs` now owns the complete server-only group Firestore trace commit.
+- The commit transaction re-reads group/source/epoch/receipts/all grants/all grant copies, verifies the exact opaque basis, recomputes the pure grant trace plan, then performs all writes atomically.
+- It deletes all source receipts, source-linked grant copies, empty grants and the source; retained grants are reconciled to the remaining count and earliest retained source.
+- Any stale receipt/grant/copy/group/source/epoch basis fails closed before mutation. Already-absent source is idempotent success.
+- Browser delete Rules remain closed; no tombstone, scheduler, live Firebase or htest change.
+- Local/offline anti-resurrection, attachment traces and user-facing disappearing controls remain unfinished.
+- Version 0.9.6.19 -> 0.9.6.20. Overall first rebuild remains approximately 65%.

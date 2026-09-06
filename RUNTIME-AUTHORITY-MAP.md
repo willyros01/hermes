@@ -196,3 +196,9 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Firestore Rules bind the two writes and prohibit unrelated group-message mutation.
 - Server purge basis already contains the source update version, so receipt changes now invalidate stale purge plans.
 - Physical group delete authority remains server-only/fail-closed.
+
+## Group physical trace commit — 0.9.6.20
+- Server purge repository: sole Firestore delete owner.
+- One transaction re-reads group/source/epoch/receipts/grants/copies, checks opaque basis, recomputes grant trace plan, then atomically deletes/reconciles subordinate traces and source.
+- 0.9.6.17-.19 concurrency barriers make browser grant/copy/receipt mutations basis-visible.
+- Local/offline convergence remains a separate UID-scoped resource and is not owned by this server transaction.

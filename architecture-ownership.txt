@@ -202,3 +202,9 @@ GROUP RECEIPT PURGE BARRIER — 0.9.6.19
 - The existing receipt transaction owns both the own-receipt mutation and exact +1 parent revision in one serialized write path.
 - Firestore Rules allow no unrelated parent-message mutation and require the matching receipt request-time write.
 - Server purge repository remains sole physical-delete owner.
+
+GROUP PHYSICAL TRACE COMMIT — 0.9.6.20
+- `disappearing-purge-firestore-admin-adapter.mjs` is the sole server Firestore physical-delete owner for direct and group disappearing sources.
+- Group commit revalidates one complete basis and mutates receipts, grant copies, grant metadata and source in one transaction.
+- Pure grant reconciliation remains owned by `disappearing-group-grant-trace-plan.js`; the repository only executes its revalidated plan.
+- Browser delete authority remains prohibited.

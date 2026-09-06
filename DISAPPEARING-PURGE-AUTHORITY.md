@@ -151,3 +151,13 @@ Every new encrypted group source begins with outer `receiptRevision: 0`. A real 
 The server purge basis already binds the source message Firestore update time. Therefore a receipt that appears or advances after planning changes the source version and causes final purge revalidation to fail/retry rather than deleting the source while leaving an orphan receipt. Repeat receipt no-ops do not manufacture revision changes.
 
 This barrier does not grant browser delete authority. Group physical deletion remains server-only and fail-closed until the full revalidated trace commit is materialized.
+
+## Atomic group physical trace commit — 0.9.6.20
+
+`commitGroupPurge` is now materialized in the single server-only Firestore repository. It performs all authoritative reads before writes in one Firestore transaction: group, disappearing source, source epoch, complete receipt query, complete history-grant query and every grant-copy query. It reconstructs the exact opaque basis and fails with `STALE_PURGE_BASIS` before mutation if any basis-visible authority changed.
+
+After basis equality, the transaction recomputes the pure history-grant trace plan from the re-read rows. It deletes all source message receipts, deletes every history-grant copy whose `sourceMessageId` matches the source, deletes grants made empty, updates retained grants to the remaining `totalCopies` and earliest retained `firstSharedMessageId`/`firstSharedAt`, and finally deletes the shared encrypted source. These mutations commit atomically.
+
+The 0.9.6.17 grant-creation barrier, 0.9.6.18 copy-creation barrier and 0.9.6.19 receipt revision barrier ensure every permitted concurrent browser addition/advance changes a basis-visible resource. Thus a trace cannot be appended behind the transaction's observed set without invalidating the transaction/precondition. Browser delete Rules remain closed.
+
+This makes the Firestore group physical trace commit repository-ready, not product-complete. Local cache/Outbox/object-URL/notification convergence, attachment transport traces, scheduler/discovery and real device validation remain separate required slices.

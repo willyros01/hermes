@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.19**
+- Current checkpoint version: **0.9.6.20**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -440,4 +440,17 @@ Release transition: **0.9.6.18 -> 0.9.6.19**.
 - This closes the orphan-receipt race: a newly created or advanced receipt necessarily changes the parent message already included in the server purge basis, forcing stale purge plans to retry.
 - Group physical deletion remains fail-closed pending the bounded server trace commit and local/offline anti-resurrection work.
 - Repository Firestore Rules changed only; **no live Firebase deployment** occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.20 — atomic group physical trace commit
+
+Release transition: **0.9.6.19 -> 0.9.6.20**.
+
+- The server-only disappearing purge Firestore repository now materializes the previously fail-closed group commit path.
+- Final group purge re-reads group, source message, source epoch, all message receipts, all history-grant metadata and all grant copies inside one Firestore transaction, recomputes the complete trace plan, and rejects any stale basis before writes.
+- An eligible commit physically deletes every observed message receipt, every subordinate history-grant copy for the source, any grant made empty by that removal, reconciles retained grant metadata, then deletes the shared encrypted source in the same atomic commit.
+- The existing 0.9.6.17-.19 grant/copy/receipt barriers make permitted concurrent browser writes basis-visible; a concurrent change therefore aborts/retries rather than creating an orphan trace.
+- Browser/client delete authority remains closed. No tombstone or `expired:true` record was introduced.
+- This checkpoint does not add a scheduler and does not yet complete local IndexedDB/Outbox/object-URL/notification anti-resurrection convergence or attachment purge.
+- No live Firebase deployment occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
 - Overall first-rebuild estimate remains approximately 65%.

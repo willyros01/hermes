@@ -130,3 +130,6 @@ Repository history-copy creation now requires an atomic parent-group `updatedAt`
 
 ## 0.9.6.19 group receipt purge barrier
 Repository group receipt writes now require an atomic parent-message `receiptRevision` advance. Do not deploy these Rules yet and do not enable disappearing/history-sharing UI. Group physical purge remains server-only and fail-closed until the complete trace commit and anti-resurrection work are repository-tested.
+
+## 0.9.6.20 group physical trace commit
+The repository now contains the server-only atomic group Firestore trace commit, but it is not deployed. Do not open browser delete Rules or deploy a scheduler yet. Complete local/offline anti-resurrection and remaining trace owners first, then perform controlled Firebase handoff and device validation.
