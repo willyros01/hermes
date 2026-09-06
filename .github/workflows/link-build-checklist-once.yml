@@ -1,35 +1,58 @@
-name: Link Build Checklist Once
+name: Reconcile 0.9.6.8 Group History Projection Once
 on:
   push:
     branches: [fidunio-complete-rebuild]
 permissions:
   contents: write
 jobs:
-  link:
-    if: github.event.head_commit.message == 'Queue mandatory build checklist linkage'
+  reconcile:
+    if: github.event.head_commit.message == 'Advance to 0.9.6.8 granted history projection'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fidunio-complete-rebuild
           fetch-depth: 0
-      - name: Make checklist mandatory in cumulative memory
+      - name: Reconcile durable project documentation
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('hermes-memory.txt')
-          s=p.read_text()
-          anchor='- At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`'
-          if anchor not in s: raise SystemExit('mandatory-read anchor missing')
-          needle='- Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.\n'
-          insert='- Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.\n- `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.\n'
-          if '`FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger' not in s:
-              if needle not in s: raise SystemExit('first-read anchor missing')
-              s=s.replace(needle,insert,1)
+
+          def append_once(path, marker, block):
+              p=Path(path); s=p.read_text()
+              if marker not in s:
+                  p.write_text(s.rstrip()+"\n\n"+block.strip()+"\n")
+
+          p=Path('README.md'); s=p.read_text()
+          s=s.replace('- Current checkpoint version: **0.9.6.7**','- Current checkpoint version: **0.9.6.8**',1)
+          old='The persistence/runtime foundation is now repository-validated in 0.9.6.7: exact Firestore grant/copy schema, authorization rules, serialized runtime/service/transport integration, message-granular target re-encryption, and emulator coverage are present. The usable feature is still not complete because Group Info date-selection controls, granted-history conversation projection, disappearing-content physical purge/anti-resurrection linkage, and real-app/device validation remain required before the control can be enabled.'
+          new='The persistence/runtime foundation is repository-validated, and 0.9.6.8 adds deterministic granted-history conversation projection. A target account can now merge active message-granular grant copies into the normal group conversation without allowing a grant to override an already decryptable ordinary message. The usable feature is still not complete because Group Info date-selection/grant controls, disappearing-content physical purge/anti-resurrection linkage, and real-app/device validation remain required before earlier-history sharing can be enabled.'
+          if old in s: s=s.replace(old,new,1)
+          marker='### 0.9.6.8 — granted-history conversation projection'
+          if marker not in s:
+              s=s.rstrip()+'''\n\n### 0.9.6.8 — granted-history conversation projection\n\nRelease transition: **0.9.6.7 -> 0.9.6.8**.\n\n- Added `e2ee-account-group-history-projection.js`, a pure deterministic projection helper for merging active earlier-history grant copies with ordinary retained group rows.\n- Ordinary successfully decrypted group messages remain authoritative; a grant may replace only the undecryptable body for the same source message ID. Duplicate source messages are collapsed and the final projection is ordered by authoritative source time/message ID.\n- `e2ee-account-group-conversation.js` now loads active granted history through the existing group runtime/service owner and projects it through the same bounded conversation callback used by `app.js`; no Firebase or crypto ownership moved into the UI.\n- Normal Delivered/Read receipts are no longer written for historical ciphertext that the current account cannot decrypt. Explicit granted-history copies are projected without retroactive normal-message receipt mutation.\n- The group conversation gate now executes projection behavior, checking deterministic order, deduplication, grant replacement only for undecryptable rows, ordinary-message precedence, and removal of internal decrypt markers.\n- Rebuild Baseline Security Gate run `34048452887` passed all substantive steps on the implementation commit.\n- This release does **not** enable the Group Info history-grant control. Date/beginning selection and grant creation remain deliberately unavailable until physical disappearing-content purge/anti-resurrection is integrated and validated.\n- Live Firebase, `htest`, FCM and App Check enforcement were not changed. Overall first-rebuild estimate remains approximately 65%.\n'''
           p.write_text(s)
+
+          p=Path('FIDUNIO-BUILD-CHECKLIST.md'); s=p.read_text()
+          s=s.replace('| Group history policy/admin controls | IN PROGRESS | Date/message-bounded earlier-history policy approved; isolated per-message account-E2EE grant crypto is gated. Firestore schema/rules/runtime/UI and purge linkage remain unfinished. |','| Group history policy/admin controls | IN PROGRESS | Date/message-bounded policy, message-granular grant crypto, Firestore persistence/rules/runtime, and deterministic target-side conversation projection are repository-validated through 0.9.6.8. Group Info date/beginning grant controls and disappearing-content purge/anti-resurrection remain unfinished. |',1)
+          log='- 2026-09-06 — 0.9.6.8 granted-history conversation projection: active grant copies now merge deterministically into the normal group conversation through the existing read-side owner. Ordinary decryptable rows win; grants replace only undecryptable matching source rows; duplicates collapse; undecryptable old ciphertext no longer receives normal receipts. Security Gate run `34048452887` passed. Group history remains IN PROGRESS pending real Group Info selection/grant UI, disappearing-content purge/anti-resurrection, and device proof. Live Firebase/htest untouched; estimate remains approximately 65%.'
+          if log not in s: s=s.rstrip()+"\n"+log+"\n"
+          p.write_text(s)
+
+          append_once('hermes-memory.txt','2026-09-06 — 0.9.6.8 GRANTED GROUP HISTORY PROJECTION','''2026-09-06 — 0.9.6.8 GRANTED GROUP HISTORY PROJECTION\n- `e2ee-account-group-history-projection.js` is a pure deterministic projection helper; it owns no Firebase, crypto or mutable storage.\n- `e2ee-account-group-conversation.js` now asks the existing group service/runtime for active granted-history plaintext and merges it into the normal conversation projection.\n- An ordinary row that decrypts normally always remains authoritative. A grant can replace only the undecryptable body for the same source message ID; duplicates are removed and ordering is deterministic by source time/message ID.\n- Normal group Delivered/Read receipts are written only when the ordinary group ciphertext decrypted successfully. Earlier-history grant copies do not create retroactive normal-message receipts.\n- Conversation projection tests execute the merge behavior rather than checking only source tokens. Rebuild Baseline Security Gate run `34048452887` PASSED all substantive steps on implementation commit `07c274e80d5c04e18ef831f1c9f53d7da3a28f19`.\n- History sharing is still NOT user-facing DONE. Group Info date/Beginning selection + real grant invocation, physical purge of source/grant/local copies, anti-resurrection, and final device validation remain required.\n- Version advanced 0.9.6.7 -> 0.9.6.8. No live Firebase deployment, no htest deployment, no FCM activation, no App Check enforcement. Overall first-rebuild estimate remains approximately 65%.''')
+
+          append_once('ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md','### Granted-history conversation projection — 0.9.6.8','''### Granted-history conversation projection — 0.9.6.8\nActive target grants are projected through the existing read-side group conversation owner. `e2ee-account-group-history-projection.js` is a pure deterministic merge helper: a normal group row that decrypts successfully remains authoritative; an active grant may replace only the undecryptable body for the identical source message ID. Grant-only retained rows may be inserted, duplicate source IDs are collapsed, and ordering is deterministic by source time then message ID. Internal decryptability markers are never exposed to app state. Earlier-history grant projection does not create retroactive normal-message delivery/read receipts. This projection does not relax the requirement that grant-copy/source/local traces participate in physical disappearing-content purge and anti-resurrection.''')
+
+          append_once('RUNTIME-AUTHORITY-MAP.md','## Group granted-history projection — 0.9.6.8','''## Group granted-history projection — 0.9.6.8\n- `e2ee-account-group-history-projection.js`: pure read-model merge helper only; no Firebase, crypto, IndexedDB or mutable authority.\n- `e2ee-account-group-conversation.js`: read-side owner that combines ordinary decrypted rows with active history-grant rows obtained through `e2ee-account-group-service.js`.\n- `app.js` continues to receive one bounded `onRows` projection and owns only rendering/cache projection; it does not decrypt grant copies or read Firestore grants directly.\n- Normal receipt mutation is restricted to ordinary rows that decrypt successfully; granted historical projection does not mint retroactive receipts.''')
+
+          append_once('architecture-ownership.txt','GROUP HISTORY PROJECTION — 0.9.6.8','''GROUP HISTORY PROJECTION — 0.9.6.8\n- Resource: merged read-model rows for one active group conversation.\n- Read-side owner: e2ee-account-group-conversation.js.\n- Pure merge helper: e2ee-account-group-history-projection.js.\n- Grant plaintext source: e2ee-account-group-service.js -> serialized group runtime -> firebase.js transport.\n- app.js receives only the finished projection and remains the structural UI/cache owner.\n- A history grant cannot override a normally decryptable source row and cannot cause normal-message receipts for ciphertext the target could not decrypt.''')
+
+          append_once('DETERMINISTIC-UI-LIFECYCLE.md','## Granted-history conversation projection — 0.9.6.8','''## Granted-history conversation projection — 0.9.6.8\nEarlier-history display now follows the same deterministic chat projection lifecycle as normal group messages. The group conversation owner merges ordinary rows and active grant rows before invoking the single `app.js` projection callback. The DOM does not discover or append historical rows independently, and no observer/timer/orientation repair path exists. Ordinary decryptable content wins over grant copies for the same source ID.''')
+
+          append_once('group-data-model.txt','GROUP HISTORY PROJECTION — 0.9.6.8','''GROUP HISTORY PROJECTION — 0.9.6.8\nActive grant-copy records are not a second message authority. They are a target-specific decryptability mechanism for retained source message IDs. The read-side conversation owner deduplicates by sourceMessageId/message ID and projects one visible row. If the ordinary source ciphertext is decryptable under normal group epoch authority, that normal decrypt wins; otherwise an active valid grant copy may supply the visible body. Grant projection does not create retroactive normal-message receipts.''')
           PY
           git config user.name "FIDUNIO Build"
           git config user.email "actions@users.noreply.github.com"
-          git add hermes-memory.txt
-          git commit -m "Make build checklist a mandatory first read"
+          git add README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt DETERMINISTIC-UI-LIFECYCLE.md group-data-model.txt
+          git commit -m "Record 0.9.6.8 granted history projection"
           git push origin HEAD:fidunio-complete-rebuild
