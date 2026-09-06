@@ -36,6 +36,8 @@ jobs:
         run: npm run emulator:test:group-e2ee-rules
       - name: Account group-message crypto
         run: npm run test:e2ee-account-group-crypto
+      - name: Account group-message runtime
+        run: npm run test:e2ee-account-group-runtime
       - name: Recovery server crypto
         run: npm run test:recovery-crypto
       - name: Recovery session policy
