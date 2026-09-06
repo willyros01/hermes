@@ -15,7 +15,7 @@
     "test:e2ee-account-message-crypto": "node e2ee-account-message-crypto.test.mjs",
     "test:e2ee-account-message-service": "node e2ee-account-message-service.test.mjs",
     "test:firebase-app-check": "node firebase-app-check.test.mjs",
-    "test:functions-scaffold": "npm --prefix functions install --ignore-scripts && node --input-type=module -e \"import('./functions/index.mjs').then(m=>{for(const n of ['enrollRecoveryV1','startE2EERecoveryV1','completeE2EERecoveryV1'])if(typeof m[n]!=='function')throw new Error('missing '+n);console.log('Cloud Functions recovery scaffold imports successfully')})\"",
+    "test:functions-scaffold": "npm --prefix functions install --ignore-scripts && node --input-type=module -e \"import fs from 'node:fs';const src=fs.readFileSync('./functions/index.mjs','utf8');if(/supplementalVerifier|supplemental verification/i.test(src))throw new Error('obsolete supplemental recovery verifier present');if(!/const REQUIRE_APP_CHECK = false;/.test(src))throw new Error('staging App Check must remain off');if(!/fidunio-recovery@fidunio-fef13\\.iam\\.gserviceaccount\\.com/.test(src))throw new Error('dedicated recovery service account missing');if(!/request => invoke\\(core\\.completeE2EERecoveryV1, request\\)/.test(src))throw new Error('completion callable not wired');const m=await import('./functions/index.mjs');for(const n of ['enrollRecoveryV1','startE2EERecoveryV1','completeE2EERecoveryV1'])if(typeof m[n]!=='function')throw new Error('missing '+n);console.log('Cloud Functions recovery scaffold imports and staging guards pass')\"",
     "test:runtime-transform-anchors": "node runtime-transform-anchor.test.mjs",
     "test:runtime-authority": "node runtime-authority-gate.test.mjs"
   },
