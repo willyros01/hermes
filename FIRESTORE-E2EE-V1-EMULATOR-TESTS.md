@@ -117,3 +117,6 @@ The direct-message emulator matrix now covers recipient-only receipt authority, 
 
 ## Group history-grant purge barrier — 0.9.6.17
 The group E2EE emulator matrix now proves that an administrator cannot create a history grant as an isolated document write. Valid creation must atomically update only the parent group `updatedAt` to server request time and create the building grant in the same request. The dedicated `group-history-grant-purge-barrier.test.mjs` also gates the central `firebase.js` transaction and Rules anchor. Rebuild Baseline Security Gate run `34054522196` passed. Repository validation does not deploy these changed rules to live Firebase.
+
+## Group history-copy purge barrier — 0.9.6.18
+The group emulator matrix now denies an administrator's standalone history-grant copy creation and accepts the same copy only when the request also updates parent-group `updatedAt` to server request time. Dedicated `group-history-copy-purge-barrier.test.mjs` gates the central `firebase.js` batch and Rules anchor. Rebuild Baseline Security Gate run `34054991773` passed. These repository Rules are not deployed to live Firebase by this checkpoint.

@@ -188,3 +188,10 @@ GROUP HISTORY-GRANT PURGE BARRIER — 0.9.6.17
 - Firestore Rules enforce the same-request barrier; callers cannot create a grant without a basis-visible group authority change.
 - Group purge repository continues to own server read/delete authority and includes group update-time in its opaque basis.
 - No second purge/grant owner is introduced.
+
+GROUP HISTORY-COPY PURGE BARRIER — 0.9.6.18
+- `firebase.js` remains the only browser Firestore transport owner for history-copy writes.
+- A non-empty new-copy chunk and parent group `updatedAt` are one batch and one server timestamp authority.
+- Firestore Rules require the same group barrier for each copy create.
+- Existing-copy idempotent retry writes nothing and does not manufacture a barrier update.
+- Server group purge repository remains the sole physical-delete owner; no delete capability moved to the browser.

@@ -150,3 +150,6 @@ When a disappearing source becomes final-purge eligible, every earlier-history g
 
 ### History-grant purge barrier — 0.9.6.17
 Creating a genuinely new earlier-history grant now atomically updates the group `updatedAt` with the same server timestamp used for the building grant's `createdAt`. Repository Firestore Rules require that barrier and deny standalone grant creation. This is a purge-safety synchronization marker, not a new history-lifetime authority: grant targets still cannot extend a disappearing source lifetime. It exists so concurrent grant creation invalidates the group purge basis before any source deletion can commit.
+
+### History-copy purge barrier — 0.9.6.18
+While an earlier-history grant is building, each chunk that creates one or more new message-granular copies must atomically update the parent group `updatedAt` using the same server timestamp. Repository Rules enforce this barrier. The barrier does not grant history or extend disappearing lifetime; it exists solely so concurrent subordinate-copy creation invalidates the group purge basis before source deletion can commit.

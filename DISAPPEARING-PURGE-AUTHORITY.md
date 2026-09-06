@@ -135,3 +135,11 @@ A new group history grant must now mutate a basis-visible group authority in the
 Because the group purge basis includes the group document Firestore update time, a concurrent new grant now invalidates/retries an in-flight purge transaction instead of becoming a phantom subordinate trace outside the observed grant set. Existing matching building-grant retry is idempotent and does not manufacture a new barrier event.
 
 This closes the prerequisite race only. The group physical-delete commit remains fail-closed until receipts, grant copies, grant metadata reconciliation and source deletion are performed under one revalidated path.
+
+## History-copy creation purge barrier — 0.9.6.18
+
+Every genuinely new history-grant copy chunk now updates the parent group `updatedAt` in the same Firestore batch and uses the same server timestamp for the new copy `createdAt` values. Firestore Rules require `historyGrantBarrier(groupId)` for copy creation, so an administrator cannot append a copy without a basis-visible group authority change.
+
+This complements the 0.9.6.17 new-grant barrier. While a grant is `building`, any additional copy creation changes group update-time; activation changes the grant document itself, whose update time is already present in the purge basis. Thus the observed grant/copy trace set can no longer gain a permitted browser-written subordinate document without changing a basis-visible resource.
+
+The group source still must not be deleted until the server repository revalidates and commits all receipt/grant/source traces together.

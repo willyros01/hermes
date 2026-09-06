@@ -124,3 +124,6 @@ The repository now has deterministic group history-grant trace planning and grou
 
 ## 0.9.6.17 history-grant purge barrier
 Repository Firestore Rules now require every new group earlier-history grant to atomically touch parent-group `updatedAt`. Do not deploy these rule changes yet. Group physical purge is still disabled until the receipt/grant/source transaction is repository-tested. Live Firebase and htest remain untouched.
+
+## 0.9.6.18 history-copy purge barrier
+Repository history-copy creation now requires an atomic parent-group `updatedAt` barrier. Do not deploy these rule changes yet and do not enable disappearing/history-sharing UI. Group physical purge remains server-only and fail-closed until its complete trace commit is repository-tested.

@@ -446,3 +446,14 @@ RELEASE ROADMAP — FIRST REBUILD / 1.1 / 1.2
 - Version advanced 0.9.6.16 -> 0.9.6.17. Repository rules changed only; live Firebase/htest untouched; App Check OFF; FCM deferred.
 - Next: atomic/revalidated group physical trace commit, then UID-scoped local cache/Outbox anti-resurrection and attachment integration.
 - Overall first complete rebuild remains approximately 65%.
+
+2026-09-06 — 0.9.6.18 HISTORY-COPY PURGE BARRIER
+- Clean gate `34054991773` passed all baseline steps, including new grant-copy barrier coverage.
+- `writeCloudGroupHistoryGrantCopies` now shares one server timestamp across all genuinely new copies in a chunk and the parent group's `updatedAt`, committed in one Firestore batch.
+- Firestore Rules reuse `historyGrantBarrier(groupId)` for copy creation; standalone copy writes are denied.
+- New copy creation is now basis-visible because group purge state already binds the group document update time. Together with 0.9.6.17 new-grant barrier, neither a new grant nor a new copy can appear after planning without invalidating the purge basis.
+- Existing-copy retries remain idempotent: when no new copy is written, no group barrier touch is generated.
+- Group source delete remains disabled pending one revalidated trace commit; do not bypass `GROUP_PURGE_TRACE_DELETE_NOT_READY` yet.
+- Version advanced 0.9.6.17 -> 0.9.6.18. No live Firebase/htest/App Check/FCM change.
+- Next: bounded atomic/revalidated receipt/grant/source deletion, followed by local cache/Outbox anti-resurrection and attachments.
+- Overall first complete rebuild remains approximately 65%.

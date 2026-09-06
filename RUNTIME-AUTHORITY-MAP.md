@@ -183,3 +183,9 @@ Group Info mutations now route `app.js -> group app integration/controller -> ac
 - Firestore Rules require `historyGrantBarrier(groupId)` and reject grant creation lacking that exact group touch.
 - The server purge repository already includes group update-time in the opaque basis, making new-grant creation conflict/basis-visible.
 - Physical group trace deletion remains exclusively server-side and not yet enabled.
+
+## Group history-copy purge barrier — 0.9.6.18
+- `firebase.js` history-copy chunk transport updates parent-group `updatedAt` in the same batch as every genuinely new copy chunk.
+- Firestore Rules deny copy create unless `historyGrantBarrier(groupId)` is satisfied.
+- Group update-time is already part of the server purge basis, so new grant-copy writes are now purge-conflict/basis-visible.
+- No physical delete authority moved to the client; group purge commit remains server-only and currently fail-closed.

@@ -8,7 +8,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
 - Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.6.17**
+- Current checkpoint version: **0.9.6.18**
 - Current first-rebuild completion estimate: **approximately 65%**
 - `version.js` is the only authoritative runtime release-number source.
 - `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
@@ -412,4 +412,18 @@ Release transition: **0.9.6.16 -> 0.9.6.17**.
 - Added `group-history-grant-purge-barrier.test.mjs` plus emulator coverage proving missing barrier denial and atomic barrier success.
 - Group physical purge remains deliberately fail-closed. The next repository slice is the one revalidated group commit that removes receipts, affected grant copies, deletes/reconciles grant metadata, and only then removes the source.
 - Repository Firestore Rules changed, but **no live Firebase rules were deployed**. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
+- Overall first-rebuild estimate remains approximately 65%.
+
+### 0.9.6.18 — history-copy purge barrier
+
+Release transition: **0.9.6.17 -> 0.9.6.18**.
+
+- Clean Rebuild Baseline Security Gate run `34054991773` passed every substantive step after the history-copy barrier materialization and temporary-workflow cleanup.
+- `writeCloudGroupHistoryGrantCopies` now uses one `serverTimestamp()` for each non-empty new-copy chunk and atomically updates parent-group `updatedAt` in the same Firestore batch as those new copy documents.
+- Firestore Rules require the existing `historyGrantBarrier(groupId)` for history-grant copy creation. A standalone history-copy write is denied; a valid copy write must be accompanied by the exact parent-group `updatedAt == request.time` touch.
+- This closes the remaining purge-basis phantom-copy race for building grants. The group purge basis already includes the group document update time, so any newly written grant copy invalidates/retries a concurrent purge before final deletion.
+- Idempotent retry that finds every requested copy already present performs no group touch and no duplicate write.
+- Added `group-history-copy-purge-barrier.test.mjs` plus group emulator tests proving standalone copy denial and atomic barrier success.
+- Group physical deletion remains fail-closed. With new-grant and new-copy creation now basis-visible, the next secure repository slice is the bounded revalidated group trace commit: receipts + affected grant copies + grant metadata reconciliation/deletion + final source delete.
+- Repository Firestore Rules changed only; **no live Firebase rule deployment** occurred. `htest` remains untouched; App Check enforcement remains OFF; FCM remains deferred to 1.1.
 - Overall first-rebuild estimate remains approximately 65%.
