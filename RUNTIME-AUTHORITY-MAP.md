@@ -97,3 +97,12 @@ Every source transform must be materialized or superseded before its correspondi
 **ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.**
 
 No new MutationObserver, reload repair, source transform, competing Firebase initializer, or device-owned durable E2EE identity may be introduced during rebuild.
+
+## September 6, 2026 account-E2EE runtime authority
+
+- Firebase SDK/service initialization and callable recovery: firebase.js only.
+- Durable account identity lifecycle: e2ee-account-identity-manager.js through e2ee-account-runtime.js.
+- Direct-message e2ee:3 orchestration: e2ee-account-message-runtime.js -> e2ee-account-message-service.js.
+- Settings enrollment/unlock/recovery UI: settings-lifecycle.js in its named Account Encryption host.
+- Service worker: cache/transport only; zero app.js semantic transforms.
+- New direct-message transport is e2ee:3 only and requires account identity READY. Legacy e2ee:1/e2ee:2 remain read compatibility until migration history is no longer needed.

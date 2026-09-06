@@ -31,6 +31,7 @@ import {
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
+import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -674,7 +675,10 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       const remote=[];
       for(const m of rows){
         let text=m.text||"";
-        if(m.e2ee){
+        if(m.e2ee===3){
+          try{text=await decryptAccountDirectMessage({uid:firebaseUser.uid,peerUid:c.peerUid,conversationId,messageId:m.id,row:m});}
+          catch{text="[Encrypted message — account encryption unavailable]";}
+        }else if(m.e2ee){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
           else text="[Encrypted message — key unavailable]";
         }
@@ -1217,14 +1221,7 @@ async function sendCurrent(){
   const cloud=!!c?.cloud;
   if(c?.cloudGroup){alert("Group messaging is intentionally disabled until group E2EE is implemented.");return;}
 
-  if(cloud && c?.peerUid){
-    await peerPublicKeyForConversation(conversationId,{refresh:true});
-    if(peerTrustStatus(c.peerUid)==="changed"){
-      state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId};
-      render();
-      return;
-    }
-  }
+  if(cloud && c?.peerUid && !firebaseUser){throw new Error("Sign in before sending an encrypted message.");}
 
   const m={
     id:crypto.randomUUID(),
@@ -1305,19 +1302,10 @@ async function flushQueued(){
         await persistState();
         if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render();
 
-        const peerKey=await peerPublicKeyForConversation(payload.conversationId,{refresh:true});
-        if(!peerKey) throw new Error("Recipient encryption key is not available yet");
         const peerUid=await resolvePeerUidForConversation(payload.conversationId);
-        if(peerUid && peerTrustStatus(peerUid)==="changed"){
-          throw new Error("Recipient encryption key changed. Verify the new key in Conversation Security before sending.");
-        }
-        const encrypted=await encryptCloudText(payload.text,peerKey,payload.conversationId);
-        const identity=await getOrCreateDeviceIdentity();
-        await sendCloudMessage(payload.conversationId,{
-          id:payload.messageId,text:"",ciphertext:encrypted.ciphertext,iv:encrypted.iv,e2ee:encrypted.e2ee,
-          senderDeviceId:identity.deviceId,
-          timeLabel:payload.time,state:"sent"
-        });
+        if(!peerUid)throw new Error("Recipient account identity is unavailable.");
+        const encrypted=await prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text});
+        await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent"});
 
         m.state="sent";
         // Remove the Outbox item only after Firestore confirms the write.

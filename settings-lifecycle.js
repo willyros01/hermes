@@ -21,7 +21,18 @@ import {
   listPendingFidunioInvitations,
   revokeFidunioInvitation
 } from "./firebase.js";
-import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE } from "./e2ee-account-runtime.js";
+import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
+
+let mutationTail=Promise.resolve();
+let generation=0;
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function initials(name){return String(name||"U").trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("")||"U";}
+function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Administrator":"User";}
+function profileStatus(p){if(p?.active===false)return p?.status||"deactivated";return p?.status||"active";}
+function dateText(v){const d=v?.toDate?.()||v;if(!d)return"—";try{return new Date(d).toLocaleString();}catch{return String(d);}}
+function guideUrl(){return new URL("./quick-start.html",location.href).href;}
+function inviteSubject(){return "Your FIDUNIO invitation";}
+function inviteMessage(invite){return `You are invited to FIDUNIO as ${prettyRole(invite.role)}.\n\nJoin: ${invite.link}\nQuick Start: ${guideUrl()}\nExpires: ${invite.expiresAt?.toLocaleString?.()||invite.expiresAt||""}`;}
 
 function serializeSettingsMutation(label,work){
   const run=mutationTail.then(()=>work());
@@ -107,10 +118,10 @@ function host(shell,id){return shell.querySelector(`#fidunioSettingsHost-${id}`)
 function current(g,shell){return g===generation&&shell?.isConnected&&document.querySelector("#fidunioSettingsShell")===shell;}
 
 async function saveProfile(values){return updateFidunioProfile(values);}
-async function changePassword(currentPassword,newPassword){return changeFidunioPassword(currentPassword,newPassword);}
+async function changePassword(uid,currentPassword,newPassword,pin){return changeAccountPasswordWithE2EE({uid,currentPassword,newPassword,pin});}
 function renderProfile(profileHost,info){
   const p=info.profile;
-  profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><div style="text-align:center;margin-bottom:12px">${p.photoURL?`<img src="${esc(p.photoURL)}" alt="Profile" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="avatar" style="width:72px;height:72px;margin:auto;font-size:24px">${esc(initials(p.displayName||"U"))}</div>`}<div class="small-note">System role: ${esc(prettyRole(info.role))}</div></div><label class="form-label" for="profileName">Display name</label><input class="text-input" id="profileName" maxlength="80" value="${esc(p.displayName||info.user.displayName||"")}"><label class="form-label" for="profileEmail">Email address</label><input class="text-input" id="profileEmail" type="email" value="${esc(info.user.email||p.email||"")}"><label class="form-label" for="profilePhone">Telephone number</label><input class="text-input" id="profilePhone" type="tel" autocomplete="tel" value="${esc(p.telephone||"")}" placeholder="Optional"><label class="form-label" for="profilePhoto">Profile picture URL</label><input class="text-input" id="profilePhoto" type="url" value="${esc(p.photoURL||"")}" placeholder="https://…"><label class="form-label" for="profileCurrentPassword">Current password</label><input class="text-input" id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required only for email/password changes"><button class="primary" id="saveProfileBtn" style="margin-top:14px">Save Profile</button><div id="profileNote"></div><hr style="margin:22px 0"><h2>Change Password</h2><label class="form-label" for="newPassword">New password</label><input class="text-input" id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><label class="form-label" for="newPassword2">Confirm new password</label><input class="text-input" id="newPassword2" type="password" autocomplete="new-password" placeholder="Repeat new password"><button class="secondary" id="changePasswordBtn" style="margin-top:14px">Change Password</button><div id="passwordNote"></div></div>`;
+  profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><div style="text-align:center;margin-bottom:12px">${p.photoURL?`<img src="${esc(p.photoURL)}" alt="Profile" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="avatar" style="width:72px;height:72px;margin:auto;font-size:24px">${esc(initials(p.displayName||"U"))}</div>`}<div class="small-note">System role: ${esc(prettyRole(info.role))}</div></div><label class="form-label" for="profileName">Display name</label><input class="text-input" id="profileName" maxlength="80" value="${esc(p.displayName||info.user.displayName||"")}"><label class="form-label" for="profileEmail">Email address</label><input class="text-input" id="profileEmail" type="email" value="${esc(info.user.email||p.email||"")}"><label class="form-label" for="profilePhone">Telephone number</label><input class="text-input" id="profilePhone" type="tel" autocomplete="tel" value="${esc(p.telephone||"")}" placeholder="Optional"><label class="form-label" for="profilePhoto">Profile picture URL</label><input class="text-input" id="profilePhoto" type="url" value="${esc(p.photoURL||"")}" placeholder="https://…"><label class="form-label" for="profileCurrentPassword">Current password</label><input class="text-input" id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required only for email/password changes"><button class="primary" id="saveProfileBtn" style="margin-top:14px">Save Profile</button><div id="profileNote"></div><hr style="margin:22px 0"><h2>Change Password</h2><label class="form-label" for="newPassword">New password</label><input class="text-input" id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><label class="form-label" for="newPassword2">Confirm new password</label><input class="text-input" id="newPassword2" type="password" autocomplete="new-password" placeholder="Repeat new password"><label class="form-label" for="passwordE2EEPin">Six-digit account E2EE PIN</label><input class="text-input" id="passwordE2EEPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Required after Account Encryption is created"><button class="secondary" id="changePasswordBtn" style="margin-top:14px">Change Password</button><div id="passwordNote"></div></div>`;
   const card=profileHost.querySelector("#fidunioProfileCard");
   card.querySelector("#saveProfileBtn").onclick=async()=>{
     const btn=card.querySelector("#saveProfileBtn"),note=card.querySelector("#profileNote");btn.disabled=true;btn.textContent="Saving…";
@@ -122,7 +133,7 @@ function renderProfile(profileHost,info){
     const btn=card.querySelector("#changePasswordBtn"),note=card.querySelector("#passwordNote"),currentPassword=card.querySelector("#profileCurrentPassword").value,next=card.querySelector("#newPassword").value,confirm=card.querySelector("#newPassword2").value;
     if(next!==confirm){note.innerHTML='<p class="warning-note">The new passwords do not match.</p>';return;}
     btn.disabled=true;btn.textContent="Changing…";
-    try{await serializeSettingsMutation("change password",()=>changePassword(currentPassword,next));card.querySelector("#profileCurrentPassword").value="";card.querySelector("#newPassword").value="";card.querySelector("#newPassword2").value="";note.innerHTML='<p class="small-note">Password changed successfully.</p>';}
+    try{await serializeSettingsMutation("change password",()=>changePassword(info.user.uid,currentPassword,next,card.querySelector("#passwordE2EEPin").value));card.querySelector("#profileCurrentPassword").value="";card.querySelector("#newPassword").value="";card.querySelector("#newPassword2").value="";note.innerHTML='<p class="small-note">Password changed successfully.</p>';}
     catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
     finally{btn.disabled=false;btn.textContent="Change Password";}
   };

@@ -234,3 +234,11 @@ RECOVERY FUNCTIONS LIVE VERIFICATION — SEPTEMBER 6, 2026
 - App Check enforcement remains OFF. Firestore rules, Hosting, Auth, and normal message transport were not changed by final verification.
 - The first deploy returned an error only because artifact cleanup policy was not yet configured; the three Functions themselves reported successful create operations. The final verification script then confirmed ACTIVE/runtime-SA/secret bindings and set cleanup policy successfully.
 - Console/Cloud Shell setup is complete. Do not repeat deployment or console setup. The next boundary is client recovery/enrollment validation and account-authoritative runtime migration.
+
+ACCOUNT E2EE CLIENT/RUNTIME CUTOVER — SEPTEMBER 6, 2026
+- Recovery callable client is centralized through firebase.js Functions SDK in us-central1; Firebase Auth/App Check tokens are attached by the official callable SDK.
+- Settings has a named Account Encryption panel for enrollment, unlock, and post-password-reset recovery. The account E2EE PIN remains exactly six digits and separate from the installation-local 4–12 digit app-lock PIN.
+- Firebase password change is coordinated with account E2EE rewrap and attempts rollback if Auth update fails.
+- Raw app.js now sends/decrypts direct-message e2ee:3 via the account-authoritative message service. New sends fail closed unless the durable account identity is READY.
+- service-worker.js no longer transforms app.js or owns E2EE semantics; it is cache/transport only. Legacy e2ee:1/e2ee:2 receive compatibility remains in raw app.js for history.
+- App Check enforcement remains OFF pending real legitimate-device validation and metrics.

@@ -217,3 +217,7 @@ Before runtime replacement/removal:
 7. iPhone/iPad/PWA/offline/account-switch/reinstall tests must pass.
 
 No live Firebase project action has been performed by this repository candidate.
+
+## Runtime cutover — September 6, 2026
+
+The raw application runtime now prepares and decrypts direct-message e2ee:3 envelopes through e2ee-account-message-runtime.js. firebase.js remains the sole Firebase SDK/service owner and writes the exact v3 metadata. The service worker no longer rewrites app.js or owns any E2EE semantics. Legacy e2ee:1/e2ee:2 rows remain readable for migration/history compatibility, but new direct sends fail closed unless the durable account identity is READY.

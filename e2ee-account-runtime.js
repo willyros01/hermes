@@ -2,7 +2,7 @@ import { createAccountE2EEIdentityManager } from "./e2ee-account-identity-manage
 import { createFirebaseAccountE2EEIdentityStore } from "./e2ee-account-firebase-adapter.js";
 import { createAccountE2EEAuthLifecycle } from "./e2ee-account-lifecycle.js";
 import { createAccountE2EERecoveryClient } from "./e2ee-account-recovery-client.js";
-import { enrollCloudE2EERecovery,startCloudE2EERecovery,completeCloudE2EERecovery } from "./firebase.js";
+import { enrollCloudE2EERecovery,startCloudE2EERecovery,completeCloudE2EERecovery,changeFidunioPassword } from "./firebase.js";
 
 const recoveryClient=createAccountE2EERecoveryClient({enroll:enrollCloudE2EERecovery,start:startCloudE2EERecovery,complete:completeCloudE2EERecovery});
 const identityStore=createFirebaseAccountE2EEIdentityStore();
@@ -19,4 +19,16 @@ export async function recoverAccountE2EE({uid,newPassword,pin}){
   const recovered=await recoveryClient.recoverKey({pin});
   try{return await manager.recover({uid,recoveryUnlockKey:recovered.recoveryUnlockKey,newPassword,pin});}
   finally{recovered.recoveryUnlockKey.fill(0);}
+}
+export async function changeAccountPasswordWithE2EE({uid,currentPassword,newPassword,pin}){
+  const state=manager.getState();
+  if(state.state==="EMPTY")return changeFidunioPassword(currentPassword,newPassword);
+  if(state.state!=="READY")await manager.unlock({uid,password:currentPassword,pin});
+  await manager.rewrap({uid,oldPassword:currentPassword,newPassword,pin});
+  try{return await changeFidunioPassword(currentPassword,newPassword);}
+  catch(error){
+    try{await manager.rewrap({uid,oldPassword:newPassword,newPassword:currentPassword,pin});}
+    catch(rollbackError){const e=new Error("Firebase password change failed and the E2EE wrapper rollback also failed. Use account recovery before messaging.");e.cause={error,rollbackError};throw e;}
+    throw error;
+  }
 }

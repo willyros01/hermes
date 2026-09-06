@@ -105,3 +105,7 @@ For every bounded unit: preserve rollback, materialize/supersede behavior, remov
 ## September 6 live-boundary update
 
 The Firebase/Google handoff that previously blocked account-E2EE enrollment is complete: reviewed Firestore rules are live and all three Recovery Functions are ACTIVE/verified. App Check remains OFF. The next bounded runtime work is explicit account enrollment/unlock/recovery readiness, followed by e2ee:3 send/receive/Outbox migration. Legacy per-device transforms remain until their replacement passes.
+
+## Account-E2EE v3 transform retirement — September 6, 2026
+
+The remaining direct-message service-worker transforms have been retired. Raw app.js now owns account-authoritative e2ee:3 send/receive, and service-worker.js is cache/transport only. No source.replace/transformApp semantic layer remains. Legacy e2ee:1/e2ee:2 receive compatibility stays in raw app.js only for existing history; new direct sends use e2ee:3 and fail closed when Account E2EE is not READY.
