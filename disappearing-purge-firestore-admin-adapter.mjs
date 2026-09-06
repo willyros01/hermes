@@ -4,6 +4,8 @@
 // SDK initializer. Physical group purge intentionally fails closed until the
 // history-grant trace delete/reconciliation path is materialized.
 
+import {planGroupHistoryGrantSourcePurge} from "./disappearing-group-grant-trace-plan.js";
+
 function fail(code,message){const error=new Error(message);error.code=code;return error;}
 function text(value,name){const out=String(value??"").trim();if(!out)throw fail("INVALID_INPUT",`${name} is required.`);return out;}
 function dataOf(snap){return snap?.exists?snap.data():null;}
@@ -23,13 +25,20 @@ function directBasis(conversationSnap,messageSnap){return basis([
   [pathOf(conversationSnap),stamp(conversationSnap)],
   [pathOf(messageSnap),stamp(messageSnap)]
 ]);}
-function groupBasis(groupSnap,messageSnap,epochSnap,receiptSnaps){
+function groupBasis(groupSnap,messageSnap,epochSnap,receiptSnaps,grantEntries=[]){
   const receiptVersions=[...(receiptSnaps||[])].map(s=>[pathOf(s),stamp(s)]).sort((a,b)=>a[0].localeCompare(b[0]));
+  const grantVersions=[];
+  for(const entry of grantEntries||[]){
+    grantVersions.push([pathOf(entry.grantSnap),stamp(entry.grantSnap)]);
+    for(const copySnap of entry.copySnaps||[])grantVersions.push([pathOf(copySnap),stamp(copySnap)]);
+  }
+  grantVersions.sort((a,b)=>a[0].localeCompare(b[0]));
   return basis([
     [pathOf(groupSnap),stamp(groupSnap)],
     [pathOf(messageSnap),stamp(messageSnap)],
     [pathOf(epochSnap),stamp(epochSnap)],
-    receiptVersions
+    receiptVersions,
+    grantVersions
   ]);
 }
 function directRecipient(conversation,message){
@@ -53,6 +62,7 @@ export function createDisappearingPurgeFirestoreAdminRepository({db}={}){
   const groupMessageRef=(gid,mid)=>db.doc(`groups/${gid}/messages/${mid}`);
   const groupEpochRef=(gid,epoch)=>db.doc(`groups/${gid}/epochs/${epoch}`);
   const groupReceiptsRef=(gid,mid)=>db.doc(`groups/${gid}/messages/${mid}`).collection("receipts");
+  const groupHistoryGrantsRef=gid=>db.doc(`groups/${gid}`).collection("historyGrants");
 
   async function readDirectPurgeState({conversationId,messageId}){
     const cid=text(conversationId,"Conversation ID"),mid=text(messageId,"Message ID");
@@ -78,6 +88,16 @@ export function createDisappearingPurgeFirestoreAdminRepository({db}={}){
     });
   }
 
+  async function readGroupGrantEntries(gid){
+    const grantsQuery=await groupHistoryGrantsRef(gid).get();
+    const entries=[];
+    for(const grantSnap of grantsQuery?.docs||[]){
+      const copiesQuery=await grantSnap.ref.collection("messages").get();
+      entries.push({grantSnap,copySnaps:copiesQuery?.docs||[]});
+    }
+    return entries;
+  }
+
   async function readGroupPurgeState({groupId,messageId}){
     const gid=text(groupId,"Group ID"),mid=text(messageId,"Message ID");
     const gRef=groupRef(gid),mRef=groupMessageRef(gid,mid);
@@ -87,16 +107,22 @@ export function createDisappearingPurgeFirestoreAdminRepository({db}={}){
     const keyEpoch=Number(message.keyEpoch);
     if(!Number.isInteger(keyEpoch)||keyEpoch<1)throw fail("PURGE_SOURCE_INVALID","Group purge source epoch is invalid.");
     const eRef=groupEpochRef(gid,keyEpoch),rRef=groupReceiptsRef(gid,mid);
-    const [eSnap,rQuery]=await Promise.all([eRef.get(),rRef.get()]);
+    const [eSnap,rQuery,grantEntries]=await Promise.all([eRef.get(),rRef.get(),readGroupGrantEntries(gid)]);
     const epoch=dataOf(eSnap);
     if(!epoch)throw fail("PURGE_SOURCE_INVALID","Source group epoch authority is unavailable.");
     const receipts=(rQuery?.docs||[]).map(s=>({...s.data()}));
+    const grantRows=grantEntries.map(entry=>({
+      grant:{...entry.grantSnap.data()},
+      copies:(entry.copySnaps||[]).map(s=>({...s.data()}))
+    }));
+    const grantTracePlan=planGroupHistoryGrantSourcePurge({groupId:gid,sourceMessageId:mid,grants:grantRows});
     return Object.freeze({
-      basis:groupBasis(gSnap,mSnap,eSnap,rQuery?.docs||[]),
+      basis:groupBasis(gSnap,mSnap,eSnap,rQuery?.docs||[],grantEntries),
       message:{...message},
       epochMemberUids:epochMembers(epoch),
       currentMemberUids:array(group.memberUids),
-      receipts
+      receipts,
+      grantTracePlan
     });
   }
 
@@ -118,6 +144,8 @@ export const DISAPPEARING_PURGE_FIRESTORE_V1=Object.freeze({
   groupMessagePath:"groups/{groupId}/messages/{messageId}",
   groupReceiptPath:"groups/{groupId}/messages/{messageId}/receipts/{uid}",
   groupEpochPath:"groups/{groupId}/epochs/{keyEpoch}",
+  groupHistoryGrantPath:"groups/{groupId}/historyGrants/{grantId}",
+  groupHistoryGrantCopyPath:"groups/{groupId}/historyGrants/{grantId}/messages/{sourceMessageId}",
   clientDeleteRulesRequired:false,
   groupPhysicalDeleteReady:false
 });
