@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
-import {recipientExpiryAt,recipientHasExpired,groupSourcePurgeEligible,firstReadReceiptMutation} from "./disappearing-content-policy.js";
+import {DISAPPEARING_DURATION_FIELD,DISAPPEARING_MIN_SECONDS,DISAPPEARING_MAX_SECONDS,normalizeDisappearSelection,disappearingMessageMetadata,recipientExpiryAt,recipientHasExpired,groupSourcePurgeEligible,firstReadReceiptMutation} from "./disappearing-content-policy.js";
 
 const t0=new Date("2026-09-06T12:00:00Z");
+assert.equal(DISAPPEARING_DURATION_FIELD,"disappearAfterSeconds");
+assert.equal(DISAPPEARING_MIN_SECONDS,1);
+assert.equal(DISAPPEARING_MAX_SECONDS,31536000);
+assert.equal(normalizeDisappearSelection(null),null);
+assert.equal(normalizeDisappearSelection(false),null);
+assert.equal(normalizeDisappearSelection("off"),null);
+assert.equal(normalizeDisappearSelection(3600),3600);
+assert.deepEqual(disappearingMessageMetadata("off"),{});
+assert.deepEqual(disappearingMessageMetadata(86400),{disappearAfterSeconds:86400});
+assert.throws(()=>normalizeDisappearSelection(0),/duration/i);
+assert.throws(()=>normalizeDisappearSelection(31536001),/duration/i);
 assert.equal(recipientExpiryAt(t0,60).toISOString(),"2026-09-06T12:01:00.000Z");
 assert.equal(recipientExpiryAt(null,60),null);
 assert.equal(recipientHasExpired({readAt:t0,durationSeconds:60,now:new Date("2026-09-06T12:00:59Z")}),false);
