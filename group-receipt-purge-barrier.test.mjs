@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+
+const firebase=await readFile(new URL("./firebase.js",import.meta.url),"utf8");
+const rules=await readFile(new URL("./firestore.rules",import.meta.url),"utf8");
+const sendStart=firebase.indexOf("export async function sendCloudEncryptedGroupMessage");
+const sendEnd=firebase.indexOf("export function subscribeCloudGroupMessages",sendStart);
+const receiptStart=firebase.indexOf("export async function updateCloudGroupReceipt");
+const receiptEnd=firebase.indexOf("export function subscribeCloudGroupReceipts",receiptStart);
+assert.ok(sendStart>=0&&sendEnd>sendStart&&receiptStart>=0&&receiptEnd>receiptStart,"group message/receipt source boundaries are required");
+const send=firebase.slice(sendStart,sendEnd),receipt=firebase.slice(receiptStart,receiptEnd);
+assert.match(send,/receiptRevision:0/,"new group messages must start the receipt barrier at revision zero");
+assert.match(receipt,/const messageRef=.*messages.*messageId.*ref=.*receipts.*authUser\.uid/,"receipt write must bind parent message and own receipt");
+assert.match(receipt,/const \[messageSnap,snap\]=await Promise\.all\(\[tx\.get\(messageRef\),tx\.get\(ref\)\]\)/,"receipt transaction must read parent message and receipt together");
+assert.match(receipt,/nextRevision=Number\(message\.receiptRevision\|\|0\)\+1/,"receipt write must derive the next monotonic parent revision");
+assert.match(receipt,/tx\.update\(messageRef,\{receiptRevision:nextRevision\}\)/,"receipt write must atomically advance parent revision");
+assert.match(rules,/function groupReceiptParentBarrier\(groupId,messageId\)/,"rules must define a group receipt parent barrier");
+assert.match(rules,/allow create: if isGroupMember\(groupId\)&&request\.auth\.uid==uid&&validGroupReceiptCreate\(uid,request\.resource\.data\)&&groupReceiptParentBarrier\(groupId,messageId\)/,"receipt create must require parent barrier");
+assert.match(rules,/allow update: if isGroupMember\(groupId\)&&request\.auth\.uid==uid&&validGroupReceiptUpdate\(uid,request\.resource\.data,resource\.data\)&&groupReceiptParentBarrier\(groupId,messageId\)/,"receipt update must require parent barrier");
+console.log("PASS group receipt purge barrier source/rules authority");
