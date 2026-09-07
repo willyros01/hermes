@@ -640,3 +640,11 @@ The iPad exposed `Attempted to assign to readonly property` when the established
 ### 0.9.9.8 pending-message deletion candidate
 
 Outgoing Queued, Sending and Failed messages now expose press-and-hold Delete Message/Cancel controls. Delete coordinates with the sole encrypted Outbox cycle and physically removes local message/history/Outbox traces. It adds no client Firestore delete authority. Gate, deployment and device acceptance remain required; completion stays 96%.
+
+### Controlled deletion and one-PIN UX decision
+
+Sender-owned accepted direct messages use a new server-only `deleteDirectMessageForEveryoneV1` authority; attachment traces are removed before the Firestore source. The callable and client are repository candidates only until the dedicated service account is provisioned and the Function is explicitly deployed. `MESSAGE-DELETION-AUTHORITY.md` is the critical deletion contract.
+
+The approved fresh-account UX retains email/password plus one six-digit FIDUNIO PIN. Local unlock and account-encryption use separate internal derivations from that one PIN; device, direct, group, attachment and fingerprint details move to the background. `USER-ACCESS-KEY-UX.md` is the critical presentation/security contract. Completion remains 96%.
+
+The 0.9.9.8 candidate now implements that ordinary Settings presentation: Account, one Security area, one six-digit FIDUNIO PIN, optional device unlock, and plain encryption status. Existing differing PINs fail closed rather than being overwritten. Focused gates pass locally; full baseline/deployment/device evidence remains outstanding, so the version and 96% ledger do not advance.

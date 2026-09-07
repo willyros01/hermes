@@ -175,3 +175,9 @@ Corrected commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509` passed full baseline
 Final docs tree `243e1698f5efad09e03587cce0c8689c81ff4659` passed full baseline `34131152754`, was promoted exactly to `main` as `a08d985a8308b9f9da9fabc3c127beefc452fe04`, and Pages `34131445802` succeeded. Device retest is next. 0.9.9.8 remains IN PROGRESS and total remains 96%.
 
 Current FDA-DM-002 candidate adds pending-message deletion. Only outgoing Queued/Sending/Failed rows expose it. Cancellation stays inside the serialized encrypted Outbox authority and removes local traces without Firestore deletion. Full gate, deployment and device proof remain required; completion stays 96%.
+
+The next bounded deletion layer is built but not deployed: sender-owned accepted direct messages route through server-only `deleteDirectMessageForEveryoneV1`; see `MESSAGE-DELETION-AUTHORITY.md`. Live IAM/Function deployment requires explicit authorization. The approved key UX is email/password plus one six-digit FIDUNIO PIN, with internal key details hidden; see `USER-ACCESS-KEY-UX.md`. Implementation remains incomplete and earns no point. Completion stays 96%.
+
+## 0.9.9.8 single-PIN/security presentation candidate — 2026-09-07
+
+Ordinary Settings now retains only Account email/password, one Security area, one six-digit FIDUNIO PIN, and optional device unlock. Separate Device Identity and Account Encryption options and technical key/fingerprint presentation are absent. Existing local-security and account-E2EE derivations remain separate and established owners remain unchanged. First setup writes the local verifier from the same transient PIN only after E2EE succeeds; a different existing installation PIN fails closed. Focused UX and established candidate/iPad/runtime gates pass locally. Full baseline, deployment and device proof remain required; completion stays 96%.

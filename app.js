@@ -22,7 +22,8 @@ import {
   subscribeMyGroups,
   readCloudMessageIdsFromServer,
   readCloudGroupMessageIdsFromServer,
-  uploadEncryptedAttachment
+  uploadEncryptedAttachment,
+  deleteCloudDirectMessageForEveryone
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -37,6 +38,10 @@ import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
+
+// Remains false until the dedicated least-privilege callable is explicitly
+// provisioned and deployed. Publishing static client code cannot activate it.
+const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=false;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
 import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
@@ -1036,7 +1041,7 @@ function renderUnlock(){
         <h1>Unlock FIDUNIO</h1>
         ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with device</button>':""}
         <label class="form-label" for="localUnlockPin">PIN</label>
-        <input class="text-input" id="localUnlockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" pattern="[0-9]*" placeholder="4–12 digit PIN">
+        <input class="text-input" id="localUnlockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" pattern="[0-9]*" placeholder="FIDUNIO PIN">
         <button class="${security.hasBiometric?"secondary":"primary"}" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>
         ${unlockError?`<p class="warning-note">${esc(unlockError)}</p>`:""}
         <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} • Local unlock keeps your Firebase session signed in.</div>
@@ -1276,8 +1281,8 @@ function renderBubble(m,c){
   const label=m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
     m.state==="delivered"?"Delivered":m.state==="failed"?"Failed":"Read";
   const cls=m.state==="queued"?"state-queued":m.state==="failed"?"state-failed":"";
-  const pendingAction=m.mine&&["queued","sending","failed"].includes(m.state);
-  return `<div class="msg-row ${m.mine?"mine":""} ${pendingAction?"pending-message-action":""}" ${pendingAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
+  const hasMessageAction=m.mine&&(["queued","sending","failed"].includes(m.state)||(MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&!!c.cloud&&!c.cloudGroup&&["sent","delivered","read"].includes(m.state)));
+  return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
     ${c.type==="group"&&!m.mine&&m.sender?`<div class="sender-label">${esc(m.sender)}</div>`:""}
     <div class="bubble">
       <div class="msg-text">${esc(m.text)}</div>
@@ -1656,13 +1661,15 @@ function renderModal(){
   host.className="modal-backdrop";
   if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
+    const isPending=message&&["queued","sending","failed"].includes(message.state);
+    const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!state.conversations.find(x=>String(x.id)===String(modal.conversationId))?.cloud;
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
-        <p>This message has not completed sending. Delete it from this device and permanently stop future retries?</p>
+        <p>${isPending?"This message has not completed sending. Delete it from this device and permanently stop future retries?":"Delete this message for everyone? It will be permanently removed from the conversation."}</p>
         <div class="modal-actions">
           <button class="modal-cancel" id="modalCancel">Cancel</button>
-          <button class="modal-delete" id="modalDelete">Delete Message</button>
+          <button class="modal-delete" id="modalDelete">${isPending?"Delete Message":"Delete for Everyone"}</button>
         </div>
       </div>`;
     document.body.appendChild(host);
@@ -1670,10 +1677,17 @@ function renderModal(){
     const remove=host.querySelector("#modalDelete");
     remove.onclick=async()=>{
       remove.disabled=true;
-      try{await cancelPendingOutboxMessage(modal.messageId,modal.conversationId);state.modal=null;host.remove();render();}
+      try{
+        if(isPending)await cancelPendingOutboxMessage(modal.messageId,modal.conversationId);
+        else{
+          await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);
+          await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);
+        }
+        state.modal=null;host.remove();render();
+      }
       catch(err){remove.disabled=false;alert(err?.message||String(err));}
     };
-    if(!message||!["queued","sending","failed"].includes(message.state)){state.modal=null;host.remove();return render();}
+    if(!isPending&&!canDeleteForEveryone){state.modal=null;host.remove();return render();}
   } else if(modal.type==="addMember"){
     host.innerHTML=`
       <div class="modal">
@@ -1810,28 +1824,14 @@ function renderSettings(){
       <section class="content settings">
         <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
           ${(()=>{const security=getLocalSecurityStatus();return `
-            <div class="row-main"><strong>Local app lock</strong><span>${security.hasPin?"PIN configured on this installation":"PIN not configured"}${security.hasBiometric?" • Device unlock enabled":""}</span></div>
+            <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Device unlock enabled":""}</span></div>
             <label class="form-label" for="lockTimeoutSelect">Lock after inactivity</label>
             <select class="text-input" id="lockTimeoutSelect">${LOCK_TIMEOUTS.map(x=>`<option value="${x.value}" ${security.timeoutMs===x.value?"selected":""}>${esc(x.label)}</option>`).join("")}</select>
-            ${!security.hasPin?`
-              <label class="form-label" for="newLocalPin">New PIN</label>
-              <input class="text-input" id="newLocalPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="4–12 digits">
-              <label class="form-label" for="confirmLocalPin">Confirm PIN</label>
-              <input class="text-input" id="confirmLocalPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="Repeat PIN">
-              <button class="primary" id="setLocalPinBtn" style="margin-top:12px">Set PIN</button>
-            `:`
-              <label class="form-label" for="currentLocalPin">Current PIN</label>
-              <input class="text-input" id="currentLocalPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" pattern="[0-9]*" placeholder="Current PIN">
-              <label class="form-label" for="replacementLocalPin">New PIN</label>
-              <input class="text-input" id="replacementLocalPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="4–12 digits">
-              <label class="form-label" for="replacementLocalPin2">Confirm new PIN</label>
-              <input class="text-input" id="replacementLocalPin2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" pattern="[0-9]*" placeholder="Repeat new PIN">
-              <button class="secondary" id="changeLocalPinBtn" style="margin-top:12px">Change PIN</button>
+            ${security.hasPin?`
               <button class="secondary" id="${security.hasBiometric?"disableBiometricBtn":"enableBiometricBtn"}" style="margin-top:10px">${security.hasBiometric?"Disable Device Unlock":"Enable Device Unlock"}</button>
               <button class="secondary" id="lockNowBtn" style="margin-top:10px">Lock Now</button>
-              <button class="danger-btn" id="removeLocalPinBtn" style="margin-top:10px">Remove Local PIN</button>
-            `}
-            <p class="small-note">The raw PIN is never stored. Device unlock uses WebAuthn/passkeys where the browser and device support a user-verifying platform authenticator.</p>
+            `:'<p class="small-note">Create your one six-digit FIDUNIO PIN in the Security section.</p>'}
+            <p class="small-note">Your PIN is never stored. Device unlock uses the secure capability provided by your browser and device.</p>
             ${localSecurityMessage?`<p class="${localSecurityMessageIsError?"warning-note":"small-note"}">${esc(localSecurityMessage)}</p>`:""}
           `})()}
           ${settingRow("Notification message previews","previews")}
@@ -1867,7 +1867,7 @@ function renderSettings(){
         <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}</div>
 
         <div class="card">
-          <h2>Firebase Account</h2>
+          <h2>Account</h2>
           ${!isFirebaseConfigured() ? `
             <p class="small-note"><strong>Not configured.</strong> Complete the current Firebase setup instructions, then verify the existing configured <code>firebase-config.js</code>.</p>
           ` : firebaseUser ? `
@@ -1891,27 +1891,8 @@ function renderSettings(){
             </div>
           `}
           ${firebaseError?`<p class="warning-note">${esc(firebaseError)}</p>`:""}
-          <p class="warning-note">FIDUNIO ${esc(FIDUNIO_VERSION)} adds contact key verification and key-change detection to the E2EE/device-identity foundation. This is still a test build; do not use sensitive content yet.</p>
+          <p class="small-note">Your account signs you in securely. Message encryption is managed automatically.</p>
         </div>
-
-        ${firebaseUser ? `
-        <div class="card">
-          <h2>Device Identity</h2>
-          ${deviceSecurityInfo ? `
-            <div class="row-main">
-              <strong>This installation</strong>
-              <span>Device ID: ${esc(shortDeviceId(deviceSecurityInfo.deviceId))}</span>
-            </div>
-            <label class="form-label">Public-key fingerprint</label>
-            <div class="uid-box">${esc(formatFingerprint(deviceSecurityInfo.fingerprint))}</div>
-            <p class="small-note">The private E2EE key remains local and non-exportable. This fingerprint identifies this installation's public key.</p>
-            <p class="small-note">${deviceRegistryStatus==="registered"
-              ? `Registered devices for this account: ${myRegisteredDevices.length}`
-              : `Device registry: ${esc(deviceRegistryStatus||"initializing…")}`}</p>
-          ` : `<p class="small-note">Device identity is initializing…</p>`}
-          <p class="warning-note">0.8.0 creates the multi-device identity foundation. Direct-message encryption still uses the compatible 0.7.x account key until per-device recipient fan-out is implemented and tested.</p>
-        </div>
-        ` : ""}
 
         <div class="card">
           <h2>Prototype connectivity</h2>

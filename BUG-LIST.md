@@ -179,3 +179,11 @@ Real iPad error: `Attempted to assign to readonly property`; new row remained Se
 ### FDA-DM-002 pending-message deletion — 2026-09-07
 
 Queued/Sending/Failed outgoing messages lacked deletion. Candidate adds press-and-hold cancellation through the sole serialized encrypted Outbox owner and established physical local purge path. No cloud deletion authority is added. Gate, deployment and device proof pending; completion remains 96%.
+
+### FDA-UX-001 — Multiple visible PIN/key controls
+
+- **Severity:** HIGH — internal cryptographic resources appeared to be separate credentials.
+- **Observed:** Settings exposed local app lock, Firebase Account, Account Encryption, Device Identity, fingerprints and verification controls.
+- **Candidate:** One Account plus one Security area; one six-digit FIDUNIO PIN and optional device unlock are visible. Internal keys stay separate and automatic. Existing PIN mismatch fails closed.
+- **Exit:** Full baseline/Pages green and user confirms fresh setup, restart unlock, E2EE READY and existing-installation behavior without extra key controls.
+- **Status:** REPAIR CANDIDATE — OPEN.

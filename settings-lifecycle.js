@@ -21,6 +21,7 @@ import {
 import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";
 import {mountInstallGuidance} from "./install-guidance.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
+import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
 
 let mutationTail=Promise.resolve();
 let generation=0;
@@ -40,9 +41,8 @@ function serializeSettingsMutation(label,work){
 }
 
 const GROUPS=[
-  {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Firebase Account"]},
-  {id:"privacy",label:"Privacy & Access",icon:"🔒",subtitle:"Local PIN, device unlock, inactivity lock, and device identity.",cards:["Privacy & Access","Device Identity"]},
-  {id:"encryption",label:"Account Encryption",icon:"◇",subtitle:"Unlock or recover the one durable account E2EE identity."},
+  {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
+  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, device unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, and expiration."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
@@ -50,7 +50,7 @@ const GROUPS=[
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","encryption","users","invites","install","data","about"];
+const PANEL_ORDER=["profile","general","privacy","users","invites","install","data","about"];
 let activeGroup="profile";
 
 function directCards(settings){return[...settings.querySelectorAll(":scope > .card")];}
@@ -107,11 +107,6 @@ function placeBaseCards(settings,shell){
   }
   const general=shell.querySelector("#fidunioSettingsHost-general");
   for(const card of directCards(settings))general?.appendChild(card);
-  collapseTechnicalCard(shell.querySelector("#fidunioSettingsHost-general .card h2")?.parentElement?.querySelector("h2")?.textContent==="Firebase Account"?shell.querySelector("#fidunioSettingsHost-general .card"):shell.querySelector("#fidunioSettingsHost-general .card:nth-of-type(3)"),"Firebase Account");
-  const firebaseCard=[...shell.querySelectorAll("#fidunioSettingsHost-general > .card")].find(c=>c.querySelector("h2")?.textContent?.trim()==="Firebase Account");
-  collapseTechnicalCard(firebaseCard,"Firebase Account");
-  const deviceCard=[...shell.querySelectorAll("#fidunioSettingsHost-privacy > .card")].find(c=>c.querySelector("h2")?.textContent?.trim()==="Device Identity");
-  collapseTechnicalCard(deviceCard,"Device Identity");
   const footer=settings.querySelector(":scope > .version-footer");if(footer){footer.id="fidunioSettingsFooter";settings.appendChild(footer);}
 }
 function host(shell,id){return shell.querySelector(`#fidunioSettingsHost-${id}`);}
@@ -121,7 +116,7 @@ async function saveProfile(values){return updateFidunioProfile(values);}
 async function changePassword(uid,currentPassword,newPassword,pin){return changeAccountPasswordWithE2EE({uid,currentPassword,newPassword,pin});}
 function renderProfile(profileHost,info){
   const p=info.profile;
-  profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><div style="text-align:center;margin-bottom:12px">${p.photoURL?`<img src="${esc(p.photoURL)}" alt="Profile" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="avatar" style="width:72px;height:72px;margin:auto;font-size:24px">${esc(initials(p.displayName||"U"))}</div>`}<div class="small-note">System role: ${esc(prettyRole(info.role))}</div></div><label class="form-label" for="profileName">Display name</label><input class="text-input" id="profileName" maxlength="80" value="${esc(p.displayName||info.user.displayName||"")}"><label class="form-label" for="profileEmail">Email address</label><input class="text-input" id="profileEmail" type="email" value="${esc(info.user.email||p.email||"")}"><label class="form-label" for="profilePhone">Telephone number</label><input class="text-input" id="profilePhone" type="tel" autocomplete="tel" value="${esc(p.telephone||"")}" placeholder="Optional"><label class="form-label" for="profilePhoto">Profile picture URL</label><input class="text-input" id="profilePhoto" type="url" value="${esc(p.photoURL||"")}" placeholder="https://…"><label class="form-label" for="profileCurrentPassword">Current password</label><input class="text-input" id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required only for email/password changes"><button class="primary" id="saveProfileBtn" style="margin-top:14px">Save Profile</button><div id="profileNote"></div><hr style="margin:22px 0"><h2>Change Password</h2><label class="form-label" for="newPassword">New password</label><input class="text-input" id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><label class="form-label" for="newPassword2">Confirm new password</label><input class="text-input" id="newPassword2" type="password" autocomplete="new-password" placeholder="Repeat new password"><label class="form-label" for="passwordE2EEPin">Six-digit account E2EE PIN</label><input class="text-input" id="passwordE2EEPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Required after Account Encryption is created"><button class="secondary" id="changePasswordBtn" style="margin-top:14px">Change Password</button><div id="passwordNote"></div></div>`;
+  profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><div style="text-align:center;margin-bottom:12px">${p.photoURL?`<img src="${esc(p.photoURL)}" alt="Profile" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:`<div class="avatar" style="width:72px;height:72px;margin:auto;font-size:24px">${esc(initials(p.displayName||"U"))}</div>`}<div class="small-note">System role: ${esc(prettyRole(info.role))}</div></div><label class="form-label" for="profileName">Display name</label><input class="text-input" id="profileName" maxlength="80" value="${esc(p.displayName||info.user.displayName||"")}"><label class="form-label" for="profileEmail">Email address</label><input class="text-input" id="profileEmail" type="email" value="${esc(info.user.email||p.email||"")}"><label class="form-label" for="profilePhone">Telephone number</label><input class="text-input" id="profilePhone" type="tel" autocomplete="tel" value="${esc(p.telephone||"")}" placeholder="Optional"><label class="form-label" for="profilePhoto">Profile picture URL</label><input class="text-input" id="profilePhoto" type="url" value="${esc(p.photoURL||"")}" placeholder="https://…"><label class="form-label" for="profileCurrentPassword">Current password</label><input class="text-input" id="profileCurrentPassword" type="password" autocomplete="current-password" placeholder="Required only for email/password changes"><button class="primary" id="saveProfileBtn" style="margin-top:14px">Save Profile</button><div id="profileNote"></div><hr style="margin:22px 0"><h2>Change Password</h2><label class="form-label" for="newPassword">New password</label><input class="text-input" id="newPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><label class="form-label" for="newPassword2">Confirm new password</label><input class="text-input" id="newPassword2" type="password" autocomplete="new-password" placeholder="Repeat new password"><label class="form-label" for="passwordE2EEPin">FIDUNIO PIN</label><input class="text-input" id="passwordE2EEPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Your six-digit FIDUNIO PIN"><button class="secondary" id="changePasswordBtn" style="margin-top:14px">Change Password</button><div id="passwordNote"></div></div>`;
   const card=profileHost.querySelector("#fidunioProfileCard");
   card.querySelector("#saveProfileBtn").onclick=async()=>{
     const btn=card.querySelector("#saveProfileBtn"),note=card.querySelector("#profileNote");btn.disabled=true;btn.textContent="Saving…";
@@ -202,26 +197,28 @@ function renderInvitations(invitesHost,info){
 function renderAccountEncryption(encryptionHost,info){
   const lifecycle=getAccountE2EELifecycleState(),managerState=lifecycle?.manager?.state||"EMPTY",uid=info.user.uid;
   const ready=managerState==="READY",empty=managerState==="EMPTY";
-  encryptionHost.innerHTML=`<div class="card" id="fidunioAccountEncryptionCard"><h2>Account Encryption</h2>
-    <p class="small-note"><strong>Status:</strong> ${esc(managerState)}</p>
-    ${ready?`<p class="small-note">Your durable account encryption identity is unlocked on this installation. The same keyId is used across legitimate recovery; FIDUNIO never creates a replacement identity after an unlock/recovery failure.</p>`:`
-      <label class="form-label" for="accountE2EEPassword">${empty?"Current Firebase password":"Firebase password"}</label>
+  const localSecurity=getLocalSecurityStatus(),needsPinSetup=!localSecurity.hasPin;
+  encryptionHost.insertAdjacentHTML("beforeend",`<div class="card" id="fidunioAccountEncryptionCard"><h2>FIDUNIO Security</h2>
+    <p class="small-note"><strong>End-to-end encryption:</strong> ${ready?"On":"Setup required"}</p>
+    ${ready&&!needsPinSetup?`<p class="small-note">Your messages are protected. Encryption keys are managed automatically in the background.</p>`:`
+      <p class="small-note">${empty?"Create":"Unlock"} message protection with your account password and your one six-digit FIDUNIO PIN.</p>
+      <label class="form-label" for="accountE2EEPassword">Account password</label>
       <input class="text-input" id="accountE2EEPassword" type="password" autocomplete="current-password" placeholder="Password">
-      <label class="form-label" for="accountE2EEPin">Six-digit account E2EE PIN</label>
+      <label class="form-label" for="accountE2EEPin">FIDUNIO PIN</label>
       <input class="text-input" id="accountE2EEPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Exactly 6 digits">
-      ${empty?`<label class="form-label" for="accountE2EEPin2">Confirm E2EE PIN</label><input class="text-input" id="accountE2EEPin2" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Repeat 6-digit PIN">`:""}
-      <button class="primary" id="accountE2EEPrimaryBtn" style="margin-top:14px">${empty?"Create Account Encryption":"Unlock Account Encryption"}</button>
+      ${empty?`<label class="form-label" for="accountE2EEPin2">Confirm FIDUNIO PIN</label><input class="text-input" id="accountE2EEPin2" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Repeat 6-digit PIN">`:""}
+      <button class="primary" id="accountE2EEPrimaryBtn" style="margin-top:14px">${empty?"Create FIDUNIO Security":"Unlock FIDUNIO Security"}</button>
       ${empty?"":'<button class="secondary" id="accountE2EERecoverBtn" style="margin-top:10px">Recover After Password Reset</button>'}
       <div id="accountE2EENote"></div>`}
-    <p class="warning-note">This six-digit account E2EE PIN is separate from the installation-local 4–12 digit app-lock PIN.</p></div>`;
-  if(ready)return;
+    <p class="small-note">Face ID or Touch ID may be enabled as a convenient alternative on this device.</p></div>`);
+  if(ready&&!needsPinSetup)return;
   const card=encryptionHost.querySelector("#fidunioAccountEncryptionCard"),note=card.querySelector("#accountE2EENote"),primary=card.querySelector("#accountE2EEPrimaryBtn");
-  primary.onclick=async()=>{const password=card.querySelector("#accountE2EEPassword").value,pin=card.querySelector("#accountE2EEPin").value;if(empty&&pin!==card.querySelector("#accountE2EEPin2").value){note.innerHTML='<p class="warning-note">The E2EE PIN entries do not match.</p>';return;}primary.disabled=true;primary.textContent=empty?"Creating…":"Unlocking…";try{if(empty)await enrollAccountE2EE({uid,password,pin});else await unlockAccountE2EE({uid,password,pin});renderAccountEncryption(encryptionHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;primary.disabled=false;primary.textContent=empty?"Create Account Encryption":"Unlock Account Encryption";}};
+  primary.onclick=async()=>{const password=card.querySelector("#accountE2EEPassword").value,pin=card.querySelector("#accountE2EEPin").value;if(empty&&pin!==card.querySelector("#accountE2EEPin2").value){note.innerHTML='<p class="warning-note">The FIDUNIO PIN entries do not match.</p>';return;}primary.disabled=true;primary.textContent=empty?"Creating…":"Unlocking…";try{if(localSecurity.hasPin&&!await verifyLocalPin(pin))throw new Error("This installation has a different PIN. Use the existing FIDUNIO PIN or perform the documented PIN migration.");if(empty)await enrollAccountE2EE({uid,password,pin});else await unlockAccountE2EE({uid,password,pin});if(!localSecurity.hasPin)await setLocalPin(pin);renderAccountEncryption(encryptionHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;primary.disabled=false;primary.textContent=empty?"Create FIDUNIO Security":"Unlock FIDUNIO Security";}};
   const recover=card.querySelector("#accountE2EERecoverBtn");if(recover)recover.onclick=async()=>{const newPassword=card.querySelector("#accountE2EEPassword").value,pin=card.querySelector("#accountE2EEPin").value;if(!confirm("Use recovery only after the Firebase password has been reset. Continue with the existing six-digit account E2EE PIN?"))return;recover.disabled=true;recover.textContent="Recovering…";try{await recoverAccountE2EE({uid,newPassword,pin});renderAccountEncryption(encryptionHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;recover.disabled=false;recover.textContent="Recover After Password Reset";}};
 }
 
 async function hydrateAccountPanels(g,shell){
-  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"encryption");
+  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy");
   /* Claim the legacy IDs synchronously so old observer-era modules cannot
      become competing writers while this migration build is being validated. */
   profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="small-note">Loading profile…</p></div>';

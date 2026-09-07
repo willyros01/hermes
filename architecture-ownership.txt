@@ -299,3 +299,9 @@ Repository/process ownership from 2026-09-07: `main` is the one code/documentati
 Disappearing compose ownership is limited to validating and stamping the selected expiry once. The returned Outbox row remains mutable only inside the existing serialized `app.js` transport owner, which advances delivery state. Freezing the whole row is prohibited because it blocks the legitimate sole owner; no secondary receipt or expiry writer is permitted.
 
 Queued/Sending/Failed deletion is cancellation inside the same serialized `app.js` Outbox authority. It reserves against concurrent send, verifies the encrypted row, and uses the established local physical purge path. It must not add client Firestore deletion, tombstones or a second retry owner.
+
+Accepted direct-message Delete for Everyone is owned solely by `deleteDirectMessageForEveryoneV1`; it authenticates the caller, proves original-sender and conversation-member authority, deletes deterministic attachment traces first and physically deletes the source. Client rules remain deny-delete. See MESSAGE-DELETION-AUTHORITY.md.
+
+User-visible access is email/password plus one six-digit FIDUNIO PIN. Local and account-encryption derivations remain internally separate and domain-separated; all device/message/group/attachment key mechanics are background-only. See USER-ACCESS-KEY-UX.md.
+
+The Settings Security host may coordinate first setup by calling the existing E2EE owner and then the existing local-security owner with the same transient PIN. It may not store the PIN, share derived material, overwrite a mismatched verifier, or create an alternate key lifecycle. Legacy local-PIN verification is migration compatibility only.

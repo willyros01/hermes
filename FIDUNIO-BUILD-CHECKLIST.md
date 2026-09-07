@@ -475,6 +475,33 @@ By explicit user decision, allocate branch/process maintenance within the curren
 
 No point earned; completion remains 96%.
 
+### 0.9.9.8 single visible FIDUNIO PIN candidate — 2026-09-07
+
+- [x] One Account and one Security area replace separate Firebase/lock/encryption/device-key presentation.
+- [x] New FIDUNIO PINs are exactly six digits; optional device unlock remains.
+- [x] Local and account-E2EE derivations remain separately salted and owned.
+- [x] Existing installation PIN mismatch fails closed; legacy verification remains for migration compatibility.
+- [x] Permanent `test:user-access-key-ux` gate added to the full baseline.
+- [ ] Full baseline and Pages green.
+- [ ] Fresh-account and existing-installation device acceptance.
+
+No point earned; completion remains 96%.
+
+### 0.9.9.8 sender-owned accepted direct deletion and one-PIN UX
+
+- [x] Server-only sender/member validation core implemented and tested.
+- [x] Deterministic attachment prefix removal precedes physical message deletion.
+- [x] Client routes Delete for Everyone only through `firebase.js` callable ownership.
+- [x] Browser Firestore delete remains denied.
+- [x] `MESSAGE-DELETION-AUTHORITY.md` and `USER-ACCESS-KEY-UX.md` created as critical documents.
+- [ ] Dedicated message-delete service account provisioned with reviewed minimum permissions.
+- [ ] Callable deployed and authenticated denial/success tested.
+- [ ] One-PIN enrollment/unlock migration implemented and repository-gated.
+- [ ] Technical key controls removed from ordinary-user UI.
+- [ ] Clean iPhone/iPad account lifecycle accepted.
+
+No point earned; completion remains 96%.
+
 ### 0.9.9.8 FDA-DM-002 pending-message deletion candidate
 
 - [x] Press-and-hold actions limited to outgoing Queued/Sending/Failed rows.

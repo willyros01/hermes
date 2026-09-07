@@ -297,3 +297,9 @@ Repository authority is `main` only as of 2026-09-07. The branch choice does not
 The disappearing compose policy owns only normalization and the one-time `disappearAfterSeconds` stamp. It must not freeze the whole Outbox application row. `app.js` remains the sole serialized transport-state owner and may advance that row through Queued, Sending, Sent or Failed without creating another expiry or receipt authority.
 
 Pending-message cancellation belongs to the same `app.js` Outbox coordinator. A reservation blocks transport at bounded pre-send checkpoints; after active work settles, the existing physical local purge owner removes message, history and encrypted Outbox traces. It never calls Firestore deletion.
+
+Accepted direct-message physical deletion belongs only to callable `deleteDirectMessageForEveryoneV1` and its Admin repositories. `firebase.js` is the sole client callable owner; `app.js` owns presentation only. Attachment-object traces are removed before the Firestore source. See `MESSAGE-DELETION-AUTHORITY.md`.
+
+User access presentation is governed by `USER-ACCESS-KEY-UX.md`: email/password plus one six-digit FIDUNIO PIN are visible; internal cryptographic resources retain distinct code owners and domain separation but no ordinary-user controls.
+
+The Settings Security host coordinates first setup through existing public operations. `settings-lifecycle.js` owns the DOM and serialization; `local-security.js` remains sole installation-verifier owner; `e2ee-account-runtime.js` remains sole account-identity lifecycle facade. The same transient user PIN never creates shared derived key material or another storage owner.
