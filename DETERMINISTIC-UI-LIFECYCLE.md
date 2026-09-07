@@ -251,3 +251,7 @@ The second screenshot confirms the safe-area and full-width repairs visually, wh
 ## FDA-IPAD-006 deferred alignment constraint — 2026-09-07
 
 The deployed theme removes the white native selector and preserves readability, but user-device evidence rejects its size, shape, spacing and alignment relative to the quick-reply widgets. No lifecycle or rendering-owner change is authorized in this documentation-only pass. FDA-IPAD-006 stays OPEN — DEFERRED for the next necessary 0.9.9.8 acceptance repair, which must retain the existing selector owner and deterministic composer lifecycle. Completion remains 96%.
+
+## FDA-DM-001 bounded send-state lifecycle — 2026-09-07
+
+The existing Outbox/reconnect lifecycle now bounds authoritative Firebase reconciliation at 12 seconds. Before any send attempt, a timeout can transition only an Outbox-backed `sendAttempted !== true` row from Sending to Queued through the existing `app.js` owner. The encrypted Outbox is preserved and no Sent/Delivered/Read state is created. Foreground/pageshow recovery continues to request the same serialized reconciliation path; no new listener, timer-based layout behavior, reload synchronization or service-worker message semantics are introduced.

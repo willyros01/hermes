@@ -593,3 +593,7 @@ The deployed selector theme is readable and removes the white native control, bu
 ## 0.9.9.8 direct-send acceptance blocker — 2026-09-07
 
 Real-device testing exposed FDA-DM-001: an iPad cloud direct message remained at Sending for more than one minute. The message is staged in the encrypted Outbox before an unbounded authoritative Firebase reconciliation wait, so the UI can remain Sending before the actual Firestore send is attempted. The defect is open and must be repaired only through the existing serialized Outbox/reconnect owner with fail-closed status semantics. Completion remains 96%.
+
+## 0.9.9.8 bounded Firebase reconciliation candidate — 2026-09-07
+
+FDA-DM-001 is addressed inside the existing serialized Outbox/reconnect owner with a 12-second authoritative Firebase reconciliation boundary. An unattempted Outbox-backed message returns from Sending to Queued on timeout, the encrypted Outbox remains intact, and the sender receives a clear Firebase timeout message. Attempted messages retain the established fail-closed anti-replay treatment; Sent/Delivered/Read are never simulated. A permanent gate is in the normal baseline. Full repository validation, `main` deployment and device acceptance remain pending; completion remains 96%.
