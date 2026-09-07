@@ -613,3 +613,5 @@ After the required second launch, the two preserved iPad messages display Queued
 ### 0.9.9.8 authenticated-session/verification-path repair candidate — 2026-09-07
 
 The Verify handler's direct queue flush bypassed the established serialized authoritative Outbox cycle. The candidate routes it through that owner and force-refreshes Firebase Auth through `firebase.js` before reconciliation, with bounded stage-specific failure messages. Verification is a stored trust decision, not proof of a fingerprint comparison; no key reset occurred. Firebase rules and protected configuration remain unchanged. Full gate, `main` deployment and device acceptance remain required; completion stays 96%.
+
+Candidate `6e6d5e84beb7e12173a5708835842512d44a92d4` passed full baseline `34087534090` and was promoted to `main` as `529a56d1f8e45d463a47d8c6150f95b4937ee87b`. Pages `34087730948` succeeded and live repair/config anchors were verified. Real two-device Sent → Delivered → Read acceptance remains required; completion stays 96%.

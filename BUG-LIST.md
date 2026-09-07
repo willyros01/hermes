@@ -151,3 +151,5 @@ The user reports a lengthy iPhone login/startup interval showing only a blank sc
 ### FDA-DM-001 authenticated-session/verification-path candidate — 2026-09-07
 
 The user did not compare device fingerprints; pressing Verify only stored trust. Diagnosis found the Verify handler bypassed the serialized authoritative Outbox path by calling `flushQueued()` directly. The repair routes it through the sole reconciliation owner, forces a fresh Firebase Auth ID token through `firebase.js`, and emits stage-specific bounded errors. No keys, rules, protected configuration, receipts or E2EE formats change. FDA-DM-001 remains open pending full gate, `main` deployment and actual Sent → Delivered → Read proof. Completion remains 96%.
+
+Candidate `6e6d5e84beb7e12173a5708835842512d44a92d4` passed full baseline `34087534090`, was promoted to `main` as `529a56d1f8e45d463a47d8c6150f95b4937ee87b`, and passed Pages `34087730948`. Live anchors and exact protected config blob were verified. FDA-DM-001 remains OPEN for two-device proof; completion remains 96%.
