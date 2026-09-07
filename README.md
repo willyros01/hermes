@@ -1,5 +1,7 @@
 # FIDUNIO / Hermes
 
+Current stabilization priority: reliable one-to-one text messaging. New direct text uses the existing authenticated Firestore member-only transport without requiring user-facing key setup or fingerprint verification. Historical encrypted messages remain supported; encryption hardening is deferred until basic device transmission is accepted.
+
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
 ## Current authoritative state

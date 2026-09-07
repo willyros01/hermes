@@ -85,3 +85,4 @@ jobs:
       - {name: Pending encrypted-Outbox message deletion, run: npm run test:pending-message-delete}
       - {name: Controlled sender direct-message deletion, run: npm run test:message-delete-core}
       - {name: Single visible FIDUNIO PIN and hidden-key UX, run: npm run test:user-access-key-ux}
+      - {name: Basic direct-message send and receive path, run: node direct-message-basic-path.test.mjs}

@@ -1,5 +1,14 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### Basic direct-message transport recovery — 2026-09-07
+
+- [x] Identify account-key preparation as the direct-text pre-send blocker.
+- [x] Route new direct text through the existing authenticated Firestore text format.
+- [x] Preserve fixed-ID Outbox retry, real receipts, and historical encrypted-message reading.
+- [x] Add a permanent basic direct-message path gate.
+- [ ] Complete full repository gate and Pages deployment.
+- [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.
+
 This file is the operational completion ledger for the sole authoritative `main` branch. `fidunio-complete-rebuild` is historical only after the 2026-09-07 branch-authority transition.
 
 ## Mandatory build-session rule

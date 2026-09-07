@@ -1,5 +1,9 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## Basic direct-message transport candidate — 2026-09-07
+
+By explicit user direction, direct one-to-one text messaging is the immediate priority and must not wait on account-key readiness or manual fingerprint verification. The minimal candidate sends new direct text through the existing authenticated Firestore/Outbox path in the plaintext format already allowed by current rules. Existing encrypted messages remain readable. No Firebase rules, App Check, group, attachment, or deletion change is included. Repository validation, `main` deployment, and real iPad-to-iPhone Sent → Delivered → Read proof remain required.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

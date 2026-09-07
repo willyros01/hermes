@@ -36,7 +36,7 @@ import {
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
-import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
+import { decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 
 // Remains false until the dedicated least-privilege callable is explicitly
@@ -1520,14 +1520,13 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         await persistState();
         if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render();
 
-        const peerUid=await awaitBoundedOutboxReconciliation(resolvePeerUidForConversation(payload.conversationId),{stage:"peer-resolution"});
-        if(!peerUid)throw new Error("Recipient account identity is unavailable.");
-        const encrypted=await awaitBoundedOutboxReconciliation(prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text}),{stage:"envelope-preparation"});
         if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
         await markOutboxSendAttempted(payload.messageId);
         sendAttempted=true;
         if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
-        await awaitBoundedOutboxReconciliation(sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null}),{stage:"send-confirmation"});
+        // Basic direct text must not depend on manual key setup or verification.
+        // The fixed message ID keeps Firestore retries idempotent.
+        await awaitBoundedOutboxReconciliation(sendCloudMessage(payload.conversationId,{id:payload.messageId,text:payload.text,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null}),{stage:"send-confirmation"});
 
         m.state="sent";
         // Remove the Outbox item only after Firestore confirms the write.

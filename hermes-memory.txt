@@ -1,6 +1,10 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### BASIC DIRECT-MESSAGE PRIORITY — 2026-09-07
+
+The user explicitly ended further audit/design/key-management cycling. Immediate goal: prove ordinary one-to-one message transmission. Minimal candidate removes account-key preparation and fingerprint verification as prerequisites for new direct text, using the authenticated member-only plaintext format already accepted by `firestore.rules`. Existing encrypted rows remain readable. Do not expand this slice into App Check, groups, attachments, deletion, or further security redesign. Required exit is full gate/Pages followed by real two-device Sent → Delivered → Read in both directions.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

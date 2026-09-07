@@ -1,5 +1,12 @@
 # FIDUNIO / Hermes Bug List
 
+## FDA-DM-001 — minimal direct-text transport candidate
+
+- **Decision:** Stop requiring account-E2EE/key verification for new one-to-one text messages.
+- **Change:** The established Outbox sends authenticated bounded plaintext using the existing fixed message ID; historical encrypted rows retain their reader.
+- **Unchanged:** Sign-in, conversation membership, receipts, Firebase rules, App Check, groups, attachments, and protected configuration.
+- **Status:** CANDIDATE — focused gates pass; full gate/deployment/device proof pending.
+
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 
 ## Open bugs
