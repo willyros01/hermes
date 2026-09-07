@@ -455,3 +455,5 @@ User-device evidence now satisfies the FDA-IOS-001 startup-feedback and FDA-IOS-
 Full normal baseline requested on the exact outgoing-decrypt repair candidate; completion and device credit remain pending the result.
 
 Baseline runs `34130208522` and `34130353052` failed only because the permanent Outbox cache assertion still expected prior revision `001d` while the candidate correctly advanced to `001e`. All preceding security steps, including account direct-message crypto/service, passed. The assertion is updated to the exact new revision; no security invariant is weakened. A complete rerun is required.
+
+Corrected authoritative commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509` passed the complete Rebuild Baseline Security Gate run `34130779064` SUCCESS, including Outbox, startup/PIN, account direct-message crypto/service, rules and all prior security gates. Repository validation is satisfied; exact-tree `main` promotion and device receipts remain pending. Completion remains 96.0/100.0 (96%).
