@@ -26,5 +26,9 @@ for(const selector of ["tablet-brand-name","tablet-brand-sub","tablet-nav-item"]
 assert.doesNotMatch(app,/MutationObserver/);
 assert.doesNotMatch(app,/orientationchange/);
 assert.match(mirror,/DEVICE-ACCEPTANCE-BUGS\.md/,"device acceptance ledger must remain in the critical-document mirror");
+assert.match(css,/#app\s*\{\s*flex:1 1 100%/s,"the established app owner must fill the iPad standalone viewport");
+assert.match(css,/\.tablet-shell\s*\{\s*width:100%;\s*max-width:none;/s,"tablet shell must fill its owner instead of retaining a standalone 100vw gap");
+assert.match(css,/\.tablet-brand-row\s*\{\s*padding-top:max\(26px,calc\(14px \+ env\(safe-area-inset-top\)\)\)/s,"tablet sidebar must clear the iPad status bar even when the reported inset is zero");
+assert.match(css,/\.tablet-chat-pane \.topbar\s*\{\s*padding-top:max\(26px,calc\(10px \+ env\(safe-area-inset-top\)\)\)/s,"tablet chat header must clear the iPad status bar");
 
 console.log("iPad RC stabilization ownership and accessibility gate passed");

@@ -1370,3 +1370,29 @@ html.text-aplusplus .member-card > :last-child{
 @media (min-width:700px){body[data-route="groupInfo"] .group-info-shell{width:min(100%,960px);max-width:960px;min-height:100dvh;margin:0 auto;}body[data-route="groupInfo"] .group-info-shell .content{width:100%;max-width:860px;margin:0 auto;box-sizing:border-box;}}
 @media (min-width:900px) and (orientation:landscape){body[data-route="groupInfo"] .group-info-shell{width:100vw;max-width:100vw;margin:0;}body[data-route="groupInfo"] .group-info-shell .topbar{width:100%;max-width:none;margin:0;box-sizing:border-box;}body[data-route="groupInfo"] .group-info-shell .content{width:min(100%,1180px);max-width:1180px;margin:0 auto;padding-left:28px;padding-right:28px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;}body[data-route="groupInfo"] .group-info-shell .content > *{min-width:0;margin-top:0;}body[data-route="groupInfo"] .group-info-shell .content > :first-child{grid-column:1 / -1;}}
 @media (min-width:700px) and (max-width:899px) and (orientation:landscape){body[data-route="groupInfo"] .group-info-shell{width:100%;max-width:100%;}body[data-route="groupInfo"] .group-info-shell .content{width:min(100%,900px);max-width:900px;margin:0 auto;}}
+
+/* 0.9.9.8 iPad standalone-window stabilization.
+   iPad Home-Screen mode can report a zero safe-area inset while still drawing
+   the system status bar over the page. Reserve a bounded tablet-only top area,
+   and make the established #app/tablet shell fill the available flex viewport. */
+@media (min-width:700px){
+  html,
+  body,
+  #app{
+    width:100%;
+    min-width:0;
+  }
+  #app{
+    flex:1 1 100%;
+  }
+  .tablet-shell{
+    width:100%;
+    max-width:none;
+  }
+  .tablet-brand-row{
+    padding-top:max(26px,calc(14px + env(safe-area-inset-top)));
+  }
+  .tablet-chat-pane .topbar{
+    padding-top:max(26px,calc(10px + env(safe-area-inset-top)));
+  }
+}
