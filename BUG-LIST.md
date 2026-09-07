@@ -169,3 +169,5 @@ User-device evidence confirms the startup spinner on iPhone and iPad and confirm
 After both real accounts became Account Encryption READY, preserved iPad rows reached genuine Sent but the sender could not decrypt them. `app.js` was passing outgoing and incoming v3 rows to an incoming-only service method. The candidate keeps the existing owner, selects direction from authenticated UID plus authoritative `senderUid`, preserves exact AAD/keyId validation, and rejects non-member senders. Direct tests pass; full baseline and device proof remain pending. Completion remains 96%.
 
 Repository gate: corrected commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509`, complete baseline `34130779064` SUCCESS. Deployment and device proof remain open.
+
+Final authoritative tree `243e1698f5efad09e03587cce0c8689c81ff4659` passed baseline `34131152754`; exact promotion `a08d985a8308b9f9da9fabc3c127beefc452fe04` and Pages `34131445802` succeeded. FDA-DM-001 remains open only for real-device readable receipts.
