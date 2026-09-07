@@ -4,6 +4,8 @@ if(resolveComposeDisappearSelection('off')!==null||resolveComposeDisappearSelect
 if(composeDisappearLabel(3600)!=='1 hour'||DISAPPEARING_COMPOSE_PRESETS.length<5)throw new Error('preset presentation failed');
 const original=Object.freeze({id:'a',text:'hello'}),sent=stampOutgoingDisappearSelection(original,86400);
 if(sent.disappearAfterSeconds!==86400||Object.hasOwn(original,'disappearAfterSeconds'))throw new Error('future-message stamp mutated prior object');
+sent.state='sending';sent.state='sent';
+if(sent.state!=='sent'||sent.disappearAfterSeconds!==86400)throw new Error('sole Outbox owner cannot advance transport state without changing stamped expiry');
 const later=stampOutgoingDisappearSelection({id:'b',text:'later'},300);
 if(sent.disappearAfterSeconds!==86400||later.disappearAfterSeconds!==300)throw new Error('later preference retroactively changed sent metadata');
 if(!DISAPPEARING_COMPOSE_POLICY_V1.selectionAppliesOnlyToFutureMessages||!DISAPPEARING_COMPOSE_POLICY_V1.sentMessageMetadataImmutable)throw new Error('compose policy contract weakened');

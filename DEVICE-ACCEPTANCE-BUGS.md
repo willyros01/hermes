@@ -201,3 +201,7 @@ The user supplied iPad and iPhone screenshots showing Account Encryption `READY`
 Repository evidence: corrected commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509` passed complete baseline `34130779064`. FDA-DM-001 remains OPEN pending exact-tree `main` deployment and user-device readable Sent → Delivered → Read.
 
 Deployment evidence: final authoritative commit `243e1698f5efad09e03587cce0c8689c81ff4659` passed complete baseline `34131152754`; exact tree promoted to `main` as `a08d985a8308b9f9da9fabc3c127beefc452fe04`; Pages `34131445802` SUCCESS. FDA-DM-001 now awaits the user-device retest only.
+
+#### iPad retest exposes frozen transport-row defect — 2026-09-07
+
+The iPad displayed `Attempted to assign to readonly property` while `test msg 4` remained Sending. This is a local JavaScript mutation failure, not a Firebase outage. The disappearing compose policy froze the entire new message row although the sole `app.js` Outbox owner must advance its transport state. Candidate correction stamps expiry once onto a normal application-owned row; it adds no receipt path. A permanent test exercises Sending → Sent while expiry remains unchanged. Cache revision advances to `001f`. FDA-DM-001 remains OPEN.

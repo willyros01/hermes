@@ -632,3 +632,7 @@ The user confirmed the large spinner on iPhone/iPad and successful unlock with t
 After both device accounts became Account Encryption READY, real queued rows reached Sent but the iPad could not read its own accepted ciphertext. The candidate adds the missing outgoing direction inside the existing account E2EE service, selected from authoritative sender UID and protected by exact keyId/AAD checks. Legacy compatibility-device trust is explicitly separated from account-authoritative E2EE. Direct tests pass; full baseline, promotion and device acceptance remain pending. Completion remains 96%.
 
 Repository validation: corrected authoritative commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509` passed full baseline `34130779064`. Promotion and real-device receipt proof remain pending; completion remains 96%.
+
+### 0.9.9.8 Safari readonly-Outbox-row repair candidate
+
+The iPad exposed `Attempted to assign to readonly property` when the established Outbox owner advanced a disappearing-message row from Queued to Sending/Sent. The disappearing compose policy had frozen the entire copied application row even though only the stamped expiry choice is immutable. The candidate preserves the one-time expiry stamp but returns a mutable transport row so the sole serialized `app.js` Outbox owner can update its state. No Firebase configuration, rules, E2EE owner, receipt owner or storage owner changes. Full baseline, `main` deployment and real-device acceptance remain required; completion stays 96%.

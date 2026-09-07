@@ -463,3 +463,14 @@ Final documented authoritative commit `243e1698f5efad09e03587cce0c8689c81ff4659`
 ### Branch-authority simplification — 2026-09-07
 
 By explicit user decision, allocate branch/process maintenance within the current 0.9.9.8 stabilization session: all future code, documentation, gates and Pages tests occur directly on `main`. The rebuild branch is frozen as history. Remove the automatic documentation mirror and retarget the permanent full baseline push trigger to `main`. This process simplification earns no product point. Completion remains 96%.
+
+### 0.9.9.8 readonly transport-row candidate — 2026-09-07
+
+- [x] Record exact real-device readonly-property error.
+- [x] Diagnose compose-policy freeze versus sole Outbox status owner.
+- [x] Preserve one-time disappearing expiry stamping.
+- [x] Add mutable status-transition regression assertion.
+- [ ] Full baseline green on `main`.
+- [ ] Pages green and repeated user-device receipt proof.
+
+No point earned; completion remains 96%.

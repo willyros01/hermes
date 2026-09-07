@@ -171,3 +171,7 @@ After both real accounts became Account Encryption READY, preserved iPad rows re
 Repository gate: corrected commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509`, complete baseline `34130779064` SUCCESS. Deployment and device proof remain open.
 
 Final authoritative tree `243e1698f5efad09e03587cce0c8689c81ff4659` passed baseline `34131152754`; exact promotion `a08d985a8308b9f9da9fabc3c127beefc452fe04` and Pages `34131445802` succeeded. FDA-DM-001 remains open only for real-device readable receipts.
+
+### FDA-DM-001 readonly outgoing row — 2026-09-07
+
+Real iPad error: `Attempted to assign to readonly property`; new row remained Sending. Cause is over-broad `Object.freeze` in the disappearing compose policy conflicting with the sole Outbox owner's required status transition. Candidate returns a mutable application row while preserving one-time expiry stamping. Firebase, receipt, E2EE and storage ownership remain unchanged. Full `main` baseline and device proof pending; completion remains 96%.

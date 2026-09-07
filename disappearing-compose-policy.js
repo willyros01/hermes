@@ -16,7 +16,9 @@ export function composeDisappearLabel(value){
 }
 export function stampOutgoingDisappearSelection(message,value){
   const duration=resolveComposeDisappearSelection(value);
-  return Object.freeze(duration==null?{...message}:{...message,disappearAfterSeconds:duration});
+  // Expiry is stamped once, while the application row remains mutable for
+  // the sole Outbox owner's Queued/Sending/Sent receipt transitions.
+  return duration==null?{...message}:{...message,disappearAfterSeconds:duration};
 }
 
 export const DISAPPEARING_COMPOSE_POLICY_V1=Object.freeze({

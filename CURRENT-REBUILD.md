@@ -15,6 +15,10 @@ Current product decision: disappearing direct and group messages use a fixed int
 
 By explicit user direction, `main` is now the single authority for application code, durable documentation, repository validation and GitHub Pages device testing. `fidunio-complete-rebuild` is a historical checkpoint only and must not receive new work or overwrite `main`. The former automatic recovery-document mirror is removed. The permanent Rebuild Baseline Security Gate runs on pushes to `main`. Protected Firebase configuration remains unchanged.
 
+## 0.9.9.8 readonly transport-row repair — 2026-09-07
+
+First direct-on-`main` iPad evidence showed `Attempted to assign to readonly property` and a row stuck at Sending. The disappearing compose policy froze the whole row, conflicting with the existing Outbox owner's required status mutation. The candidate keeps one-time expiry stamping but returns an application-owned mutable row, with regression coverage that transport state changes while expiry remains unchanged. Cache revision `001f`; full main gate/deployment/device proof pending. Completion remains 96%.
+
 ## 0.9.6.16 purge continuation
 Group disappearing purge now has deterministic history-grant trace planning and grant/copy versions in its server read basis. Physical group deletion remains deliberately fail-closed pending a race-safe new-grant barrier and one revalidated receipt/grant/source commit. Live Firebase and htest remain untouched.
 
