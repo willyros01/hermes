@@ -453,3 +453,5 @@ User-device evidence now satisfies the FDA-IOS-001 startup-feedback and FDA-IOS-
 0.9.9.8 remains IN PROGRESS and earns zero additional points. Total remains 96.0/100.0 (96%).
 
 Full normal baseline requested on the exact outgoing-decrypt repair candidate; completion and device credit remain pending the result.
+
+Baseline runs `34130208522` and `34130353052` failed only because the permanent Outbox cache assertion still expected prior revision `001d` while the candidate correctly advanced to `001e`. All preceding security steps, including account direct-message crypto/service, passed. The assertion is updated to the exact new revision; no security invariant is weakened. A complete rerun is required.

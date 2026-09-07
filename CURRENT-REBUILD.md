@@ -186,3 +186,5 @@ The user accepted the new startup spinner on iPhone/iPad and successfully used t
 ### 0.9.9.8 outgoing account-message read repair — 2026-09-07
 
 Both devices now report Account Encryption READY. Preserved rows reached Sent, establishing Firebase write acceptance, but sender-side reading used the incoming-only direction. The candidate adds direction-aware v3 reading to the existing account message service, rejects unknown senders, retains exact AAD/keyId checks, and permanently tests both directions. Compatibility-device warning text no longer falsely says account E2EE is paused; no fingerprint is trusted automatically. Cache revision is `001e`. Full baseline, promotion and device proof remain required. Completion remains 96%.
+
+First full runs `34130208522` and `34130353052` reached the Outbox gate after every earlier step passed, then failed because its exact cache-revision assertion remained pinned to `001d`. The candidate requires `001e`; update only that expected revision and rerun the entire baseline. This is test maintenance for deterministic cache invalidation, not a weakened invariant.
