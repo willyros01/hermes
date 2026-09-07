@@ -116,4 +116,8 @@ The same screenshot confirms that the Firestore conversation “Jax Rosales,” 
 - **Status:** REPAIR CANDIDATE — NOT CLOSED.
 - **Exit criteria:** Selector visually matches the dark composer in iPad portrait/landscape and remains readable/operable; user accepts the result.
 
+#### Post-deployment user evidence — 2026-09-07
+
+The user confirmed that the bright white native appearance is removed and the control is readable, but rejected its visual integration: the selector's size, shape, spacing and alignment do not match the adjacent quick-reply widgets. Per the user's direction, do not make another isolated cosmetic change now. Keep FDA-IPAD-006 **OPEN — DEFERRED** and address it with the next necessary 0.9.9.8 acceptance repair. The eventual repair must align the existing selector with the established widget visual language without changing its disappearing-message owner, behavior or accessible target size.
+
 The same screenshot provides positive evidence for FDA-IPAD-004 and FDA-IPAD-005: both headers clear the status bar and the two-pane shell fills the available width. Those items remain open only until explicit user acceptance.
