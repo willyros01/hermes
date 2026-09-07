@@ -412,3 +412,7 @@ User-device evidence confirms the selector is readable and no longer white, but 
 ## 0.9.9.8 direct-send acceptance blocker — 2026-09-07
 
 Real iPad-to-iPhone direct-message acceptance failed at the first send: `IPAD TEST 1` remained at Sending for more than one minute. FDA-DM-001 records the diagnosed unbounded pre-send authoritative reconciliation wait. Required exit remains permanent bounded/fail-closed Outbox regression coverage, full baseline green, corrected `main` deployment, and successful automatic Sent → Delivered → Read device proof. No point is earned; total remains 96.0/100.0 (96%).
+
+### 0.9.9.8 FDA-DM-001 repair candidate — 2026-09-07
+
+A 12-second authoritative-reconciliation boundary is added inside the established serialized `app.js` Outbox/reconnect path. Timeout policy requeues only unattempted Outbox-backed Sending rows, preserves encrypted Outbox authority, exposes a clear Firebase timeout, and cannot mint receipt state. Permanent baseline coverage and targeted local gates pass. The build remains IN PROGRESS until the full baseline is green, corrected `main` is deployed, and the iPad-to-iPhone Sent → Delivered → Read test passes. Total remains 96.0/100.0 (96%).

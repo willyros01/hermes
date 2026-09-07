@@ -234,6 +234,8 @@ Outbox attempt state is owned and mutated only by `app.js`; authoritative source
 
 FDA-DM-001 proves the current owner can remain indefinitely at Sending while awaiting authoritative server reconciliation before a direct Firestore send. Any repair stays within the same `app.js` serialized Outbox/reconnect owner and `firebase.js` server-read boundary. A bounded pre-send failure must preserve the Outbox and must not create another retry path or fabricate Sent/Delivered/Read.
 
+The 0.9.9.8 repair candidate implements that boundary through pure `outbox-reconciliation-boundary.js`, which owns no mutable resource. It supplies a 12-second wait boundary and a pure list of eligible requeue IDs. `app.js` remains the only state/IndexedDB mutation owner: it requeues only `sendAttempted !== true` Outbox-backed Sending rows and preserves every Outbox record. `firebase.js` remains the only Firebase SDK owner.
+
 ### 0.9.6.27 disappearing compose selection
 `disappearing-compose-policy.js` is pure normalization/presentation policy only. `app.js` owns the persisted user selection and snapshots it when constructing a new outgoing row. Existing direct/group Outbox and message owners carry the immutable `disappearAfterSeconds`; no UI preference becomes expiry or purge authority.
 

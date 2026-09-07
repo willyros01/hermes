@@ -7,6 +7,9 @@ This document records the architecture rules adopted after repeated Settings and
 CORE RULE
 ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH
 
+0.9.9.8 FDA-DM-001 BOUNDED RECONCILIATION
+`outbox-reconciliation-boundary.js` is pure timeout/requeue policy only and owns no mutable state, IndexedDB or Firebase resource. `app.js` remains the sole serialized Outbox/reconnect mutation owner and may return only an unattempted Outbox-backed Sending row to Queued after the bounded server wait. `firebase.js` remains the sole Firebase SDK/service owner. Timeout never deletes Outbox work and never creates Sent/Delivered/Read.
+
 UI OWNERSHIP
 1. Every functional screen/section has one structural owner.
 2. A feature may mutate only the DOM container explicitly assigned to it.

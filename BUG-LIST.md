@@ -129,3 +129,7 @@ Post-deployment user evidence confirms the selector is no longer white and is re
 ## FDA-DM-001 direct send stall — 2026-09-07
 
 Real iPad acceptance exposed a critical direct-message stall: `IPAD TEST 1` remained at Sending for more than one minute. Diagnosis identifies an unbounded pre-send authoritative server reconciliation: the encrypted Outbox row and Sending UI exist before `flushQueuedAfterAuthoritativeReconcile()` finishes, while its Firebase server reads have no timeout. The evidence does not establish a Firestore write. FDA-DM-001 is OPEN under 0.9.9.8; any repair must preserve the single Outbox/reconnect owner, fail closed, and never manufacture receipt state. Completion remains 96%.
+
+### FDA-DM-001 repair candidate — 2026-09-07
+
+The existing serialized Outbox owner now bounds authoritative reconciliation at 12 seconds and returns only unattempted Outbox-backed Sending rows to Queued on timeout. The encrypted Outbox is preserved, an explicit Firebase timeout is shown for a user-initiated send, and attempted rows remain protected by the established fail-closed replay rule. A permanent baseline gate proves the timeout and selection policy. Targeted gates pass locally; full baseline, `main` promotion and device acceptance remain pending. Completion remains 96%.
