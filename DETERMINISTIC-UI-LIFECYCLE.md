@@ -247,3 +247,7 @@ The first repair restored the real cloud conversation and composer/widgets and r
 ## 0.9.9.8 third iPad acceptance finding — 2026-09-07
 
 The second screenshot confirms the safe-area and full-width repairs visually, while exposing FDA-IPAD-006: iPad painted the native disappearing selector white inside the dark composer. The bounded CSS-only candidate themes the existing selector with the established panel/accent/ink variables and preserves an accessible 42px target. No render, Firebase, storage, E2EE or receipt owner changes. Targeted gates and user acceptance remain required; completion remains 96%.
+
+## FDA-IPAD-006 deferred alignment constraint — 2026-09-07
+
+The deployed theme removes the white native selector and preserves readability, but user-device evidence rejects its size, shape, spacing and alignment relative to the quick-reply widgets. No lifecycle or rendering-owner change is authorized in this documentation-only pass. FDA-IPAD-006 stays OPEN — DEFERRED for the next necessary 0.9.9.8 acceptance repair, which must retain the existing selector owner and deterministic composer lifecycle. Completion remains 96%.
