@@ -85,5 +85,29 @@ export function createAccountDirectMessageService({getRuntimeIdentity,getPublicI
     });
   }
 
-  return Object.freeze({prepareOutgoing,decryptIncoming});
+  async function decryptForAccount({uid,peerUid,conversationId,messageId,row}){
+    const {runtime,peer}=await resolveContext(uid,peerUid);
+    if(row?.e2ee!==3)throw codedError("UNSUPPORTED_MESSAGE_FORMAT","Message is not account-authoritative E2EE v3.");
+    const outgoing=row?.senderUid===runtime.uid;
+    const incoming=row?.senderUid===peer.uid;
+    if(!outgoing&&!incoming)throw codedError("FORMAT_ERROR","Encrypted message sender is not a conversation member.");
+    const senderUid=outgoing?runtime.uid:peer.uid;
+    const recipientUid=outgoing?peer.uid:runtime.uid;
+    const senderKeyId=outgoing?runtime.keyId:peer.keyId;
+    const recipientKeyId=outgoing?peer.keyId:runtime.keyId;
+    return decryptFn({
+      envelope:envelopeFromRow(row),
+      conversationId:required(conversationId,"Conversation ID"),
+      messageId:required(messageId,"Message ID"),
+      senderUid,recipientUid,senderKeyId,recipientKeyId,
+      localUid:runtime.uid,
+      localKeyId:runtime.keyId,
+      peerUid:peer.uid,
+      peerKeyId:peer.keyId,
+      localPrivateKey:runtime.privateKey,
+      peerPublicJwk:peer.publicJwk
+    });
+  }
+
+  return Object.freeze({prepareOutgoing,decryptIncoming,decryptForAccount});
 }

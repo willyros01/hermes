@@ -22,6 +22,9 @@ const base={uid:alice.uid,peerUid:bob.uid,conversationId:"dm_uid-alice_uid-bob",
 
 await test("READY account prepares exact v3 envelope",async()=>{const env=await service.prepareOutgoing({...base,text:"hello"});assert.deepEqual(Object.keys(env).sort(),["ciphertext","e2ee","iv","kdfVersion","recipientKeyId","senderKeyId"].sort());assert.equal(env.senderKeyId,alice.keyId);assert.equal(env.recipientKeyId,bob.keyId);assert.equal(env.e2ee,3);});
 await test("incoming v3 decrypts with account identities",async()=>{const row=await encryptAccountDirectMessage({text:"from bob",conversationId:base.conversationId,messageId:"msg-bob",senderUid:bob.uid,recipientUid:alice.uid,senderKeyId:bob.keyId,recipientKeyId:alice.keyId,senderPrivateKey:bob.privateKey,recipientPublicJwk:alice.publicJwk});assert.equal(await service.decryptIncoming({...base,messageId:"msg-bob",row}),"from bob");});
+await test("account reader decrypts an incoming v3 row",async()=>{const row={senderUid:bob.uid,...await encryptAccountDirectMessage({text:"incoming",conversationId:base.conversationId,messageId:"msg-in",senderUid:bob.uid,recipientUid:alice.uid,senderKeyId:bob.keyId,recipientKeyId:alice.keyId,senderPrivateKey:bob.privateKey,recipientPublicJwk:alice.publicJwk})};assert.equal(await service.decryptForAccount({...base,messageId:"msg-in",row}),"incoming");});
+await test("account reader decrypts its own outgoing v3 row",async()=>{const row={senderUid:alice.uid,...await service.prepareOutgoing({...base,messageId:"msg-out",text:"outgoing"})};assert.equal(await service.decryptForAccount({...base,messageId:"msg-out",row}),"outgoing");});
+await test("account reader rejects a non-member sender",async()=>{const row={senderUid:"uid-mallory",e2ee:3};await expectCode("FORMAT_ERROR",()=>service.decryptForAccount({...base,messageId:"msg-other",row}));});
 await test("missing runtime identity fails closed",async()=>{const saved=runtime;runtime=null;await expectCode("ACCOUNT_E2EE_NOT_READY",()=>service.prepareOutgoing({...base,text:"x"}));runtime=saved;});
 await test("runtime for another UID fails closed",async()=>{const saved=runtime;runtime={uid:bob.uid,keyId:bob.keyId,privateKey:bob.privateKey};await expectCode("ACCOUNT_E2EE_NOT_READY",()=>service.prepareOutgoing({...base,text:"x"}));runtime=saved;});
 await test("missing peer identity fails closed",async()=>{const saved=records;records=new Map([[alice.uid,alice.publicRecord]]);await expectCode("PEER_IDENTITY_UNAVAILABLE",()=>service.prepareOutgoing({...base,text:"x"}));records=saved;});
@@ -31,5 +34,5 @@ await test("inactive peer identity is rejected",async()=>{const saved=records;re
 await test("non-v3 incoming format is never silently downgraded",()=>expectCode("UNSUPPORTED_MESSAGE_FORMAT",()=>service.decryptIncoming({...base,row:{e2ee:2}})));
 await test("service never calls peer lookup when local account is not READY",async()=>{let calls=0;const failClosed=createAccountDirectMessageService({getRuntimeIdentity:()=>null,getPublicIdentity:async()=>{calls++;return bob.publicRecord;}});await expectCode("ACCOUNT_E2EE_NOT_READY",()=>failClosed.prepareOutgoing({...base,text:"x"}));assert.equal(calls,0);});
 
-assert.equal(passed,10);
-console.log(`${passed}/10 account direct-message service assertions passed.`);
+assert.equal(passed,13);
+console.log(`${passed}/13 account direct-message service assertions passed.`);

@@ -625,3 +625,7 @@ Authoritative `429855f037c3f9f0fb2a0f31ff1371a21f273922` passed full baseline `3
 ### Device evidence — startup/PIN pass; Account E2EE locked
 
 The user confirmed the large spinner on iPhone/iPad and successful unlock with the original iPhone local PIN. The current direct-send blocker is now explicit: the iPad Account E2EE identity is locked, so encryption correctly fails closed before Firestore send. No keys should be reset and the changed fingerprint must not be verified without comparison. Completion remains 96% pending Account Encryption unlock and receipt testing.
+
+### 0.9.9.8 sender-side v3 read candidate
+
+After both device accounts became Account Encryption READY, real queued rows reached Sent but the iPad could not read its own accepted ciphertext. The candidate adds the missing outgoing direction inside the existing account E2EE service, selected from authoritative sender UID and protected by exact keyId/AAD checks. Legacy compatibility-device trust is explicitly separated from account-authoritative E2EE. Direct tests pass; full baseline, promotion and device acceptance remain pending. Completion remains 96%.

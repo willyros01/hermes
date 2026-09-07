@@ -182,3 +182,7 @@ Authoritative `429855f037c3f9f0fb2a0f31ff1371a21f273922` passed full baseline `3
 ## Device result: startup/PIN repaired; Account E2EE remains locked — 2026-09-07
 
 The user accepted the new startup spinner on iPhone/iPad and successfully used the original iPhone local PIN. FDA-IOS-001 and FDA-IOS-002 are resolved. The iPad now exposes the actual pre-send blocker: its account E2EE identity is not unlocked. This is expected fail-closed behavior from the account-authoritative message service and does not prove Firebase communication failure. Do not reset keys or verify the changed peer fingerprint without comparison. Next acceptance action is to inspect the existing Settings → Account Encryption state and deliberately unlock the same durable identity. FDA-DM-001 remains open; completion remains 96%.
+
+### 0.9.9.8 outgoing account-message read repair — 2026-09-07
+
+Both devices now report Account Encryption READY. Preserved rows reached Sent, establishing Firebase write acceptance, but sender-side reading used the incoming-only direction. The candidate adds direction-aware v3 reading to the existing account message service, rejects unknown senders, retains exact AAD/keyId checks, and permanently tests both directions. Compatibility-device warning text no longer falsely says account E2EE is paused; no fingerprint is trusted automatically. Cache revision is `001e`. Full baseline, promotion and device proof remain required. Completion remains 96%.

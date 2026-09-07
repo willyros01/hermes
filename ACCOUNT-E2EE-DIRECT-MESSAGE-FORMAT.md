@@ -236,3 +236,7 @@ For a disappearing direct message, the shared source is final-purge eligible onl
 
 ## Direct Firestore purge repository — 0.9.6.15
 The server-only purge repository now derives direct recipient authority from the exact two-member conversation and binds conversation/message Firestore update times into the executor basis. An eligible direct purge transaction re-reads both snapshots and physically deletes the message only when that basis remains unchanged. Stale state fails closed; already-absent is idempotent. Browser delete permission, scheduler deployment, and local-cache convergence remain separate unfinished boundaries.
+
+## Runtime read direction clarification — 0.9.9.8
+
+A signed-in account must decrypt incoming and its own outgoing v3 rows. The single account-message service determines direction from authenticated UID and authoritative `senderUid`. Both directions retain actual sender/recipient AAD and exact authoritative keyIds; the runtime always uses its own private account key plus the peer public account key. A row whose sender is neither account fails closed. This is one read path, not a second E2EE or storage owner.
