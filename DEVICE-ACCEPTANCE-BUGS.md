@@ -67,3 +67,36 @@ The 0.9.9.7 real-device acceptance pass is **FAILED / BLOCKED** by FDA-IPAD-001 
 - **FDA-IPAD-003 diagnosis:** Sign Out was added inside the same narrow tablet icon cluster used by Settings and New Conversation after the protected checkpoints. The candidate gives Sign Out its own bounded sidebar row while retaining the established sidebar renderer.
 - **Repository evidence:** targeted `test:ipad-rc-stabilization`, release-candidate UI/lifecycle and Storage-wiring gates pass locally. Full baseline and user-device acceptance are still pending.
 - **Status:** REPAIR CANDIDATE — NOT CLOSED. Closure still requires full green baseline, promotion to `main`, Pages success and repeated user iPad portrait/landscape acceptance.
+
+
+### FDA-IPAD-004 — Standalone status bar obscures tablet headers
+
+- **Build under test:** 0.9.9.8 repair promoted to `main`
+- **Date reported:** 2026-09-06 device time / 2026-09-07 work session
+- **Reporter/device:** User; iPad landscape; existing Home-Screen installation
+- **Severity:** CRITICAL — layout/accessibility blocker
+- **Expected behavior:** Sidebar and chat headers begin below the iPad status bar.
+- **Observed behavior:** FIDUNIO branding and the active conversation header are partially hidden beneath the system status bar.
+- **Evidence:** User screenshot after first 0.9.9.8 repair deployment.
+- **Diagnosis:** Home-Screen mode can report a zero CSS safe-area inset even while the status bar overlays the page; the prior fallback padding was insufficient.
+- **Repair candidate:** A tablet-only bounded top reserve on the existing sidebar/header owners.
+- **Status:** REPAIR CANDIDATE — NOT CLOSED.
+- **Exit criteria:** Both headers remain fully visible in iPad portrait/landscape and after foreground return; user accepts the result.
+
+### FDA-IPAD-005 — Tablet shell leaves unused right-side viewport
+
+- **Build under test:** 0.9.9.8 repair promoted to `main`
+- **Date reported:** 2026-09-06 device time / 2026-09-07 work session
+- **Reporter/device:** User; iPad landscape; existing Home-Screen installation
+- **Severity:** HIGH — adaptive-layout blocker
+- **Expected behavior:** The established two-pane shell fills the available iPad application window.
+- **Observed behavior:** The two-pane application occupies only the left portion of the display and leaves a large unused black area on the right.
+- **Evidence:** User screenshot after first 0.9.9.8 repair deployment.
+- **Diagnosis:** The tablet shell used viewport width inside a flex body while the `#app` owner itself had no explicit full-width flex growth contract in standalone mode.
+- **Repair candidate:** Give the existing `#app` owner full flex width and size the existing tablet shell to that owner; no new layout owner.
+- **Status:** REPAIR CANDIDATE — NOT CLOSED.
+- **Exit criteria:** Two-pane shell fills the available iPad portrait/landscape window without breaking compact iPhone layout; user accepts the result.
+
+### First repair device evidence
+
+The same screenshot confirms that the Firestore conversation “Jax Rosales,” quick phrases, disappearing selector and message composer were restored, and Sign Out no longer crosses horizontally into the chat pane. FDA-IPAD-001 and the horizontal component of FDA-IPAD-003 are therefore visibly improved but remain open until the complete corrected layout and four-tool panel are user-accepted. FDA-IPAD-002 remains open pending the user’s readability judgment.
