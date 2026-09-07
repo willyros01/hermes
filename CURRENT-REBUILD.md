@@ -176,3 +176,5 @@ Candidate `6e6d5e84beb7e12173a5708835842512d44a92d4` passed complete baseline `3
 ## 0.9.9.8 retry-backlog/startup/PIN fail-closed candidate — 2026-09-07
 
 Fresh device evidence rejected the preceding candidate: launch remained blank for more than two minutes, the iPhone PIN appeared unset, and `ipad test 3` returned Sending → Queued after restart. The current candidate coalesces the three lifecycle recovery triggers instead of stacking bounded cycles; removes mandatory network token refresh from ordinary sends; shows retained Firebase stage errors; adds a large static startup spinner before asynchronous bootstrap; and treats local PIN storage failure as locked/unavailable rather than unconfigured. FDA-DM-001, FDA-IOS-001 and new FDA-IOS-002 remain open. Runtime remains 0.9.9.8 and completion remains 96%.
+
+Authoritative `429855f037c3f9f0fb2a0f31ff1371a21f273922` passed full baseline `34125430406`; promoted `main` is `2dcbd8a558ed8bf355ebec1c6bbc82e59948b29f`; Pages `34125666157` succeeded. Live corrected anchors and protected config were verified. Device acceptance remains required and completion remains 96%.

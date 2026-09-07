@@ -185,3 +185,7 @@ The second open took more than two minutes on a blank screen. A new `ipad test 3
 - **Repair constraint:** Never reset, replace or overwrite an existing PIN. Bound the storage open; distinguish available/unconfigured from unavailable; when unavailable, keep FIDUNIO locked without a Continue bypass.
 - **Status:** REPAIR CANDIDATE — NOT CLOSED.
 - **Exit criteria:** Full gate and deployment succeed; iPhone restart either presents the existing PIN prompt or a clear locked storage error, never a false no-PIN screen; user confirms behavior.
+
+#### Retry-backlog/startup/PIN candidate deployment evidence — 2026-09-07
+
+Authoritative commit `429855f037c3f9f0fb2a0f31ff1371a21f273922` passed complete baseline `34125430406`, including the new startup/PIN fail-closed gate. Exact tested tree was promoted to `main` as `2dcbd8a558ed8bf355ebec1c6bbc82e59948b29f`; Pages `34125666157`, Firebase adapter `34125667262`, and recovery security `34125666918` succeeded. Live files confirm coalescing, cached-token behavior, persistent stage banner, startup indicator, PIN-storage availability distinction, cache revision `001d`, and exact protected config blob. FDA-DM-001, FDA-IOS-001 and FDA-IOS-002 remain OPEN pending user-device evidence.
