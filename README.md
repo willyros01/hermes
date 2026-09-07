@@ -554,3 +554,13 @@ The next checkpoint is 0.9.9.7 and is intentionally **BLOCKED — USER DEVICE PR
 Runtime version advanced 0.9.9.5 -> 0.9.9.6 solely to materialize the deployment candidate. Full Rebuild Baseline Security Gate **34067021824** completed SUCCESS on commit `31dac2c0b551429a5a4ba7cf7c967e6316e9a9e6`. The `htest` branch was then created directly at that exact commit, so the deployed test source and version are identical to the gated candidate. No live Firebase configuration, rules, Functions, App Check enforcement or production branch was changed.
 
 The next checkpoint is 0.9.9.7 and is intentionally **BLOCKED — USER DEVICE PROOF** until real iPhone/iPad/two-account/offline/disappearing/attachment/invitation/install/recovery acceptance is performed.
+
+
+## 0.9.9.8 Firebase Storage connectivity repair — IN PROGRESS — 2026-09-06
+The 0.9.9.7 pre-acceptance connectivity check proved that the prior 0.9.7.x attachment gates were repository-only dependency-injection/source tests, not a real Firebase-backed attachment test. The live default bucket `fidunio-fef13.firebasestorage.app` was then created in `US-CENTRAL1`, the reviewed `storage.rules` compiled and deployed, and Firebase granted the required Storage-Rules-to-Firestore cross-service role. Firestore rules, Functions, Hosting, Auth, App Check, GitHub branches and protected Firebase configuration were not changed by that live setup.
+
+Repository stabilization now registers `storage.rules` in `firebase.json` and adds a permanent Storage deployment-wiring gate. Runtime advances 0.9.9.6 -> 0.9.9.8 because 0.9.9.7 is the device-acceptance gate, not an implementation build. This does not complete attachment acceptance: authenticated real-device upload/download/authorization/offline/purge proof remains required. The 0.9.9.8 point remains unearned until the full repository gate is green and acceptance defects are closed. Overall ledger remains 96.0/100 (96%).
+
+
+### 0.9.9.8 repository validation checkpoint — 2026-09-06
+Commit `34c8d237eb8f08b8228f670b8ca958038b553aef` registers `storage.rules` in `firebase.json`, adds the permanent `storage-deployment-wiring.test.mjs` gate, advances runtime to 0.9.9.8, and preserves `firebase-config.js` unchanged at blob `b81026dcc07b7374d1f48d0cb094764ce28319bd`. Full Rebuild Baseline Security Gate `34072294756` completed SUCCESS, including the new Firebase Storage deployment-wiring step. This proves repository deployability, not real attachment operation. 0.9.9.8 remains IN PROGRESS pending authenticated iPhone/iPad upload, second-device download/decrypt, unauthorized denial, offline/reconnect and disappearing-attachment purge proof. No additional completion credit is earned; overall remains 96.0/100 (96%).
