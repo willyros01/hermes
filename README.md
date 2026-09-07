@@ -242,7 +242,8 @@ Before consequential rebuild work, read and reconcile the repository documentati
 - `ACCOUNT-E2EE-GROUP-MESSAGE-FORMAT.md` — group-message/history policy contract.
 - `E2EE-IDENTITY-LIFECYCLE.md` and `E2EE-RECOVERY-PROTOCOL.md` — identity and recovery contracts.
 - `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-GROUP-E2EE-V1-RULES.md`, and emulator-test docs — security-rule authority and validation.
-- `BUG-LIST.md` — durable defect ledger.
+- `BUG-LIST.md` — concise durable defect ledger.
+- `DEVICE-ACCEPTANCE-BUGS.md` — critical detailed ledger for real-device acceptance and RC-stabilization defects.
 - `REBUILD-BASELINE-AUDIT.md` — baseline keep/remove/audit history.
 - `hermes-setup.txt` — reusable setup/deployment/recovery/testing instructions.
 - `DISAPPEARING-PURGE-AUTHORITY.md` — disappearing-content physical purge ownership, trace-set, server-time, revalidation, and anti-resurrection contract.
@@ -564,3 +565,8 @@ Repository stabilization now registers `storage.rules` in `firebase.json` and ad
 
 ### 0.9.9.8 repository validation checkpoint — 2026-09-06
 Commit `34c8d237eb8f08b8228f670b8ca958038b553aef` registers `storage.rules` in `firebase.json`, adds the permanent `storage-deployment-wiring.test.mjs` gate, advances runtime to 0.9.9.8, and preserves `firebase-config.js` unchanged at blob `b81026dcc07b7374d1f48d0cb094764ce28319bd`. Full Rebuild Baseline Security Gate `34072294756` completed SUCCESS, including the new Firebase Storage deployment-wiring step. This proves repository deployability, not real attachment operation. 0.9.9.8 remains IN PROGRESS pending authenticated iPhone/iPad upload, second-device download/decrypt, unauthorized denial, offline/reconnect and disappearing-attachment purge proof. No additional completion credit is earned; overall remains 96.0/100 (96%).
+
+
+## 0.9.9.7 iPad acceptance failure — 2026-09-06
+
+Real-device testing on the promoted `main` build exposed three release-candidate blockers: missing conversation widgets, materially regressed iPad text size, and conversation-pane overlap. The durable detailed records are FDA-IPAD-001 through FDA-IPAD-003 in `DEVICE-ACCEPTANCE-BUGS.md`. These are user-observed device failures, not repository simulations. Build 0.9.9.7 remains FAILED/BLOCKED; 0.9.9.8 remains the allocated RC stabilization build and earns no point until repair, full required gates, redeployment and repeated user acceptance. Overall completion remains 96.0/100.0 (96%).
