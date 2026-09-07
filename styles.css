@@ -246,6 +246,15 @@ textarea{
   min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
   background:var(--bg)
 }
+.startup-shell{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:18px;padding:32px;background:var(--bg);color:var(--ink);text-align:center;font-size:22px
+}
+.startup-shell span{color:var(--muted);font-size:18px;line-height:1.45}
+.startup-logo{width:112px;height:112px;object-fit:contain;border-radius:24px}
+.startup-spinner{width:64px;height:64px;border:7px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:fidunio-start-spin .9s linear infinite}
+@keyframes fidunio-start-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.startup-spinner{animation-duration:1.8s}}
 .unlock-card{width:100%;background:var(--panel);border-radius:24px;padding:28px 22px;box-shadow:var(--shadow);text-align:center}
 .lock-mark{font-size:44px}
 .unlock h1{margin:10px 0 6px;font-size:26px}

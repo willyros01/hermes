@@ -615,3 +615,7 @@ After the required second launch, the two preserved iPad messages display Queued
 The Verify handler's direct queue flush bypassed the established serialized authoritative Outbox cycle. The candidate routes it through that owner and force-refreshes Firebase Auth through `firebase.js` before reconciliation, with bounded stage-specific failure messages. Verification is a stored trust decision, not proof of a fingerprint comparison; no key reset occurred. Firebase rules and protected configuration remain unchanged. Full gate, `main` deployment and device acceptance remain required; completion stays 96%.
 
 Candidate `6e6d5e84beb7e12173a5708835842512d44a92d4` passed full baseline `34087534090` and was promoted to `main` as `529a56d1f8e45d463a47d8c6150f95b4937ee87b`. Pages `34087730948` succeeded and live repair/config anchors were verified. Real two-device Sent → Delivered → Read acceptance remains required; completion stays 96%.
+
+### 0.9.9.8 retry-backlog/startup/PIN fail-closed candidate — 2026-09-07
+
+Device retest found a two-minute blank startup, iPhone PIN presented as unset, and a new direct message returned Sending → Queued. The candidate coalesces stacked recovery triggers, avoids unnecessary forced token refresh, displays connection-stage errors, adds a large startup spinner, and keeps the app locked if PIN storage is unavailable. It does not reset the PIN, keys, Firebase rules or protected configuration. Full gate/deployment/device acceptance remain required; completion stays 96%.

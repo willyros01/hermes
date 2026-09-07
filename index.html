@@ -17,7 +17,14 @@
   <link rel="stylesheet" href="iphone-overflow-fix.css" />
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <main class="startup-shell" role="status" aria-live="polite" aria-label="FIDUNIO is starting">
+      <img class="startup-logo" src="fidunio-logo.png" alt="" />
+      <div class="startup-spinner" aria-hidden="true"></div>
+      <strong>Starting FIDUNIO…</strong>
+      <span>Opening your secure local data.</span>
+    </main>
+  </div>
   <script src="version.js"></script>
   <script type="module" src="bootstrap.js"></script>
 </body>

@@ -1,7 +1,7 @@
 import {
   isFirebaseConfigured,
   initFirebase,
-  refreshFirebaseAuthSession,
+  ensureFirebaseAuthSession,
   createFidunioAccount,
   signInFidunio,
   signOutFidunio,
@@ -999,6 +999,18 @@ function render(){
 
 function renderUnlock(){
   const security=getLocalSecurityStatus();
+  if(!security.available){
+    app.innerHTML=`
+      <main class="app-shell unlock">
+        <section class="unlock-card">
+          <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
+          <h1>FIDUNIO remains locked</h1>
+          <p class="warning-note">Your local PIN storage could not be read. Your PIN has not been reset. Close FIDUNIO completely, then open it again.</p>
+          <div class="small-note">${esc(security.error||"Local PIN storage is unavailable.")}</div>
+        </section>
+      </main>`;
+    return;
+  }
   if(!security.hasPin){
     app.innerHTML=`
       <main class="app-shell unlock">
@@ -1188,6 +1200,7 @@ function renderChat(){
         ${isWideLayout()?"":mainSignOutMarkup()}
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
+      ${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}
       ${c.cloud && currentConversationSecurityStatus(c)==="changed"
         ? '<div class="status-banner">Security warning — this contact\'s previously verified encryption key changed. Verify the new fingerprint before sending.</div>'
         : c.cloud && currentConversationSecurityStatus(c)==="changed-unverified"
@@ -1324,11 +1337,9 @@ function serializeReconnectRecovery(work){
   return run;
 }
 let outboxCycleTail=Promise.resolve();
-function serializeOutboxCycle(work){
-  const run=outboxCycleTail.then(work,work);
-  outboxCycleTail=run.catch(()=>{});
-  return run;
-}
+let outboxCycleRunning=false;
+let outboxCyclePending=false;
+let outboxCycleNotify=false;
 async function reconcileOutboxBeforeReplay(){
   if(!state.online||!firebaseUser)return{acceptedOutboxDeleteIds:[],purgeMessageIds:[],replayMessageIds:[],blockedMessageIds:[]};
   return serializeReconnectRecovery(async()=>{
@@ -1383,20 +1394,34 @@ async function requeueUnattemptedSendingOutboxMessages(){
 }
 async function flushQueuedAfterAuthoritativeReconcile({notifyUser=false}={}){
   if(!state.online||!firebaseUser)return;
-  return serializeOutboxCycle(async()=>{
-    try{
-      await awaitBoundedOutboxReconciliation(refreshFirebaseAuthSession(),{stage:"auth-refresh"});
-      const plan=await awaitBoundedOutboxReconciliation(reconcileOutboxBeforeReplay());
-      return await flushQueued({allowedCloudMessageIds:new Set(plan.replayMessageIds),notifyUser});
-    }catch(err){
-      firebaseError=err?.message||String(err);
-      console.warn("Authoritative reconnect reconciliation failed; cloud Outbox replay blocked",err);
-      if(isOutboxReconciliationTimeout(err)){
-        await requeueUnattemptedSendingOutboxMessages();
-        if(notifyUser)alert(firebaseError);
+  outboxCyclePending=true;
+  outboxCycleNotify=outboxCycleNotify||notifyUser;
+  if(outboxCycleRunning)return outboxCycleTail;
+  outboxCycleRunning=true;
+  outboxCycleTail=(async()=>{
+    while(outboxCyclePending){
+      outboxCyclePending=false;
+      const cycleNotify=outboxCycleNotify;
+      outboxCycleNotify=false;
+      try{
+        await awaitBoundedOutboxReconciliation(ensureFirebaseAuthSession(),{stage:"auth-session"});
+        const plan=await awaitBoundedOutboxReconciliation(reconcileOutboxBeforeReplay());
+        await flushQueued({allowedCloudMessageIds:new Set(plan.replayMessageIds),notifyUser:cycleNotify});
+        firebaseError="";
+      }catch(err){
+        firebaseError=err?.message||String(err);
+        console.warn("Authoritative reconnect reconciliation failed; cloud Outbox replay blocked",err);
+        if(isOutboxReconciliationTimeout(err)){
+          await requeueUnattemptedSendingOutboxMessages();
+          if(cycleNotify)alert(firebaseError);
+        }else if(cycleNotify){
+          render();
+          alert(firebaseError);
+        }
       }
     }
-  });
+  })().finally(()=>{outboxCycleRunning=false;});
+  return outboxCycleTail;
 }
 async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
   if(!state.online) return;

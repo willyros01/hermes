@@ -81,3 +81,4 @@ jobs:
       - {name: 1.0 candidate UI and lifecycle gate, run: npm run test:release-candidate-ui}
       - {name: iPad RC stabilization gate, run: npm run test:ipad-rc-stabilization}
       - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}
+      - {name: Startup and local PIN fail-closed resilience, run: npm run test:startup-auth-resilience}

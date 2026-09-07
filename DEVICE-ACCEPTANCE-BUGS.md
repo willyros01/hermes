@@ -169,3 +169,19 @@ After the required second launch, both preserved messages display Queued rather 
 The user clarified that each device's Verify button was pressed without comparing fingerprints. That action is a stored trust decision, not proof that the fingerprints matched; no key reset or regeneration is authorized. Code diagnosis found a concrete ownership defect: the Verify handler called `flushQueued()` directly and bypassed the authoritative serialized reconcile/Outbox cycle. The candidate routes verification-triggered work through `flushQueuedAfterAuthoritativeReconcile()`. Before reconciliation, sole Firebase SDK owner `firebase.js` forces a current authenticated ID token. The 12-second boundary now names the exact failing stage: authentication refresh, reconciliation, peer resolution, envelope preparation, or send confirmation. Pre-attempt ambiguity remains Queued; post-attempt ambiguity remains Failed; no receipt is fabricated. Cache revision is `0.9.9.8-fda-dm-001c`. Protected Firebase configuration and Firebase rules are unchanged. FDA-DM-001 remains OPEN pending full gate, `main` deployment, and real Sent → Delivered → Read proof.
 
 Repository/deployment evidence: authoritative candidate `6e6d5e84beb7e12173a5708835842512d44a92d4`; complete Rebuild Baseline Security Gate `34087534090` SUCCESS; promoted `main` commit `529a56d1f8e45d463a47d8c6150f95b4937ee87b`; Firebase adapter gate `34087731108` SUCCESS; Pages deployment `34087730948` SUCCESS. Live files confirm auth refresh, serialized Verify routing, stage diagnostics and cache revision `001c`. Live `firebase-config.js` remains exact blob `b81026dcc07b7374d1f48d0cb094764ce28319bd`. FDA-DM-001 remains OPEN pending device proof.
+
+#### FDA-DM-001 second device result and backlog diagnosis — 2026-09-07
+
+The second open took more than two minutes on a blank screen. A new `ipad test 3` message stayed Sending and returned to Queued after close/reopen. This again proves no Firestore acceptance and safe Outbox preservation. Code diagnosis found that immediate, 1.5-second and 4-second lifecycle recovery triggers accumulated behind the serialized 12-second boundary; a user send could wait behind that backlog. The prior candidate also forced a network ID-token refresh before every send. The corrected candidate coalesces duplicate triggers into one running cycle plus only a required follow-up, uses Firebase's valid cached token with automatic refresh when necessary, and keeps a visible stage-specific Firebase error banner. Cache revision advances to `0.9.9.8-fda-dm-001d`. FDA-DM-001 remains OPEN pending full gate/deployment/device proof.
+
+### FDA-IOS-002 — Existing local PIN appears unconfigured
+
+- **Build under test:** 0.9.9.8 promoted `main` candidate with cache revision `001c`
+- **Date reported:** 2026-09-07
+- **Reporter/device:** User; iPhone installed PWA
+- **Severity:** HIGH — local-lock state must fail closed
+- **Observed behavior:** The previously configured iPhone PIN appeared no longer set after the prolonged startup.
+- **Diagnosis:** `local-security.js` could translate an IndexedDB open/read failure into its default no-PIN state. That makes storage unavailability indistinguishable from a genuinely unconfigured installation. No code path was found that deliberately deletes the PIN during startup.
+- **Repair constraint:** Never reset, replace or overwrite an existing PIN. Bound the storage open; distinguish available/unconfigured from unavailable; when unavailable, keep FIDUNIO locked without a Continue bypass.
+- **Status:** REPAIR CANDIDATE — NOT CLOSED.
+- **Exit criteria:** Full gate and deployment succeed; iPhone restart either presents the existing PIN prompt or a clear locked storage error, never a false no-PIN screen; user confirms behavior.
