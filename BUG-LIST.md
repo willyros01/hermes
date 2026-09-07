@@ -139,3 +139,11 @@ The existing serialized Outbox owner now bounds authoritative reconciliation at 
 Real-device retest showed the original Failed row returned to Sending and two new rows remained Sending beyond one minute. The first reconciliation-only timeout is therefore insufficient. Diagnosis found that full Outbox flushes could overlap after serialized reconciliation and that later Firebase-dependent stages remained unbounded. The expanded candidate serializes the complete cycle, bounds peer/key/envelope/send-confirmation stages, preserves Queued before attempt and Failed after ambiguous attempt, and deterministically revises the same-version service-worker cache. Targeted gates pass; full baseline and device proof remain required. Completion remains 96%.
 
 Expanded candidate `90460aea19c0d5204c91b2542d59905b1edff246` passed full baseline `34085040014`, was promoted to `main` as `321d182cbd08cb690fa4df7caf96221ef69d09b4`, and passed Pages deployment `34085354728`. Live files were verified. FDA-DM-001 is not closed until the user-device retest proves bounded state and authenticated Firebase send/receipt operation. Completion remains 96%.
+
+### FDA-DM-001 bounded behavior confirmed; Firebase communication still open — 2026-09-07
+
+After the second installed-app launch, both preserved direct messages display Queued. This confirms the expanded bounded transition, Outbox preservation and absence of false receipts. Authenticated Firebase communication still failed to complete during the boundary, so FDA-DM-001 remains open for connectivity diagnosis.
+
+### FDA-IOS-001 deferred startup feedback defect — 2026-09-07
+
+The user reports a lengthy iPhone login/startup interval showing only a blank screen. Desired behavior is a prominent accessible spinner/loading message until the first screen is ready. Record only; combine with later minor acceptance work without changing auth ownership or adding polling/reload lifecycle repair. Completion remains 96%.

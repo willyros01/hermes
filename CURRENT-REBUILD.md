@@ -162,3 +162,7 @@ The first promoted candidate did not pass device acceptance: an existing Failed 
 ### Expanded candidate validation and deployment — 2026-09-07
 
 Commit `90460aea19c0d5204c91b2542d59905b1edff246` passed full Rebuild Baseline Security Gate `34085040014`. It was promoted to `main` at `321d182cbd08cb690fa4df7caf96221ef69d09b4`; Pages run `34085354728` succeeded and live code/cache anchors were verified. FDA-DM-001 remains OPEN pending the user's fresh installed-iPad observation and authenticated Firebase send/receipt proof. Completion remains 96%.
+
+## Current device evidence — queued correctly; Firebase connectivity unresolved — 2026-09-07
+
+The second iPad launch shows both preserved messages as Queued. The repair therefore prevents indefinite Sending and preserves Outbox authority without false receipts. The underlying authenticated Firebase path still does not complete, so FDA-DM-001 remains open and further test sends are paused pending connectivity diagnosis. New minor FDA-IOS-001 records the iPhone's blank startup/login interval and defers an accessible spinner/loading state to a later bundled minor repair. Completion remains 96%.
