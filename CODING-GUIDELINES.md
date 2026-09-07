@@ -4,6 +4,8 @@
 
 These rules are part of the project architecture. They are not optional style preferences. Every future code change must be checked against this document before implementation.
 
+**Repository authority:** As of 2026-09-07, all changes are made directly on `main`. `fidunio-complete-rebuild` is a historical checkpoint only. Do not restore a mirror, duplicate branch workflow, or two-branch promotion path without new explicit user approval.
+
 ## 1. Core rule
 
 **ONE RESOURCE → ONE OWNER → ONE PREDEFINED AREA → ONE SERIALIZED WRITE PATH**

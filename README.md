@@ -7,12 +7,13 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Repository: `willyros01/hermes`
 - Product name: **FIDUNIO**
 - Internal/project name: **Hermes**
-- Authoritative development branch: `fidunio-complete-rebuild`
-- Current checkpoint version: **0.9.9.6**
+- Sole authoritative development/deployment branch: `main`
+- Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
+- Current checkpoint version: **0.9.9.8**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
-- `main` is not the current application-development authority; it is a curated recovery/reference/documentation branch.
-- `htest` is reserved for coherent final-stage testing deployments and is not continuously synchronized with intermediate rebuild work.
+- GitHub Pages from `main` is the current full Firebase-connected device-test surface.
+- The former rebuild-to-main documentation mirror is retired.
 - Firebase Cloud Messaging is deferred to FIDUNIO 1.1.
 - Firebase App Check production enforcement is deferred to FIDUNIO 1.2 and remains OFF during the first rebuild.
 

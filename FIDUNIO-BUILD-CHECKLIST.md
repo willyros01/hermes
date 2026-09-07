@@ -1,6 +1,6 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
-This file is the operational completion ledger for the `fidunio-complete-rebuild` branch.
+This file is the operational completion ledger for the sole authoritative `main` branch. `fidunio-complete-rebuild` is historical only after the 2026-09-07 branch-authority transition.
 
 ## Mandatory build-session rule
 
@@ -459,3 +459,7 @@ Baseline runs `34130208522` and `34130353052` failed only because the permanent 
 Corrected authoritative commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509` passed the complete Rebuild Baseline Security Gate run `34130779064` SUCCESS, including Outbox, startup/PIN, account direct-message crypto/service, rules and all prior security gates. Repository validation is satisfied; exact-tree `main` promotion and device receipts remain pending. Completion remains 96.0/100.0 (96%).
 
 Final documented authoritative commit `243e1698f5efad09e03587cce0c8689c81ff4659` passed complete baseline `34131152754`. Its exact tree was promoted to `main` as `a08d985a8308b9f9da9fabc3c127beefc452fe04`; Pages run `34131445802` completed SUCCESS. Protected `firebase-config.js` remained blob `b81026dcc07b7374d1f48d0cb094764ce28319bd`; `config-firestore.js` remains absent. User-device readable Sent → Delivered → Read is still required. Completion remains 96%.
+
+### Branch-authority simplification — 2026-09-07
+
+By explicit user decision, allocate branch/process maintenance within the current 0.9.9.8 stabilization session: all future code, documentation, gates and Pages tests occur directly on `main`. The rebuild branch is frozen as history. Remove the automatic documentation mirror and retarget the permanent full baseline push trigger to `main`. This process simplification earns no product point. Completion remains 96%.

@@ -293,3 +293,5 @@ FDA-DM-001 enforcement: key verification may record trust but must route retry t
 Repeated online/foreground/verification triggers are coalesced by the same `app.js` Outbox coordinator; they may not accumulate independent serialized cycles. `firebase.js` owns normal cached-token validity and automatic refresh. `local-security.js` alone distinguishes PIN storage available/unconfigured from unavailable; unavailable state fails closed and cannot expose Continue.
 
 0.9.9.8 direct-message read direction: `e2ee-account-message-service.js` owns the one direction decision for v3 incoming and own-outgoing rows using authenticated UID plus authoritative `senderUid`; `e2ee-account-message-crypto.js` remains the sole transformation owner. Non-member senders fail closed. Compatibility device-key trust remains separate from account-authoritative E2EE.
+
+Repository/process ownership from 2026-09-07: `main` is the one code/documentation/test/deployment authority. `fidunio-complete-rebuild` is historical and has no write or mirror authority. The permanent baseline listens to `main`; no document synchronization workflow remains.

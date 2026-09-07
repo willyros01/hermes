@@ -2,7 +2,7 @@ name: Rebuild Baseline Security Gate
 
 on:
   push:
-    branches: [fidunio-complete-rebuild]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
