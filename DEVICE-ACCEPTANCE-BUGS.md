@@ -58,3 +58,12 @@ Every entry must preserve: bug ID, build, date, reporter/device, severity, accep
 ## Acceptance consequence
 
 The 0.9.9.7 real-device acceptance pass is **FAILED / BLOCKED** by FDA-IPAD-001 through FDA-IPAD-003. The 0.9.9.8 stabilization point remains unearned. Promotion readiness 0.9.9.9 and 1.0 promotion are prohibited until these defects are repaired, repository-gated, redeployed, and accepted by the user. Whole first-rebuild completion remains **96.0 / 100.0 (96%)**.
+
+
+## 0.9.9.8 repair candidate — 2026-09-07
+
+- **FDA-IPAD-001 diagnosis:** the supported composer remains in `renderChat`, but the reported device entered the empty-conversation route. The tablet tool CSS also retained an obsolete eight-column allocation after the supported tool set was reduced to Photo/File/Audio/Video. The candidate adds explicit direct/group cloud-discovery pending/error presentation and changes only the tablet tool allocation to four columns. It does not fabricate a conversation or restore quarantined data.
+- **FDA-IPAD-002 diagnosis:** the protected root A/A+/A++ owner remains intact, but tablet chrome used fixed pixel sizes that did not scale from it. The candidate converts affected tablet brand/navigation/tool labels to `rem`-based sizing. It does not create another Settings owner.
+- **FDA-IPAD-003 diagnosis:** Sign Out was added inside the same narrow tablet icon cluster used by Settings and New Conversation after the protected checkpoints. The candidate gives Sign Out its own bounded sidebar row while retaining the established sidebar renderer.
+- **Repository evidence:** targeted `test:ipad-rc-stabilization`, release-candidate UI/lifecycle and Storage-wiring gates pass locally. Full baseline and user-device acceptance are still pending.
+- **Status:** REPAIR CANDIDATE — NOT CLOSED. Closure still requires full green baseline, promotion to `main`, Pages success and repeated user iPad portrait/landscape acceptance.

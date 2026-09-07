@@ -745,20 +745,35 @@ html.text-aplusplus .member-card > :last-child{
 .tablet-brand-row{
   min-height:76px;
   padding:14px 16px 10px;
+  display:grid;
+  gap:8px;
+  border-bottom:1px solid var(--line);
+}
+.tablet-brand-primary{
+  min-width:0;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:12px;
-  border-bottom:1px solid var(--line);
+  gap:10px;
+}
+.tablet-brand-copy{min-width:0;}
+.tablet-account-row{
+  display:flex;
+  justify-content:flex-end;
+  min-width:0;
+}
+.tablet-account-row #fidunioMainSignOutBtn{
+  max-width:100%;
+  margin:0!important;
 }
 .tablet-brand-name{
   font-weight:800;
   letter-spacing:.02em;
-  font-size:21px;
+  font-size:1.3125rem;
 }
 .tablet-brand-sub{
   color:var(--muted);
-  font-size:12px;
+  font-size:.875rem;
   margin-top:2px;
 }
 .tablet-search-wrap{
@@ -848,7 +863,7 @@ html.text-aplusplus .member-card > :last-child{
   }
   .tablet-chat-pane .tool-panel.open{
     display:grid;
-    grid-template-columns:repeat(8,minmax(0,1fr));
+    grid-template-columns:repeat(4,minmax(0,1fr));
     gap:6px;
     width:100%;
     padding:8px 10px 4px;
@@ -879,7 +894,7 @@ html.text-aplusplus .member-card > :last-child{
   }
   .tablet-chat-pane .tool span:last-child{
     width:100%;
-    font-size:12px;
+    font-size:.75rem;
     line-height:1.05;
     white-space:nowrap;
     overflow:visible;
@@ -915,7 +930,7 @@ html.text-aplusplus .member-card > :last-child{
     align-items:center;
     justify-content:center;
     gap:4px;
-    font-size:11px;
+    font-size:.75rem;
     font-weight:700;
   }
   .tablet-nav-item svg{display:block}
@@ -984,7 +999,7 @@ html.text-aplusplus .member-card > :last-child{
 
   .tablet-chat-pane .tool-panel.open{
     display:grid;
-    grid-template-columns:repeat(8,minmax(0,1fr));
+    grid-template-columns:repeat(4,minmax(0,1fr));
     gap:4px;
     width:100%;
     max-width:100%;
@@ -1019,7 +1034,7 @@ html.text-aplusplus .member-card > :last-child{
   .tablet-chat-pane .tool span:last-child{
     display:block;
     width:100%;
-    font-size:10px;
+    font-size:.6875rem;
     line-height:1.05;
     white-space:nowrap;
     overflow:visible;
@@ -1041,7 +1056,7 @@ html.text-aplusplus .member-card > :last-child{
   .tablet-nav-item span{
     display:block;
     max-width:100%;
-    font-size:10px;
+    font-size:.75rem;
     white-space:nowrap;
   }
 }
@@ -1072,7 +1087,7 @@ html.text-aplusplus .member-card > :last-child{
     width:min(100%, 860px);
     margin:8px auto 2px;
     padding:10px 12px 8px;
-    grid-template-columns:repeat(8,minmax(72px,1fr));
+    grid-template-columns:repeat(4,minmax(72px,1fr));
     gap:8px;
     border:1px solid var(--line);
     border-radius:16px;
@@ -1098,7 +1113,7 @@ html.text-aplusplus .member-card > :last-child{
   }
 
   .tablet-chat-pane .tool span:last-child{
-    font-size:11px;
+    font-size:.75rem;
     font-weight:700;
   }
 

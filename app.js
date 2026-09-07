@@ -78,10 +78,12 @@ let firebaseReady = false;
 let firebaseError = "";
 let firebaseUser = null;
 let cloudConversationUnsub = null;
+let cloudConversationSyncPending = false;
 let peerDisplayNameUnsub = ()=>{};
 let peerDisplayNameKey = "";
 let peerDisplayNames = {};
 let cloudGroupUnsub = null;
+let cloudGroupSyncPending = false;
 let groupCandidates = [];
 let cloudMessageUnsub = null;
 let cloudMessageConversationId = null;
@@ -448,7 +450,8 @@ function mergeCloudGroup(remote){
 function beginCloudGroupSubscription(){
   if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
   if(!firebaseUser)return;
-  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{firebaseError=err?.message||String(err);});
+  cloudGroupSyncPending=true;
+  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{cloudGroupSyncPending=false;rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();});
 }
 function stopPeerDisplayNameSubscription(){
   try{peerDisplayNameUnsub();}catch{}
@@ -480,7 +483,9 @@ function stopCloudMessageSubscription(){
 function beginCloudConversationSubscription(){
   if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
   if(!firebaseUser) return;
+  cloudConversationSyncPending=true;
   cloudConversationUnsub=subscribeMyConversations(firebaseUser.uid, rows=>{
+    cloudConversationSyncPending=false;
     rows.forEach(mergeCloudConversation);
     syncPeerDisplayNameSubscription(rows);
     // A restored Firestore conversation may repair peerUid for an older
@@ -489,8 +494,10 @@ function beginCloudConversationSubscription(){
     persistSoon();
     if(state.route==="messages" || state.route==="chat") render();
   }, err=>{
+    cloudConversationSyncPending=false;
     firebaseError=err?.message || String(err);
     if(state.route==="settings") renderSettings();
+    else if(state.route==="messages"||state.route==="chat")render();
   });
 }
 function ensureActiveCloudMessageSubscription(force=false){
@@ -923,15 +930,17 @@ function renderConversationSidebar(){
   return `
     <aside class="tablet-sidebar">
       <div class="tablet-brand-row">
-        <div>
-          <div class="tablet-brand-name">FIDUNIO</div>
-          <div class="tablet-brand-sub">Private Messaging</div>
+        <div class="tablet-brand-primary">
+          <div class="tablet-brand-copy">
+            <div class="tablet-brand-name">FIDUNIO</div>
+            <div class="tablet-brand-sub">Private Messaging</div>
+          </div>
+          <div class="tablet-brand-actions">
+            <button class="icon-btn icon-2d" id="tabletSettingsBtn" aria-label="Settings">${icon2d("settings",23)}</button>
+            <button class="icon-btn icon-2d" id="tabletNewBtn" aria-label="New conversation">${icon2d("plus",23)}</button>
+          </div>
         </div>
-        <div class="tablet-brand-actions">
-          <button class="icon-btn icon-2d" id="tabletSettingsBtn" aria-label="Settings">${icon2d("settings",23)}</button>
-          <button class="icon-btn icon-2d" id="tabletNewBtn" aria-label="New conversation">${icon2d("plus",23)}</button>
-          ${mainSignOutMarkup()}
-        </div>
+        <div class="tablet-account-row">${mainSignOutMarkup()}</div>
       </div>
       <div class="tablet-search-wrap">
         <input class="search" id="tabletSearchBox" placeholder="Search conversations" />
@@ -1052,7 +1061,10 @@ function renderMessages(){
     }
     state.selectedId=null;
     stopCloudMessageSubscription();
-    app.innerHTML=`<main class="app-shell tablet-shell">${renderConversationSidebar()}<section class="tablet-chat-pane"><div class="content"><div class="card" style="text-align:center;margin-top:24px"><h2>No conversations yet</h2><p class="small-note">Start a private conversation with another FIDUNIO user.</p><button class="primary" id="emptyNewBtn">New Message</button></div></div></section></main>`;
+    const syncPending=cloudConversationSyncPending||cloudGroupSyncPending;
+    const emptyTitle=syncPending?"Loading conversations…":"No conversations yet";
+    const emptyCopy=syncPending?"Connecting securely to Firebase.":firebaseError?`Conversation synchronization failed: ${esc(firebaseError)}`:"Start a private conversation with another FIDUNIO user.";
+    app.innerHTML=`<main class="app-shell tablet-shell">${renderConversationSidebar()}<section class="tablet-chat-pane"><div class="content"><div class="card" style="text-align:center;margin-top:24px"><h2>${emptyTitle}</h2><p class="small-note">${emptyCopy}</p>${syncPending?"":'<button class="primary" id="emptyNewBtn">New Message</button>'}</div></div></section></main>`;
     drawTabletConversationList();
     const tSearch=document.querySelector("#tabletSearchBox");
     if(tSearch)tSearch.oninput=e=>drawTabletConversationList(e.target.value);
@@ -1904,4 +1916,3 @@ if("serviceWorker" in navigator){
     .catch(err=>console.warn("Service worker registration failed",err)));
 }
 initApp();
-
