@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
+import {existsSync,readFileSync} from "node:fs";
 
 const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
 const css=readFileSync(new URL("./styles.css",import.meta.url),"utf8");
-const mirror=readFileSync(new URL("./.github/workflows/mirror-rebuild-docs-to-main.yml",import.meta.url),"utf8");
+const mirrorUrl=new URL("./.github/workflows/mirror-rebuild-docs-to-main.yml",import.meta.url);
+const baseline=readFileSync(new URL("./.github/workflows/rebuild-baseline-security.yml",import.meta.url),"utf8");
 
 assert.match(app,/class="tablet-account-row">\$\{mainSignOutMarkup\(\)\}/,"tablet Sign Out must have a bounded row outside the icon cluster");
 assert.match(app,/class="tablet-brand-actions">[\s\S]*?id="tabletSettingsBtn"[\s\S]*?id="tabletNewBtn"[\s\S]*?<\/div>\s*<\/div>\s*<div class="tablet-account-row">\$\{mainSignOutMarkup\(\)\}/,"tablet Sign Out must be outside the Settings/New icon cluster");
@@ -25,7 +26,8 @@ for(const selector of ["tablet-brand-name","tablet-brand-sub","tablet-nav-item"]
 
 assert.doesNotMatch(app,/MutationObserver/);
 assert.doesNotMatch(app,/orientationchange/);
-assert.match(mirror,/DEVICE-ACCEPTANCE-BUGS\.md/,"device acceptance ledger must remain in the critical-document mirror");
+assert.equal(existsSync(mirrorUrl),false,"the retired rebuild-to-main document mirror must remain absent");
+assert.match(baseline,/push:\s*\n\s*branches:\s*\[main\]/,"the permanent baseline must follow sole-authority main");
 assert.match(css,/#app\s*\{\s*flex:1 1 100%/s,"the established app owner must fill the iPad standalone viewport");
 assert.match(css,/\.tablet-shell\s*\{\s*width:100%;\s*max-width:none;/s,"tablet shell must fill its owner instead of retaining a standalone 100vw gap");
 assert.match(css,/\.tablet-brand-row\s*\{\s*padding-top:max\(26px,calc\(14px \+ env\(safe-area-inset-top\)\)\)/s,"tablet sidebar must clear the iPad status bar even when the reported inset is zero");
