@@ -597,3 +597,7 @@ Real-device testing exposed FDA-DM-001: an iPad cloud direct message remained at
 ## 0.9.9.8 bounded Firebase reconciliation candidate — 2026-09-07
 
 FDA-DM-001 is addressed inside the existing serialized Outbox/reconnect owner with a 12-second authoritative Firebase reconciliation boundary. An unattempted Outbox-backed message returns from Sending to Queued on timeout, the encrypted Outbox remains intact, and the sender receives a clear Firebase timeout message. Attempted messages retain the established fail-closed anti-replay treatment; Sent/Delivered/Read are never simulated. A permanent gate is in the normal baseline. Full repository validation, `main` deployment and device acceptance remain pending; completion remains 96%.
+
+## 0.9.9.8 expanded direct-send candidate — 2026-09-07
+
+The first reconciliation-only timeout failed device acceptance: the original Failed row returned to Sending and two new rows remained Sending beyond one minute. The expanded candidate serializes the full reconcile/encrypt/send cycle, bounds all Firebase-dependent stages, prevents attempted-message replay, and adds the new dependency to a deterministically revised service-worker shell cache. Runtime remains 0.9.9.8 because this is continued work under the allocated stabilization build. Full baseline, `main` publication and user acceptance remain pending; completion remains 96%.

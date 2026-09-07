@@ -41,7 +41,7 @@ import { planAuthoritativeMessageProjection } from "./disappearing-authoritative
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
 import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisappearSelection } from "./disappearing-compose-policy.js";
 import { createAttachmentSendService } from "./attachment-send-service.js";
-import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue } from "./outbox-reconciliation-boundary.js";
+import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -1322,6 +1322,12 @@ function serializeReconnectRecovery(work){
   reconnectRecoveryTail=run.catch(()=>{});
   return run;
 }
+let outboxCycleTail=Promise.resolve();
+function serializeOutboxCycle(work){
+  const run=outboxCycleTail.then(work,work);
+  outboxCycleTail=run.catch(()=>{});
+  return run;
+}
 async function reconcileOutboxBeforeReplay(){
   if(!state.online||!firebaseUser)return{acceptedOutboxDeleteIds:[],purgeMessageIds:[],replayMessageIds:[],blockedMessageIds:[]};
   return serializeReconnectRecovery(async()=>{
@@ -1376,19 +1382,21 @@ async function requeueUnattemptedSendingOutboxMessages(){
 }
 async function flushQueuedAfterAuthoritativeReconcile({notifyUser=false}={}){
   if(!state.online||!firebaseUser)return;
-  try{
-    const plan=await awaitBoundedOutboxReconciliation(reconcileOutboxBeforeReplay());
-    return flushQueued({allowedCloudMessageIds:new Set(plan.replayMessageIds)});
-  }catch(err){
-    firebaseError=err?.message||String(err);
-    console.warn("Authoritative reconnect reconciliation failed; cloud Outbox replay blocked",err);
-    if(isOutboxReconciliationTimeout(err)){
-      await requeueUnattemptedSendingOutboxMessages();
-      if(notifyUser)alert(firebaseError);
+  return serializeOutboxCycle(async()=>{
+    try{
+      const plan=await awaitBoundedOutboxReconciliation(reconcileOutboxBeforeReplay());
+      return await flushQueued({allowedCloudMessageIds:new Set(plan.replayMessageIds),notifyUser});
+    }catch(err){
+      firebaseError=err?.message||String(err);
+      console.warn("Authoritative reconnect reconciliation failed; cloud Outbox replay blocked",err);
+      if(isOutboxReconciliationTimeout(err)){
+        await requeueUnattemptedSendingOutboxMessages();
+        if(notifyUser)alert(firebaseError);
+      }
     }
-  }
+  });
 }
-async function flushQueued({allowedCloudMessageIds=null}={}){
+async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
   if(!state.online) return;
 
   let records=[];
@@ -1414,7 +1422,7 @@ async function flushQueued({allowedCloudMessageIds=null}={}){
     const isGroupPayload=payload.kind==="group-e2ee-v1";
     const isCloud=payload.cloud || !!c?.cloud || isGroupPayload;
     if(isCloud&&allowedCloudMessageIds instanceof Set&&!allowedCloudMessageIds.has(String(payload.messageId))){
-      m.state="queued";
+      m.state=record.sendAttempted===true?"failed":"queued";
       await persistState();
       continue;
     }
@@ -1435,27 +1443,31 @@ async function flushQueued({allowedCloudMessageIds=null}={}){
         await persistState();
         continue;
       }
+      let sendAttempted=record.sendAttempted===true;
       try{
         m.state="sending";
         await persistState();
         if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render();
 
-        const peerUid=await resolvePeerUidForConversation(payload.conversationId);
+        const peerUid=await awaitBoundedOutboxReconciliation(resolvePeerUidForConversation(payload.conversationId),{stage:"peer-resolution"});
         if(!peerUid)throw new Error("Recipient account identity is unavailable.");
-        const encrypted=await prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text});
+        const encrypted=await awaitBoundedOutboxReconciliation(prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text}),{stage:"envelope-preparation"});
         await markOutboxSendAttempted(payload.messageId);
-        await sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null});
+        sendAttempted=true;
+        await awaitBoundedOutboxReconciliation(sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null}),{stage:"send-confirmation"});
 
         m.state="sent";
         // Remove the Outbox item only after Firestore confirms the write.
         await removeOutboxMessage(payload.messageId);
         await persistState();
       }catch(err){
-        // Preserve the Outbox record. A later foreground/online/auth event
-        // can retry it without losing the message.
-        m.state="failed";
+        // Preserve the Outbox. Only work that never crossed the durable
+        // attempt boundary may return to Queued; ambiguous attempted work
+        // remains Failed until authoritative reconciliation resolves it.
+        m.state=(sendAttempted||timeoutRequiresFailedState(err))?"failed":"queued";
         firebaseError=err?.message || String(err);
         await persistState();
+        if(notifyUser&&isOutboxReconciliationTimeout(err))alert(firebaseError);
       }
     }else{
       m.state="failed";

@@ -1,7 +1,7 @@
 export const OUTBOX_RECONCILIATION_TIMEOUT_MS=12000;
 export const OUTBOX_RECONCILIATION_TIMEOUT_CODE="OUTBOX_RECONCILIATION_TIMEOUT";
 
-export function awaitBoundedOutboxReconciliation(work,{timeoutMs=OUTBOX_RECONCILIATION_TIMEOUT_MS,setTimer=setTimeout,clearTimer=clearTimeout}={}){
+export function awaitBoundedOutboxReconciliation(work,{timeoutMs=OUTBOX_RECONCILIATION_TIMEOUT_MS,stage="reconciliation",setTimer=setTimeout,clearTimer=clearTimeout}={}){
   if(!work||typeof work.then!=="function")throw new Error("Outbox reconciliation promise is required.");
   if(!Number.isFinite(timeoutMs)||timeoutMs<1)throw new Error("Outbox reconciliation timeout must be positive.");
   return new Promise((resolve,reject)=>{
@@ -9,8 +9,12 @@ export function awaitBoundedOutboxReconciliation(work,{timeoutMs=OUTBOX_RECONCIL
     const timer=setTimer(()=>{
       if(settled)return;
       settled=true;
-      const error=new Error("Firebase did not respond in time. The message remains safely queued.");
+      const postAttempt=stage==="send-confirmation";
+      const error=new Error(postAttempt
+        ? "Firebase did not confirm the send. The message is preserved as Failed and will not automatically retry."
+        : "Firebase did not respond in time. The message remains safely queued.");
       error.code=OUTBOX_RECONCILIATION_TIMEOUT_CODE;
+      error.stage=stage;
       reject(error);
     },timeoutMs);
     Promise.resolve(work).then(value=>{
@@ -29,6 +33,10 @@ export function awaitBoundedOutboxReconciliation(work,{timeoutMs=OUTBOX_RECONCIL
 
 export function isOutboxReconciliationTimeout(error){
   return error?.code===OUTBOX_RECONCILIATION_TIMEOUT_CODE;
+}
+
+export function timeoutRequiresFailedState(error){
+  return isOutboxReconciliationTimeout(error)&&error.stage==="send-confirmation";
 }
 
 export function planTimedOutOutboxRequeue({outboxRecords=[],messagesByConversation={}}={}){

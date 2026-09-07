@@ -5,7 +5,8 @@ import {
   OUTBOX_RECONCILIATION_TIMEOUT_MS,
   awaitBoundedOutboxReconciliation,
   isOutboxReconciliationTimeout,
-  planTimedOutOutboxRequeue
+  planTimedOutOutboxRequeue,
+  timeoutRequiresFailedState
 } from "./outbox-reconciliation-boundary.js";
 
 assert.equal(OUTBOX_RECONCILIATION_TIMEOUT_MS,12000,"the live Firebase wait must be bounded and user-visible");
@@ -19,6 +20,18 @@ assert.equal(OUTBOX_RECONCILIATION_TIMEOUT_MS,12000,"the live Firebase wait must
   assert.equal(value,"ready");
   assert.equal(cleared,true,"successful reconciliation must clear its timeout");
   timerCallback?.();
+}
+
+{
+  let fireTimeout;
+  const bounded=awaitBoundedOutboxReconciliation(new Promise(()=>{}),{stage:"send-confirmation",setTimer(callback){fireTimeout=callback;return 10;},clearTimer(){}});
+  fireTimeout();
+  await assert.rejects(bounded,error=>{
+    assert.equal(timeoutRequiresFailedState(error),true);
+    assert.match(error.message,/preserved as Failed/i);
+    assert.match(error.message,/will not automatically retry/i);
+    return true;
+  });
 }
 
 assert.deepEqual(planTimedOutOutboxRequeue({
@@ -59,6 +72,17 @@ assert.match(app,/awaitBoundedOutboxReconciliation\(reconcileOutboxBeforeReplay\
 assert.match(app,/planTimedOutOutboxRequeue\(\{outboxRecords:records,messagesByConversation:state\.messages\}\)/,"the app owner must use the pure fail-closed requeue decision");
 assert.match(app,/m\.state="queued"/,"a stalled pre-send row must return to Queued");
 assert.match(app,/notifyUser:true/,"an explicit user send must surface the Firebase timeout");
+assert.match(app,/stage:"peer-resolution"/,"peer resolution must be bounded before send attempt");
+assert.match(app,/stage:"envelope-preparation"/,"account-key retrieval and envelope preparation must be bounded before send attempt");
+assert.match(app,/stage:"send-confirmation"/,"Firestore send acknowledgment must be bounded after the durable attempt marker");
+assert.match(app,/sendAttempted\|\|timeoutRequiresFailedState\(err\)/,"pre-attempt timeout must queue while post-attempt ambiguity fails closed");
+assert.match(app,/let outboxCycleTail=Promise\.resolve\(\)/,"the complete reconcile/encrypt/send cycle must have one serialized tail");
+assert.match(app,/return serializeOutboxCycle\(async\(\)=>\{[\s\S]*?reconcileOutboxBeforeReplay\(\)[\s\S]*?flushQueued/s,"reconciliation and flush must remain inside the same serialized application cycle");
+assert.match(app,/m\.state=record\.sendAttempted===true\?"failed":"queued"/,"a disallowed attempted row must remain Failed and must never return to the replay queue");
 assert.match(workflow,/npm run test:outbox-reconciliation-boundary/,"the permanent baseline must run this regression gate");
+
+const worker=readFileSync(new URL("./service-worker.js",import.meta.url),"utf8");
+assert.match(worker,/\.\/outbox-reconciliation-boundary\.js/,"the bounded send dependency must be part of the deterministic offline shell");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.8-fda-dm-001b"/,"same-version stabilization must deterministically invalidate the prior shell cache");
 
 console.log("Bounded Firebase Outbox reconciliation gate passed");
