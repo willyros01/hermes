@@ -30,5 +30,7 @@ assert.match(css,/#app\s*\{\s*flex:1 1 100%/s,"the established app owner must fi
 assert.match(css,/\.tablet-shell\s*\{\s*width:100%;\s*max-width:none;/s,"tablet shell must fill its owner instead of retaining a standalone 100vw gap");
 assert.match(css,/\.tablet-brand-row\s*\{\s*padding-top:max\(26px,calc\(14px \+ env\(safe-area-inset-top\)\)\)/s,"tablet sidebar must clear the iPad status bar even when the reported inset is zero");
 assert.match(css,/\.tablet-chat-pane \.topbar\s*\{\s*padding-top:max\(26px,calc\(10px \+ env\(safe-area-inset-top\)\)\)/s,"tablet chat header must clear the iPad status bar");
+assert.match(css,/#disappearSelect\s*\{[\s\S]*?-webkit-appearance:none;[\s\S]*?background-color:var\(--panel\);[\s\S]*?color:var\(--ink\)/,"iPad disappearing selector must use the established FIDUNIO theme");
+assert.match(css,/#disappearSelect\s*\{[\s\S]*?min-height:42px/,"disappearing selector must retain an accessible touch target");
 
 console.log("iPad RC stabilization ownership and accessibility gate passed");
