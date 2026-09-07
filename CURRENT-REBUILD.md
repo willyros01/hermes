@@ -166,3 +166,7 @@ Commit `90460aea19c0d5204c91b2542d59905b1edff246` passed full Rebuild Baseline S
 ## Current device evidence — queued correctly; Firebase connectivity unresolved — 2026-09-07
 
 The second iPad launch shows both preserved messages as Queued. The repair therefore prevents indefinite Sending and preserves Outbox authority without false receipts. The underlying authenticated Firebase path still does not complete, so FDA-DM-001 remains open and further test sends are paused pending connectivity diagnosis. New minor FDA-IOS-001 records the iPhone's blank startup/login interval and defers an accessible spinner/loading state to a later bundled minor repair. Completion remains 96%.
+
+## FDA-DM-001 authenticated Firebase session repair candidate — 2026-09-07
+
+The Verify action was incorrectly bypassing the serialized authoritative reconcile/Outbox cycle and calling the lower-level queue flush. The candidate removes that competing trigger, routes all verification retries through the established owner, and uses sole `firebase.js` owner to force-refresh the authenticated ID token before reconciliation. Bounded errors identify auth refresh, reconciliation, peer resolution, envelope preparation or send confirmation. The user did not compare fingerprints before pressing Verify, so verification is treated only as a saved trust decision; keys are not reset. Runtime remains 0.9.9.8, completion remains 96%, and the defect stays open pending gate/deployment/device proof.

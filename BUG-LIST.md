@@ -147,3 +147,7 @@ After the second installed-app launch, both preserved direct messages display Qu
 ### FDA-IOS-001 deferred startup feedback defect — 2026-09-07
 
 The user reports a lengthy iPhone login/startup interval showing only a blank screen. Desired behavior is a prominent accessible spinner/loading message until the first screen is ready. Record only; combine with later minor acceptance work without changing auth ownership or adding polling/reload lifecycle repair. Completion remains 96%.
+
+### FDA-DM-001 authenticated-session/verification-path candidate — 2026-09-07
+
+The user did not compare device fingerprints; pressing Verify only stored trust. Diagnosis found the Verify handler bypassed the serialized authoritative Outbox path by calling `flushQueued()` directly. The repair routes it through the sole reconciliation owner, forces a fresh Firebase Auth ID token through `firebase.js`, and emits stage-specific bounded errors. No keys, rules, protected configuration, receipts or E2EE formats change. FDA-DM-001 remains open pending full gate, `main` deployment and actual Sent → Delivered → Read proof. Completion remains 96%.
