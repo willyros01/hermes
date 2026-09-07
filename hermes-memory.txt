@@ -647,3 +647,5 @@ Both real devices reached Account Encryption READY. The iPad's preserved message
 Initial full runs 34130208522 and 34130353052 failed at the Outbox gate because the permanent exact cache-revision assertion still expected 001d. All preceding gates passed. Correct the assertion to required 001e and rerun the complete baseline; do not weaken any security behavior.
 
 Corrected authoritative commit fbfb296b2c29ce367fae7c38abc2b5147f14d509 passed complete baseline 34130779064 SUCCESS. This validates the sender-side v3 reader and all established gates. Still required: exact-tree main deployment and real iPad/iPhone readable Sent -> Delivered -> Read. No point awarded; completion remains 96%.
+
+Final documented authoritative commit 243e1698f5efad09e03587cce0c8689c81ff4659 passed full baseline 34131152754 and its exact tree was promoted to main as a08d985a8308b9f9da9fabc3c127beefc452fe04. Pages 34131445802 succeeded. Protected Firebase config stayed exact and config-firestore.js stayed absent. Next: two-launch cache activation followed by readable iPad -> iPhone Sent -> Delivered -> Read. Completion remains 96%.
