@@ -416,3 +416,7 @@ Real iPad-to-iPhone direct-message acceptance failed at the first send: `IPAD TE
 ### 0.9.9.8 FDA-DM-001 repair candidate — 2026-09-07
 
 A 12-second authoritative-reconciliation boundary is added inside the established serialized `app.js` Outbox/reconnect path. Timeout policy requeues only unattempted Outbox-backed Sending rows, preserves encrypted Outbox authority, exposes a clear Firebase timeout, and cannot mint receipt state. Permanent baseline coverage and targeted local gates pass. The build remains IN PROGRESS until the full baseline is green, corrected `main` is deployed, and the iPad-to-iPhone Sent → Delivered → Read test passes. Total remains 96.0/100.0 (96%).
+
+### 0.9.9.8 FDA-DM-001 expanded candidate — 2026-09-07
+
+The reconciliation-only candidate failed real-device retest and earns no credit. Expanded repair serializes the complete direct Outbox cycle, bounds reconciliation/peer/key-envelope/send-confirmation stages, keeps pre-attempt timeouts Queued, keeps ambiguous attempted work Failed, blocks attempted-row requeue, and forces deterministic same-version service-worker cache replacement. Targeted permanent gates pass locally. Full baseline plus corrected `main` deployment and successful Sent → Delivered → Read device proof remain required. Total remains 96.0/100.0 (96%).

@@ -133,3 +133,7 @@ Real iPad acceptance exposed a critical direct-message stall: `IPAD TEST 1` rema
 ### FDA-DM-001 repair candidate — 2026-09-07
 
 The existing serialized Outbox owner now bounds authoritative reconciliation at 12 seconds and returns only unattempted Outbox-backed Sending rows to Queued on timeout. The encrypted Outbox is preserved, an explicit Firebase timeout is shown for a user-initiated send, and attempted rows remain protected by the established fail-closed replay rule. A permanent baseline gate proves the timeout and selection policy. Targeted gates pass locally; full baseline, `main` promotion and device acceptance remain pending. Completion remains 96%.
+
+### FDA-DM-001 first candidate insufficient; expanded candidate — 2026-09-07
+
+Real-device retest showed the original Failed row returned to Sending and two new rows remained Sending beyond one minute. The first reconciliation-only timeout is therefore insufficient. Diagnosis found that full Outbox flushes could overlap after serialized reconciliation and that later Firebase-dependent stages remained unbounded. The expanded candidate serializes the complete cycle, bounds peer/key/envelope/send-confirmation stages, preserves Queued before attempt and Failed after ambiguous attempt, and deterministically revises the same-version service-worker cache. Targeted gates pass; full baseline and device proof remain required. Completion remains 96%.

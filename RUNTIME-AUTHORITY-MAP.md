@@ -236,6 +236,8 @@ FDA-DM-001 proves the current owner can remain indefinitely at Sending while awa
 
 The 0.9.9.8 repair candidate implements that boundary through pure `outbox-reconciliation-boundary.js`, which owns no mutable resource. It supplies a 12-second wait boundary and a pure list of eligible requeue IDs. `app.js` remains the only state/IndexedDB mutation owner: it requeues only `sendAttempted !== true` Outbox-backed Sending rows and preserves every Outbox record. `firebase.js` remains the only Firebase SDK owner.
 
+Device retest proved that serializing reconciliation alone was insufficient because the subsequent flush could overlap across lifecycle triggers. The expanded candidate adds one full-cycle `outboxCycleTail` inside `app.js`, covering reconciliation through post-attempt confirmation. Stage timeouts do not authorize replay: pre-attempt work may return to Queued; after the durable attempt marker, ambiguity remains Failed until authoritative server evidence resolves it. The service worker only caches the new pure module and owns no send semantics.
+
 ### 0.9.6.27 disappearing compose selection
 `disappearing-compose-policy.js` is pure normalization/presentation policy only. `app.js` owns the persisted user selection and snapshots it when constructing a new outgoing row. Existing direct/group Outbox and message owners carry the immutable `disappearAfterSeconds`; no UI preference becomes expiry or purge authority.
 
