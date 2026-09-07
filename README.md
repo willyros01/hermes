@@ -601,3 +601,7 @@ FDA-DM-001 is addressed inside the existing serialized Outbox/reconnect owner wi
 ## 0.9.9.8 expanded direct-send candidate — 2026-09-07
 
 The first reconciliation-only timeout failed device acceptance: the original Failed row returned to Sending and two new rows remained Sending beyond one minute. The expanded candidate serializes the full reconcile/encrypt/send cycle, bounds all Firebase-dependent stages, prevents attempted-message replay, and adds the new dependency to a deterministically revised service-worker shell cache. Runtime remains 0.9.9.8 because this is continued work under the allocated stabilization build. Full baseline, `main` publication and user acceptance remain pending; completion remains 96%.
+
+### Expanded candidate validated and deployed — 2026-09-07
+
+Expanded repair commit `90460aea19c0d5204c91b2542d59905b1edff246` passed full baseline `34085040014`. Main promotion `321d182cbd08cb690fa4df7caf96221ef69d09b4` passed Pages run `34085354728`, and live full-cycle/cache anchors were verified. This is repository and deployment evidence only. FDA-DM-001 stays open until installed-iPad and authenticated Firebase communication/receipt acceptance pass. Completion remains 96%.

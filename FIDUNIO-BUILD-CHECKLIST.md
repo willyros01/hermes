@@ -420,3 +420,5 @@ A 12-second authoritative-reconciliation boundary is added inside the establishe
 ### 0.9.9.8 FDA-DM-001 expanded candidate — 2026-09-07
 
 The reconciliation-only candidate failed real-device retest and earns no credit. Expanded repair serializes the complete direct Outbox cycle, bounds reconciliation/peer/key-envelope/send-confirmation stages, keeps pre-attempt timeouts Queued, keeps ambiguous attempted work Failed, blocks attempted-row requeue, and forces deterministic same-version service-worker cache replacement. Targeted permanent gates pass locally. Full baseline plus corrected `main` deployment and successful Sent → Delivered → Read device proof remain required. Total remains 96.0/100.0 (96%).
+
+Expanded candidate `90460aea19c0d5204c91b2542d59905b1edff246` passed full baseline `34085040014` and was promoted to `main` as `321d182cbd08cb690fa4df7caf96221ef69d09b4`; Pages `34085354728` succeeded. Repository/deployment criteria for this repair candidate are satisfied, but FDA-DM-001 and 0.9.9.8 remain IN PROGRESS until fresh device proof confirms bounded status plus real Firebase Sent → Delivered → Read. No point is earned; total remains 96.0/100.0 (96%).

@@ -158,3 +158,7 @@ The existing `app.js` Outbox/reconnect owner now applies a 12-second boundary to
 ## FDA-DM-001 expanded repair after failed retest — 2026-09-07
 
 The first promoted candidate did not pass device acceptance: an existing Failed message returned to Sending and two newly sent messages remained Sending for more than one minute. The corrected candidate now serializes the complete reconcile/encrypt/send cycle, bounds every Firebase-dependent direct-send stage, prevents attempted rows from returning to the replay queue, and revises the service-worker shell cache while retaining runtime 0.9.9.8. This is still a candidate. Full baseline, corrected `main` deployment and fresh user-device proof remain mandatory. Completion remains 96%.
+
+### Expanded candidate validation and deployment — 2026-09-07
+
+Commit `90460aea19c0d5204c91b2542d59905b1edff246` passed full Rebuild Baseline Security Gate `34085040014`. It was promoted to `main` at `321d182cbd08cb690fa4df7caf96221ef69d09b4`; Pages run `34085354728` succeeded and live code/cache anchors were verified. FDA-DM-001 remains OPEN pending the user's fresh installed-iPad observation and authenticated Firebase send/receipt proof. Completion remains 96%.
