@@ -22,8 +22,9 @@ assert.ok(initializeAppAt>=0,"firebase.js must initialize the single Firebase ap
 assert.ok(initializeAppCheckAt>initializeAppAt,"App Check must bind to the initialized central app");
 assert.ok(getAuthAt>initializeAppCheckAt,"App Check must initialize before Auth is exposed");
 assert.ok(getFirestoreAt>initializeAppCheckAt,"App Check must initialize before Firestore is exposed");
-assert.match(firebaseSource,/export async function refreshFirebaseAuthSession\(\)/);
-assert.match(firebaseSource,/await user\.getIdToken\(true\)/,"Firebase session recovery must use the central Auth owner and force a current token");
+assert.match(firebaseSource,/export async function ensureFirebaseAuthSession\(\)/);
+assert.match(firebaseSource,/await user\.getIdToken\(\)/,"Firebase session recovery must use the central Auth owner and allow a valid cached token");
+assert.doesNotMatch(firebaseSource,/getIdToken\(true\)/,"ordinary send recovery must not force a network token refresh");
 
 assert.doesNotMatch(authSource,/firebase-app-check\.js/);
 assert.doesNotMatch(authSource,/initializeFidunioAppCheck/);

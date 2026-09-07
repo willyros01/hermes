@@ -11,7 +11,7 @@ export function awaitBoundedOutboxReconciliation(work,{timeoutMs=OUTBOX_RECONCIL
       settled=true;
       const postAttempt=stage==="send-confirmation";
       const labels={
-        "auth-refresh":"Firebase authentication did not respond in time.",
+        "auth-session":"Firebase authentication did not respond in time.",
         "reconciliation":"Firestore reconciliation did not respond in time.",
         "peer-resolution":"The Firebase conversation lookup did not respond in time.",
         "envelope-preparation":"The Firebase encryption-key lookup did not respond in time."
