@@ -263,3 +263,12 @@ Repository stabilization now registers `storage.rules` in `firebase.json` and ad
 
 ### 0.9.9.8 repository validation checkpoint — 2026-09-06
 Commit `34c8d237eb8f08b8228f670b8ca958038b553aef` registers `storage.rules` in `firebase.json`, adds the permanent `storage-deployment-wiring.test.mjs` gate, advances runtime to 0.9.9.8, and preserves `firebase-config.js` unchanged at blob `b81026dcc07b7374d1f48d0cb094764ce28319bd`. Full Rebuild Baseline Security Gate `34072294756` completed SUCCESS, including the new Firebase Storage deployment-wiring step. This proves repository deployability, not real attachment operation. 0.9.9.8 remains IN PROGRESS pending authenticated iPhone/iPad upload, second-device download/decrypt, unauthorized denial, offline/reconnect and disappearing-attachment purge proof. No additional completion credit is earned; overall remains 96.0/100 (96%).
+
+
+## 0.9.9.8 iPad stabilization ownership — 2026-09-07
+
+`app.js` remains the sole route/render owner. Its direct/group subscription callbacks now own only a small pending/error presentation state so asynchronous Firebase discovery cannot be mislabeled as authoritative emptiness. `firebase.js` remains the sole Firebase owner and all IndexedDB/account-storage boundaries remain unchanged. The existing tablet sidebar and root text-size classes remain the sole layout/accessibility owners; no MutationObserver, orientation listener, reload synchronization, new storage owner or competing renderer was added.
+
+## 0.9.9.8 iPad RC repair candidate — 2026-09-07
+
+The bounded repair candidate addresses FDA-IPAD-001 through FDA-IPAD-003 without changing Firebase/E2EE/storage ownership. It separates Sign Out from the constrained tablet icon cluster, makes tablet brand/navigation/tool labels scale from the established root A/A+/A++ owner, changes the obsolete eight-slot tablet attachment grid to the four supported tools, and distinguishes Firebase conversation discovery from authoritative empty/error state. It does not fabricate conversations or restore quarantined cross-account data. Targeted iPad stabilization, release-candidate UI/lifecycle and Storage-wiring gates pass locally. Full baseline, promotion to `main`, Pages deployment and repeated user-device acceptance remain pending. Defects remain OPEN; 0.9.9.8 earns no point and total completion remains 96.0/100.0 (96%).
