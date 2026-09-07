@@ -195,3 +195,9 @@ If that statement cannot be made truthfully, implementation must stop and invest
 - The same version-change session must reconcile `hermes-memory.txt`, `FIDUNIO-BUILD-CHECKLIST.md`, and every additional affected architecture/security/runtime/UI/setup/bug document.
 - Do not erase rejected builds or rollback history from README merely because they are no longer current. Historical failure/rollback information is part of the project safety record.
 - Keep exactly one cumulative root `README.md`; do not create version-numbered README replacements.
+
+
+## 0.9.9.8 Firebase Storage connectivity repair — IN PROGRESS — 2026-09-06
+The 0.9.9.7 pre-acceptance connectivity check proved that the prior 0.9.7.x attachment gates were repository-only dependency-injection/source tests, not a real Firebase-backed attachment test. The live default bucket `fidunio-fef13.firebasestorage.app` was then created in `US-CENTRAL1`, the reviewed `storage.rules` compiled and deployed, and Firebase granted the required Storage-Rules-to-Firestore cross-service role. Firestore rules, Functions, Hosting, Auth, App Check, GitHub branches and protected Firebase configuration were not changed by that live setup.
+
+Repository stabilization now registers `storage.rules` in `firebase.json` and adds a permanent Storage deployment-wiring gate. Runtime advances 0.9.9.6 -> 0.9.9.8 because 0.9.9.7 is the device-acceptance gate, not an implementation build. This does not complete attachment acceptance: authenticated real-device upload/download/authorization/offline/purge proof remains required. The 0.9.9.8 point remains unearned until the full repository gate is green and acceptance defects are closed. Overall ledger remains 96.0/100 (96%).
