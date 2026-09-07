@@ -154,3 +154,7 @@ The first resumed direct-message device test failed: the iPad message `IPAD TEST
 ## FDA-DM-001 bounded repair candidate — 2026-09-07
 
 The existing `app.js` Outbox/reconnect owner now applies a 12-second boundary to authoritative reconciliation. A timeout returns only unattempted Outbox-backed Sending rows to Queued, preserves their encrypted Outbox records, and explicitly reports the Firebase timeout for the initiating sender. Attempted rows cannot be selected and no receipt state is manufactured. Permanent regression coverage is wired into the full baseline; targeted Outbox, receipt and runtime-authority gates pass locally. Full baseline, corrected `main` deployment and real-device acceptance remain required. Completion remains 96%.
+
+## FDA-DM-001 expanded repair after failed retest — 2026-09-07
+
+The first promoted candidate did not pass device acceptance: an existing Failed message returned to Sending and two newly sent messages remained Sending for more than one minute. The corrected candidate now serializes the complete reconcile/encrypt/send cycle, bounds every Firebase-dependent direct-send stage, prevents attempted rows from returning to the replay queue, and revises the service-worker shell cache while retaining runtime 0.9.9.8. This is still a candidate. Full baseline, corrected `main` deployment and fresh user-device proof remain mandatory. Completion remains 96%.
