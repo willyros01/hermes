@@ -146,3 +146,7 @@ The second screenshot confirms the safe-area and full-width repairs visually, wh
 ## FDA-IPAD-006 deferred visual-alignment evidence — 2026-09-07
 
 The deployed theme repair removed the white native selector and preserved readability, but user-device evidence shows the selector is not aesthetically aligned with the quick-reply widgets. At the user's direction, no additional code change is made now. Keep FDA-IPAD-006 OPEN — DEFERRED and combine its visual-alignment repair with the next necessary 0.9.9.8 acceptance defect repair. No Firebase, E2EE, storage, receipt or disappearing-message ownership change is authorized. Completion remains 96%.
+
+## FDA-DM-001 direct send stall — 2026-09-07
+
+The first resumed direct-message device test failed: the iPad message `IPAD TEST 1` remained at Sending for more than one minute. The encrypted Outbox row is created and Sending is rendered before authoritative reconnect reconciliation completes. Its server-read chain is unbounded, so a stalled Firebase promise can leave the message at Sending before the actual encrypted Firestore write is attempted. This is a critical 0.9.9.8 acceptance blocker. Repair must remain inside the existing serialized Outbox/reconnect path and fail closed without fabricated receipts. Completion remains 96%.
