@@ -434,3 +434,5 @@ Repository/deployment criteria are satisfied by authoritative candidate `6e6d5e8
 ### 0.9.9.8 retry-backlog/startup/PIN fail-closed candidate — 2026-09-07
 
 The previous device retest failed: second launch blanked for more than two minutes, iPhone PIN appeared unset, and a new message returned Sending → Queued after restart. Corrective scope is allocated within 0.9.9.8: coalesce duplicate recovery triggers, avoid forced token refresh when Firebase already has a valid token, retain stage errors visibly, render an immediate accessible startup spinner, and fail closed when PIN storage cannot be read. Permanent Outbox and startup/PIN tests pass locally. Full baseline, `main` deployment and device acceptance remain required. No point is earned; total remains 96.0/100.0 (96%).
+
+Repository/deployment criteria are satisfied by authoritative `429855f037c3f9f0fb2a0f31ff1371a21f273922`, full baseline `34125430406` SUCCESS, `main` `2dcbd8a558ed8bf355ebec1c6bbc82e59948b29f`, and Pages `34125666157` SUCCESS. Live anchors and protected config match. Device startup/PIN/send/receipt proof remains unearned; total stays 96.0/100.0 (96%).
