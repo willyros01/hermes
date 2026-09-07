@@ -41,6 +41,7 @@ import { planAuthoritativeMessageProjection } from "./disappearing-authoritative
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
 import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisappearSelection } from "./disappearing-compose-policy.js";
 import { createAttachmentSendService } from "./attachment-send-service.js";
+import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue } from "./outbox-reconciliation-boundary.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -1307,7 +1308,7 @@ async function sendCurrent(){
 
   if(state.online){
     if(cloud || cloudGroup){
-      await flushQueuedAfterAuthoritativeReconcile();
+      await flushQueuedAfterAuthoritativeReconcile({notifyUser:true});
     }else{
       m.state="failed";
       await persistState();
@@ -1362,14 +1363,29 @@ async function reconcileOutboxBeforeReplay(){
     return plan;
   });
 }
-async function flushQueuedAfterAuthoritativeReconcile(){
+async function requeueUnattemptedSendingOutboxMessages(){
+  const records=await getOutboxRecords();
+  const requeueIds=new Set(planTimedOutOutboxRequeue({outboxRecords:records,messagesByConversation:state.messages}));
+  for(const list of Object.values(state.messages)){
+    for(const m of Array.isArray(list)?list:[]){
+      if(requeueIds.has(String(m.id)))m.state="queued";
+    }
+  }
+  await persistState();
+  render();
+}
+async function flushQueuedAfterAuthoritativeReconcile({notifyUser=false}={}){
   if(!state.online||!firebaseUser)return;
   try{
-    const plan=await reconcileOutboxBeforeReplay();
+    const plan=await awaitBoundedOutboxReconciliation(reconcileOutboxBeforeReplay());
     return flushQueued({allowedCloudMessageIds:new Set(plan.replayMessageIds)});
   }catch(err){
     firebaseError=err?.message||String(err);
     console.warn("Authoritative reconnect reconciliation failed; cloud Outbox replay blocked",err);
+    if(isOutboxReconciliationTimeout(err)){
+      await requeueUnattemptedSendingOutboxMessages();
+      if(notifyUser)alert(firebaseError);
+    }
   }
 }
 async function flushQueued({allowedCloudMessageIds=null}={}){
