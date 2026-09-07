@@ -109,10 +109,10 @@ export async function encryptAccountDirectMessage({text,conversationId,messageId
   });
 }
 
-export async function decryptAccountDirectMessage({envelope,conversationId,messageId,senderUid,recipientUid,senderKeyId,recipientKeyId,recipientPrivateKey,senderPublicJwk}){
+export async function decryptAccountDirectMessage({envelope,conversationId,messageId,senderUid,recipientUid,senderKeyId,recipientKeyId,recipientPrivateKey,senderPublicJwk,localUid=recipientUid,localKeyId=recipientKeyId,peerUid=senderUid,peerKeyId=senderKeyId,localPrivateKey=recipientPrivateKey,peerPublicJwk=senderPublicJwk}){
   const parsed=validateEnvelope(envelope,{senderKeyId,recipientKeyId});
   if(parsed.iv.length!==12)throw codedError("FORMAT_ERROR","Account E2EE message IV must be exactly 12 bytes.");
-  const key=await deriveDirectMessageKey({localPrivateKey:recipientPrivateKey,localUid:recipientUid,localKeyId:recipientKeyId,peerPublicJwk:senderPublicJwk,peerUid:senderUid,peerKeyId:senderKeyId,conversationId});
+  const key=await deriveDirectMessageKey({localPrivateKey,localUid,localKeyId,peerPublicJwk,peerUid,peerKeyId,conversationId});
   const aad=messageAad({conversationId,messageId,senderUid,recipientUid,senderKeyId,recipientKeyId});
   try{
     const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:parsed.iv,additionalData:aad,tagLength:128},key,parsed.ciphertext);

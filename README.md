@@ -619,3 +619,15 @@ Candidate `6e6d5e84beb7e12173a5708835842512d44a92d4` passed full baseline `34087
 ### 0.9.9.8 retry-backlog/startup/PIN fail-closed candidate — 2026-09-07
 
 Device retest found a two-minute blank startup, iPhone PIN presented as unset, and a new direct message returned Sending → Queued. The candidate coalesces stacked recovery triggers, avoids unnecessary forced token refresh, displays connection-stage errors, adds a large startup spinner, and keeps the app locked if PIN storage is unavailable. It does not reset the PIN, keys, Firebase rules or protected configuration. Full gate/deployment/device acceptance remain required; completion stays 96%.
+
+Authoritative `429855f037c3f9f0fb2a0f31ff1371a21f273922` passed full baseline `34125430406` and was promoted to `main` as `2dcbd8a558ed8bf355ebec1c6bbc82e59948b29f`. Pages `34125666157` and live checks succeeded. Device acceptance remains required; completion stays 96%.
+
+### Device evidence — startup/PIN pass; Account E2EE locked
+
+The user confirmed the large spinner on iPhone/iPad and successful unlock with the original iPhone local PIN. The current direct-send blocker is now explicit: the iPad Account E2EE identity is locked, so encryption correctly fails closed before Firestore send. No keys should be reset and the changed fingerprint must not be verified without comparison. Completion remains 96% pending Account Encryption unlock and receipt testing.
+
+### 0.9.9.8 sender-side v3 read candidate
+
+After both device accounts became Account Encryption READY, real queued rows reached Sent but the iPad could not read its own accepted ciphertext. The candidate adds the missing outgoing direction inside the existing account E2EE service, selected from authoritative sender UID and protected by exact keyId/AAD checks. Legacy compatibility-device trust is explicitly separated from account-authoritative E2EE. Direct tests pass; full baseline, promotion and device acceptance remain pending. Completion remains 96%.
+
+Repository validation: corrected authoritative commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509` passed full baseline `34130779064`. Promotion and real-device receipt proof remain pending; completion remains 96%.

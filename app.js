@@ -1202,7 +1202,7 @@ function renderChat(){
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
       ${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}
       ${c.cloud && currentConversationSecurityStatus(c)==="changed"
-        ? '<div class="status-banner">Security warning — this contact\'s previously verified encryption key changed. Verify the new fingerprint before sending.</div>'
+        ? '<div class="status-banner">Compatibility device key changed. Account-encrypted sending is not blocked. Review this device fingerprint separately before trusting it.</div>'
         : c.cloud && currentConversationSecurityStatus(c)==="changed-unverified"
           ? '<div class="info-banner">Encryption key changed since first seen. Open Conversation Security to review the current fingerprint.</div>'
           : c.cloud && currentConversationSecurityStatus(c)==="verified"
@@ -1663,7 +1663,7 @@ function renderModal(){
           <div class="row-main">
             <strong>Status</strong>
             <span>${status==="verified"?"Verified on this device":
-              status==="changed"?"VERIFIED KEY CHANGED — sending is paused":
+              status==="changed"?"COMPATIBILITY DEVICE KEY CHANGED — account E2EE sending is not paused":
               status==="changed-unverified"?"Key changed since first seen":
               status==="unverified"?"Not yet verified":"Key unavailable"}</span>
           </div>
@@ -1674,10 +1674,10 @@ function renderModal(){
             </div>`:""}
         </div>
         <div id="peerDeviceSummary"><p class="small-note">Checking registered devices…</p></div>
-        <p class="warning-note">Verification is local to this installation in 0.8.1. It does not yet provide automatic QR/device linking or per-device recipient encryption.</p>
+        <p class="warning-note">This compatibility device-key verification is local to this installation and is separate from account-authoritative E2EE. It does not provide automatic QR/device linking.</p>
         <div class="modal-actions">
           <button class="modal-cancel" id="modalCancel">Close</button>
-          ${fp && status!=="verified" ? '<button class="modal-confirm" id="verifyPeerBtn">Verify Current Key</button>' : ""}
+          ${fp && status!=="verified" ? '<button class="modal-confirm" id="verifyPeerBtn">Verify Current Device Key</button>' : ""}
         </div>
       </div>`;
     document.body.appendChild(host);
