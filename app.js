@@ -1210,13 +1210,6 @@ function renderChat(){
       </header>
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
       ${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}
-      ${c.cloud && currentConversationSecurityStatus(c)==="changed"
-        ? '<div class="status-banner">Compatibility device key changed. Account-encrypted sending is not blocked. Review this device fingerprint separately before trusting it.</div>'
-        : c.cloud && currentConversationSecurityStatus(c)==="changed-unverified"
-          ? '<div class="info-banner">Encryption key changed since first seen. Open Conversation Security to review the current fingerprint.</div>'
-          : c.cloud && currentConversationSecurityStatus(c)==="verified"
-            ? '<div class="info-banner">Encryption key verified on this device.</div>'
-            : ""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
@@ -1257,8 +1250,7 @@ function renderChat(){
   const infoBtn=document.querySelector("#infoBtn");
   if(infoBtn)infoBtn.onclick=async()=>{
     if(isGroup(c)){state.route="groupInfo";return render();}
-    await peerPublicKeyForConversation(c.id,{refresh:true});
-    state.modal={type:"conversationSecurity",peerUid:c.peerUid,conversationId:c.id};
+    state.modal={type:"directChatInfo",conversationId:c.id};
     return render();
   };
   document.querySelector("#moreBtn").onclick=()=>{state.toolsOpen=!state.toolsOpen;render()};
@@ -1718,6 +1710,17 @@ function renderModal(){
       try{await addGroupMemberForApp(c.id,p.id);state.modal=null;host.remove();render();}
       catch(err){firebaseError=err?.message||String(err);confirm.disabled=false;alert(firebaseError);}
     };
+  } else if(modal.type==="directChatInfo"){
+    const c=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
+    host.innerHTML=`
+      <div class="modal">
+        <h2>Chat Info</h2>
+        <p><strong>${esc(c?.name||"FIDUNIO contact")}</strong></p>
+        <p class="small-note">One-to-one FIDUNIO conversation.</p>
+        <button class="secondary" id="modalCancel">Close</button>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
   } else if(modal.type==="conversationSecurity"){
     const c=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const peerUid=modal.peerUid || c?.peerUid || null;

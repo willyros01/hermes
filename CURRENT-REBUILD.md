@@ -4,6 +4,8 @@
 
 By explicit user direction, direct one-to-one text messaging is the immediate priority and must not wait on account-key readiness or manual fingerprint verification. The minimal candidate sends new direct text through the existing authenticated Firestore/Outbox path in the plaintext format already allowed by current rules. Existing encrypted messages remain readable. No Firebase rules, App Check, group, attachment, or deletion change is included. Repository validation, `main` deployment, and real iPad-to-iPhone Sent → Delivered → Read proof remain required.
 
+First iPad launch still exposed a legacy key-change/fingerprint banner. The follow-up removes direct-chat key status banners and routes the Info button to plain Chat Info; it does not expose verification or key controls.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
