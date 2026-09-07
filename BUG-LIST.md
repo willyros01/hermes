@@ -187,3 +187,5 @@ Queued/Sending/Failed outgoing messages lacked deletion. Candidate adds press-an
 - **Candidate:** One Account plus one Security area; one six-digit FIDUNIO PIN and optional device unlock are visible. Internal keys stay separate and automatic. Existing PIN mismatch fails closed.
 - **Exit:** Full baseline/Pages green and user confirms fresh setup, restart unlock, E2EE READY and existing-installation behavior without extra key controls.
 - **Status:** REPAIR CANDIDATE — OPEN.
+
+Repository/deployment evidence: commit `5e22a9484029d02f9f6691b82329a55d4695c848`, complete baseline `34139245770` SUCCESS, Pages `34139244639` SUCCESS. FDA-UX-001 remains OPEN pending user-device acceptance.

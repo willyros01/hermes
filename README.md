@@ -648,3 +648,5 @@ Sender-owned accepted direct messages use a new server-only `deleteDirectMessage
 The approved fresh-account UX retains email/password plus one six-digit FIDUNIO PIN. Local unlock and account-encryption use separate internal derivations from that one PIN; device, direct, group, attachment and fingerprint details move to the background. `USER-ACCESS-KEY-UX.md` is the critical presentation/security contract. Completion remains 96%.
 
 The 0.9.9.8 candidate now implements that ordinary Settings presentation: Account, one Security area, one six-digit FIDUNIO PIN, optional device unlock, and plain encryption status. Existing differing PINs fail closed rather than being overwritten. Focused gates pass locally; full baseline/deployment/device evidence remains outstanding, so the version and 96% ledger do not advance.
+
+Commit `5e22a9484029d02f9f6691b82329a55d4695c848` passed full baseline `34139245770`; Pages `34139244639` succeeded. Device proof remains outstanding. The accepted-message cloud-delete control is still off until the dedicated server authority is explicitly activated. Completion remains 96%.

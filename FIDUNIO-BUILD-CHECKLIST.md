@@ -482,7 +482,7 @@ No point earned; completion remains 96%.
 - [x] Local and account-E2EE derivations remain separately salted and owned.
 - [x] Existing installation PIN mismatch fails closed; legacy verification remains for migration compatibility.
 - [x] Permanent `test:user-access-key-ux` gate added to the full baseline.
-- [ ] Full baseline and Pages green.
+- [x] Full baseline `34139245770` and Pages `34139244639` green for commit `5e22a9484029d02f9f6691b82329a55d4695c848`.
 - [ ] Fresh-account and existing-installation device acceptance.
 
 No point earned; completion remains 96%.
@@ -496,8 +496,9 @@ No point earned; completion remains 96%.
 - [x] `MESSAGE-DELETION-AUTHORITY.md` and `USER-ACCESS-KEY-UX.md` created as critical documents.
 - [ ] Dedicated message-delete service account provisioned with reviewed minimum permissions.
 - [ ] Callable deployed and authenticated denial/success tested.
-- [ ] One-PIN enrollment/unlock migration implemented and repository-gated.
-- [ ] Technical key controls removed from ordinary-user UI.
+- [x] One-PIN fresh setup and ordinary unlock presentation implemented and repository-gated.
+- [x] Technical key controls removed from ordinary-user Settings UI.
+- [ ] Existing installations with different prior PINs deliberately migrated or clean-reset and device-tested.
 - [ ] Clean iPhone/iPad account lifecycle accepted.
 
 No point earned; completion remains 96%.
@@ -509,7 +510,7 @@ No point earned; completion remains 96%.
 - [x] Physical local message/history/Outbox removal uses the established purge owner.
 - [x] No Firestore delete, tombstone, duplicate retry owner or fabricated receipt.
 - [x] Permanent `test:pending-message-delete` added to the full baseline.
-- [ ] Full baseline and Pages green.
-- [ ] User confirms deletion remains absent after restart/reconnect and never retries.
+- [x] Full baseline `34136342719` and Pages `34136342110` green.
+- [x] User confirmed the queued message was deleted; restart/reconnect non-retry remains part of final device matrix.
 
 No point earned; completion remains 96%.
