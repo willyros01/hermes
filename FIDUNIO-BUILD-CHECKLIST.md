@@ -451,3 +451,5 @@ User-device evidence now satisfies the FDA-IOS-001 startup-feedback and FDA-IOS-
 - [ ] User proves readable Sent → Delivered → Read.
 
 0.9.9.8 remains IN PROGRESS and earns zero additional points. Total remains 96.0/100.0 (96%).
+
+Full normal baseline requested on the exact outgoing-decrypt repair candidate; completion and device credit remain pending the result.
