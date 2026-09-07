@@ -173,3 +173,5 @@ First full runs `34130208522` and `34130353052` reached the Outbox gate after ev
 Corrected commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509` passed full baseline `34130779064`. The sender-side read repair is repository-validated. Do not promote completion credit: exact-tree `main` deployment and user-device readable Sent → Delivered → Read remain required. Overall completion remains 96%.
 
 Final docs tree `243e1698f5efad09e03587cce0c8689c81ff4659` passed full baseline `34131152754`, was promoted exactly to `main` as `a08d985a8308b9f9da9fabc3c127beefc452fe04`, and Pages `34131445802` succeeded. Device retest is next. 0.9.9.8 remains IN PROGRESS and total remains 96%.
+
+Current FDA-DM-002 candidate adds pending-message deletion. Only outgoing Queued/Sending/Failed rows expose it. Cancellation stays inside the serialized encrypted Outbox authority and removes local traces without Firestore deletion. Full gate, deployment and device proof remain required; completion stays 96%.

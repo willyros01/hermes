@@ -297,3 +297,5 @@ Repeated online/foreground/verification triggers are coalesced by the same `app.
 Repository/process ownership from 2026-09-07: `main` is the one code/documentation/test/deployment authority. `fidunio-complete-rebuild` is historical and has no write or mirror authority. The permanent baseline listens to `main`; no document synchronization workflow remains.
 
 Disappearing compose ownership is limited to validating and stamping the selected expiry once. The returned Outbox row remains mutable only inside the existing serialized `app.js` transport owner, which advances delivery state. Freezing the whole row is prohibited because it blocks the legitimate sole owner; no secondary receipt or expiry writer is permitted.
+
+Queued/Sending/Failed deletion is cancellation inside the same serialized `app.js` Outbox authority. It reserves against concurrent send, verifies the encrypted row, and uses the established local physical purge path. It must not add client Firestore deletion, tombstones or a second retry owner.

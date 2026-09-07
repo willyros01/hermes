@@ -82,3 +82,4 @@ jobs:
       - {name: iPad RC stabilization gate, run: npm run test:ipad-rc-stabilization}
       - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}
       - {name: Startup and local PIN fail-closed resilience, run: npm run test:startup-auth-resilience}
+      - {name: Pending encrypted-Outbox message deletion, run: npm run test:pending-message-delete}

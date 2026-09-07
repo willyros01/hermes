@@ -309,6 +309,9 @@ textarea{
 .modal-actions button{border-radius:12px;padding:12px;font-weight:800}
 .modal-cancel{border:1px solid var(--line);background:var(--panel);color:var(--accent)}
 .modal-confirm{border:0;background:var(--accent);color:#fff}
+.modal-delete{border:0;background:#a52b2b;color:#fff}
+.pending-message-action{touch-action:pan-y}
+.pending-message-action:focus-visible .bubble{outline:4px solid var(--accent);outline-offset:3px}
 .settings{display:flex;flex-direction:column;gap:14px}
 @media (max-width:380px){
   .topbar h1{font-size:21px}

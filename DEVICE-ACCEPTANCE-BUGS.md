@@ -205,3 +205,12 @@ Deployment evidence: final authoritative commit `243e1698f5efad09e03587cce0c8689
 #### iPad retest exposes frozen transport-row defect — 2026-09-07
 
 The iPad displayed `Attempted to assign to readonly property` while `test msg 4` remained Sending. This is a local JavaScript mutation failure, not a Firebase outage. The disappearing compose policy froze the entire new message row although the sole `app.js` Outbox owner must advance its transport state. Candidate correction stamps expiry once onto a normal application-owned row; it adds no receipt path. A permanent test exercises Sending → Sent while expiry remains unchanged. Cache revision advances to `001f`. FDA-DM-001 remains OPEN.
+
+### FDA-DM-002 — Pending messages cannot be deleted
+
+- **Build:** 0.9.9.8 stabilization
+- **Severity:** HIGH — unusable pending rows accumulate and may retry later
+- **Observed:** Queued, Sending and Failed garbage messages cannot be removed.
+- **Candidate:** Press and hold an outgoing pending message for large Delete Message/Cancel controls. Cancellation coordinates with the existing serialized Outbox cycle, confirms the encrypted row, then physically removes local message, history and Outbox traces through the established purge owner. No client Firestore delete path is added.
+- **Exit:** Full baseline and Pages succeed; iPad/iPhone deletion survives restart and reconnect and never retries.
+- **Status:** REPAIR CANDIDATE — OPEN.

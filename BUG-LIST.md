@@ -175,3 +175,7 @@ Final authoritative tree `243e1698f5efad09e03587cce0c8689c81ff4659` passed basel
 ### FDA-DM-001 readonly outgoing row — 2026-09-07
 
 Real iPad error: `Attempted to assign to readonly property`; new row remained Sending. Cause is over-broad `Object.freeze` in the disappearing compose policy conflicting with the sole Outbox owner's required status transition. Candidate returns a mutable application row while preserving one-time expiry stamping. Firebase, receipt, E2EE and storage ownership remain unchanged. Full `main` baseline and device proof pending; completion remains 96%.
+
+### FDA-DM-002 pending-message deletion — 2026-09-07
+
+Queued/Sending/Failed outgoing messages lacked deletion. Candidate adds press-and-hold cancellation through the sole serialized encrypted Outbox owner and established physical local purge path. No cloud deletion authority is added. Gate, deployment and device proof pending; completion remains 96%.

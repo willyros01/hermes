@@ -657,3 +657,7 @@ The user explicitly ended the two-branch development/mirror process because edit
 ### 0.9.9.8 READONLY OUTGOING ROW — 2026-09-07
 
 Real iPad retest showed `Attempted to assign to readonly property` and test msg 4 stuck Sending. This is not a Firebase outage. `stampOutgoingDisappearSelection` froze the full row, but sole `app.js` Outbox owner must mutate transport state. Repair returns a normal application-owned row after stamping expiry once; regression test proves Sending → Sent is allowed without changing expiry. No new owner. Cache revision `001f`. Await full main gate, Pages and device receipts. Completion remains 96%.
+
+### FDA-DM-002 PENDING-MESSAGE DELETION — 2026-09-07
+
+The user identified missing deletion as a release blocker because garbage Queued/Sending/Failed rows could not be removed. The 0.9.9.8 candidate adds press-and-hold Delete Message/Cancel UI only for pending outgoing rows. `app.js` remains sole encrypted Outbox owner: cancellation reserves against active work, rechecks the row and uses the established physical local purge owner. No Firestore delete, tombstone, duplicate retry or receipt path is added. Cache revision `001g`. Full gate, Pages and device restart/reconnect proof remain required. Completion remains 96%.

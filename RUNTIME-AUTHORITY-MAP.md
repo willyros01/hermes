@@ -295,3 +295,5 @@ Account v3 read direction remains owned by `e2ee-account-message-service.js`. It
 Repository authority is `main` only as of 2026-09-07. The branch choice does not change runtime owners: code, durable documents, the permanent baseline and GitHub Pages deployment now converge on the same branch. The former documentation mirror is removed.
 
 The disappearing compose policy owns only normalization and the one-time `disappearAfterSeconds` stamp. It must not freeze the whole Outbox application row. `app.js` remains the sole serialized transport-state owner and may advance that row through Queued, Sending, Sent or Failed without creating another expiry or receipt authority.
+
+Pending-message cancellation belongs to the same `app.js` Outbox coordinator. A reservation blocks transport at bounded pre-send checkpoints; after active work settles, the existing physical local purge owner removes message, history and encrypted Outbox traces. It never calls Firestore deletion.

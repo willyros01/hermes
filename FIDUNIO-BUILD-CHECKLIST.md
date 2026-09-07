@@ -474,3 +474,15 @@ By explicit user decision, allocate branch/process maintenance within the curren
 - [ ] Pages green and repeated user-device receipt proof.
 
 No point earned; completion remains 96%.
+
+### 0.9.9.8 FDA-DM-002 pending-message deletion candidate
+
+- [x] Press-and-hold actions limited to outgoing Queued/Sending/Failed rows.
+- [x] Cancellation reserved with the one `app.js` Outbox coordinator.
+- [x] Physical local message/history/Outbox removal uses the established purge owner.
+- [x] No Firestore delete, tombstone, duplicate retry owner or fabricated receipt.
+- [x] Permanent `test:pending-message-delete` added to the full baseline.
+- [ ] Full baseline and Pages green.
+- [ ] User confirms deletion remains absent after restart/reconnect and never retries.
+
+No point earned; completion remains 96%.

@@ -636,3 +636,7 @@ Repository validation: corrected authoritative commit `fbfb296b2c29ce367fae7c38a
 ### 0.9.9.8 Safari readonly-Outbox-row repair candidate
 
 The iPad exposed `Attempted to assign to readonly property` when the established Outbox owner advanced a disappearing-message row from Queued to Sending/Sent. The disappearing compose policy had frozen the entire copied application row even though only the stamped expiry choice is immutable. The candidate preserves the one-time expiry stamp but returns a mutable transport row so the sole serialized `app.js` Outbox owner can update its state. No Firebase configuration, rules, E2EE owner, receipt owner or storage owner changes. Full baseline, `main` deployment and real-device acceptance remain required; completion stays 96%.
+
+### 0.9.9.8 pending-message deletion candidate
+
+Outgoing Queued, Sending and Failed messages now expose press-and-hold Delete Message/Cancel controls. Delete coordinates with the sole encrypted Outbox cycle and physically removes local message/history/Outbox traces. It adds no client Firestore delete authority. Gate, deployment and device acceptance remain required; completion stays 96%.

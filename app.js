@@ -264,6 +264,10 @@ async function removeOutboxMessage(id){
   tx.objectStore("outbox").delete(id);
   await txDone(tx);
 }
+async function getOutboxMessage(id){
+  const db=await openDb();
+  return idbRequest(db.transaction("outbox","readonly").objectStore("outbox").get(id));
+}
 async function markOutboxSendAttempted(id){
   const db=await openDb();
   const tx=db.transaction("outbox","readwrite");
@@ -1263,6 +1267,7 @@ function renderChat(){
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=sendCurrent;
   box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendCurrent()}});
+  bindPendingMessageActions();
   requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
 }
 
@@ -1271,13 +1276,27 @@ function renderBubble(m,c){
   const label=m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
     m.state==="delivered"?"Delivered":m.state==="failed"?"Failed":"Read";
   const cls=m.state==="queued"?"state-queued":m.state==="failed"?"state-failed":"";
-  return `<div class="msg-row ${m.mine?"mine":""}">
+  const pendingAction=m.mine&&["queued","sending","failed"].includes(m.state);
+  return `<div class="msg-row ${m.mine?"mine":""} ${pendingAction?"pending-message-action":""}" ${pendingAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
     ${c.type==="group"&&!m.mine&&m.sender?`<div class="sender-label">${esc(m.sender)}</div>`:""}
     <div class="bubble">
       <div class="msg-text">${esc(m.text)}</div>
       <div class="msg-meta"><span>${esc(m.time)}</span>${m.mine?`<span class="${cls}">${label}</span>`:""}</div>
     </div>
   </div>`;
+}
+
+function bindPendingMessageActions(){
+  document.querySelectorAll(".pending-message-action").forEach(row=>{
+    let timer=null,startX=0,startY=0;
+    const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
+    const open=()=>{clear();state.modal={type:"pendingMessage",messageId:row.dataset.messageId,conversationId:row.dataset.conversationId};render();};
+    row.oncontextmenu=e=>{e.preventDefault();open();};
+    row.onpointerdown=e=>{if(e.button!==0)return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
+    row.onpointermove=e=>{if(Math.abs(e.clientX-startX)>10||Math.abs(e.clientY-startY)>10)clear();};
+    row.onpointerup=clear;row.onpointercancel=clear;row.onpointerleave=clear;
+    row.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
+  });
 }
 
 async function chooseAndSendAttachment(kind,accept,capture){
@@ -1340,6 +1359,24 @@ let outboxCycleTail=Promise.resolve();
 let outboxCycleRunning=false;
 let outboxCyclePending=false;
 let outboxCycleNotify=false;
+const outboxCancellationRequests=new Set();
+async function cancelPendingOutboxMessage(messageId,conversationId){
+  const id=String(messageId||"");
+  if(!id||!firebaseUser)throw new Error("A signed-in account is required to delete this message.");
+  outboxCancellationRequests.add(id);
+  try{
+    await outboxCycleTail.catch(()=>{});
+    const record=await getOutboxMessage(id);
+    if(!record)throw new Error("This message has already left the Outbox and can no longer be cancelled.");
+    const payload=await decryptOutboxRecord(record);
+    if(String(payload.conversationId)!==String(conversationId))throw new Error("Message ownership could not be confirmed.");
+    await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[id]);
+    const c=state.conversations.find(x=>String(x.id)===String(conversationId));
+    const last=state.messages[conversationId]?.at(-1);
+    if(c&&last){c.preview=last.text||"";c.time=last.time||"";}
+    await persistState();
+  }finally{outboxCancellationRequests.delete(id);}
+}
 async function reconcileOutboxBeforeReplay(){
   if(!state.online||!firebaseUser)return{acceptedOutboxDeleteIds:[],purgeMessageIds:[],replayMessageIds:[],blockedMessageIds:[]};
   return serializeReconnectRecovery(async()=>{
@@ -1446,6 +1483,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
     // Never delete an Outbox record merely because the normal message cache
     // is missing. Rebuild the visible message from the encrypted Outbox.
     const {c,m}=ensureQueuedMessageFromPayload(payload);
+    if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
     const isGroupPayload=payload.kind==="group-e2ee-v1";
     const isCloud=payload.cloud || !!c?.cloud || isGroupPayload;
     if(isCloud&&allowedCloudMessageIds instanceof Set&&!allowedCloudMessageIds.has(String(payload.messageId))){
@@ -1458,6 +1496,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
       if(!firebaseUser){m.state="queued";await persistState();continue;}
       try{
         m.state="sending";await persistState();
+        if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
         await markOutboxSendAttempted(payload.messageId);
         await flushGroupOutboxForApp(payload,{removeEncryptedOutbox:removeOutboxMessage});
         m.state="sent";await persistState();
@@ -1479,8 +1518,10 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         const peerUid=await awaitBoundedOutboxReconciliation(resolvePeerUidForConversation(payload.conversationId),{stage:"peer-resolution"});
         if(!peerUid)throw new Error("Recipient account identity is unavailable.");
         const encrypted=await awaitBoundedOutboxReconciliation(prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text}),{stage:"envelope-preparation"});
+        if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
         await markOutboxSendAttempted(payload.messageId);
         sendAttempted=true;
+        if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
         await awaitBoundedOutboxReconciliation(sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null}),{stage:"send-confirmation"});
 
         m.state="sent";
@@ -1613,7 +1654,27 @@ function renderModal(){
   const modal=state.modal;
   const host=document.createElement("div");
   host.className="modal-backdrop";
-  if(modal.type==="addMember"){
+  if(modal.type==="pendingMessage"){
+    const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
+        <h2 id="pendingMessageTitle">Message actions</h2>
+        <p>This message has not completed sending. Delete it from this device and permanently stop future retries?</p>
+        <div class="modal-actions">
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
+          <button class="modal-delete" id="modalDelete">Delete Message</button>
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+    const remove=host.querySelector("#modalDelete");
+    remove.onclick=async()=>{
+      remove.disabled=true;
+      try{await cancelPendingOutboxMessage(modal.messageId,modal.conversationId);state.modal=null;host.remove();render();}
+      catch(err){remove.disabled=false;alert(err?.message||String(err));}
+    };
+    if(!message||!["queued","sending","failed"].includes(message.state)){state.modal=null;host.remove();return render();}
+  } else if(modal.type==="addMember"){
     host.innerHTML=`
       <div class="modal">
         <h2>Add Member</h2>
