@@ -100,3 +100,20 @@ The 0.9.9.7 real-device acceptance pass is **FAILED / BLOCKED** by FDA-IPAD-001 
 ### First repair device evidence
 
 The same screenshot confirms that the Firestore conversation “Jax Rosales,” quick phrases, disappearing selector and message composer were restored, and Sign Out no longer crosses horizontally into the chat pane. FDA-IPAD-001 and the horizontal component of FDA-IPAD-003 are therefore visibly improved but remain open until the complete corrected layout and four-tool panel are user-accepted. FDA-IPAD-002 remains open pending the user’s readability judgment.
+
+
+### FDA-IPAD-006 — Native disappearing selector breaks dark visual family
+
+- **Build under test:** 0.9.9.8 second repair promoted to `main`
+- **Date reported:** 2026-09-06 device time / 2026-09-07 work session
+- **Reporter/device:** User; iPad landscape; existing Home-Screen installation
+- **Severity:** MEDIUM — visible RC polish/accessibility defect
+- **Expected behavior:** The disappearing-message selector uses the established navy/teal/gray visual family and remains readable with a large touch target.
+- **Observed behavior:** iPad renders the selector as a bright white native button inside the dark composer.
+- **Evidence:** User screenshot after the full-width/safe-area repair.
+- **Diagnosis:** The native iPad select appearance was not explicitly themed.
+- **Repair candidate:** CSS-only styling on the existing `#disappearSelect` owner with panel background, teal indicator, readable foreground, focus outline and 42px minimum target.
+- **Status:** REPAIR CANDIDATE — NOT CLOSED.
+- **Exit criteria:** Selector visually matches the dark composer in iPad portrait/landscape and remains readable/operable; user accepts the result.
+
+The same screenshot provides positive evidence for FDA-IPAD-004 and FDA-IPAD-005: both headers clear the status bar and the two-pane shell fills the available width. Those items remain open only until explicit user acceptance.
