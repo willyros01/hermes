@@ -145,3 +145,21 @@ The existing `app.js` serialized Outbox/reconnect owner now bounds authoritative
 After the first candidate passed the repository gate and was promoted, the existing `IPAD TEST 1` initially appeared Failed. When the user sent new messages, the original row returned to Sending and both new rows remained Sending for more than one minute. This proves the reconciliation-only boundary was insufficient and exposed a second defect: reconciliation was serialized, but multiple lifecycle triggers could start overlapping post-reconciliation Outbox flushes. The expanded candidate serializes the entire reconcile → prepare/encrypt → attempt-marker → Firestore-confirmation cycle inside the existing `app.js` owner. It retains a 12-second boundary at reconciliation, peer resolution, envelope/key preparation and send confirmation. Pre-attempt timeout returns only unattempted work to Queued; post-attempt ambiguity remains Failed and cannot auto-replay. A disallowed attempted row can no longer be changed back to Queued by `flushQueued()`. The service-worker shell now includes the boundary module and uses cache revision `0.9.9.8-fda-dm-001b` so the same-version repair is deterministically installed. Status remains **REPAIR CANDIDATE — NOT CLOSED**.
 
 Repository and deployment evidence: expanded candidate commit `90460aea19c0d5204c91b2542d59905b1edff246`; full Rebuild Baseline Security Gate `34085040014` SUCCESS; promoted `main` commit `321d182cbd08cb690fa4df7caf96221ef69d09b4`; Pages deployment `34085354728` SUCCESS; live `app.js`, boundary module and service-worker cache revision verified. FDA-DM-001 remains open pending fresh user-device evidence and authenticated Firebase communication proof.
+
+#### Expanded-candidate iPad evidence — 2026-09-07
+
+After the required second launch, both preserved messages display Queued rather than remaining Sending. This confirms the revised service-worker cache loaded, the bounded pre-attempt state transition executed, encrypted Outbox rows were retained, and no false receipt state was manufactured. It also confirms the underlying authenticated Firebase communication path did not complete during the bounded interval. FDA-DM-001 remains **OPEN — FIREBASE COMMUNICATION DIAGNOSIS REQUIRED**; do not send additional test messages until connectivity is isolated.
+
+### FDA-IOS-001 — Blank screen during iPhone startup/authentication
+
+- **Build under test:** 0.9.9.8 promoted to `main`
+- **Date reported:** 2026-09-07 device time and work session
+- **Reporter/device:** User; iPhone; existing FIDUNIO installation
+- **Severity:** MINOR — deferred startup feedback/accessibility defect
+- **Expected behavior:** During a lengthy startup/authentication wait, show a prominent accessible progress indicator and clear loading message until the first usable screen appears.
+- **Observed behavior:** Logging in took a long pause and the iPhone displayed a blank screen until the first screen appeared.
+- **Evidence:** User report during the FDA-DM-001 retest.
+- **Probable scope:** Existing startup/authentication lifecycle presentation only. Do not add a second auth owner, polling loop, reload synchronization or timing-based lifecycle repair.
+- **Requested disposition:** Record now and combine with other minor acceptance issues in a later bounded repair.
+- **Status:** OPEN — DEFERRED; NO CODE CHANGE AUTHORIZED NOW.
+- **Exit criteria:** Existing deterministic startup/auth owner exposes a readable loading state with visible spinner until routing is ready; iPhone startup test confirms there is no unexplained blank interval.

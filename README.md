@@ -605,3 +605,7 @@ The first reconciliation-only timeout failed device acceptance: the original Fai
 ### Expanded candidate validated and deployed — 2026-09-07
 
 Expanded repair commit `90460aea19c0d5204c91b2542d59905b1edff246` passed full baseline `34085040014`. Main promotion `321d182cbd08cb690fa4df7caf96221ef69d09b4` passed Pages run `34085354728`, and live full-cycle/cache anchors were verified. This is repository and deployment evidence only. FDA-DM-001 stays open until installed-iPad and authenticated Firebase communication/receipt acceptance pass. Completion remains 96%.
+
+### Device result: safe queue confirmed; Firebase communication unresolved — 2026-09-07
+
+After the required second launch, the two preserved iPad messages display Queued. The expanded repair therefore prevents indefinite Sending, preserves encrypted Outbox authority and does not create false receipts. Authenticated Firebase communication still did not complete and remains the critical FDA-DM-001 blocker. Minor deferred FDA-IOS-001 records a blank iPhone startup/login interval; a visible accessible spinner/loading message should be added with later minor acceptance work. Completion remains 96%.
