@@ -8,6 +8,7 @@
 - [x] Add a permanent basic direct-message path gate.
 - [x] Remove direct-chat key/fingerprint banners and replace Conversation Security access with plain Chat Info.
 - [x] Add explicit open-conversation Read recovery and permanent regression coverage.
+- [x] Advance visible device candidate to 0.9.9.8c and observe Firestore cache-to-server metadata confirmation.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.
 

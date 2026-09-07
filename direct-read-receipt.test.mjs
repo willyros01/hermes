@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 
 const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
+const firebase=readFileSync(new URL("./firebase.js",import.meta.url),"utf8");
+const version=readFileSync(new URL("./version.js",import.meta.url),"utf8");
 assert.match(app,/markCloudConversationRead\(conversationId\)\.catch/,"opening a direct chat must explicitly advance incoming messages to Read");
 assert.match(app,/snapshot processing, so an initial cache snapshot cannot suppress Read/,"the cache-to-server receipt boundary must remain documented in the owner");
+assert.match(firebase,/onSnapshot\(q,\{includeMetadataChanges:true\},snap=>/,"the receiver must be notified when a cached display becomes server-confirmed");
+assert.match(firebase,/fromCache:!!snap\.metadata\?\.fromCache,hasPendingWrites:!!snap\.metadata\?\.hasPendingWrites/,"reused listeners must preserve real snapshot authority");
+assert.match(version,/version: "0\.9\.9\.8c"/,"device candidates must have a visible distinct version");
 console.log("Direct Read-receipt recovery gate passed");

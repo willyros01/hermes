@@ -8,6 +8,8 @@ First iPad launch still exposed a legacy key-change/fingerprint banner. The foll
 
 Device proof confirms iPad → iPhone message transmission. The remaining Sent status is a Read-receipt return defect. The bounded candidate calls the existing recipient-only conversation Read owner whenever the direct chat opens, so a cached first snapshot cannot skip the server receipt.
 
+The first receipt candidate failed device proof after two iPhone restarts. Root cause refinement: the Firestore listener omitted metadata-change delivery, so an incoming message displayed from cache did not necessarily generate a second server-confirmed callback. Version **0.9.9.8c** enables metadata changes, preserves actual snapshot authority on listener reuse, and gives testers a visible candidate identifier.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
