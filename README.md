@@ -609,3 +609,7 @@ Expanded repair commit `90460aea19c0d5204c91b2542d59905b1edff246` passed full ba
 ### Device result: safe queue confirmed; Firebase communication unresolved — 2026-09-07
 
 After the required second launch, the two preserved iPad messages display Queued. The expanded repair therefore prevents indefinite Sending, preserves encrypted Outbox authority and does not create false receipts. Authenticated Firebase communication still did not complete and remains the critical FDA-DM-001 blocker. Minor deferred FDA-IOS-001 records a blank iPhone startup/login interval; a visible accessible spinner/loading message should be added with later minor acceptance work. Completion remains 96%.
+
+### 0.9.9.8 authenticated-session/verification-path repair candidate — 2026-09-07
+
+The Verify handler's direct queue flush bypassed the established serialized authoritative Outbox cycle. The candidate routes it through that owner and force-refreshes Firebase Auth through `firebase.js` before reconciliation, with bounded stage-specific failure messages. Verification is a stored trust decision, not proof of a fingerprint comparison; no key reset occurred. Firebase rules and protected configuration remain unchanged. Full gate, `main` deployment and device acceptance remain required; completion stays 96%.

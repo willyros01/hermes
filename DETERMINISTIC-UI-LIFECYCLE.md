@@ -261,3 +261,5 @@ Device retest showed lifecycle triggers could overlap after reconciliation and r
 Expanded candidate `90460aea19c0d5204c91b2542d59905b1edff246` passed full baseline `34085040014` and Pages deployment `34085354728` through `main` commit `321d182cbd08cb690fa4df7caf96221ef69d09b4`. Live lifecycle/cache anchors were verified. Device acceptance remains open.
 
 Second-launch iPad evidence shows both preserved rows Queued, confirming deterministic cache replacement and bounded state recovery. Authenticated Firebase communication remains unresolved. Minor deferred FDA-IOS-001 requests a visible accessible startup spinner/loading message within the existing auth/bootstrap lifecycle; it explicitly forbids a second owner, polling, reload synchronization or timing repair.
+
+FDA-DM-001 lifecycle correction: verification, foreground and online recovery share the established serialized authoritative Outbox entry point. Verification cannot start a lower-level flush. Before reconciliation, that entry point requests a bounded Auth token refresh from `firebase.js`; timeout produces an explicit stage message and a deterministic Queued/Failed state rather than indefinite Sending.

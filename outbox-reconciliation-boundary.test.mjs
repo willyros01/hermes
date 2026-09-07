@@ -73,16 +73,19 @@ assert.match(app,/planTimedOutOutboxRequeue\(\{outboxRecords:records,messagesByC
 assert.match(app,/m\.state="queued"/,"a stalled pre-send row must return to Queued");
 assert.match(app,/notifyUser:true/,"an explicit user send must surface the Firebase timeout");
 assert.match(app,/stage:"peer-resolution"/,"peer resolution must be bounded before send attempt");
+assert.match(app,/refreshFirebaseAuthSession\(\),\{stage:"auth-refresh"\}/,"every serialized cloud send cycle must first refresh Firebase authentication");
 assert.match(app,/stage:"envelope-preparation"/,"account-key retrieval and envelope preparation must be bounded before send attempt");
 assert.match(app,/stage:"send-confirmation"/,"Firestore send acknowledgment must be bounded after the durable attempt marker");
 assert.match(app,/sendAttempted\|\|timeoutRequiresFailedState\(err\)/,"pre-attempt timeout must queue while post-attempt ambiguity fails closed");
 assert.match(app,/let outboxCycleTail=Promise\.resolve\(\)/,"the complete reconcile/encrypt/send cycle must have one serialized tail");
 assert.match(app,/return serializeOutboxCycle\(async\(\)=>\{[\s\S]*?reconcileOutboxBeforeReplay\(\)[\s\S]*?flushQueued/s,"reconciliation and flush must remain inside the same serialized application cycle");
 assert.match(app,/m\.state=record\.sendAttempted===true\?"failed":"queued"/,"a disallowed attempted row must remain Failed and must never return to the replay queue");
+assert.doesNotMatch(app,/if\(state\.online\) flushQueued\(\)/,"key verification and lifecycle callers must not bypass authoritative serialized reconciliation");
+assert.match(app,/if\(state\.online\) flushQueuedAfterAuthoritativeReconcile\(\{notifyUser:true\}\)/,"key verification must re-enter the one authoritative Outbox path");
 assert.match(workflow,/npm run test:outbox-reconciliation-boundary/,"the permanent baseline must run this regression gate");
 
 const worker=readFileSync(new URL("./service-worker.js",import.meta.url),"utf8");
 assert.match(worker,/\.\/outbox-reconciliation-boundary\.js/,"the bounded send dependency must be part of the deterministic offline shell");
-assert.match(worker,/SHELL_REVISION="0\.9\.9\.8-fda-dm-001b"/,"same-version stabilization must deterministically invalidate the prior shell cache");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.8-fda-dm-001c"/,"same-version stabilization must deterministically invalidate the prior shell cache");
 
 console.log("Bounded Firebase Outbox reconciliation gate passed");
