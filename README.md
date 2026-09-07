@@ -601,3 +601,15 @@ FDA-DM-001 is addressed inside the existing serialized Outbox/reconnect owner wi
 ## 0.9.9.8 expanded direct-send candidate — 2026-09-07
 
 The first reconciliation-only timeout failed device acceptance: the original Failed row returned to Sending and two new rows remained Sending beyond one minute. The expanded candidate serializes the full reconcile/encrypt/send cycle, bounds all Firebase-dependent stages, prevents attempted-message replay, and adds the new dependency to a deterministically revised service-worker shell cache. Runtime remains 0.9.9.8 because this is continued work under the allocated stabilization build. Full baseline, `main` publication and user acceptance remain pending; completion remains 96%.
+
+### Expanded candidate validated and deployed — 2026-09-07
+
+Expanded repair commit `90460aea19c0d5204c91b2542d59905b1edff246` passed full baseline `34085040014`. Main promotion `321d182cbd08cb690fa4df7caf96221ef69d09b4` passed Pages run `34085354728`, and live full-cycle/cache anchors were verified. This is repository and deployment evidence only. FDA-DM-001 stays open until installed-iPad and authenticated Firebase communication/receipt acceptance pass. Completion remains 96%.
+
+### Device result: safe queue confirmed; Firebase communication unresolved — 2026-09-07
+
+After the required second launch, the two preserved iPad messages display Queued. The expanded repair therefore prevents indefinite Sending, preserves encrypted Outbox authority and does not create false receipts. Authenticated Firebase communication still did not complete and remains the critical FDA-DM-001 blocker. Minor deferred FDA-IOS-001 records a blank iPhone startup/login interval; a visible accessible spinner/loading message should be added with later minor acceptance work. Completion remains 96%.
+
+### 0.9.9.8 authenticated-session/verification-path repair candidate — 2026-09-07
+
+The Verify handler's direct queue flush bypassed the established serialized authoritative Outbox cycle. The candidate routes it through that owner and force-refreshes Firebase Auth through `firebase.js` before reconciliation, with bounded stage-specific failure messages. Verification is a stored trust decision, not proof of a fingerprint comparison; no key reset occurred. Firebase rules and protected configuration remain unchanged. Full gate, `main` deployment and device acceptance remain required; completion stays 96%.

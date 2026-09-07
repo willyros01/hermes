@@ -1,6 +1,7 @@
 import {
   isFirebaseConfigured,
   initFirebase,
+  refreshFirebaseAuthSession,
   createFidunioAccount,
   signInFidunio,
   signOutFidunio,
@@ -1384,6 +1385,7 @@ async function flushQueuedAfterAuthoritativeReconcile({notifyUser=false}={}){
   if(!state.online||!firebaseUser)return;
   return serializeOutboxCycle(async()=>{
     try{
+      await awaitBoundedOutboxReconciliation(refreshFirebaseAuthSession(),{stage:"auth-refresh"});
       const plan=await awaitBoundedOutboxReconciliation(reconcileOutboxBeforeReplay());
       return await flushQueued({allowedCloudMessageIds:new Set(plan.replayMessageIds),notifyUser});
     }catch(err){
@@ -1467,7 +1469,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         m.state=(sendAttempted||timeoutRequiresFailedState(err))?"failed":"queued";
         firebaseError=err?.message || String(err);
         await persistState();
-        if(notifyUser&&isOutboxReconciliationTimeout(err))alert(firebaseError);
+        if(notifyUser)alert(firebaseError);
       }
     }else{
       m.state="failed";
@@ -1662,7 +1664,7 @@ function renderModal(){
       host.remove();
       peerKeyCache.delete(peerUid);
       render();
-      if(state.online) flushQueued();
+      if(state.online) flushQueuedAfterAuthoritativeReconcile({notifyUser:true});
     };
     if(peerUid){
       getCloudUserDevices(peerUid).then(async rows=>{
