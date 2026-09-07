@@ -163,3 +163,7 @@ Candidate `429855f037c3f9f0fb2a0f31ff1371a21f273922` passed full baseline `34125
 ### Startup/PIN accepted; direct-send blocker isolated to locked Account E2EE — 2026-09-07
 
 User-device evidence confirms the startup spinner on iPhone and iPad and confirms the original iPhone local PIN remains intact and unlocks normally. FDA-IOS-001 and FDA-IOS-002 are resolved. The iPad's persistent banner now reports `Account E2EE identity is not unlocked for this account.` This is the account-authoritative E2EE service failing closed before encryption/Firestore send, not a demonstrated Firebase outage. Do not reset/regenerate keys and do not approve the separate changed fingerprint without an actual comparison. FDA-DM-001 remains open pending deliberate Account Encryption unlock and real receipts. Completion remains 96%.
+
+### FDA-DM-001 outgoing v3 read direction — 2026-09-07
+
+After both real accounts became Account Encryption READY, preserved iPad rows reached genuine Sent but the sender could not decrypt them. `app.js` was passing outgoing and incoming v3 rows to an incoming-only service method. The candidate keeps the existing owner, selects direction from authenticated UID plus authoritative `senderUid`, preserves exact AAD/keyId validation, and rejects non-member senders. Direct tests pass; full baseline and device proof remain pending. Completion remains 96%.

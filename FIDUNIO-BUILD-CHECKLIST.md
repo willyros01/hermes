@@ -438,3 +438,16 @@ The previous device retest failed: second launch blanked for more than two minut
 Repository/deployment criteria are satisfied by authoritative `429855f037c3f9f0fb2a0f31ff1371a21f273922`, full baseline `34125430406` SUCCESS, `main` `2dcbd8a558ed8bf355ebec1c6bbc82e59948b29f`, and Pages `34125666157` SUCCESS. Live anchors and protected config match. Device startup/PIN/send/receipt proof remains unearned; total stays 96.0/100.0 (96%).
 
 User-device evidence now satisfies the FDA-IOS-001 startup-feedback and FDA-IOS-002 PIN-preservation portions: spinner appears until the PIN screen and the original PIN unlocks. Direct-message acceptance remains blocked because the iPad reports its Account E2EE identity is not unlocked. Queued preservation passes; Sent → Delivered → Read remains unearned. Do not reset identities or accept a changed fingerprint without comparison. Total remains 96.0/100.0 (96%).
+
+### 0.9.9.8 FDA-DM-001 outgoing-decrypt candidate — 2026-09-07
+
+- [x] Both real-device Account Encryption screens show READY.
+- [x] Preserved rows reached Sent, proving Firebase write acceptance.
+- [x] Diagnose incoming-only decrypt direction for sender-owned rows.
+- [x] Add one direction-aware service path and permanent two-direction tests.
+- [x] Correct compatibility-key warning without accepting un-compared trust.
+- [ ] Complete normal baseline on exact candidate.
+- [ ] Promote exact green candidate and verify Pages.
+- [ ] User proves readable Sent → Delivered → Read.
+
+0.9.9.8 remains IN PROGRESS and earns zero additional points. Total remains 96.0/100.0 (96%).
