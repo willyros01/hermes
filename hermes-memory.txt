@@ -7,6 +7,8 @@ The user explicitly ended further audit/design/key-management cycling. Immediate
 
 The first iPad check still showed a legacy encryption-key-changed fingerprint banner. Ordinary direct chat must show no key status, verification prompt, or Conversation Security screen. Its Info button opens only plain Chat Info.
 
+First basic transport evidence: iPad message reached and was read on iPhone, but iPad stayed Sent. This passes transmission and isolates return receipt. Direct-chat opening now invokes the existing recipient-only conversation Read owner explicitly so cached initial snapshots cannot suppress the Firestore Read update.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

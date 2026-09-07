@@ -12,6 +12,7 @@ import {
   subscribeConversationMessages,
   sendCloudMessage,
   updateCloudMessageState,
+  markCloudConversationRead,
   getCloudUserProfile,
   getCloudConversation,
   publishCloudE2EEPublicKey,
@@ -813,6 +814,13 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       if(state.route==="settings") renderSettings();
     }
   );
+  // Opening a direct chat is authoritative user intent to read it. Perform
+  // the existing recipient-only receipt update explicitly as well as through
+  // snapshot processing, so an initial cache snapshot cannot suppress Read.
+  markCloudConversationRead(conversationId).catch(err=>{
+    firebaseError=err?.message||String(err);
+    if(state.route==="chat"&&String(state.selectedId)===wanted)render();
+  });
 }
 async function initializeFirebaseLayer(){
   if(!isFirebaseConfigured()) return;

@@ -16,6 +16,6 @@ assert.match(app,/deleteCloudDirectMessageForEveryone\(modal\.conversationId,mod
 assert.match(app,/const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=false/,'accepted-message deletion must remain unavailable until its server authority is deployed');
 assert.match(css,/\.modal-delete\{[^}]*background:#a52b2b;[^}]*color:#fff/,"destructive action must have a high-contrast dedicated style");
 assert.doesNotMatch(app,/deleteDoc\s*\(/,"pending-message deletion must not introduce broad client Firestore delete authority");
-assert.match(worker,/SHELL_REVISION="0\.9\.9\.8-basic-dm-002"/,"the deployed shell must invalidate the prior cache");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.8-basic-dm-003"/,"the deployed shell must invalidate the prior cache");
 
 console.log("Pending encrypted-Outbox message deletion gate passed");

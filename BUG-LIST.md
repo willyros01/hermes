@@ -7,6 +7,7 @@
 - **Unchanged:** Sign-in, conversation membership, receipts, Firebase rules, App Check, groups, attachments, and protected configuration.
 - **Status:** CANDIDATE — focused gates pass; full gate/deployment/device proof pending.
 - **Device follow-up:** iPad still displayed a key-change/fingerprint banner. Candidate removes all direct-chat key status banners and makes the Info button open plain Chat Info instead of Conversation Security.
+- **Receipt evidence:** iPad → iPhone delivery and reading succeeded, but iPad remained Sent. Candidate explicitly marks the open direct conversation Read so an initial cached iPhone snapshot cannot suppress the receipt.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 

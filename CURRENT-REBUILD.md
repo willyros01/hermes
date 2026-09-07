@@ -6,6 +6,8 @@ By explicit user direction, direct one-to-one text messaging is the immediate pr
 
 First iPad launch still exposed a legacy key-change/fingerprint banner. The follow-up removes direct-chat key status banners and routes the Info button to plain Chat Info; it does not expose verification or key controls.
 
+Device proof confirms iPad → iPhone message transmission. The remaining Sent status is a Read-receipt return defect. The bounded candidate calls the existing recipient-only conversation Read owner whenever the direct chat opens, so a cached first snapshot cannot skip the server receipt.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
