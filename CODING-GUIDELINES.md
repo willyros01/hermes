@@ -205,3 +205,11 @@ Repository stabilization now registers `storage.rules` in `firebase.json` and ad
 
 ### 0.9.9.8 repository validation checkpoint — 2026-09-06
 Commit `34c8d237eb8f08b8228f670b8ca958038b553aef` registers `storage.rules` in `firebase.json`, adds the permanent `storage-deployment-wiring.test.mjs` gate, advances runtime to 0.9.9.8, and preserves `firebase-config.js` unchanged at blob `b81026dcc07b7374d1f48d0cb094764ce28319bd`. Full Rebuild Baseline Security Gate `34072294756` completed SUCCESS, including the new Firebase Storage deployment-wiring step. This proves repository deployability, not real attachment operation. 0.9.9.8 remains IN PROGRESS pending authenticated iPhone/iPad upload, second-device download/decrypt, unauthorized denial, offline/reconnect and disappearing-attachment purge proof. No additional completion credit is earned; overall remains 96.0/100 (96%).
+
+
+## Device-acceptance defect documentation rule — 2026-09-06
+
+- `DEVICE-ACCEPTANCE-BUGS.md` is a critical durable document and must be read and updated during every user-device acceptance or RC-stabilization task.
+- Every device defect requires a stable ID, build/device context, severity, expected and observed behavior, evidence, architecture constraints, repair allocation, status, validation evidence and exit criteria.
+- `BUG-LIST.md`, `FIDUNIO-BUILD-CHECKLIST.md`, `CURRENT-REBUILD.md`, `README.md` and `hermes-memory.txt` must remain reconciled with its release-blocking state.
+- Repository simulation cannot close a device defect. Closure requires the applicable green gate plus repeated user-device acceptance.
