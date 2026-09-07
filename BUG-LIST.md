@@ -125,3 +125,7 @@ The second screenshot confirms the safe-area and full-width repairs visually, wh
 ## FDA-IPAD-006 deferred visual-alignment finding — 2026-09-07
 
 Post-deployment user evidence confirms the selector is no longer white and is readable, but its size, shape, spacing and alignment do not aesthetically match the quick-reply widgets. The user directed that no isolated repair be made now. FDA-IPAD-006 remains OPEN — DEFERRED for the next necessary 0.9.9.8 acceptance repair; the existing disappearing-message owner and behavior must remain unchanged. Completion remains 96%.
+
+## FDA-DM-001 direct send stall — 2026-09-07
+
+Real iPad acceptance exposed a critical direct-message stall: `IPAD TEST 1` remained at Sending for more than one minute. Diagnosis identifies an unbounded pre-send authoritative server reconciliation: the encrypted Outbox row and Sending UI exist before `flushQueuedAfterAuthoritativeReconcile()` finishes, while its Firebase server reads have no timeout. The evidence does not establish a Firestore write. FDA-DM-001 is OPEN under 0.9.9.8; any repair must preserve the single Outbox/reconnect owner, fail closed, and never manufacture receipt state. Completion remains 96%.

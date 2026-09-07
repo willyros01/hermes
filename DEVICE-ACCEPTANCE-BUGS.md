@@ -121,3 +121,17 @@ The same screenshot confirms that the Firestore conversation “Jax Rosales,” 
 The user confirmed that the bright white native appearance is removed and the control is readable, but rejected its visual integration: the selector's size, shape, spacing and alignment do not match the adjacent quick-reply widgets. Per the user's direction, do not make another isolated cosmetic change now. Keep FDA-IPAD-006 **OPEN — DEFERRED** and address it with the next necessary 0.9.9.8 acceptance repair. The eventual repair must align the existing selector with the established widget visual language without changing its disappearing-message owner, behavior or accessible target size.
 
 The same screenshot provides positive evidence for FDA-IPAD-004 and FDA-IPAD-005: both headers clear the status bar and the two-pane shell fills the available width. Those items remain open only until explicit user acceptance.
+
+### FDA-DM-001 — Direct message remains at Sending indefinitely
+
+- **Build under test:** 0.9.9.8 promoted to `main`
+- **Date reported:** 2026-09-07 device time and work session
+- **Reporter/device:** User; iPad landscape; existing Home-Screen installation; cloud direct conversation with Jax Rosales
+- **Severity:** CRITICAL — real direct-message transport acceptance blocker
+- **Expected behavior:** A connected encrypted direct message advances from Sending to Sent after Firestore acknowledgment; a temporarily unavailable Firebase path remains safely queued or exposes a bounded failure instead of waiting forever.
+- **Observed behavior:** `IPAD TEST 1` remained at Sending for more than one minute and did not reach the receiving device during the observation period.
+- **Evidence:** User screenshot showing the outgoing message at 12:07 AM still labeled Sending after the user reported more than one minute of no progress.
+- **Diagnosis:** `sendCurrent()` persists the encrypted Outbox row and paints Sending before `flushQueuedAfterAuthoritativeReconcile()` completes. That path awaits authoritative `getDocFromServer` / `getDocsFromServer` reconciliation with no bounded timeout. Safari may report `navigator.onLine` while the Firebase server path is stalled, leaving the UI indefinitely at Sending before the actual encrypted Firestore send is attempted. Current evidence does not prove that the message reached Firestore.
+- **Required repair constraint:** Preserve `app.js` as the sole Outbox/reconnect mutation owner and `firebase.js` as the sole Firebase SDK owner. Add a bounded, fail-closed transition so a pre-send reconciliation stall cannot remain Sending forever; never manufacture Sent/Delivered/Read and never create a second replay path.
+- **Status:** OPEN — DIAGNOSED; NO CODE REPAIR YET.
+- **Exit criteria:** Permanent regression coverage proves bounded pre-send reconciliation behavior and Outbox preservation; full baseline passes; corrected `main` deployment passes real iPad-to-iPhone encrypted send plus automatic Sent → Delivered → Read acceptance without a reply from the receiving device.

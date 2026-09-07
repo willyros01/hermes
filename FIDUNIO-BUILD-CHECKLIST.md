@@ -408,3 +408,7 @@ The second screenshot confirms the safe-area and full-width repairs visually, wh
 ## 0.9.9.8 deferred selector alignment — 2026-09-07
 
 User-device evidence confirms the selector is readable and no longer white, but its size, shape, spacing and alignment do not match the quick-reply widgets. FDA-IPAD-006 remains OPEN — DEFERRED by explicit user direction and must be included with the next necessary 0.9.9.8 acceptance repair rather than consuming another isolated cosmetic pass. No product point is earned; total completion remains 96.0/100.0 (96%).
+
+## 0.9.9.8 direct-send acceptance blocker — 2026-09-07
+
+Real iPad-to-iPhone direct-message acceptance failed at the first send: `IPAD TEST 1` remained at Sending for more than one minute. FDA-DM-001 records the diagnosed unbounded pre-send authoritative reconciliation wait. Required exit remains permanent bounded/fail-closed Outbox regression coverage, full baseline green, corrected `main` deployment, and successful automatic Sent → Delivered → Read device proof. No point is earned; total remains 96.0/100.0 (96%).

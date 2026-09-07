@@ -589,3 +589,7 @@ The second screenshot confirms the safe-area and full-width repairs visually, wh
 ## 0.9.9.8 deferred selector alignment — 2026-09-07
 
 The deployed selector theme is readable and removes the white native control, but user-device evidence shows that its size, shape, spacing and alignment do not match the quick-reply widgets. Per explicit user direction, no isolated cosmetic repair is made now. FDA-IPAD-006 remains OPEN — DEFERRED for the next necessary 0.9.9.8 acceptance repair. No ownership boundary changes and no completion credit result from this documentation-only disposition; completion remains 96%.
+
+## 0.9.9.8 direct-send acceptance blocker — 2026-09-07
+
+Real-device testing exposed FDA-DM-001: an iPad cloud direct message remained at Sending for more than one minute. The message is staged in the encrypted Outbox before an unbounded authoritative Firebase reconciliation wait, so the UI can remain Sending before the actual Firestore send is attempted. The defect is open and must be repaired only through the existing serialized Outbox/reconnect owner with fail-closed status semantics. Completion remains 96%.
