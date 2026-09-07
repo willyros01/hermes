@@ -621,3 +621,7 @@ Candidate `6e6d5e84beb7e12173a5708835842512d44a92d4` passed full baseline `34087
 Device retest found a two-minute blank startup, iPhone PIN presented as unset, and a new direct message returned Sending → Queued. The candidate coalesces stacked recovery triggers, avoids unnecessary forced token refresh, displays connection-stage errors, adds a large startup spinner, and keeps the app locked if PIN storage is unavailable. It does not reset the PIN, keys, Firebase rules or protected configuration. Full gate/deployment/device acceptance remain required; completion stays 96%.
 
 Authoritative `429855f037c3f9f0fb2a0f31ff1371a21f273922` passed full baseline `34125430406` and was promoted to `main` as `2dcbd8a558ed8bf355ebec1c6bbc82e59948b29f`. Pages `34125666157` and live checks succeeded. Device acceptance remains required; completion stays 96%.
+
+### Device evidence — startup/PIN pass; Account E2EE locked
+
+The user confirmed the large spinner on iPhone/iPad and successful unlock with the original iPhone local PIN. The current direct-send blocker is now explicit: the iPad Account E2EE identity is locked, so encryption correctly fails closed before Firestore send. No keys should be reset and the changed fingerprint must not be verified without comparison. Completion remains 96% pending Account Encryption unlock and receipt testing.
