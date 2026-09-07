@@ -167,3 +167,5 @@ User-device evidence confirms the startup spinner on iPhone and iPad and confirm
 ### FDA-DM-001 outgoing v3 read direction — 2026-09-07
 
 After both real accounts became Account Encryption READY, preserved iPad rows reached genuine Sent but the sender could not decrypt them. `app.js` was passing outgoing and incoming v3 rows to an incoming-only service method. The candidate keeps the existing owner, selects direction from authenticated UID plus authoritative `senderUid`, preserves exact AAD/keyId validation, and rejects non-member senders. Direct tests pass; full baseline and device proof remain pending. Completion remains 96%.
+
+Repository gate: corrected commit `fbfb296b2c29ce367fae7c38abc2b5147f14d509`, complete baseline `34130779064` SUCCESS. Deployment and device proof remain open.
