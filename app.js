@@ -965,7 +965,7 @@ function applyAppearance(){
 function isWideLayout(){
   return window.matchMedia && window.matchMedia("(min-width: 700px)").matches;
 }
-function renderConversationSidebar(){
+function renderConversationSidebar(active="messages"){
   return `
     <aside class="tablet-sidebar">
       <div class="tablet-brand-row">
@@ -986,12 +986,18 @@ function renderConversationSidebar(){
       </div>
       <div class="tablet-conversation-list" id="tabletConversationList"></div>
       <nav class="tablet-bottom-nav" aria-label="FIDUNIO sections">
-        <button class="tablet-nav-item active" id="tabletMessagesNav">${icon2d("chats",22)}<span>Messages</span></button>
-        <button class="tablet-nav-item" id="tabletGroupsNav">${icon2d("groups",22)}<span>Groups</span></button>
+        <button class="tablet-nav-item ${active==="messages"?"active":""}" id="tabletMessagesNav">${icon2d("chats",22)}<span>Messages</span></button>
+        <button class="tablet-nav-item ${active==="groups"?"active":""}" id="tabletGroupsNav">${icon2d("groups",22)}<span>Groups</span></button>
         <button class="tablet-nav-item" id="tabletContactsNav">${icon2d("contacts",22)}<span>Contacts</span></button>
         <button class="tablet-nav-item" id="tabletSettingsNav">${icon2d("settings",22)}<span>Settings</span></button>
       </nav>
     </aside>`;
+}
+function bindTabletNavigation(){
+  document.querySelector("#tabletMessagesNav")?.addEventListener("click",()=>{state.route="messages";render();});
+  document.querySelector("#tabletGroupsNav")?.addEventListener("click",()=>{state.route="groups";render();});
+  document.querySelector("#tabletContactsNav")?.addEventListener("click",()=>{state.route="newConversation";render();});
+  document.querySelector("#tabletSettingsNav")?.addEventListener("click",()=>{state.route="settings";render();});
 }
 function drawTabletConversationList(term=""){
   const list=document.querySelector("#tabletConversationList");
@@ -1026,7 +1032,7 @@ function render(){
   document.body.dataset.route=state.unlocked ? (state.route||"") : "unlock";
   if(!state.unlocked) return renderUnlock();
   const routes={
-    messages:renderMessages, chat:renderChat, settings:renderSettings,
+    messages:renderMessages, groups:renderGroups, chat:renderChat, settings:renderSettings,
     newConversation:renderNewConversation, newGroup:renderNewGroup,
     groupName:renderGroupName, groupInfo:renderGroupInfo
   };
@@ -1123,6 +1129,7 @@ function renderMessages(){
     document.querySelector("#tabletNewBtn")?.addEventListener("click",()=>{state.route="newConversation";render()});
     document.querySelector("#tabletContactsNav")?.addEventListener("click",()=>{state.route="newConversation";render()});
     document.querySelector("#tabletSettingsNav")?.addEventListener("click",()=>{state.route="settings";render()});
+    bindTabletNavigation();
     document.querySelector("#emptyNewBtn")?.addEventListener("click",()=>{state.route="newConversation";render()});
     bindMainSignOut();
     return;
@@ -1166,6 +1173,18 @@ function renderMessages(){
   };
   draw();
   document.querySelector("#searchBox").oninput=e=>draw(e.target.value);
+}
+
+function renderGroups(){
+  const groups=state.conversations.filter(c=>c.type==="group"||c.cloudGroup);
+  const rows=groups.length?groups.map(c=>`<button class="conversation group-list-row" data-id="${esc(c.id)}"><div class="avatar group-avatar">${initials(c.name||"Group")}</div><div><div class="name">${esc(c.name||"FIDUNIO Group")}</div><div class="preview">${esc(c.preview||"No messages yet")}</div></div><div class="meta">${esc(c.time||"")}</div></button>`).join(""):'<div class="card" style="text-align:center"><h2>No groups yet</h2><p class="small-note">Create a group and choose its members.</p></div>';
+  const content=`<header class="topbar"><span class="topbar-spacer"></span><h1>Groups</h1><button class="icon-btn icon-2d" id="newGroupFromList" aria-label="New Group">${icon2d("plus",23)}</button></header><section class="content"><div class="conversation-list">${rows}</div><button class="primary" id="newGroupButton">New Group</button></section>`;
+  app.innerHTML=isWideLayout()?`<main class="app-shell tablet-shell">${renderConversationSidebar("groups")}<section class="tablet-chat-pane">${content}</section></main>`:`<main class="app-shell">${content}</main>`;
+  const start=()=>{state.newGroupMembers=[];state.newGroupName="";state.route="newGroup";render();};
+  document.querySelector("#newGroupButton").onclick=start;
+  document.querySelector("#newGroupFromList").onclick=start;
+  document.querySelectorAll(".group-list-row").forEach(btn=>btn.onclick=()=>{state.selectedId=btn.dataset.id;state.route="chat";beginCloudGroupMessageSubscription(state.selectedId);render();});
+  if(isWideLayout()){drawTabletConversationList();bindTabletNavigation();bindMainSignOut();}
 }
 
 function renderNewConversation(){
@@ -1262,14 +1281,7 @@ function renderChat(){
     if(tSettings) tSettings.onclick=()=>{state.route="settings";render()};
     const tNew=document.querySelector("#tabletNewBtn");
     if(tNew) tNew.onclick=()=>{state.route="newConversation";render()};
-    const tMessages=document.querySelector("#tabletMessagesNav");
-    if(tMessages) tMessages.onclick=()=>{};
-    const tGroups=document.querySelector("#tabletGroupsNav");
-    if(tGroups) tGroups.onclick=()=>{state.selectedId=state.conversations.find(x=>x.type==="group")?.id||state.selectedId;state.route="chat";render()};
-    const tContacts=document.querySelector("#tabletContactsNav");
-    if(tContacts) tContacts.onclick=()=>{state.route="newConversation";render()};
-    const tSettingsNav=document.querySelector("#tabletSettingsNav");
-    if(tSettingsNav) tSettingsNav.onclick=()=>{state.route="settings";render()};
+    bindTabletNavigation();
   }else{
     app.innerHTML=`<main class="app-shell">${chatMarkup}</main>`;
   }

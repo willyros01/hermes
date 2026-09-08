@@ -21,5 +21,7 @@ assert.match(app,/if\(!security\.available\)/);
 assert.match(app,/Your PIN has not been reset\./);
 assert.doesNotMatch(app,/if\(!security\.available\)[\s\S]{0,800}continueBtn/,
   "unavailable PIN storage must fail closed without a Continue bypass");
+assert.match(security,/document\.visibilityState==="hidden"[\s\S]{0,100}if\(isUnlocked\(\)\)onLock\("background"\)/,"switching away from FIDUNIO must lock immediately");
+assert.match(security,/window\.addEventListener\("pagehide",\(\)=>[\s\S]{0,100}onLock\("background"\)/,"iOS pagehide must also lock FIDUNIO");
 
 console.log("Startup and local PIN fail-closed resilience gate passed");

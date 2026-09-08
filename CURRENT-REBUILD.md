@@ -24,6 +24,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9c Delete for Me:** accepted sent or received direct/group messages now expose a local-only deletion action. The encrypted local state retains hidden message IDs per conversation so later Firestore snapshots cannot restore them on that device. Delete for Me never calls Firebase delete and does not affect the other participant. Pending cancellation and sender-only Delete for Everyone remain separate paths.
 
+**0.9.9.9d lock and Groups correction:** `visibilitychange=hidden` and iOS `pagehide` now lock immediately instead of waiting for the inactivity timeout. The iPad Groups button owns a real Groups route with a group list and explicit New Group action; it no longer attempts to open a nonexistent first group and silently remain in the current chat.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

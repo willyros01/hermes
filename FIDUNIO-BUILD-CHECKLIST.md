@@ -23,6 +23,8 @@
 - [ ] Prove 0.9.9.9b PIN/biometric reopening, then repeat encrypted send/read/delete on iPad/iPhone.
 - [x] Add local-only Delete for Me with durable per-device snapshot filtering in 0.9.9.9c.
 - [ ] Prove Delete for Me survives close/reopen on one device while the message remains visible on the other device.
+- [x] Restore immediate lock on app background/pagehide and replace the no-op Groups navigation in 0.9.9.9d.
+- [ ] Verify app-switch PIN/biometric lock and Groups list/New Group navigation on iPad.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.
 

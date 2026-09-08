@@ -17,6 +17,7 @@
 - **0.9.9.9a acceptance:** Verify encrypted iPad ↔ iPhone text, six-slot PIN login/unlock, pending Delete Message, and deployed sender-only Delete for Everyone.
 - **0.9.9.9a unlock regression closed in 0.9.9.9b:** remembered sessions use PIN or biometrics only, and app startup no longer relocks a READY encryption identity.
 - **0.9.9.9c:** Delete for Me locally hides sent or received direct/group messages and persists that choice across cloud refresh and restart.
+- **0.9.9.9d:** Switching to another app locks FIDUNIO immediately; Groups opens a real list/create screen even when no group exists.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 

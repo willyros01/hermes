@@ -14,6 +14,9 @@ assert.match(app,/cloudConversationSyncPending\s*=\s*true/,"direct conversation 
 assert.match(app,/cloudGroupSyncPending\s*=\s*true/,"group discovery must expose a pending state");
 assert.match(app,/Loading conversations…/,"wide empty state must distinguish synchronization from authoritative emptiness");
 assert.match(app,/Conversation synchronization failed:/,"wide empty state must expose failed synchronization instead of pretending the account is empty");
+assert.match(app,/groups:renderGroups/,"Groups must have a real route owner");
+assert.match(app,/id="newGroupButton">New Group/,"Groups must expose an explicit creation action");
+assert.match(app,/tabletGroupsNav"\)\?\.addEventListener\("click",\(\)=>\{state\.route="groups"/,"tablet Groups navigation must open the Groups route");
 
 assert.match(app,/toolButton\("photo","Photo"\).*toolButton\("file","File"\)/s);
 assert.match(app,/toolButton\("voice","Audio"\).*toolButton\("video","Video"\)/s);
