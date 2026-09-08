@@ -1,6 +1,6 @@
 # FIDUNIO / Hermes
 
-Current device candidate **0.9.9.9q** gives the sender an immediate, zero-copy attachment preview. Selecting a photo creates a temporary object URL pointing to the already-selected device file and renders it before reading, encrypting, or uploading the bytes. Upload status continues beneath the visible photo; recipients still download and decrypt the encrypted remote attachment.
+Current device candidate **0.9.9.9r** compresses photos before encryption and upload. Oversized images are reduced to a maximum 1600-pixel edge and encoded as JPEG at 76% quality only when that produces a smaller file. Encryption then protects the compressed bytes; after decryption, the recipient browser decodes the JPEG normally. The sender retains the immediate zero-copy preview of the original selection.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -11,7 +11,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9q**
+- Current checkpoint version: **0.9.9.9r**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

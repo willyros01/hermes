@@ -48,6 +48,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9q immediate sender preview:** the selected browser `File` becomes visible immediately through `URL.createObjectURL(file)`, before `arrayBuffer()`, encryption, or upload. This is a pointer to the selected object rather than another picture copy. The preview retains the normal Sending/Sent/Failed status and is revoked on sign-out; after restart the encrypted remote copy is downloaded normally.
 
+**0.9.9.9r pre-encryption photo compression:** photos are decoded locally, proportionally resized to at most 1600 pixels on the longest edge, and JPEG-encoded at 76% quality. The compressed result is used only when it is smaller than the source, then encrypted and uploaded through the existing attachment path. No plaintext is uploaded. The receiving browser naturally decodes the JPEG after local decryption; unsupported image conversion safely falls back to the original file.
+
 **0.9.9.9m stored-Outbox repair:** previously malformed group records may remain encrypted in IndexedDB with a null epoch and continue generating the same rejection after the new-write correction. The bounded bridge now recognizes a group record by its discriminator plus group/message IDs; flush treats a non-integer legacy epoch as missing, revalidates membership and current epoch through server authority, and re-encrypts before sending. It does not weaken Firebase authorization.
 
 **Sole authoritative development and deployment branch:** `main`
