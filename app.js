@@ -23,6 +23,7 @@ import {
   readCloudMessageIdsFromServer,
   readCloudGroupMessageIdsFromServer,
   uploadEncryptedAttachment,
+  downloadEncryptedAttachment,
   deleteCloudDirectMessageForEveryone,
   deleteCloudGroupMessageForEveryone
 } from "./firebase.js";
@@ -47,6 +48,7 @@ import { planAuthoritativeMessageProjection } from "./disappearing-authoritative
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
 import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisappearSelection } from "./disappearing-compose-policy.js";
 import { createAttachmentSendService } from "./attachment-send-service.js";
+import { createAttachmentReceiveService } from "./attachment-receive-service.js";
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 
 /* FIDUNIO single-authority local lock integration */
@@ -102,6 +104,32 @@ let localSecurityMessage = "";
 let localSecurityMessageIsError = false;
 let unlockError = "";
 let messageSendInFlight=false;
+const attachmentRuntime=new Map();
+const attachmentReceiveService=createAttachmentReceiveService({downloadEncryptedAttachment});
+
+function parseAttachmentDescriptor(text){
+  if(typeof text!=="string"||!text.trimStart().startsWith("{"))return null;
+  try{const descriptor=JSON.parse(text);return descriptor?.fidunioAttachment===1?descriptor:null;}catch{return null;}
+}
+function messagePreview(text){
+  const descriptor=parseAttachmentDescriptor(text);
+  if(!descriptor)return text||"";
+  return descriptor.kind==="photo"||String(descriptor.type||"").startsWith("image/")?"📷 Photo":`📎 ${descriptor.name||"Attachment"}`;
+}
+function attachmentRuntimeKey(conversationId,messageId){return `${conversationId}:${messageId}`;}
+function loadAttachment(conversationId,message,descriptor,{retry=false}={}){
+  const key=attachmentRuntimeKey(conversationId,message.id),existing=attachmentRuntime.get(key);
+  if(existing&&!retry)return;
+  if(existing?.result?.url)attachmentReceiveService.release(existing.result.url);
+  attachmentRuntime.set(key,{status:"loading",descriptor});
+  attachmentReceiveService.receive(descriptor).then(result=>{
+    attachmentRuntime.set(key,{status:"ready",descriptor,result});
+    if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
+  }).catch(error=>{
+    attachmentRuntime.set(key,{status:"error",descriptor,error});
+    if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
+  });
+}
 
 function setLocalSecurityMessage(message,isError=false){
   localSecurityMessage=String(message||"");
@@ -291,7 +319,6 @@ async function decryptOutboxRecord(record){
   return {
     ...payload,
     conversationId:payload.conversationId ?? payload.groupId ?? record.conversationId,
-    groupId:payload.groupId ?? (payload.kind==="group-e2ee-v1"?(payload.conversationId ?? record.conversationId):undefined),
     messageId:payload.messageId ?? record.id,
     text:payload.text ?? "",
     time:payload.time ?? "",
@@ -333,7 +360,7 @@ function ensureQueuedMessageFromPayload(payload){
     m.cloud=payload.cloud;
   }
   if(c){
-    c.preview=payload.text || c.preview;
+    c.preview=messagePreview(payload.text) || c.preview;
     c.time=payload.time || c.time;
   }
   return {c,m};
@@ -391,7 +418,7 @@ async function deleteMessageForMe(conversationId,messageId){
   const cid=String(conversationId),id=String(messageId),hidden=new Set(state.hiddenMessages[cid]||[]);hidden.add(id);state.hiddenMessages[cid]=[...hidden];
   await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[id]);
   const c=state.conversations.find(x=>String(x.id)===cid),last=state.messages[cid]?.at(-1);
-  if(c){c.preview=last?.text||"";c.time=last?.time||"";}
+  if(c){c.preview=messagePreview(last?.text);c.time=last?.time||"";}
   await persistState();
 }
 
@@ -544,7 +571,7 @@ function beginCloudGroupMessageSubscription(groupId){
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
       state.messages[groupId]=[...projection.rows];
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
-      if(c&&last){c.preview=last.text;c.time=last.time;}
+      if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
       await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
       if(state.route==="chat"&&String(state.selectedId)===String(groupId))render();
     },
@@ -806,7 +833,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
 
       const last=merged.at(-1);
       if(last){
-        c.preview=last.text;
+        c.preview=messagePreview(last.text);
         c.time=last.time;
       }
 
@@ -850,6 +877,8 @@ async function initializeFirebaseLayer(){
         ensureActiveCloudMessageSubscription(true);
         if(state.online) scheduleReconnectRecovery();
       }else{
+        attachmentReceiveService.releaseAll();
+        attachmentRuntime.clear();
         resetGroupAppIntegrationForSignOut();
         resetAccountE2EEForSignOut();
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
@@ -1308,6 +1337,13 @@ function renderChat(){
   };
   box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();document.querySelector("#sendBtn")?.click();}});
   bindPendingMessageActions();
+  document.querySelectorAll(".attachment-retry").forEach(btn=>btn.onclick=event=>{
+    event.preventDefault();event.stopPropagation();
+    const message=(state.messages[btn.dataset.conversationId]||[]).find(row=>String(row.id)===String(btn.dataset.messageId));
+    const descriptor=parseAttachmentDescriptor(message?.text);
+    if(message&&descriptor)loadAttachment(btn.dataset.conversationId,message,descriptor,{retry:true});
+    render();
+  });
   requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
 }
 
@@ -1317,10 +1353,28 @@ function renderBubble(m,c){
     m.state==="delivered"?"Delivered":m.state==="failed"?"Failed":"Read";
   const cls=m.state==="queued"?"state-queued":m.state==="failed"?"state-failed":"";
   const hasMessageAction=!m.system;
+  const descriptor=parseAttachmentDescriptor(m.text);
+  let messageContent=`<div class="msg-text">${esc(m.text)}</div>`;
+  if(descriptor){
+    const key=attachmentRuntimeKey(c.id,m.id),runtime=attachmentRuntime.get(key);
+    if((m.state==="sending"||m.state==="queued")&&!runtime){
+      messageContent=`<div class="attachment-card attachment-loading">Sending ${descriptor.kind==="photo"?"photo":"attachment"}…</div>`;
+    }else{
+      if(!runtime)queueMicrotask(()=>loadAttachment(c.id,m,descriptor));
+      if(runtime?.status==="ready"){
+        const result=runtime.result,isImage=result.kind==="photo"||String(result.type||"").startsWith("image/");
+        messageContent=isImage
+          ?`<a class="attachment-image-link" href="${esc(result.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(result.name)}"><img class="message-photo" src="${esc(result.url)}" alt="${esc(result.name)}"></a>`
+          :`<a class="attachment-card attachment-file" href="${esc(result.url)}" download="${esc(result.name)}">📎 ${esc(result.name)}</a>`;
+      }else if(runtime?.status==="error"){
+        messageContent=`<div class="attachment-card attachment-error">${descriptor.kind==="photo"?"Photo":"Attachment"} could not be opened.<button class="attachment-retry" type="button" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}">Try Again</button></div>`;
+      }else messageContent=`<div class="attachment-card attachment-loading">Loading ${descriptor.kind==="photo"?"photo":"attachment"}…</div>`;
+    }
+  }
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
     ${c.type==="group"&&!m.mine&&m.sender?`<div class="sender-label">${esc(m.sender)}</div>`:""}
     <div class="bubble">
-      <div class="msg-text">${esc(m.text)}</div>
+      ${messageContent}
       <div class="msg-meta"><span>${esc(m.time)}</span>${m.mine?`<span class="${cls}">${label}</span>`:""}</div>
     </div>
   </div>`;
@@ -1373,7 +1427,7 @@ async function sendCurrent(){
 
   if(!state.messages[conversationId]) state.messages[conversationId]=[];
   state.messages[conversationId].push(m);
-  c.preview=text;
+  c.preview=messagePreview(text);
   c.time=m.time;
 
   // The Outbox is authoritative. Group plaintext enters only the encrypted local Outbox.
@@ -1425,7 +1479,7 @@ async function cancelPendingOutboxMessage(messageId,conversationId){
     await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[id]);
     const c=state.conversations.find(x=>String(x.id)===String(conversationId));
     const last=state.messages[conversationId]?.at(-1);
-    if(c&&last){c.preview=last.text||"";c.time=last.time||"";}
+    if(c&&last){c.preview=messagePreview(last.text);c.time=last.time||"";}
     await persistState();
   }finally{outboxCancellationRequests.delete(id);}
 }

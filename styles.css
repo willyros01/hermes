@@ -200,6 +200,13 @@ button:disabled{opacity:.45;cursor:default}
 .bubble{max-width:80%;padding:10px 12px;border-radius:18px;background:var(--theirs);box-shadow:0 2px 8px rgba(16,32,44,.05)}
 .mine .bubble{background:var(--mine)}
 .msg-text{font-size:17px;line-height:1.35;white-space:pre-wrap}
+.attachment-image-link{display:block;line-height:0;border-radius:12px;overflow:hidden}
+.message-photo{display:block;max-width:min(68vw,420px);max-height:55vh;width:auto;height:auto;border-radius:12px;object-fit:contain;background:var(--line)}
+.attachment-card{font-size:17px;line-height:1.35;font-weight:700;min-width:150px}
+.attachment-loading{color:var(--muted)}
+.attachment-file{display:block;color:var(--accent);text-decoration:none}
+.attachment-error{color:var(--danger)}
+.attachment-retry{display:block;margin-top:9px;padding:8px 12px;border:1px solid currentColor;border-radius:10px;background:transparent;color:inherit;font:inherit}
 .msg-meta{margin-top:5px;font-size:11px;color:var(--muted);display:flex;gap:6px;justify-content:flex-end}
 .state-queued{color:var(--queued);font-weight:700}
 .state-failed{color:var(--danger);font-weight:700}

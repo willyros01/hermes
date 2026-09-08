@@ -1,6 +1,6 @@
 # FIDUNIO / Hermes
 
-Current device candidate **0.9.9.9n** completes legacy group Outbox recovery. Older records that stored the group identity only as `conversationId` are normalized to `groupId` before bounded validation, membership/epoch revalidation, re-encryption, and delivery.
+Current device candidate **0.9.9.9o** renders encrypted attachments after receipt instead of displaying their internal JSON descriptor. Photos are downloaded through the existing Firebase Storage owner, integrity-checked, decrypted only on the device, and displayed from a temporary object URL. Loading and retry states remain human-readable, and conversation previews show `📷 Photo`.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -11,7 +11,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9n**
+- Current checkpoint version: **0.9.9.9o**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.
