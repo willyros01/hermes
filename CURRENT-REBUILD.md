@@ -1,5 +1,9 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## 0.9.9.9u original-photo and source-choice build
+
+Picture recompression is disabled. FIDUNIO encrypts the exact bytes returned by the selected library picture or camera capture. The Photo tool now opens a dedicated source dialog with **Photo Library**, **Take a Picture**, and **Cancel**; the library picker has no capture hint, while the camera picker explicitly requests the environment camera. Storage CORS and encrypted download behavior are unchanged.
+
 ## 2026-09-08 attachment download diagnosis
 
 Device acceptance on 0.9.9.9t proved that upload, metadata verification, download-URL lookup, and version refresh succeed, while Safari fails at the cross-origin object fetch with `storage/unknown: Load failed`. The bounded repair is the root `s.txt` Cloud Shell script, which configures the live Storage bucket CORS for `https://willyros01.github.io`. No Firestore-rule or encryption change is involved.

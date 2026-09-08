@@ -49,7 +49,6 @@ import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recover
 import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisappearSelection } from "./disappearing-compose-policy.js";
 import { createAttachmentSendService } from "./attachment-send-service.js";
 import { createAttachmentReceiveService } from "./attachment-receive-service.js";
-import { compressPhotoForTransport } from "./attachment-image-compression.js";
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 
 /* FIDUNIO single-authority local lock integration */
@@ -1338,7 +1337,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();const map={Photo:["photo","image/*",true],File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"){state.modal={type:"photoSource"};return render();}const map={File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=async event=>{
@@ -1406,7 +1405,7 @@ function bindPendingMessageActions(){
 async function chooseAndSendAttachment(kind,accept,capture){
   const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
   const input=document.createElement("input");input.type="file";input.accept=accept;if(capture)input.setAttribute("capture",kind==="audio"?"user":"environment");
-  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;const messageId=crypto.randomUUID(),attachmentId=crypto.randomUUID(),originalName=file.name||`${kind}-${Date.now()}`,originalType=file.type||"application/octet-stream",previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();try{const prepared=kind==="photo"?await compressPhotoForTransport(file):{blob:file,name:originalName,type:originalType,size:file.size},bytes=new Uint8Array(await prepared.blob.arrayBuffer());const descriptor={attachmentId,messageId,kind,name:prepared.name,type:prepared.type,size:prepared.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async()=>{await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});await svc.send(descriptor);}catch(err){stagedMessage.state="failed";await persistState();render();alert("Attachment could not be sent: "+(err?.message||err));}};input.click();
+  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;const messageId=crypto.randomUUID(),attachmentId=crypto.randomUUID(),originalName=file.name||`${kind}-${Date.now()}`,originalType=file.type||"application/octet-stream",previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();try{const bytes=new Uint8Array(await file.arrayBuffer());const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async()=>{await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});await svc.send(descriptor);}catch(err){stagedMessage.state="failed";await persistState();render();alert("Attachment could not be sent: "+(err?.message||err));}};input.click();
 }
 
 async function sendCurrent(){
@@ -1771,7 +1770,23 @@ function renderModal(){
   const modal=state.modal;
   const host=document.createElement("div");
   host.className="modal-backdrop";
-  if(modal.type==="pendingMessage"){
+  if(modal.type==="photoSource"){
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="photoSourceTitle">
+        <h2 id="photoSourceTitle">Send a Picture</h2>
+        <p>Choose where your picture comes from.</p>
+        <div class="modal-actions">
+          <button class="modal-confirm" id="photoLibraryBtn">Photo Library</button>
+          <button class="modal-confirm" id="photoCameraBtn">Take a Picture</button>
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    const choose=capture=>{state.modal=null;host.remove();chooseAndSendAttachment("photo","image/*",capture);};
+    host.querySelector("#photoLibraryBtn").onclick=()=>choose(false);
+    host.querySelector("#photoCameraBtn").onclick=()=>choose(true);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+  } else if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
     const isPending=message&&["queued","sending","failed"].includes(message.state);
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));

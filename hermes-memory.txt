@@ -1,6 +1,10 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### ORIGINAL PHOTO + SOURCE CHOICE — 0.9.9.9u
+
+By user direction, photo compression is disabled after encrypted-picture download performance became acceptable. A selected image now retains its original bytes, format, dimensions, and size before encryption. The Photo attachment tool must first present large choices for Photo Library or Take a Picture; library selection omits the capture attribute and camera selection requests the environment camera. The existing immediate sender preview, E2EE, Storage upload, CORS repair, download, and recipient decryption paths remain authoritative.
+
 ### ATTACHMENT STORAGE CORS DIAGNOSIS — 2026-09-08
 
 Attachment acceptance on visible build 0.9.9.9t changed the error from the old SDK timeout to `Manifest download failed (storage/unknown): Load failed` on the recipient and on the sender after its temporary local preview was lost. This proves the durable Storage object path is being used and isolates the failure to Safari's cross-origin Storage fetch. Root script `s.txt` applies a narrow bucket CORS entry for `https://willyros01.github.io`; it does not weaken Storage rules, Firestore rules, authentication, membership authorization, or E2EE. Acceptance remains open until a new photo displays on both devices and still displays after sender restart.

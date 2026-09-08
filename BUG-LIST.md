@@ -1,5 +1,11 @@
 # FIDUNIO / Hermes Bug List
 
+## 0.9.9.9u picture-source UX
+
+- **Implemented:** Photo now asks whether to use **Photo Library** or **Take a Picture**.
+- **Implemented:** Client-side resizing/JPEG recompression is disabled; original selected bytes are encrypted and uploaded.
+- **Acceptance:** Confirm both source choices work, the recipient displays the image, and the sender can reopen and reload it.
+
 ## Open acceptance: encrypted attachment download
 
 - **Observed on 0.9.9.9t:** After the sender closes and reopens the conversation, both sender and recipient report `Manifest download failed (storage/unknown): Load failed`.
