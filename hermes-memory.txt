@@ -13,6 +13,8 @@ That first receipt repair failed after two iPhone restarts. The missing event wa
 
 0.9.9.8c device proof still left all iPad rows Sent. The iPad listener was awake—the conversation timestamp advanced to 8:10 PM—so receiver Read was not written. Plaintext snapshot processing still awaited obsolete compatibility-key lookup. Candidate 0.9.9.8d skips that lookup unless a legacy encrypted row exists, reads explicit receipt recovery from Firestore server authority, and propagates failures instead of `Promise.allSettled` concealment.
 
+0.9.9.8d failed four real-device receipt attempts. Treat it as rejected. Candidate 0.9.9.8e removes the `!meta.fromCache` gate: if an unread incoming row is displayed in the current direct chat, immediately invoke the existing receipt write. Any failure must appear as `Read receipt failed: ...`; never swallow it.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

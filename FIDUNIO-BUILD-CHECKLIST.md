@@ -10,6 +10,7 @@
 - [x] Add explicit open-conversation Read recovery and permanent regression coverage.
 - [x] Advance visible device candidate to 0.9.9.8c and observe Firestore cache-to-server metadata confirmation.
 - [x] Advance to 0.9.9.8d; remove plaintext receipt dependency on legacy-key lookup and stop swallowing explicit receipt errors.
+- [x] Reject 0.9.9.8d after four failed attempts; make displayed/open incoming rows trigger Read without metadata gating in 0.9.9.8e.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.
 

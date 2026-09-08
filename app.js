@@ -804,12 +804,12 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
 
       const unreadIncoming=merged.filter(m=>!m.mine && m.state!=="read");
       if(
-        !meta.fromCache &&
         state.route==="chat" &&
         String(state.selectedId)===String(conversationId)
       ){
         for(const m of unreadIncoming){
-          try{ await updateCloudMessageState(conversationId,m.id,"read"); }catch{}
+          try{ await updateCloudMessageState(conversationId,m.id,"read"); }
+          catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
         }
       }
 

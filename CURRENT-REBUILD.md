@@ -12,6 +12,8 @@ The first receipt candidate failed device proof after two iPhone restarts. Root 
 
 0.9.9.8c also failed device receipt proof. The iPad listener is demonstrably active because its conversation timestamp advanced with the 8:10 PM send. The receiver callback still performed a compatibility-key lookup before processing every snapshot, including plaintext. Candidate **0.9.9.8d** bypasses that lookup for basic messages, uses server-authoritative rows for explicit open-chat Read recovery, and no longer swallows receipt-write failures.
 
+0.9.9.8d failed four device attempts and is rejected. Candidate **0.9.9.8e** applies the basic contract directly: any unread incoming message displayed in the currently open chat immediately attempts the existing Firestore Read update, regardless of cache metadata. Failure becomes a visible `Read receipt failed` message.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
