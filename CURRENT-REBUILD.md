@@ -50,6 +50,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9r pre-encryption photo compression:** photos are decoded locally, proportionally resized to at most 1600 pixels on the longest edge, and JPEG-encoded at 76% quality. The compressed result is used only when it is smaller than the source, then encrypted and uploaded through the existing attachment path. No plaintext is uploaded. The receiving browser naturally decodes the JPEG after local decryption; unsupported image conversion safely falls back to the original file.
 
+**0.9.9.9s attachment-stage proof:** device evidence established that no Firebase-backed picture download has ever passed; the only displayed picture was the ephemeral sender object URL. The prior UI discarded the causal error. Upload now performs authenticated metadata verification for the manifest and every chunk before committing the message. Download and receive preserve bounded stage/error information in the visible retry card without exposing paths or key material. This diagnostic is required to distinguish Storage authorization, missing objects, malformed data, and cryptographic verification on a real device.
+
 **0.9.9.9m stored-Outbox repair:** previously malformed group records may remain encrypted in IndexedDB with a null epoch and continue generating the same rejection after the new-write correction. The bounded bridge now recognizes a group record by its discriminator plus group/message IDs; flush treats a non-integer legacy epoch as missing, revalidates membership and current epoch through server authority, and re-encrypts before sending. It does not weaken Firebase authorization.
 
 **Sole authoritative development and deployment branch:** `main`

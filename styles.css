@@ -206,6 +206,7 @@ button:disabled{opacity:.45;cursor:default}
 .attachment-loading{color:var(--muted)}
 .attachment-file{display:block;color:var(--accent);text-decoration:none}
 .attachment-error{color:var(--danger)}
+.attachment-error-detail{display:block;margin-top:7px;color:var(--ink);font-size:14px;font-weight:600;overflow-wrap:anywhere}
 .attachment-retry{display:block;margin-top:9px;padding:8px 12px;border:1px solid currentColor;border-radius:10px;background:transparent;color:inherit;font:inherit}
 .msg-meta{margin-top:5px;font-size:11px;color:var(--muted);display:flex;gap:6px;justify-content:flex-end}
 .state-queued{color:var(--queued);font-weight:700}
