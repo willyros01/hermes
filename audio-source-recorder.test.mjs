@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
+assert.match(app,/label==="Photo"\|\|label==="Video"\|\|label==="Audio"/);
+assert.match(app,/modal\.type==="audioSource"/);
+assert.match(app,/id="audioRecordBtn">Record Audio<\/button>/);
+assert.match(app,/id="audioFileBtn">Choose Audio File<\/button>/);
+assert.match(app,/chooseAndSendAttachment\("audio","audio\/\*",false\)/);
+assert.match(app,/navigator\.mediaDevices\?\.getUserMedia/);
+assert.match(app,/getUserMedia\(\{audio:true,video:false\}\)/);
+assert.match(app,/new MediaRecorder\(stream/);
+assert.match(app,/sendSelectedAttachmentFile\("audio",file\)/);
+assert.doesNotMatch(app,/Audio:\["audio","audio\/\*",true\]/);
+assert.doesNotMatch(app,/kind==="audio"\?"user":"environment"/);
+assert.match(app,/kind==="audio"\?"Audio":kind==="photo"\?"Photo":"Attachment"/);
+console.log("Audio source chooser and recorder gate passed");

@@ -1,5 +1,11 @@
 # FIDUNIO / Hermes Bug List
 
+## 0.9.9.10 Audio source chooser and microphone recorder
+
+**Status: DEVICE CANDIDATE.**
+
+Observed on iPhone: tapping Audio invoked a camera/video capture path; the returned video MIME was then correctly rejected by the audio validator as an unsupported attachment type and showed the 25 MB audio limit. The Audio tool no longer uses the generic capture hint. It now opens **Record Audio / Choose Audio File / Cancel**. Record Audio uses microphone-only `getUserMedia({audio:true, video:false})` plus `MediaRecorder`; Choose Audio File opens `audio/*` without any capture attribute. Both sources converge on the same existing attachment validation, encryption, Storage upload, Outbox/publication and receipt path. No Firebase or E2EE authority changed.
+
 ## 0.9.9.9z iPhone composer clearance and video source chooser
 
 **Status: DEVICE CANDIDATE — Issue 3.**

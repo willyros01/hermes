@@ -1339,7 +1339,7 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"||label==="Video"){state.modal={type:label==="Photo"?"photoSource":"videoSource"};return render();}const map={File:["file","*/*",false],Audio:["audio","audio/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"||label==="Video"||label==="Audio"){state.modal={type:label==="Photo"?"photoSource":label==="Video"?"videoSource":"audioSource"};return render();}const map={File:["file","*/*",false]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px";if(!isWideLayout())syncPhoneChatComposerInset({scrollBottom:true});});
   document.querySelector("#sendBtn").onclick=async event=>{
@@ -1414,12 +1414,31 @@ function bindPendingMessageActions(){
   });
 }
 
+async function sendSelectedAttachmentFile(kind,file){
+  const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
+  if(!file)return;
+  const messageId=crypto.randomUUID(),attachmentId=crypto.randomUUID(),originalName=file.name||`${kind}-${Date.now()}`,originalType=file.type||"application/octet-stream";
+  try{validateAttachmentSelection({kind,name:originalName,type:originalType,size:file.size});}
+  catch(err){const limit=Math.round((ATTACHMENT_LIMITS_V1[kind]||0)/(1024*1024));const label=kind==="video"?"Video":kind==="audio"?"Audio":kind==="photo"?"Photo":"Attachment";alert(`${label} could not be selected: ${err?.message||err}${limit?` Maximum size is ${limit} MB.`:""}`);return;}
+  const previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});
+  const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);
+  localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});
+  if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();
+  try{
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};
+    const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});
+    await svc.send(descriptor);
+  }catch(err){stagedMessage.state="failed";await persistState();render();alert("Attachment could not be sent: "+(err?.message||err));}
+}
+
 async function chooseAndSendAttachment(kind,accept,capture){
   const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
-  const input=document.createElement("input");input.type="file";input.accept=accept;if(capture)input.setAttribute("capture",kind==="audio"?"user":"environment");
+  const input=document.createElement("input");input.type="file";input.accept=accept;if(capture)input.setAttribute("capture","environment");
   const closePicker=()=>{attachmentPickerActive=false;input.remove();};
   input.oncancel=closePicker;
-  input.onchange=async()=>{const file=input.files?.[0];closePicker();if(!file)return;const messageId=crypto.randomUUID(),attachmentId=crypto.randomUUID(),originalName=file.name||`${kind}-${Date.now()}`,originalType=file.type||"application/octet-stream";try{validateAttachmentSelection({kind,name:originalName,type:originalType,size:file.size});}catch(err){const limit=Math.round((ATTACHMENT_LIMITS_V1[kind]||0)/(1024*1024));alert(`${kind==="video"?"Video":"Attachment"} could not be selected: ${err?.message||err}${limit?` Maximum size is ${limit} MB.`:""}`);return;}const previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();try{const bytes=new Uint8Array(await file.arrayBuffer());const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});await svc.send(descriptor);}catch(err){stagedMessage.state="failed";await persistState();render();alert("Attachment could not be sent: "+(err?.message||err));}};input.hidden=true;input.setAttribute("aria-hidden","true");document.body.appendChild(input);attachmentPickerActive=true;input.click();
+  input.onchange=async()=>{const file=input.files?.[0];closePicker();if(file)await sendSelectedAttachmentFile(kind,file);};
+  input.hidden=true;input.setAttribute("aria-hidden","true");document.body.appendChild(input);attachmentPickerActive=true;input.click();
 }
 
 async function sendCurrent(){
@@ -1824,6 +1843,63 @@ function renderModal(){
     host.querySelector("#videoLibraryBtn").onclick=()=>choose(false);
     host.querySelector("#videoCameraBtn").onclick=()=>choose(true);
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+  } else if(modal.type==="audioSource"){
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="audioSourceTitle">
+        <h2 id="audioSourceTitle">Send Audio</h2>
+        <p>Record a new voice message or choose a saved audio file.</p>
+        <div class="modal-actions">
+          <button class="modal-confirm" id="audioRecordBtn">Record Audio</button>
+          <button class="modal-confirm" id="audioFileBtn">Choose Audio File</button>
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#audioRecordBtn").onclick=()=>{state.modal={type:"audioRecorder"};host.remove();render();};
+    host.querySelector("#audioFileBtn").onclick=()=>{state.modal=null;host.remove();chooseAndSendAttachment("audio","audio/*",false);};
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+  } else if(modal.type==="audioRecorder"){
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="audioRecorderTitle">
+        <h2 id="audioRecorderTitle">Record Audio</h2>
+        <p id="audioRecorderStatus">Ready to record from the microphone.</p>
+        <div class="modal-actions">
+          <button class="modal-confirm" id="audioStartBtn">Start Recording</button>
+          <button class="modal-confirm" id="audioStopBtn" hidden>Stop &amp; Send</button>
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    const status=host.querySelector("#audioRecorderStatus"),startBtn=host.querySelector("#audioStartBtn"),stopBtn=host.querySelector("#audioStopBtn"),cancelBtn=host.querySelector("#modalCancel");
+    let stream=null,recorder=null,chunks=[],discard=false;
+    const stopTracks=()=>{for(const track of stream?.getTracks?.()||[])track.stop();stream=null;};
+    const exitToSource=()=>{state.modal={type:"audioSource"};host.remove();render();};
+    cancelBtn.onclick=()=>{discard=true;if(recorder&&recorder.state!=="inactive")recorder.stop();else stopTracks();state.modal=null;host.remove();render();};
+    startBtn.onclick=async()=>{
+      if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){alert("Audio recording is not available in this browser. Choose Audio File instead.");return exitToSource();}
+      startBtn.disabled=true;status.textContent="Requesting microphone access…";
+      try{
+        stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+        const candidates=["audio/mp4","audio/webm;codecs=opus","audio/webm"];
+        const mime=candidates.find(type=>MediaRecorder.isTypeSupported?.(type))||"";
+        recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+        chunks=[];discard=false;
+        recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
+        recorder.onerror=e=>{stopTracks();alert("Audio recording failed: "+(e.error?.message||"Recorder error"));if(host.isConnected)exitToSource();};
+        recorder.onstop=async()=>{
+          stopTracks();
+          if(discard||!chunks.length)return;
+          const type=recorder.mimeType||mime||"audio/mp4";
+          const ext=type.includes("mp4")?"m4a":type.includes("ogg")?"ogg":"webm";
+          const blob=new Blob(chunks,{type});
+          const file=new File([blob],`fidunio-audio-${Date.now()}.${ext}`,{type,lastModified:Date.now()});
+          state.modal=null;if(host.isConnected)host.remove();render();
+          await sendSelectedAttachmentFile("audio",file);
+        };
+        recorder.start();status.textContent="Recording…";startBtn.hidden=true;stopBtn.hidden=false;
+      }catch(err){stopTracks();startBtn.disabled=false;status.textContent="Microphone access was not started.";alert("Could not start audio recording: "+(err?.message||err));}
+    };
+    stopBtn.onclick=()=>{if(!recorder||recorder.state==="inactive")return;stopBtn.disabled=true;status.textContent="Finishing recording…";recorder.stop();};
   } else if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
     const isPending=message&&["queued","sending","failed"].includes(message.state);

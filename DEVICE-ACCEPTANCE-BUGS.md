@@ -1,5 +1,11 @@
 # FIDUNIO Device Acceptance — Current Evidence
 
+## Audio tool — source chooser and recorder
+
+**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.10 — 2026-09-08.**
+
+Acceptance on iPhone: tap Audio and confirm **Record Audio / Choose Audio File / Cancel**. Record Audio must request microphone access and must not launch the camera; record a short clip, use Stop & Send, and confirm it appears locally and reaches the peer. Choose Audio File must open saved audio selection without launching the camera; choose a valid saved audio file and send it. Reopen the conversation and confirm both audio attachments remain accessible. Confirm Photo and Video source choosers still behave normally.
+
 ## Issue 3 — iPhone composer clearance + video chooser
 
 **Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.9z — 2026-09-08.**

@@ -1,5 +1,19 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### Audio source chooser + recorder — 0.9.9.10
+
+- [x] Remove the generic audio capture hint that could launch iPhone video capture.
+- [x] Add Audio chooser: Record Audio / Choose Audio File / Cancel.
+- [x] Record Audio uses microphone-only media capture and MediaRecorder.
+- [x] Choose Audio File uses `audio/*` with no capture attribute.
+- [x] Both paths converge on one existing attachment send owner.
+- [x] Audio validation failures identify themselves as Audio rather than generic Attachment.
+- [x] Add focused regression coverage.
+- [ ] Device-confirm microphone recording does not launch camera and sends successfully.
+- [ ] Device-confirm saved audio selection and send.
+- [ ] Reopen and confirm both audio attachments remain accessible.
+- [ ] Confirm Photo and Video choosers remain unchanged.
+
 ### Issue 3 iPhone composer + video source — 0.9.9.9z
 
 - [x] Replace the phone-only fixed composer clearance assumption with measured composer height.
