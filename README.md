@@ -4,7 +4,7 @@
 
 If an encrypted attachment uploads successfully but Safari reports `Manifest download failed (storage/unknown): Load failed`, run the root-level `s.txt` script once in Google Cloud Shell with `bash s.txt`. It grants only the FIDUNIO GitHub Pages origin permission to read Storage objects through browser CORS; Storage security rules and authenticated membership checks remain authoritative.
 
-Current device candidate **0.9.9.9u** keeps selected pictures in their original format, dimensions, quality, and byte size before E2EE encryption. Selecting **Photo** now opens a large, explicit choice between **Photo Library** and **Take a Picture**. The prior 0.9.9.9t authenticated Storage download correction and live bucket CORS repair remain in place.
+Current device candidate **0.9.9.9v** adds a strict attachment upload barrier: an attachment message is not placed in the publishable direct/group Outbox until every encrypted Storage object has uploaded and passed metadata verification. This prevents a temporary sender preview from masking incomplete durable uploads. Original-photo bytes and the Photo Library/Take a Picture chooser from 0.9.9.9u remain active.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -15,7 +15,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9u**
+- Current checkpoint version: **0.9.9.9v**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

@@ -1,6 +1,10 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### ATTACHMENT UPLOAD PUBLICATION BARRIER — 0.9.9.9v
+
+A real iPhone camera test exposed `Chunk 8 download failed (storage/object-not-found)` after restart even though the immediate sender preview had displayed. The encryption/chunk plan was sound; the app's `stageEncryptedOutbox` callback incorrectly inserted the attachment message into the normal publishable Outbox before Storage upload completion. The fixed order is local encrypted staging, upload manifest and every chunk, verify metadata for every object, then queue/publish the direct or group message. Existing messages missing a chunk cannot be reconstructed and must be deleted/resubmitted. Original-photo transport and the library/camera chooser remain enabled.
+
 ### ORIGINAL PHOTO + SOURCE CHOICE — 0.9.9.9u
 
 By user direction, photo compression is disabled after encrypted-picture download performance became acceptable. A selected image now retains its original bytes, format, dimensions, and size before encryption. The Photo attachment tool must first present large choices for Photo Library or Take a Picture; library selection omits the capture attribute and camera selection requests the environment camera. The existing immediate sender preview, E2EE, Storage upload, CORS repair, download, and recipient decryption paths remain authoritative.

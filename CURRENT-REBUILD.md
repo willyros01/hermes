@@ -1,5 +1,9 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## 0.9.9.9v attachment upload publication barrier
+
+Real-device evidence found a published camera message whose manifest referenced chunk 8 although that object did not exist. Root cause: the UI's attachment staging callback incorrectly queued the Firestore message before Storage upload completed. The publishable direct/group Outbox operation now occurs only inside the post-upload commit callback, after `uploadEncryptedAttachment` has uploaded and verified the manifest and every chunk. An incomplete upload remains local/failed and is never exposed to recipients.
+
 ## 0.9.9.9u original-photo and source-choice build
 
 Picture recompression is disabled. FIDUNIO encrypts the exact bytes returned by the selected library picture or camera capture. The Photo tool now opens a dedicated source dialog with **Photo Library**, **Take a Picture**, and **Cancel**; the library picker has no capture hint, while the camera picker explicitly requests the environment camera. Storage CORS and encrypted download behavior are unchanged.

@@ -1,5 +1,12 @@
 # FIDUNIO / Hermes Bug List
 
+## 0.9.9.9v missing camera-photo chunk
+
+- **Observed:** A camera photo displayed through the sender's temporary local preview, but after restart Storage reported that encrypted chunk 8 did not exist.
+- **Root cause:** The attachment staging callback prematurely queued/published the message before the verified Storage upload barrier.
+- **Fixed:** Direct and group message publication now begins only after the manifest and all encrypted chunks upload and pass metadata verification.
+- **Existing damaged message:** Cannot be repaired because its missing encrypted bytes were never stored; delete it and resend after 0.9.9.9v is loaded.
+
 ## 0.9.9.9u picture-source UX
 
 - **Implemented:** Photo now asks whether to use **Photo Library** or **Take a Picture**.
