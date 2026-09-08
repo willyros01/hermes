@@ -1,6 +1,6 @@
 # FIDUNIO / Hermes
 
-Current device candidate **0.9.9.9s** isolates the never-proven live attachment download path. Upload now verifies that the manifest and every encrypted chunk exist in Firebase Storage before the message is committed. Download errors retain a safe stage label (`Manifest`, `Chunk n`, or verification/decryption) and Firebase error code in the message card rather than collapsing every failure into the same generic notice. Keys and full Storage paths remain hidden.
+Current device candidate **0.9.9.9t** fixes the proven recipient failure at the first manifest read. Upload verification established that the encrypted Storage objects exist, while iPad Safari timed out inside Firebase Storage `getBytes()`. The receiver now performs an authenticated `getDownloadURL()` lookup and a bounded browser `fetch()` of the encrypted object. The temporary URL remains in memory and is never written into a message or local state.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -11,7 +11,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9s**
+- Current checkpoint version: **0.9.9.9t**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

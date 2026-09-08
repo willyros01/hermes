@@ -32,6 +32,7 @@
 - **0.9.9.9q:** The sender now sees the selected picture immediately through a temporary zero-copy object URL while encryption and upload continue. The message status remains visible and local preview URLs are revoked at sign-out.
 - **0.9.9.9r:** Photos are now resized and JPEG-compressed locally before encryption, sharply reducing encrypted chunk count and recipient download time while preserving the immediate sender preview and ciphertext-only Storage policy.
 - **0.9.9.9s:** Corrected the attachment pipeline’s hidden-error defect. Upload verifies all remote objects before message commit, and the device now reports whether failure occurred at manifest download, a numbered chunk, or verification/decryption, including the safe Firebase error code.
+- **0.9.9.9t:** Real-device diagnostics proved Firebase Storage `getBytes()` stalled on the first manifest despite verified upload. Attachment reads now use authenticated `getDownloadURL()` plus bounded browser `fetch()`, retain ciphertext-only transport, enforce the object-size boundary, and do not persist the temporary URL.
 - **0.9.9.9m:** Existing encrypted group Outbox rows with the legacy null epoch are now recovered through current membership/epoch revalidation and re-encryption rather than repeatedly rejected.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.

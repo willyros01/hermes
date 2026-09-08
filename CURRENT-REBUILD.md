@@ -52,6 +52,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9s attachment-stage proof:** device evidence established that no Firebase-backed picture download has ever passed; the only displayed picture was the ephemeral sender object URL. The prior UI discarded the causal error. Upload now performs authenticated metadata verification for the manifest and every chunk before committing the message. Download and receive preserve bounded stage/error information in the visible retry card without exposing paths or key material. This diagnostic is required to distinguish Storage authorization, missing objects, malformed data, and cryptographic verification on a real device.
 
+**0.9.9.9t manifest transport correction:** real-device evidence isolated the failure to the first manifest request: `getBytes()` timed out even though post-upload authenticated metadata verification confirmed the object. The receive owner now asks Firebase for an authenticated download URL, fetches the still-encrypted object with a 15-second abort boundary, enforces the one-megabyte object limit before parsing, and never persists or transmits the temporary URL.
+
 **0.9.9.9m stored-Outbox repair:** previously malformed group records may remain encrypted in IndexedDB with a null epoch and continue generating the same rejection after the new-write correction. The bounded bridge now recognizes a group record by its discriminator plus group/message IDs; flush treats a non-integer legacy epoch as missing, revalidates membership and current epoch through server authority, and re-encrypts before sending. It does not weaken Firebase authorization.
 
 **Sole authoritative development and deployment branch:** `main`
