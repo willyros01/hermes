@@ -1,7 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project="fidunio-fef13"
-curl -fsSL "https://raw.githubusercontent.com/willyros01/hermes/main/firestore.rules" -o firestore.rules
-firebase deploy --only firestore:rules --project "$project"
-echo "SUCCESS: FIDUNIO Firestore rules deployed."
+python3 - <<'PY'
+import json, subprocess, urllib.request
+
+project = "fidunio-fef13"
+root = f"https://firebaserules.googleapis.com/v1/projects/{project}"
+token = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True).strip()
+headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+def call(url, method="GET", body=None):
+    data = None if body is None else json.dumps(body).encode()
+    with urllib.request.urlopen(urllib.request.Request(url, data=data, headers=headers, method=method)) as response:
+        return json.load(response)
+
+rules = urllib.request.urlopen("https://raw.githubusercontent.com/willyros01/hermes/main/firestore.rules").read().decode()
+release_name = f"projects/{project}/releases/cloud.firestore"
+old = call(f"{root}/releases/cloud.firestore")
+created = call(f"{root}/rulesets", "POST", {"source":{"files":[{"name":"firestore.rules","content":rules}]}})
+new_name = created["name"]
+call(f"{root}/releases/cloud.firestore?updateMask=rulesetName", "PATCH", {"name":release_name,"rulesetName":new_name})
+verified = call(f"{root}/releases/cloud.firestore")
+if verified.get("rulesetName") != new_name:
+    raise SystemExit("FAILED: the active ruleset did not change.")
+print("FIDUNIO Firestore rules deployment")
+print("Project:", project)
+print("SUCCESS")
+print("Firestore rules deployed and verified.")
+print("New ruleset:", new_name)
+print("Previous ruleset:", old.get("rulesetName"))
+PY
