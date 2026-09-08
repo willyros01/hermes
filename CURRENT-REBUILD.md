@@ -44,6 +44,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9o attachment receive UI:** a decrypted attachment descriptor is no longer rendered as chat text. The app recognizes the bounded attachment envelope, uses the existing encrypted attachment receive service to download, integrity-check, and decrypt it, then renders photos from a temporary object URL. Pending uploads, downloads, failures, and retry are explicit without exposing storage paths or key material. Object URLs are released at sign-out.
 
+**0.9.9.9p mobile attachment download completion:** the shared sender/receiver stall was below rendering: encrypted chunks were fetched strictly serially. The Storage owner now uses a bounded six-worker download pool while preserving chunk order, and gives each Storage read a 30-second timeout. A stalled request therefore reaches the existing retry UI instead of waiting forever. The PWA shell now explicitly precaches the Firebase Storage SDK.
+
 **0.9.9.9m stored-Outbox repair:** previously malformed group records may remain encrypted in IndexedDB with a null epoch and continue generating the same rejection after the new-write correction. The bounded bridge now recognizes a group record by its discriminator plus group/message IDs; flush treats a non-integer legacy epoch as missing, revalidates membership and current epoch through server authority, and re-encrypts before sending. It does not weaken Firebase authorization.
 
 **Sole authoritative development and deployment branch:** `main`

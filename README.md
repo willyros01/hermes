@@ -1,6 +1,6 @@
 # FIDUNIO / Hermes
 
-Current device candidate **0.9.9.9o** renders encrypted attachments after receipt instead of displaying their internal JSON descriptor. Photos are downloaded through the existing Firebase Storage owner, integrity-checked, decrypted only on the device, and displayed from a temporary object URL. Loading and retry states remain human-readable, and conversation previews show `📷 Photo`.
+Current device candidate **0.9.9.9p** completes encrypted attachment receipt without making mobile devices fetch every encrypted chunk serially. Up to six chunks download concurrently, every individual read has a bounded timeout, and failures move to the visible retry state instead of remaining on `Loading photo…`. The Firebase Storage module is also included in the installed PWA shell.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -11,7 +11,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9o**
+- Current checkpoint version: **0.9.9.9p**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

@@ -28,6 +28,7 @@
 - **0.9.9.9k-c deployment script:** the failed `d.txt` archive downloader is retired. The replacement `n.txt` downloads the small reviewed Function source set directly from pinned raw GitHub files, avoiding the archive endpoint that returned HTTP 404 in Cloud Shell.
 - **0.9.9.9l:** Fixed original group creator send failure: Outbox preparation now records the initialized `authority.keyEpoch` instead of serializing an undefined wrapper field to null.
 - **0.9.9.9o:** Fixed picture attachments appearing as a large raw JSON payload. The chat and conversation list now recognize the attachment envelope, decrypt with the existing receive owner, display the photo, and provide clear loading/error/retry states.
+- **0.9.9.9p:** Fixed the sender and receiver remaining on `Loading attachment/photo…`: encrypted chunks now download through a bounded concurrent pool instead of serially, individual reads time out into the retry UI, and the installed shell includes the Storage SDK.
 - **0.9.9.9m:** Existing encrypted group Outbox rows with the legacy null epoch are now recovered through current membership/epoch revalidation and re-encryption rather than repeatedly rejected.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
