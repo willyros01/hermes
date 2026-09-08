@@ -12,7 +12,7 @@ export async function prepareQueuedAccountGroupMessage({groupId,messageId,text,d
   if(!String(text||"").trim())throw new Error("Group message text is required.");
   const epoch=await ensureAccountGroupEpoch(String(groupId));
   const duration=normalizeDisappearSelection(disappearAfterSeconds);
-  return{kind:"group-e2ee-v1",groupId:String(groupId),messageId:String(messageId),text:String(text),expectedKeyEpoch:Number(epoch.keyEpoch),disappearAfterSeconds:duration};
+  return{kind:"group-e2ee-v1",groupId:String(groupId),messageId:String(messageId),text:String(text),expectedKeyEpoch:Number(epoch.authority?.keyEpoch),disappearAfterSeconds:duration};
 }
 
 export function flushQueuedAccountGroupMessage(payload){

@@ -47,6 +47,8 @@ AUTHORITATIVE BUILD WORKFLOW: every completed, validated FIDUNIO build is commit
 
 The original 0.9.9.9k `d.txt` failed three times at its GitHub archive download with HTTP 404, before any Google deployment request. It is retired and replaced by `n.txt` revision 0.9.9.9k-c. The replacement avoids GitHub archives: it creates the Function source tree and downloads only the pinned reviewed files from `raw.githubusercontent.com`, prints its script version and source commit, retries transient downloads, then deploys and verifies the existing callable.
 
+0.9.9.9l fixes the original group creator's `Unsupported group Outbox payload` failure. `ensureEpoch()` returns `{authority, epochKey}`, but Outbox preparation incorrectly read `epoch.keyEpoch`; the undefined value became null during JSON serialization and failed the bounded payload validator. It now records `epoch.authority.keyEpoch`. The administrator's failed attempt already initialized the group epoch, so no additional key-management action is required.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

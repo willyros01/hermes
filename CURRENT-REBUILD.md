@@ -40,6 +40,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9k sender-owned group deletion:** accepted group messages expose Delete for Everyone only to their original sender. The existing authenticated delete callable now distinguishes direct and group authority, rechecks immutable `senderUid` plus current group membership on the server, and removes the group source, receipt subcollection, encrypted attachment prefix, and any history-grant copies while repairing grant metadata. Other members retain local-only Delete for Me.
 
+**0.9.9.9l group Outbox epoch correction:** group initialization returned the active epoch under `authority.keyEpoch`, but Outbox preparation read the nonexistent wrapper field `epoch.keyEpoch`. `Number(undefined)` serialized as null, so the bounded bridge rejected the record as an unsupported group Outbox payload. Preparation now captures `epoch.authority.keyEpoch`, with a permanent regression assertion.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
