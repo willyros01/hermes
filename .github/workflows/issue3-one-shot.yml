@@ -1,0 +1,78 @@
+name: Issue 3 one-shot iPhone UI patch
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/issue3-one-shot.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply Issue 3 bounded patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          p=Path('app.js'); s=p.read_text()
+          old='''  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"){state.modal={type:"photoSource"};return render();}const map={File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});\n  const box=document.querySelector("#messageBox");\n  box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});'''
+          new='''  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"||label==="Video"){state.modal={type:label==="Photo"?"photoSource":"videoSource"};return render();}const map={File:["file","*/*",false],Audio:["audio","audio/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});\n  const box=document.querySelector("#messageBox");\n  box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px";if(!isWideLayout())syncPhoneChatComposerInset({scrollBottom:true});});'''
+          assert s.count(old)==1, 'tool/input anchor changed'
+          s=s.replace(old,new,1)
+
+          old='''  requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});\n}\n\nfunction renderBubble(m,c){'''
+          new='''  requestAnimationFrame(()=>{if(isWideLayout()){const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight);return;}syncPhoneChatComposerInset({scrollBottom:true});});\n}\n\nfunction syncPhoneChatComposerInset({scrollBottom=false}={}){\n  const chat=document.querySelector("#chatArea"),composer=document.querySelector(".composer-wrap");\n  if(!chat||!composer||isWideLayout())return;\n  const inset=Math.ceil(composer.getBoundingClientRect().height)+14;\n  chat.style.paddingBottom=`${inset}px`;\n  if(scrollBottom)window.scrollTo(0,Math.max(document.documentElement.scrollHeight,document.body.scrollHeight));\n}\n\nfunction renderBubble(m,c){'''
+          assert s.count(old)==1, 'chat bottom anchor changed'
+          s=s.replace(old,new,1)
+
+          old='''    host.querySelector("#photoLibraryBtn").onclick=()=>choose(false);\n    host.querySelector("#photoCameraBtn").onclick=()=>choose(true);\n    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};\n  } else if(modal.type==="pendingMessage"){'''
+          new='''    host.querySelector("#photoLibraryBtn").onclick=()=>choose(false);\n    host.querySelector("#photoCameraBtn").onclick=()=>choose(true);\n    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};\n  } else if(modal.type==="videoSource"){\n    host.innerHTML=`\n      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="videoSourceTitle">\n        <h2 id="videoSourceTitle">Send a Video</h2>\n        <p>Choose where your video comes from.</p>\n        <div class="modal-actions">\n          <button class="modal-confirm" id="videoLibraryBtn">Photo Library</button>\n          <button class="modal-confirm" id="videoCameraBtn">Camera</button>\n          <button class="modal-cancel" id="modalCancel">Cancel</button>\n        </div>\n      </div>`;\n    document.body.appendChild(host);\n    const choose=capture=>{state.modal=null;host.remove();chooseAndSendAttachment("video","video/*",capture);};\n    host.querySelector("#videoLibraryBtn").onclick=()=>choose(false);\n    host.querySelector("#videoCameraBtn").onclick=()=>choose(true);\n    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};\n  } else if(modal.type==="pendingMessage"){'''
+          assert s.count(old)==1, 'photo modal anchor changed'
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          Path('issue3-iphone-ui.test.mjs').write_text('''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst app=readFileSync(new URL("./app.js",import.meta.url),"utf8");\nassert.match(app,/function syncPhoneChatComposerInset\\(\\{scrollBottom=false\\}=\\{\\}\\)/);\nassert.match(app,/composer\\.getBoundingClientRect\\(\\)\\.height/);\nassert.match(app,/chat\\.style\\.paddingBottom=`\\$\\{inset\\}px`/);\nassert.match(app,/if\\(!isWideLayout\\(\\)\\)syncPhoneChatComposerInset\\(\\{scrollBottom:true\\}\\)/);\nassert.match(app,/label==="Photo"\\|\\|label==="Video"/);\nassert.match(app,/modal\\.type==="videoSource"/);\nassert.match(app,/id="videoLibraryBtn">Photo Library<\\/button>/);\nassert.match(app,/id="videoCameraBtn">Camera<\\/button>/);\nassert.match(app,/chooseAndSendAttachment\\("video","video\\/\\*",capture\\)/);\nassert.match(app,/if\\(isWideLayout\\(\\)\\)\\{const a=document\\.querySelector\\("#chatArea"\\);a\\.scrollTop=a\\.scrollHeight;window\\.scrollTo\\(0,document\\.body\\.scrollHeight\\);return;\\}syncPhoneChatComposerInset/);\nconsole.log("Issue 3 iPhone composer and video-source gate passed");\n''')
+
+          pkg=Path('package.json'); data=json.loads(pkg.read_text()); data['scripts']['test:issue3-iphone-ui']='node issue3-iphone-ui.test.mjs'; pkg.write_text(json.dumps(data,separators=(',',':')))
+
+          v=Path('version.js'); x=v.read_text(); assert '0.9.9.9y' in x; v.write_text(x.replace('0.9.9.9y','0.9.9.9z',1))
+          sw=Path('service-worker.js'); x=sw.read_text(); assert '0.9.9.9y-lte-optimistic-message' in x; sw.write_text(x.replace('0.9.9.9y-lte-optimistic-message','0.9.9.9z-iphone-composer-video-source',1))
+          for name in ['outbox-reconciliation-boundary.test.mjs','direct-message-basic-path.test.mjs']:
+              q=Path(name); x=q.read_text(); x=x.replace('0\\.9\\.9\\.9y-lte-optimistic-message','0\\.9\\.9\\.9z-iphone-composer-video-source'); q.write_text(x)
+
+          def prepend(path,title,section):
+              q=Path(path); x=q.read_text()
+              if section.splitlines()[0] not in x:
+                  assert x.startswith(title)
+                  q.write_text(title+'\n\n'+section+'\n\n'+x[len(title):].lstrip())
+
+          section='''## 0.9.9.9z iPhone composer clearance and video source chooser\n\n**Status: DEVICE CANDIDATE — Issue 3.**\n\nThe phone chat no longer assumes a fixed 170px composer footprint. After each phone chat render, and whenever the textarea grows, FIDUNIO measures the actual fixed composer height and applies that exact bottom inset to the message area before scrolling to the bottom. Wide/iPad layout retains its prior scroll path and two-pane behavior.\n\nVideo now opens a source chooser with **Photo Library**, **Camera**, and **Cancel**. Both choices feed the existing accepted `chooseAndSendAttachment("video", "video/*", capture)` owner, so attachment validation, picker-session locking, encryption, upload, publication, and the 50 MiB video boundary are unchanged.'''
+          prepend('CURRENT-REBUILD.md','# FIDUNIO Current Rebuild — Recovery Entry Point',section)
+          prepend('BUG-LIST.md','# FIDUNIO / Hermes Bug List',section)
+          prepend('README.md','# FIDUNIO / Hermes',section)
+          dev='''## Issue 3 — iPhone composer clearance + video chooser\n\n**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.9z — 2026-09-08.**\n\nAcceptance on iPhone: open a conversation with enough messages to reach the bottom; verify the final message lines remain fully above the fixed composer, including with More/tools open and with a multi-line draft. Scroll to the bottom and verify it stays at the true end rather than leaving the last lines behind the composer. Then choose Video and verify both **Photo Library** and **Camera** paths open correctly; send one video from each source if practical. iPad two-pane layout must remain unchanged.'''
+          prepend('DEVICE-ACCEPTANCE-BUGS.md','# FIDUNIO Device Acceptance — Current Evidence',dev)
+          checklist='''### Issue 3 iPhone composer + video source — 0.9.9.9z\n\n- [x] Replace the phone-only fixed composer clearance assumption with measured composer height.\n- [x] Recompute clearance when the phone textarea grows.\n- [x] Preserve the existing wide/iPad scroll path and two-pane layout.\n- [x] Add Video source chooser: Photo Library / Camera / Cancel.\n- [x] Reuse the existing accepted video picker/send owner; do not fork attachment transport.\n- [x] Add focused regression coverage.\n- [ ] Device-confirm iPhone last-line visibility and sticky bottom with tools closed/open and multi-line draft.\n- [ ] Device-confirm Video Photo Library and Camera paths.\n- [ ] Confirm iPad two-pane layout remains unchanged.'''
+          prepend('FIDUNIO-BUILD-CHECKLIST.md','# FIDUNIO Complete Rebuild — Authoritative Build Checklist',checklist)
+          mem=Path('hermes-memory.txt'); x=mem.read_text(); note='''\n\n2026-09-08 — Issue 3 candidate 0.9.9.9z: iPhone chat bottom clearance now measures the real fixed composer height instead of assuming 170px; the phone bottom-scroll path runs only after that inset is applied and updates when the textarea grows. Wide/iPad scroll behavior remains unchanged. Video now offers Photo Library or Camera and both choices reuse the existing accepted video picker/send pipeline. Device acceptance pending.\n''';
+          if 'Issue 3 candidate 0.9.9.9z' not in x: mem.write_text(x.rstrip()+note)
+          PY
+      - name: Run focused gates
+        run: |
+          node issue3-iphone-ui.test.mjs
+          node attachment-ui-wiring.test.mjs
+          node outbox-reconciliation-boundary.test.mjs
+          node direct-message-basic-path.test.mjs
+      - name: Commit candidate
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js issue3-iphone-ui.test.mjs package.json version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs CURRENT-REBUILD.md BUG-LIST.md DEVICE-ACCEPTANCE-BUGS.md README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
+          git diff --cached --check
+          git commit -m 'Build 0.9.9.9z Issue 3 iPhone UI candidate'
+          git push
