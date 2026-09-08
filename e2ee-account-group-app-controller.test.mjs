@@ -12,5 +12,6 @@ const checks=[
  ["controller recognizes recoverable group Outbox records by bounded identity",/payload\?\.kind===\"group-e2ee-v1\"&&!!payload\.groupId&&!!payload\.messageId/.test(src)&&!/isGroupOutboxPayload[\s\S]*Number\.isInteger\(payload\.expectedKeyEpoch\)/.test(src)],
  ["sign-out reset clears group messaging owners",/resetGroupMessagingForSignOut/.test(src)&&/resetAccountGroupOutboxQueue/.test(src)&&/resetAccountGroupConversationStreams/.test(src)],
  ["app uses bounded real group administration bridge",/renameGroupForApp/.test(app)&&/addGroupMemberForApp/.test(app)&&/removeGroupMemberForApp/.test(app)&&/leaveGroupForApp/.test(app)&&!/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]
+,["app restores legacy groupId from authoritative Outbox conversation identity",/groupId:payload\.groupId \?\? \(payload\.kind==="group-e2ee-v1"\?\(payload\.conversationId \?\? record\.conversationId\):undefined\)/.test(app)]
 ];
 let failed=0;for(const [name,ok] of checks){console.log(ok?"PASS":"FAIL",name);if(!ok)failed++;}console.log(`\n${checks.length-failed}/${checks.length} app group ownership assertions passed.`);if(failed)process.exitCode=1;

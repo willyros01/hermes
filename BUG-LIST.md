@@ -28,6 +28,7 @@
 - **0.9.9.9k-c deployment script:** the failed `d.txt` archive downloader is retired. The replacement `n.txt` downloads the small reviewed Function source set directly from pinned raw GitHub files, avoiding the archive endpoint that returned HTTP 404 in Cloud Shell.
 - **0.9.9.9l:** Fixed original group creator send failure: Outbox preparation now records the initialized `authority.keyEpoch` instead of serializing an undefined wrapper field to null.
 - **0.9.9.9m:** Existing encrypted group Outbox rows with the legacy null epoch are now recovered through current membership/epoch revalidation and re-encryption rather than repeatedly rejected.
+- **0.9.9.9n:** Completed group Outbox migration by restoring missing legacy `groupId` from the encrypted/authoritative `conversationId` before bounded validation.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 

@@ -20,12 +20,17 @@ export async function queueGroupTextForApp({groupId,messageId,text,time,disappea
   return payload;
 }
 
+export function normalizeGroupOutboxPayload(payload){
+  return{...payload,groupId:payload?.groupId||payload?.conversationId};
+}
+
 export async function flushGroupOutboxForApp(payload,{removeEncryptedOutbox}={}){
-  if(!isGroupOutboxPayload(payload))throw new Error("Unsupported group Outbox payload.");
+  const normalized=normalizeGroupOutboxPayload(payload);
+  if(!isGroupOutboxPayload(normalized))throw new Error("Unsupported group Outbox payload.");
   if(typeof removeEncryptedOutbox!=="function")throw new Error("Outbox removal callback is required.");
-  const result=await flushGroupSend(payload);
+  const result=await flushGroupSend(normalized);
   // Removal is deliberately after the controller confirms the Firestore write.
-  await removeEncryptedOutbox(payload.messageId);
+  await removeEncryptedOutbox(normalized.messageId);
   return result;
 }
 

@@ -44,6 +44,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9m stored-Outbox repair:** previously malformed group records may remain encrypted in IndexedDB with a null epoch and continue generating the same rejection after the new-write correction. The bounded bridge now recognizes a group record by its discriminator plus group/message IDs; flush treats a non-integer legacy epoch as missing, revalidates membership and current epoch through server authority, and re-encrypts before sending. It does not weaken Firebase authorization.
 
+**0.9.9.9n legacy group-ID repair:** the remaining repeated rejection proved that an older encrypted Outbox shape identified its conversation but did not retain a separate `groupId`. Decryption and the group bridge now normalize `conversationId` (or the authoritative Outbox record conversation ID) into `groupId` before validation. The normalized record still passes membership/epoch revalidation and current-epoch encryption before transport.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

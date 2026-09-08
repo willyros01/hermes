@@ -51,6 +51,8 @@ The original 0.9.9.9k `d.txt` failed three times at its GitHub archive download 
 
 0.9.9.9m addresses the repeated error after 0.9.9.9l: malformed encrypted Outbox records created by the older build remain on the device and are retried. The bridge now accepts bounded group identity even when the legacy epoch is null; flush revalidates current server membership/epoch and re-encrypts the message. Authorization remains server-controlled.
 
+0.9.9.9n addresses the confirmed same error after 0.9.9.9m. Because the send loop already recognized the group discriminator and the bridge no longer required a valid epoch, the only remaining rejection cause was a missing `groupId`. Older encrypted Outbox shapes may retain only `conversationId`. Decryption and the group bridge now normalize that authoritative identity to `groupId` before validation and send.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.
