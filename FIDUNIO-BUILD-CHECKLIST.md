@@ -1,5 +1,11 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+## Authoritative publishing rule
+
+- [ ] Every completed and validated build is committed and pushed directly to `main` before it is reported complete.
+- [ ] Never separate the `main` push into a later user-confirmation step.
+- [ ] Application builds use automatic repository publishing; only authenticated backend operations may require the user to run the supplied short `.txt` Cloud Shell script.
+
 ### Basic direct-message transport recovery — 2026-09-07
 
 - [x] Identify account-key preparation as the direct-text pre-send blocker.

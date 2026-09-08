@@ -43,6 +43,8 @@ LOGIN-JOIN is implemented in 0.9.9.9g. Sign In displays only email and password 
 
 0.9.9.9k enables Delete for Everyone on accepted group messages only for the original sender. The client gates on `message.mine`; the authenticated callable independently verifies the authoritative group message `senderUid` and current membership. It deletes receipts, attachments, history-grant copies (repairing grant metadata), and the source message. Recipients retain Delete for Me only.
 
+AUTHORITATIVE BUILD WORKFLOW: every completed, validated FIDUNIO build is committed and pushed directly to `main` as an inseparable part of the build. Do not ask the user for a separate push confirmation and do not require manual application-file upload/download. Backend actions that require the user's authenticated Google Cloud Shell remain explicitly identified and use a short `.txt` deployment script.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.
