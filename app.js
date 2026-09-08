@@ -100,6 +100,7 @@ let myRegisteredDevices = [];
 let localSecurityMessage = "";
 let localSecurityMessageIsError = false;
 let unlockError = "";
+let messageSendInFlight=false;
 
 function setLocalSecurityMessage(message,isError=false){
   localSecurityMessage=String(message||"");
@@ -1301,9 +1302,9 @@ function renderChat(){
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
   document.querySelector("#sendBtn").onclick=async event=>{
     const button=event.currentTarget;button.disabled=true;
-    try{await sendCurrent();}finally{if(button.isConnected)button.disabled=false;}
+    try{await sendCurrent();}catch(err){alert(err?.message||String(err));}finally{if(button.isConnected)button.disabled=false;}
   };
-  box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendCurrent()}});
+  box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();document.querySelector("#sendBtn")?.click();}});
   bindPendingMessageActions();
   requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
 }
@@ -1343,14 +1344,19 @@ async function chooseAndSendAttachment(kind,accept,capture){
 }
 
 async function sendCurrent(){
+  if(messageSendInFlight)return;
   const box=document.querySelector("#messageBox");
   const text=box.value.trim();
   if(!text) return;
+  messageSendInFlight=true;
+  box.value="";
+  box.style.height="46px";
 
-  const conversationId=state.selectedId;
-  const c=currentConversation();
-  const cloud=!!c?.cloud;
-  const cloudGroup=!!c?.cloudGroup;
+  try{
+    const conversationId=state.selectedId;
+    const c=currentConversation();
+    const cloud=!!c?.cloud;
+    const cloudGroup=!!c?.cloudGroup;
 
   if(cloud && c?.peerUid && !firebaseUser){throw new Error("Sign in before sending an encrypted message.");}
 
@@ -1376,14 +1382,21 @@ async function sendCurrent(){
   await persistState();
   render();
 
-  if(state.online){
-    if(cloud || cloudGroup){
-      await flushQueuedAfterAuthoritativeReconcile({notifyUser:true});
-    }else{
-      m.state="failed";
-      await persistState();
-      render();
+    if(state.online){
+      if(cloud || cloudGroup){
+        await flushQueuedAfterAuthoritativeReconcile({notifyUser:true});
+      }else{
+        m.state="failed";
+        await persistState();
+        render();
+      }
     }
+  }catch(err){
+    const currentBox=document.querySelector("#messageBox");
+    if(currentBox&&!currentBox.value)currentBox.value=text;
+    throw err;
+  }finally{
+    messageSendInFlight=false;
   }
 }
 
@@ -1404,7 +1417,7 @@ async function cancelPendingOutboxMessage(messageId,conversationId){
   try{
     await outboxCycleTail.catch(()=>{});
     const record=await getOutboxMessage(id);
-    if(!record)throw new Error("This message has already left the Outbox and can no longer be cancelled.");
+    if(!record){await deleteMessageForMe(conversationId,id);return;}
     const payload=await decryptOutboxRecord(record);
     if(String(payload.conversationId)!==String(conversationId))throw new Error("Message ownership could not be confirmed.");
     await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[id]);
@@ -1538,6 +1551,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         await flushGroupOutboxForApp(payload,{removeEncryptedOutbox:removeOutboxMessage});
         m.state="sent";await persistState();
       }catch(err){m.state="failed";firebaseError=err?.message||String(err);await persistState();}
+      if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId))render();
       continue;
     }
     if(isCloud){

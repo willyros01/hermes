@@ -14,7 +14,7 @@ assert.match(receipt,/const messageRef=.*messages.*messageId.*ref=.*receipts.*au
 assert.match(receipt,/const \[messageSnap,snap\]=await Promise\.all\(\[tx\.get\(messageRef\),tx\.get\(ref\)\]\)/,"receipt transaction must read parent message and receipt together");
 assert.match(receipt,/nextRevision=Number\(message\.receiptRevision\|\|0\)\+1/,"receipt write must derive the next monotonic parent revision");
 assert.match(receipt,/tx\.update\(messageRef,\{receiptRevision:nextRevision\}\)/,"receipt write must atomically advance parent revision");
-assert.match(rules,/function groupReceiptParentBarrier\(groupId,messageId\)/,"rules must define a group receipt parent barrier");
-assert.match(rules,/allow create: if isGroupMember\(groupId\)&&request\.auth\.uid==uid&&validGroupReceiptCreate\(uid,request\.resource\.data\)&&groupReceiptParentBarrier\(groupId,messageId\)/,"receipt create must require parent barrier");
-assert.match(rules,/allow update: if isGroupMember\(groupId\)&&request\.auth\.uid==uid&&validGroupReceiptUpdate\(uid,request\.resource\.data,resource\.data\)&&groupReceiptParentBarrier\(groupId,messageId\)/,"receipt update must require parent barrier");
-console.log("PASS group receipt purge barrier source/rules authority");
+assert.doesNotMatch(rules,/function groupReceiptParentBarrier\(groupId,messageId\)/,"rules must not retain the circular receipt barrier");
+assert.match(rules,/allow create: if isGroupMember\(groupId\)&&exists\(groupMessagePath\(groupId,messageId\)\)&&request\.auth\.uid==uid&&validGroupReceiptCreate\(uid,request\.resource\.data\)/,"receipt create must require an existing message and the member's own valid receipt");
+assert.match(rules,/allow update: if isGroupMember\(groupId\)&&exists\(groupMessagePath\(groupId,messageId\)\)&&request\.auth\.uid==uid&&validGroupReceiptUpdate\(uid,request\.resource\.data,resource\.data\)/,"receipt update must remain member-owned and monotonic");
+console.log("PASS straightforward group receipt source/rules authority");

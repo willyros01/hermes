@@ -29,6 +29,8 @@
 - [x] Implement login-join: password-only Sign In, separate invitation/account/PIN Join, and PIN/biometric only for subsequent local unlock in 0.9.9.9g.
 - [x] Implement the approved graphic Sign In/Join navigation tiles without changing login-join form behavior in 0.9.9.9h.
 - [x] Add one accessible, shared busy spinner for asynchronous action buttons and explicitly cover Send/password reset in 0.9.9.9i.
+- [x] Make group text Send single-flight, clear the composer immediately, render final state, and recover stale pending deletion in 0.9.9.9j.
+- [ ] Deploy and verify the simplified 0.9.9.9j group receipt Firestore rules, then prove group Send/receipt/delete on devices.
 - [ ] Verify app-switch PIN/biometric lock and Groups list/New Group navigation on iPad.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.

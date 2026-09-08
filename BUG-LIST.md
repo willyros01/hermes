@@ -23,6 +23,7 @@
 - **0.9.9.9g:** Split the busy combined authentication surface into the named login-join flow. Sign In no longer includes PIN; Join owns invitation and account/PIN creation fields.
 - **0.9.9.9h:** Replaced the easily confused top authentication buttons with approved graphic navigation tiles while preserving the bottom form action.
 - **0.9.9.9i:** Added visible spinner feedback for asynchronous button actions so network and storage work no longer appears hung.
+- **0.9.9.9j:** Group send is single-flight, clears the composer immediately, renders its final state, and permits local deletion of stale Sending rows. Simplified member-owned group receipt rules await live deployment.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 

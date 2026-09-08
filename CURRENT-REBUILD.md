@@ -36,6 +36,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9i button progress feedback:** one bootstrap-owned busy treatment observes action buttons that disable while asynchronous work runs, adds an accessible spinner, and removes it when the action completes or the button is replaced by the next rendered screen. Password reset and message Send now participate explicitly. Instant navigation remains immediate.
 
+**0.9.9.9j group-send correction:** the composer clears and Send becomes single-flight before encrypted Outbox work begins, so repeated taps cannot duplicate a message. Group completion now renders Sent immediately. If a row is stale at Sending after its Outbox record has already completed, Delete Message falls back to local Delete for Me. Group receipt rules remove the circular parent/receipt dependency while retaining membership, ownership, existing-message, and monotonic-state checks. Live group receipt repair requires deployment of the reviewed `firestore.rules` with `g.txt`.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

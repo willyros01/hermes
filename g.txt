@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project="fidunio-fef13"
+curl -fsSL "https://raw.githubusercontent.com/willyros01/hermes/main/firestore.rules" -o firestore.rules
+firebase deploy --only firestore:rules --project "$project"
+echo "SUCCESS: FIDUNIO Firestore rules deployed."
