@@ -1,3 +1,4 @@
+# rerun after Outbox assertion syntax repair
 name: Issue 2 one-shot optimistic send patch
 
 on:
