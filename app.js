@@ -326,6 +326,7 @@ async function decryptOutboxRecord(record){
   return {
     ...payload,
     conversationId:payload.conversationId ?? payload.groupId ?? record.conversationId,
+    groupId:payload.groupId ?? (payload.kind==="group-e2ee-v1"?(payload.conversationId ?? record.conversationId):undefined),
     messageId:payload.messageId ?? record.id,
     text:payload.text ?? "",
     time:payload.time ?? "",
