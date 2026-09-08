@@ -1,4 +1,4 @@
-# rerun after Outbox assertion syntax repair
+# rerun after direct-message shell assertion repair
 name: Issue 2 one-shot optimistic send patch
 
 on:
@@ -44,6 +44,7 @@ jobs:
           v=Path('version.js'); s=v.read_text(); assert '0.9.9.9x' in s; v.write_text(s.replace('0.9.9.9x','0.9.9.9y',1))
           sw=Path('service-worker.js'); s=sw.read_text(); assert '0.9.9.9x-ios-camera-session' in s; sw.write_text(s.replace('0.9.9.9x-ios-camera-session','0.9.9.9y-lte-optimistic-message',1))
           ot=Path('outbox-reconciliation-boundary.test.mjs'); s=ot.read_text(); assert '0\\.9\\.9\\.9x-ios-camera-session' in s; ot.write_text(s.replace('0\\.9\\.9\\.9x-ios-camera-session','0\\.9\\.9\\.9y-lte-optimistic-message',1))
+          dm=Path('direct-message-basic-path.test.mjs'); s=dm.read_text(); assert '0\\.9\\.9\\.9x-ios-camera-session' in s; dm.write_text(s.replace('0\\.9\\.9\\.9x-ios-camera-session','0\\.9\\.9\\.9y-lte-optimistic-message',1))
 
           def prepend_after_title(path, title, section):
               p=Path(path); s=p.read_text()
@@ -81,7 +82,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app.js lte-optimistic-message.test.mjs package.json .github/workflows/rebuild-baseline-security.yml version.js service-worker.js outbox-reconciliation-boundary.test.mjs CURRENT-REBUILD.md BUG-LIST.md DEVICE-ACCEPTANCE-BUGS.md README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
+          git add app.js lte-optimistic-message.test.mjs package.json .github/workflows/rebuild-baseline-security.yml version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs CURRENT-REBUILD.md BUG-LIST.md DEVICE-ACCEPTANCE-BUGS.md README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
           git diff --cached --check
           git commit -m 'Finalize 0.9.9.9y LTE visibility candidate'
           git push
