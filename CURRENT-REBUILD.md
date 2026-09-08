@@ -1,5 +1,9 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## 0.9.9.9w video failure-path correction
+
+The reported iPhone camera video left a failed partial descriptor that the renderer later treated as a downloadable encrypted attachment. Selection validation now runs before local preview/message creation, so unsupported or over-50-MiB videos produce an immediate actionable alert without inserting a bubble. Any failure after valid staging is rendered explicitly as a send failure and can be deleted; it is never routed to attachment receive/decrypt. LTE optimistic-message visibility and iPhone composer overlap remain separate, pending issues by user direction.
+
 ## 0.9.9.9v attachment upload publication barrier
 
 Real-device evidence found a published camera message whose manifest referenced chunk 8 although that object did not exist. Root cause: the UI's attachment staging callback incorrectly queued the Firestore message before Storage upload completed. The publishable direct/group Outbox operation now occurs only inside the post-upload commit callback, after `uploadEncryptedAttachment` has uploaded and verified the manifest and every chunk. An incomplete upload remains local/failed and is never exposed to recipients.

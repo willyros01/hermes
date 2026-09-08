@@ -4,7 +4,7 @@
 
 If an encrypted attachment uploads successfully but Safari reports `Manifest download failed (storage/unknown): Load failed`, run the root-level `s.txt` script once in Google Cloud Shell with `bash s.txt`. It grants only the FIDUNIO GitHub Pages origin permission to read Storage objects through browser CORS; Storage security rules and authenticated membership checks remain authoritative.
 
-Current device candidate **0.9.9.9v** adds a strict attachment upload barrier: an attachment message is not placed in the publishable direct/group Outbox until every encrypted Storage object has uploaded and passed metadata verification. This prevents a temporary sender preview from masking incomplete durable uploads. Original-photo bytes and the Photo Library/Take a Picture chooser from 0.9.9.9u remain active.
+Current device candidate **0.9.9.9w** repairs the video-selection failure path. Attachment type/size validation now occurs before a preview or conversation row is created. Rejected camera videos therefore show the real bounded-selection error and leave no partial descriptor. A later encryption/upload failure renders as **Video was not sent** and remains deletable instead of being passed incorrectly to the download/decryption path.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -15,7 +15,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9v**
+- Current checkpoint version: **0.9.9.9w**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

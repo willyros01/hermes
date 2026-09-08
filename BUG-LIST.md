@@ -1,5 +1,12 @@
 # FIDUNIO / Hermes Bug List
 
+## 0.9.9.9w iPhone camera-video failure
+
+- **Observed:** A camera video failed, then appeared as `Invalid encrypted attachment descriptor` because an incomplete preview descriptor was retained and sent into the receive path.
+- **Fixed:** Validate MIME type and the existing 50 MiB video boundary before preview/bubble creation. Rejection leaves no conversation row.
+- **Fixed:** Post-validation send failures display **Video was not sent** and remain available for deletion; the download retry control is not shown.
+- **Deferred separately:** LTE optimistic-message visibility and iPhone bottom-content overlap.
+
 ## 0.9.9.9v missing camera-photo chunk
 
 - **Observed:** A camera photo displayed through the sender's temporary local preview, but after restart Storage reported that encrypted chunk 8 did not exist.

@@ -1,7 +1,7 @@
 /* FIDUNIO account-E2EE runtime service worker. Network-first shell; no semantic source transforms. */
 importScripts("./version.js");
 const SW_VERSION=globalThis.FIDUNIO_RELEASE?.version||"unknown";
-const SHELL_REVISION="0.9.9.9v-attachment-upload-barrier";
+const SHELL_REVISION="0.9.9.9w-video-failure-clarity";
 const CACHE=`fidunio-shell-${SW_VERSION}-${SHELL_REVISION}`;
 const SHELL=["./","./index.html","./version.js","./styles.css","./styles-0.9.0.css","./bootstrap.js","./auth-ui-clean.js","./app.js","./firebase.js","./firebase-config.js","./settings-lifecycle.js","./new-message-owner.js","./pin-input.js","./local-security.js","./account-storage.js","./outbox-reconciliation-boundary.js","./attachment-send-service.js","./attachment-receive-service.js","./e2ee-account-attachment-crypto.js","./e2ee-account-runtime.js","./e2ee-account-lifecycle.js","./e2ee-account-identity-manager.js","./e2ee-account-firebase-adapter.js","./e2ee-account-firestore-adapter.js","./e2ee-account-crypto.js","./e2ee-account-recovery-client.js","./e2ee-account-message-runtime.js","./e2ee-account-message-service.js","./e2ee-account-message-crypto.js","./manifest.json","./favicon.png","./fidunio-logo.png","./icon-180.png","./icon-192.png","./icon-512.png"];
 const FIREBASE_SDK=["https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-functions.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js"];

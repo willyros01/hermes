@@ -1,6 +1,10 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### IPHONE CAMERA-VIDEO FAILURE PATH — 0.9.9.9w
+
+The user directed that three reported issues be handled separately and in order: (1) camera-video send failure, (2) sent LTE message absent from the conversation until delayed reconciliation, and (3) the last iPhone lines covered by the widgets/composer with non-sticky scrolling. Build 0.9.9.9w addresses only issue 1. Attachment validation now precedes creation of the temporary preview and local message. An invalid/over-limit camera video (current video limit 50 MiB) shows the true selection error and leaves no partial row. Failures occurring after valid staging render as send failures and never invoke the attachment receiver. Issues 2 and 3 remain untouched for later, in that order.
+
 ### ATTACHMENT UPLOAD PUBLICATION BARRIER — 0.9.9.9v
 
 A real iPhone camera test exposed `Chunk 8 download failed (storage/object-not-found)` after restart even though the immediate sender preview had displayed. The encryption/chunk plan was sound; the app's `stageEncryptedOutbox` callback incorrectly inserted the attachment message into the normal publishable Outbox before Storage upload completion. The fixed order is local encrypted staging, upload manifest and every chunk, verify metadata for every object, then queue/publish the direct or group message. Existing messages missing a chunk cannot be reconstructed and must be deleted/resubmitted. Original-photo transport and the library/camera chooser remain enabled.
