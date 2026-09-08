@@ -30,7 +30,7 @@ export function createAccountE2EEAuthLifecycle({manager}={}){
     try{loadResult=owner.load(clean);}catch(error){loadResult=Promise.reject(error);}
     const promise=Promise.resolve(loadResult).then(doc=>{
       if(token!==epoch||boundUid!==clean)return{uid:clean,stale:true,hasIdentity:false,state:owner.getState()};
-      return{uid:clean,stale:false,hasIdentity:!!doc,state:owner.getState()};
+      return{uid:clean,stale:false,hasIdentity:!!doc,identity:doc?{keyId:doc.keyId,revision:doc.revision}:null,state:owner.getState()};
     }).catch(error=>{
       if(error?.code==="OPERATION_INVALIDATED"||token!==epoch)return{uid:clean,stale:true,hasIdentity:false,state:owner.getState()};
       throw error;

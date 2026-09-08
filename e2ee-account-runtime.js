@@ -15,6 +15,7 @@ export function getAccountE2EELifecycleState(){return lifecycle.getLifecycleStat
 export function getAccountE2EERuntimeIdentity(){return manager.getRuntimeIdentity();}
 export function enrollAccountE2EE({uid,password,pin}){return manager.enroll({uid,password,pin});}
 export function unlockAccountE2EE({uid,password,pin}){return manager.unlock({uid,password,pin});}
+export function restoreLocalAccountE2EE(identity){return manager.restoreLocal(identity);}
 export async function recoverAccountE2EE({uid,newPassword,pin}){
   const recovered=await recoveryClient.recoverKey({pin});
   try{return await manager.recover({uid,recoveryUnlockKey:recovered.recoveryUnlockKey,newPassword,pin});}

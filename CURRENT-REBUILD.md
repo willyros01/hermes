@@ -20,6 +20,8 @@ The reviewed repository rules were deployed to live project `fidunio-fef13` thro
 
 Real-device iPad → iPhone Read receipt proof passed after the rules deployment. Candidate **0.9.9.9a** restores the already-validated account E2EE v3 envelope at the sole serialized direct Outbox send boundary, enables the existing sender-owned Delete for Everyone callable UI, and mounts one reusable six-slot FIDUNIO PIN control in the signed-out login and local-unlock screens. Login now unlocks the existing account encryption with the entered password and PIN; ordinary chat remains free of key-management prompts. Delete for Everyone still requires live deployment of its dedicated callable before device acceptance.
 
+**0.9.9.9b unlock correction:** 0.9.9.9a incorrectly required password plus PIN on a remembered session and `app.js` then rebound the READY identity back to LOCKED. The corrected flow retains the non-extractable account key in UID/keyId/revision-bound local storage after setup, restores it only after PIN or biometric authorization, clears it on sign-out, and never rebinds a READY runtime. Password plus PIN is limited to sign-in, first setup, or recovery. A stale password wrapper gets one bounded recovery attempt that preserves the same identity.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

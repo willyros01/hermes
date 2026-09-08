@@ -15,6 +15,7 @@
 - **Live rules aligned:** Cloud Shell deployed and verified ruleset `6f6d9fda-0698-48db-b1a9-b9dde31b9456` to `fidunio-fef13`, replacing `52ea515e-359f-453f-8822-3c0f6ef2659a`. Await real-device Sent → Read proof before closing.
 - **Read receipt closed:** iPad status changed to Read after the live rules alignment. Preserve this listener/rules path in 0.9.9.9a while restoring account E2EE send.
 - **0.9.9.9a acceptance:** Verify encrypted iPad ↔ iPhone text, six-slot PIN login/unlock, pending Delete Message, and deployed sender-only Delete for Everyone.
+- **0.9.9.9a unlock regression closed in 0.9.9.9b:** remembered sessions use PIN or biometrics only, and app startup no longer relocks a READY encryption identity.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 

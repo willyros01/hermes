@@ -29,14 +29,14 @@ import {
 import {
   LOCK_TIMEOUTS,
   getLocalSecurityStatus,
-  setLocalPin, verifyLocalPin, changeLocalPin, removeLocalPin,
+  setLocalPin, verifyLocalPin, changeLocalPin, removeLocalPin, clearLocalAccountE2EEIdentity,
   enrollBiometric, verifyBiometric, disableBiometric,
   setLockTimeoutMs, consumeSuccessfulAuthBypass, noteLocalUnlock,
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
-import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
+import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
@@ -834,7 +834,7 @@ async function initializeFirebaseLayer(){
       firebaseUser=user;
       firebaseReady=true;
       if(user){
-        bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
+        if(getAccountE2EELifecycleState().manager.state!=="READY")bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
         beginCloudGroupSubscription();
@@ -930,7 +930,7 @@ function bindMainSignOut(){
   if(!btn)return;
   btn.onclick=async()=>{
     btn.disabled=true;btn.textContent="Signing Out…";
-    try{await signOutFidunio();location.reload();}
+    try{if(firebaseUser?.uid)await clearLocalAccountE2EEIdentity(firebaseUser.uid);await signOutFidunio();location.reload();}
     catch(err){btn.disabled=false;btn.textContent="Sign Out";alert(err?.message||String(err));}
   };
 }
@@ -2006,7 +2006,7 @@ function renderSettings(){
     catch(err){firebaseError=err?.message||String(err);renderSettings();}
   };
   const signOutBtn=document.querySelector("#firebaseSignOutBtn");
-  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutFidunio();firebaseError="";renderSettings();};
+  if(signOutBtn) signOutBtn.onclick=async()=>{if(firebaseUser?.uid)await clearLocalAccountE2EEIdentity(firebaseUser.uid);await signOutFidunio();firebaseError="";renderSettings();};
   const copyBtn=document.querySelector("#copyUidBtn");
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}

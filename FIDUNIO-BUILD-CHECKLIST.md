@@ -19,6 +19,8 @@
 - [x] Add one reusable six-slot FIDUNIO PIN owner to login and local unlock.
 - [ ] Deploy and verify `deleteDirectMessageForEveryoneV1` with its dedicated service account.
 - [ ] Prove 0.9.9.9a encrypted send/read and both delete paths on iPad/iPhone.
+- [x] Correct the 0.9.9.9a returning unlock design and duplicate READY-identity bind in 0.9.9.9b.
+- [ ] Prove 0.9.9.9b PIN/biometric reopening, then repeat encrypted send/read/delete on iPad/iPhone.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.
 

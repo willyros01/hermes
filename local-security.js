@@ -7,6 +7,7 @@ const DB_VERSION=2;
 const CONFIG_KEY="local-security-v1";
 const LEGACY_CONFIG_KEY="fidunio-local-security-v1";
 const AUTH_BYPASS_KEY="fidunio-auth-bypass-once";
+const ACCOUNT_E2EE_LOCAL_PREFIX="account-e2ee-runtime-v1:";
 const DEFAULT_TIMEOUT_MS=5*60*1000;
 const PBKDF2_ITERATIONS=210000;
 
@@ -39,6 +40,9 @@ function validStoredPin(pin){return /^\d{4,12}$/.test(String(pin||""));}
 function equalBytes(a,b){if(a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a[i]^b[i];return diff===0;}
 export async function setLocalPin(pin){pin=String(pin||"");if(!validPin(pin))throw new Error("FIDUNIO PIN must contain exactly 6 digits.");const salt=randomBytes(16),hash=await derivePin(pin,salt);await queueConfigMutation(cfg=>{cfg.pin={salt:bytesToB64Url(salt),hash:bytesToB64Url(hash),iterations:PBKDF2_ITERATIONS};});if(!getLocalSecurityStatus().hasPin)throw new Error("FIDUNIO PIN was not saved. Please try again.");}
 export async function verifyLocalPin(pin){await configWriteQueue;const cfg=loadConfig();if(!cfg.pin||!validStoredPin(pin))return false;try{return equalBytes(await derivePin(String(pin),b64UrlToBytes(cfg.pin.salt),Number(cfg.pin.iterations)||PBKDF2_ITERATIONS),b64UrlToBytes(cfg.pin.hash));}catch{return false;}}
+export async function saveLocalAccountE2EEIdentity({uid,keyId,revision,privateKey}){if(!uid||!keyId||!privateKey?.type||privateKey.type!=="private")throw new Error("Unlocked account identity is unavailable.");const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").put({uid:String(uid),keyId:String(keyId),revision:Number(revision)||1,privateKey},ACCOUNT_E2EE_LOCAL_PREFIX+String(uid));await txDone(tx);}
+export async function readLocalAccountE2EEIdentity(uid,{keyId,revision}={}){try{const db=await openDb(),row=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid)));if(!row||row.uid!==String(uid)||row.keyId!==String(keyId)||Number(row.revision)!==Number(revision)||row.privateKey?.type!=="private")return null;return row;}catch{return null;}}
+export async function clearLocalAccountE2EEIdentity(uid){const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").delete(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid));await txDone(tx);}
 export async function changeLocalPin(currentPin,newPin){if(!await verifyLocalPin(currentPin))throw new Error("Current FIDUNIO PIN is incorrect.");newPin=String(newPin||"");if(!validPin(newPin))throw new Error("FIDUNIO PIN must contain exactly 6 digits.");const salt=randomBytes(16),hash=await derivePin(newPin,salt);await queueConfigMutation(cfg=>{cfg.pin={salt:bytesToB64Url(salt),hash:bytesToB64Url(hash),iterations:PBKDF2_ITERATIONS};});}
 export async function removeLocalPin(currentPin){if(!await verifyLocalPin(currentPin))throw new Error("Current PIN is incorrect.");await queueConfigMutation(cfg=>{cfg.pin=null;cfg.biometric=null;});}
 export async function platformAuthenticatorAvailable(){try{return!!(window.isSecureContext&&window.PublicKeyCredential&&navigator.credentials&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());}catch{return false;}}

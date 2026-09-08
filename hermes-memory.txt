@@ -23,6 +23,8 @@ READ RECEIPT DEVICE PASS: After the live rules alignment, the iPad sender change
 
 CURRENT CANDIDATE 0.9.9.9a: direct text again uses the validated account E2EE v3 envelope at the sole serialized Outbox send point; ordinary chat still exposes no key/fingerprint workflow. The existing pending Delete Message and sender-only Delete for Everyone UI are enabled. `pin-input.js` is the sole six-slot PIN widget used by signed-out login and local unlock; login uses email/password/PIN to unlock account encryption before app start. The delete callable remains a live-backend prerequisite; do not claim Delete for Everyone device success until `deleteDirectMessageForEveryoneV1` is deployed and proven.
 
+0.9.9.9b corrects the 0.9.9.9a unlock regression. Ordinary remembered-session access is PIN or biometric only. Initial sign-in/setup/recovery may use password plus the one PIN. The READY non-extractable account E2EE CryptoKey is retained in UID/keyId/revision-bound local storage, restored only after local authorization, cleared on sign-out, and never overwritten by a second startup bind. A stale password wrapper may use one existing recovery-authority attempt to preserve and rewrap the same identity.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

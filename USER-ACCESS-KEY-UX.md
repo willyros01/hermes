@@ -4,6 +4,10 @@
 
 Signed-out login collects email, account password, and the one six-digit FIDUNIO PIN. One reusable `pin-input.js` owner renders six individual digit slots for login and local unlock. Login unlocks the existing account E2EE identity before app startup; ordinary conversations do not expose key setup, fingerprints, or verification controls.
 
+## 0.9.9.9b returning unlock
+
+A remembered authenticated session uses only the six-slot PIN or enrolled device biometric. After initial setup, the non-extractable account encryption key is retained locally, bound to the authenticated UID and current key identity, restored only after local authorization, and cleared on explicit sign-out.
+
 ## User-visible credentials
 
 For a fresh account, the user sees and remembers only:

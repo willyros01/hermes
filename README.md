@@ -1,6 +1,6 @@
 # FIDUNIO / Hermes
 
-Current device candidate **0.9.9.9a** restores account E2EE v3 for new direct text at the serialized Outbox boundary, preserves the proven live Read-receipt path, enables the existing sender-only Delete for Everyone client action, and uses one six-slot FIDUNIO PIN control for signed-out login and local unlock. The Delete for Everyone callable must be deployed before that action can pass live-device acceptance.
+Current device candidate **0.9.9.9b** preserves encrypted direct text, Read receipts and Delete for Everyone while correcting returning access to use the six-digit PIN or biometrics without an account-password prompt.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -11,7 +11,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9a**
+- Current checkpoint version: **0.9.9.9b**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

@@ -64,6 +64,12 @@ export function createAccountE2EEIdentityManager({identityStore,recoveryService,
     catch(error){ publishFailure(g,STATES.LOCKED,"UNLOCK_FAILED"); throw error; }
   }); }
 
+  function restoreLocal({uid,keyId,revision,privateKey}){
+    const clean=assertAccount(uid);
+    if(!keyId||privateKey?.type!=="private"||privateKey.algorithm?.name!=="ECDH"||privateKey.algorithm?.namedCurve!=="P-256")throw new Error("Saved account encryption key is invalid.");
+    runtime={uid:clean,keyId:String(keyId),revision:Number(revision)||1,privateKey};publishState(STATES.READY);return{...runtime};
+  }
+
   async function rewrap({uid,oldPassword,oldPin,newPassword,newPin}){ return serialize(async()=>{
     const g=captureGeneration(), clean=assertAccount(uid); validateSixDigitPin(oldPin); validateSixDigitPin(newPin);
     const doc=await identityStore.readIdentity(clean); assertGeneration(g); if(!doc) throw new Error("Durable E2EE identity does not exist."); publishState(STATES.REWRAPPING);
@@ -93,5 +99,5 @@ export function createAccountE2EEIdentityManager({identityStore,recoveryService,
   function getRuntimeIdentity(){ return runtime?{...runtime}:null; }
   function getState(){ return {state,uid:activeUid,keyId:runtime?.keyId||null,revision:runtime?.revision||null}; }
   function resetForSignOut(){ generation+=1; activeUid=null; runtime=null; publishState(STATES.EMPTY); }
-  return Object.freeze({load,enroll,unlock,rewrap,recover,getRuntimeIdentity,getState,resetForSignOut,STATES});
+  return Object.freeze({load,enroll,unlock,restoreLocal,rewrap,recover,getRuntimeIdentity,getState,resetForSignOut,STATES});
 }

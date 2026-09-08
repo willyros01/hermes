@@ -22,6 +22,11 @@ requireTrue(quick.includes("one six-digit <strong>FIDUNIO PIN</strong>"),"Quick 
 requireTrue((pinInput.match(/pin-code-slot/g)||[]).length>=1&&pinInput.includes("length:6"),"one reusable PIN owner must render six digit slots");
 requireTrue(auth.includes('id="loginPinHost"')&&auth.includes("mountSixDigitPinInput"),"the login screen must use the six-slot PIN owner");
 requireTrue(auth.includes("unlockAccountE2EE({uid:user.uid,password,pin})"),"sign-in must unlock message encryption with the entered password and PIN");
+requireTrue(auth.includes("recoverAccountE2EE({uid:user.uid,newPassword:password,pin})"),"a stale password wrapper must have one bounded same-identity recovery path");
+requireTrue(auth.includes("readLocalAccountE2EEIdentity")&&auth.includes("restoreLocalAccountE2EE(saved)"),"returning sessions must restore encryption after local authorization");
+requireTrue(auth.includes("verifyBiometric()")&&auth.includes("verifyLocalPin(pinInput.value())"),"ordinary returning unlock must use PIN or biometrics");
+requireTrue(!auth.includes("Unlock messaging with your password and six-digit PIN"),"ordinary returning unlock must not demand password plus PIN");
+requireTrue(app.includes('getAccountE2EELifecycleState().manager.state!=="READY"'),"app startup must not relock a READY encryption identity");
 requireTrue(app.includes('id="localUnlockPin"')&&app.includes("mountSixDigitPinInput"),"local unlock must use the same six-slot PIN owner");
 
 console.log("Single visible FIDUNIO PIN and hidden-key UX gate passed");
