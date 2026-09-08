@@ -2,6 +2,8 @@ import fs from 'node:fs';
 const owner=fs.readFileSync('invitation-owner.js','utf8'),firebase=fs.readFileSync('firebase.js','utf8'),policy=fs.readFileSync('invitation-policy.js','utf8'),auth=fs.readFileSync('auth-ui-clean.js','utf8'),settings=fs.readFileSync('settings-lifecycle.js','utf8'),install=fs.readFileSync('install-guidance.js','utf8'),manifest=JSON.parse(fs.readFileSync('manifest.json','utf8')),sw=fs.readFileSync('service-worker.js','utf8'),app=fs.readFileSync('app.js','utf8');let bad=0;const ok=(n,v)=>{console.log(v?'PASS':'FAIL',n);if(!v)bad++};
 ok('one invitation mutation owner',owner.includes('let mutationTail=Promise.resolve()')&&owner.includes('serialize('));
 ok('auth uses invitation owner',auth.includes('./invitation-owner.js')&&!/validateInvitation|redeemFidunioInvitation/.test(auth.split('from "./firebase.js"')[0]));
+ok('Join owns one complete account form',auth.includes('id="inviteCode"')&&auth.includes('id="joinName"')&&auth.includes('id="joinEmail"')&&auth.includes('id="joinPassword"')&&auth.includes('id="joinPinHost"'));
+ok('Sign In contains no PIN control',!auth.includes('id="loginPinHost"')&&!auth.includes('id="loginPinLabel"'));
 ok('settings uses invitation owner',settings.includes('./invitation-owner.js'));
 ok('invitation mutations have no competing Settings queue',!settings.includes('serializeSettingsMutation("create invitation"')&&!settings.includes('serializeSettingsMutation("revoke invitation"'));
 ok('Firebase remains repository not second SDK owner',!owner.includes('gstatic.com/firebasejs')&&firebase.includes('export async function createFidunioInvitation'));

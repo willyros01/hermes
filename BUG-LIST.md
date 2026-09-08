@@ -20,6 +20,7 @@
 - **0.9.9.9d:** Switching to another app locks FIDUNIO immediately; Groups opens a real list/create screen even when no group exists.
 - **0.9.9.9e:** Removed the duplicate direct receipt write that could report a false permission failure after Read succeeded; corrected live Auto appearance compatibility and message-action hierarchy.
 - **0.9.9.9f:** Fixed local PIN entry being remounted by live cloud renders, which discarded the partial PIN and returned focus to the first box.
+- **0.9.9.9g:** Split the busy combined authentication surface into the named login-join flow. Sign In no longer includes PIN; Join owns invitation and account/PIN creation fields.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 

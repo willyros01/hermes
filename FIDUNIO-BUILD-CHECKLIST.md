@@ -26,6 +26,7 @@
 - [x] Restore immediate lock on app background/pagehide and replace the no-op Groups navigation in 0.9.9.9d.
 - [x] Give direct Read one receipt owner, support legacy iOS Auto appearance changes, and align delete choices in 0.9.9.9e.
 - [x] Preserve the mounted local PIN control and focus while locked cloud callbacks arrive in 0.9.9.9f.
+- [x] Implement login-join: password-only Sign In, separate invitation/account/PIN Join, and PIN/biometric only for subsequent local unlock in 0.9.9.9g.
 - [ ] Verify app-switch PIN/biometric lock and Groups list/New Group navigation on iPad.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.

@@ -15,7 +15,7 @@ import {
   sendFidunioPasswordReset
 } from "./firebase.js";
 import {validateFidunioInvitation,redeemInvitationForEnrollment} from "./invitation-owner.js";
-import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity,clearLocalAccountE2EEIdentity} from "./local-security.js";
+import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity} from "./local-security.js";
 import {bindAuthenticatedAccountE2EE,unlockAccountE2EE,enrollAccountE2EE,recoverAccountE2EE,restoreLocalAccountE2EE,getAccountE2EERuntimeIdentity,resetAccountE2EEForSignOut} from "./e2ee-account-runtime.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
 import {
@@ -30,7 +30,6 @@ const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
 let appStarted=false;
 
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Admin":"User";}
 function inviteTokenFromUrl(){return new URL(location.href).searchParams.get("invite")||"";}
 function clearInviteFromUrl(){const u=new URL(location.href);if(!u.searchParams.has("invite"))return;u.searchParams.delete("invite");history.replaceState(null,"",u.pathname+(u.search||"")+u.hash);}
 function authShell(inner){document.querySelector("#app").innerHTML=`<main class="app-shell unlock"><section class="unlock-card" style="max-width:520px"><div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div><h1>FIDUNIO</h1><p>Private Messaging</p>${inner}<div class="small-note">FIDUNIO ${esc(VERSION)} • Invite-only access</div></section></main>`;}
@@ -105,13 +104,14 @@ async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
   markSuccessfulAuthBypass();
 }
 
-async function renderSessionUnlock(user,{hasIdentity,identity}={}){
+async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   const saved=identity?await readLocalAccountE2EEIdentity(user.uid,identity):null;
   const security=getLocalSecurityStatus();
   if(saved){
     authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with device</button>':""}<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="${security.hasBiometric?"secondary":"primary"}" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   }else{
-    authShell(`<p class="small-note">One-time encryption setup for ${esc(user.email||"this device")}. After this, use only PIN or device unlock.</p><label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password"><label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">Finish Setup</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
+    const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
+    authShell(`<p class="small-note">Set up secure messaging for ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">Choose your six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">Continue</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   }
   const pinInput=mountSixDigitPinInput(document.querySelector("#sessionPinHost"),{onComplete:()=>document.querySelector("#sessionUnlockBtn")?.click()});
   document.querySelector("#sessionUnlockBtn").onclick=async()=>{
@@ -121,7 +121,7 @@ async function renderSessionUnlock(user,{hasIdentity,identity}={}){
       if(saved){
         if(!await verifyLocalPin(pinInput.value()))throw new Error("Incorrect PIN.");
         restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();
-      }else await unlockAccountForMessaging(user,document.querySelector("#sessionPassword").value,pinInput.value(),{hasIdentity});
+      }else await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pinInput.value(),{hasIdentity});
       await startApp();
     }catch(err){
       note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
@@ -136,12 +136,20 @@ async function renderSessionUnlock(user,{hasIdentity,identity}={}){
     deviceBtn.disabled=false;deviceBtn.textContent="Unlock with device";
   };
   document.querySelector("#sessionSignOutBtn").onclick=async()=>{
-    await clearLocalAccountE2EEIdentity(user.uid);
     resetAccountE2EEForSignOut();
     await signOutFidunio();
     renderGate("signin");
   };
-  setTimeout(()=>saved?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
+  setTimeout(()=>saved||password?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
+}
+
+async function enterAfterPasswordSignIn(user,bound){
+  if(bound.state?.state==="READY"){markSuccessfulAuthBypass();await startApp();return;}
+  const saved=bound.identity?await readLocalAccountE2EEIdentity(user.uid,bound.identity):null;
+  if(!saved)throw new Error("Secure messaging is not available on this device. Rejoin or recover this installation.");
+  restoreLocalAccountE2EE(saved);
+  markSuccessfulAuthBypass();
+  await startApp();
 }
 
 function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){
@@ -153,17 +161,14 @@ function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){
 
 function renderSignIn(){
   const body=document.querySelector("#authBody");
-  body.innerHTML=`<p class="small-note">Sign in with your email, password and six-digit FIDUNIO PIN.</p><label class="form-label" for="loginEmail">Email</label><input class="text-input" id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com"><label class="form-label" for="loginPassword">Password</label><input class="text-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Password"><label class="form-label" id="loginPinLabel">FIDUNIO PIN</label><div id="loginPinHost"></div><button class="primary" id="loginBtn" style="margin-top:14px">Sign In</button><button class="secondary" id="forgotBtn" style="margin-top:10px">Forgot Password</button><div id="loginNote"></div>`;
-  const pinInput=mountSixDigitPinInput(document.querySelector("#loginPinHost"),{onComplete:()=>document.querySelector("#loginBtn")?.click()});
+  body.innerHTML=`<label class="form-label" for="loginEmail">Email</label><input class="text-input" id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com"><label class="form-label" for="loginPassword">Password</label><input class="text-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="Password"><button class="primary" id="loginBtn" style="margin-top:14px">Sign In</button><button class="secondary" id="forgotBtn" style="margin-top:10px">Forgot Password</button><div id="loginNote"></div>`;
   document.querySelector("#loginBtn").onclick=async()=>{
     const btn=document.querySelector("#loginBtn");btn.disabled=true;btn.textContent="Signing in…";
-    const password=document.querySelector("#loginPassword").value,pin=pinInput.value();
-    if(!/^\d{6}$/.test(pin)){renderGate("signin","Enter your six-digit FIDUNIO PIN.");return;}
+    const password=document.querySelector("#loginPassword").value;
     try{
       const user=await signInFidunio(document.querySelector("#loginEmail").value.trim(),password);
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
-      await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});
-      await startApp();
+      await enterAfterPasswordSignIn(user,bound);
     }
     catch(err){resetAccountE2EEForSignOut();try{await signOutFidunio();}catch{}renderGate("signin",err?.message||String(err));}
   };
@@ -177,25 +182,23 @@ function renderSignIn(){
 
 async function renderJoin(initialToken=""){
   const body=document.querySelector("#authBody");
-  body.innerHTML=`<p class="small-note">A valid single-use invitation is required to create a FIDUNIO account.</p><label class="form-label" for="inviteCode">Invitation code</label><input class="text-input" id="inviteCode" autocomplete="off" placeholder="Invitation code" value="${esc(initialToken)}"><button class="secondary" id="verifyInviteBtn" style="margin-top:12px">Verify Invitation</button><div id="verifiedInvite"></div>`;
-  document.querySelector("#verifyInviteBtn").onclick=verifyInvite;
-  if(initialToken)await verifyInvite();
-}
-
-async function verifyInvite(){
-  const token=document.querySelector("#inviteCode")?.value.trim(),btn=document.querySelector("#verifyInviteBtn"),box=document.querySelector("#verifiedInvite");
-  if(!token)return;
-  if(btn){btn.disabled=true;btn.textContent="Verifying…";}
-  try{
-    const invite=await validateFidunioInvitation(token);
-    box.innerHTML=`<div class="card" style="margin-top:14px;text-align:left"><strong>Invitation verified</strong><p class="small-note">Invited by ${esc(invite.invitedByName)} • Role: ${esc(prettyRole(invite.role))}${invite.expiresAt?` • Expires ${esc(invite.expiresAt.toLocaleDateString())}`:""}</p><label class="form-label" for="joinName">Display name</label><input class="text-input" id="joinName" maxlength="80" placeholder="Your display name"><label class="form-label" for="joinEmail">Email</label><input class="text-input" id="joinEmail" type="email" autocomplete="username" placeholder="name@example.com"><label class="form-label" for="joinPassword">Password</label><input class="text-input" id="joinPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><button class="primary" id="redeemBtn" style="margin-top:14px">Create FIDUNIO Account</button></div>`;
-    document.querySelector("#redeemBtn").onclick=async()=>{
-      const createBtn=document.querySelector("#redeemBtn");createBtn.disabled=true;createBtn.textContent="Creating account…";
-      try{await redeemInvitationForEnrollment(token,document.querySelector("#joinEmail").value.trim(),document.querySelector("#joinPassword").value,document.querySelector("#joinName").value.trim());markSuccessfulAuthBypass();await startApp();}
-      catch(err){renderGate("join",err?.message||String(err));}
-    };
-  }catch(err){box.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
-  finally{if(btn){btn.disabled=false;btn.textContent="Verify Invitation";}}
+  body.innerHTML=`<label class="form-label" for="inviteCode">Invitation code</label><input class="text-input" id="inviteCode" autocomplete="off" placeholder="Invitation code" value="${esc(initialToken)}"><label class="form-label" for="joinName">Display name</label><input class="text-input" id="joinName" maxlength="80" placeholder="Your display name"><label class="form-label" for="joinEmail">Email</label><input class="text-input" id="joinEmail" type="email" autocomplete="username" placeholder="name@example.com"><label class="form-label" for="joinPassword">Password</label><input class="text-input" id="joinPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"><label class="form-label" id="joinPinLabel">Choose a six-digit PIN</label><div id="joinPinHost"></div><button class="primary" id="redeemBtn" style="margin-top:14px">Join FIDUNIO</button><div id="joinNote"></div>`;
+  const pinInput=mountSixDigitPinInput(document.querySelector("#joinPinHost"),{onComplete:()=>document.querySelector("#redeemBtn")?.focus()});
+  document.querySelector("#redeemBtn").onclick=async()=>{
+    const btn=document.querySelector("#redeemBtn"),note=document.querySelector("#joinNote"),token=document.querySelector("#inviteCode").value.trim(),name=document.querySelector("#joinName").value.trim(),email=document.querySelector("#joinEmail").value.trim(),password=document.querySelector("#joinPassword").value,pin=pinInput.value();
+    if(!/^\d{6}$/.test(pin)){note.innerHTML='<p class="warning-note">Enter a six-digit FIDUNIO PIN.</p>';pinInput.focus();return;}
+    btn.disabled=true;pinInput.setDisabled(true);btn.textContent="Creating account…";
+    try{
+      await validateFidunioInvitation(token);
+      const user=await redeemInvitationForEnrollment(token,email,password,name);
+      const bound=await bindAuthenticatedAccountE2EE(user.uid);
+      await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});
+      await startApp();
+    }catch(err){
+      note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
+      btn.disabled=false;pinInput.setDisabled(false);btn.textContent="Join FIDUNIO";
+    }
+  };
 }
 
 export async function runAuthGate(){

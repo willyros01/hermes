@@ -30,6 +30,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9f PIN focus correction:** live message and connection callbacks no longer replace an already-mounted local unlock screen. A PIN being entered retains all digits and focus through the sixth box instead of unexpectedly returning to box one.
 
+**0.9.9.9g login-join:** the Sign In branch contains only email and password and enters directly after successful Firebase authentication by restoring the device's saved encryption identity. The separate Join branch collects invitation code, display name, email, password, and one six-digit PIN, then establishes account E2EE and local unlock before entering. Sign-out preserves the UID-bound local encryption identity so the next successful password sign-in does not ask for PIN; PIN/biometrics remain for a still-signed-in session returning from local lock.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

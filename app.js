@@ -28,7 +28,7 @@ import {
 import {
   LOCK_TIMEOUTS,
   getLocalSecurityStatus,
-  setLocalPin, verifyLocalPin, changeLocalPin, removeLocalPin, clearLocalAccountE2EEIdentity,
+  setLocalPin, verifyLocalPin, changeLocalPin, removeLocalPin,
   enrollBiometric, verifyBiometric, disableBiometric,
   setLockTimeoutMs, consumeSuccessfulAuthBypass, noteLocalUnlock,
   installInactivityMonitor
@@ -936,7 +936,7 @@ function bindMainSignOut(){
   if(!btn)return;
   btn.onclick=async()=>{
     btn.disabled=true;btn.textContent="Signing Out…";
-    try{if(firebaseUser?.uid)await clearLocalAccountE2EEIdentity(firebaseUser.uid);await signOutFidunio();location.reload();}
+    try{await signOutFidunio();location.reload();}
     catch(err){btn.disabled=false;btn.textContent="Sign Out";alert(err?.message||String(err));}
   };
 }
@@ -2028,7 +2028,7 @@ function renderSettings(){
     catch(err){firebaseError=err?.message||String(err);renderSettings();}
   };
   const signOutBtn=document.querySelector("#firebaseSignOutBtn");
-  if(signOutBtn) signOutBtn.onclick=async()=>{if(firebaseUser?.uid)await clearLocalAccountE2EEIdentity(firebaseUser.uid);await signOutFidunio();firebaseError="";renderSettings();};
+  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutFidunio();firebaseError="";renderSettings();};
   const copyBtn=document.querySelector("#copyUidBtn");
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
