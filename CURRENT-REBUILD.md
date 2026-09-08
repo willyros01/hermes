@@ -32,6 +32,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9g login-join:** the Sign In branch contains only email and password and enters directly after successful Firebase authentication by restoring the device's saved encryption identity. The separate Join branch collects invitation code, display name, email, password, and one six-digit PIN, then establishes account E2EE and local unlock before entering. Sign-out preserves the UID-bound local encryption identity so the next successful password sign-in does not ask for PIN; PIN/biometrics remain for a still-signed-in session returning from local lock.
 
+**0.9.9.9h authentication navigation:** the approved prototype is implemented as two large side-by-side graphic tiles with distinct Sign In and Join icons. The selected tile has an accent surface and explicit tab semantics; the full-width form submission button remains visually and structurally separate below.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

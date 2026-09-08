@@ -35,6 +35,8 @@ CURRENT CANDIDATE 0.9.9.9a: direct text again uses the validated account E2EE v3
 
 LOGIN-JOIN is implemented in 0.9.9.9g. Sign In displays only email and password and, after successful Firebase authentication, restores the saved UID/key-bound device identity and enters without PIN. Join is a separate screen with invitation code, display name, email, password, and a six-digit PIN; it creates the account, account E2EE identity, saved device identity, and local PIN before entry. Explicit sign-out preserves the encrypted UID-bound saved identity. PIN/biometric is reserved for later local unlock while the Firebase session remains signed in. A reset/new device without its saved identity is an explicit recovery exception and must not put PIN boxes back on ordinary Sign In.
 
+0.9.9.9h implements the user-approved login-join selector prototype. Sign In and Join FIDUNIO are large side-by-side graphic tab tiles with line icons, and the active mode has an accent surface. They must remain visually distinct from the full-width form submission action below.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

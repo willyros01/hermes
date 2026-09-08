@@ -569,16 +569,21 @@ html.text-aplusplus .member-card > :last-child{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78em;
   overflow-wrap:anywhere;margin:8px 0 10px;
 }
-.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 22px}
+.auth-choice{
+  min-height:92px;border:2px solid var(--line);border-radius:18px;background:transparent;color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:800
+}
+.auth-choice.is-selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.auth-choice-icon{display:grid;place-items:center;width:30px;height:30px}
+.auth-choice-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .warning-note,.warning-banner{
   color:var(--text);background:var(--surface-2);border:1px solid var(--line);
   border-radius:12px;padding:10px 12px;line-height:1.45;
 }
 .warning-banner{margin:8px 12px 0;font-size:.9em}
 .settings code{overflow-wrap:anywhere}
-@media(max-width:430px), (min-resolution:2dppx){
-  .auth-actions{grid-template-columns:1fr}
-}
+@media(max-width:360px){.auth-actions{gap:8px}.auth-choice{min-height:84px}}
 
 
 /* 0.8.1.1 — polished two-dimensional icon treatment */

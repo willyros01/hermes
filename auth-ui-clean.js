@@ -153,7 +153,9 @@ async function enterAfterPasswordSignIn(user,bound){
 }
 
 function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){
-  authShell(`<div class="auth-actions" style="margin-bottom:14px"><button class="${mode==="signin"?"primary":"secondary"}" id="signInTab">Sign In</button><button class="${mode==="join"?"primary":"secondary"}" id="joinTab">Join FIDUNIO</button></div><div id="authBody"></div>${message?`<p class="warning-note">${esc(message)}</p>`:""}`);
+  const loginIcon='<span class="auth-choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg></span>';
+  const joinIcon='<span class="auth-choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M16 11h6"/></svg></span>';
+  authShell(`<div class="auth-actions" role="tablist" aria-label="Account access"><button class="auth-choice ${mode==="signin"?"is-selected":""}" id="signInTab" role="tab" aria-selected="${mode==="signin"}" aria-controls="authBody" type="button">${loginIcon}<span>Sign In</span></button><button class="auth-choice ${mode==="join"?"is-selected":""}" id="joinTab" role="tab" aria-selected="${mode==="join"}" aria-controls="authBody" type="button">${joinIcon}<span>Join FIDUNIO</span></button></div><div id="authBody" role="tabpanel" aria-live="polite"></div>${message?`<p class="warning-note">${esc(message)}</p>`:""}`);
   document.querySelector("#signInTab").onclick=()=>renderGate("signin");
   document.querySelector("#joinTab").onclick=()=>renderGate("join");
   if(mode==="join")renderJoin(inviteTokenFromUrl());else renderSignIn();

@@ -21,6 +21,7 @@ requireTrue(settings.includes("await setLocalPin(pin)"),"security setup must est
 requireTrue(quick.includes("one six-digit <strong>FIDUNIO PIN</strong>"),"Quick Start must describe one user PIN");
 requireTrue((pinInput.match(/pin-code-slot/g)||[]).length>=1&&pinInput.includes("length:6"),"one reusable PIN owner must render six digit slots");
 requireTrue(!auth.includes('id="loginPinHost"')&&!auth.includes('id="loginPinLabel"'),"Sign In must request only email and password");
+requireTrue(auth.includes('class="auth-choice')&&auth.includes('auth-choice-icon')&&auth.includes('role="tablist"'),"Sign In and Join must use the approved graphic navigation tiles");
 requireTrue(auth.includes('id="joinPinHost"')&&auth.includes("mountSixDigitPinInput"),"Join must create the PIN with the shared six-slot owner");
 requireTrue(auth.includes("enterAfterPasswordSignIn(user,bound)"),"successful password sign-in must enter without a PIN prompt");
 requireTrue(auth.includes("restoreLocalAccountE2EE(saved)"),"password sign-in must restore the saved device encryption identity");
