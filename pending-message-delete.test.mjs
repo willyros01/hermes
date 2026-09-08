@@ -18,12 +18,15 @@ assert.match(app,/state\.hiddenMessages\[cid\]=\[\.\.\.hidden\]/,"Delete for Me 
 assert.match(app,/rows=\(rows\|\|\[\]\)\.filter\(m=>!isMessageHidden\(conversationId,m\.id\)\)/,"direct cloud refresh must not restore a locally deleted message");
 assert.match(app,/rows=\(rows\|\|\[\]\)\.filter\(m=>!isMessageHidden\(groupId,m\.id\)\)/,"group cloud refresh must not restore a locally deleted message");
 assert.match(app,/deleteCloudDirectMessageForEveryone\(modal\.conversationId,modal\.messageId\)/,"sent direct-message deletion must use the sole Firebase callable owner");
+assert.match(app,/if\(conversation\?\.cloudGroup\)await deleteCloudGroupMessageForEveryone\(modal\.conversationId,modal\.messageId\)/,"sent group-message deletion must use the sender-authorized server callable");
+assert.match(app,/const canDeleteForEveryone=[^;]*message\?\.mine/,"Delete for Everyone must remain sender-only in the UI");
+assert.match(app,/conversation\?\.cloud\|\|conversation\?\.cloudGroup/,"accepted direct and group cloud messages must expose sender-owned deletion");
 assert.match(app,/const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true/,'accepted-message deletion must be available through its server authority');
 assert.match(css,/\.modal-delete\{[^}]*background:#a52b2b;[^}]*color:#fff/,"destructive action must have a high-contrast dedicated style");
 assert.doesNotMatch(app,/deleteDoc\s*\(/,"pending-message deletion must not introduce broad client Firestore delete authority");
 assert.match(app,/if\(messageSendInFlight\)return;[\s\S]*?messageSendInFlight=true;[\s\S]*?box\.value=""/,"send must reserve one attempt and clear the composer before asynchronous work");
 assert.match(app,/document\.querySelector\("#sendBtn"\)\?\.click\(\)/,"keyboard send must use the same guarded button path");
 assert.match(app,/if\(isGroupPayload\)[\s\S]*?m\.state="sent";await persistState\(\);[\s\S]*?if\(state\.route==="chat"&&String\(state\.selectedId\)===String\(payload\.conversationId\)\)render\(\)/,"group send completion must immediately replace stale Sending UI");
-assert.match(worker,/SHELL_REVISION="0\.9\.9\.9j-group-send"/,"the deployed shell must invalidate the prior cache");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.9k-group-delete-everyone"/,"the deployed shell must invalidate the prior cache");
 
 console.log("Pending encrypted-Outbox message deletion gate passed");

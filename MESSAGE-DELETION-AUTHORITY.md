@@ -12,6 +12,8 @@ Queued, Sending and Failed rows are owned by the encrypted local Outbox. `app.js
 
 Delete for Everyone is a physical server operation owned only by callable `deleteDirectMessageForEveryoneV1`. The callable requires Firebase Authentication, validates bounded IDs, reads the authoritative conversation/message, requires the caller to be both a conversation member and the original sender, removes deterministic attachment-object traces first, then revalidates the immutable sender before physically deleting the Firestore message.
 
+The same callable accepts an explicit group-message discriminator. For a group message it requires current group membership and authoritative original-sender ownership, then removes receipt documents, granted-history copies, related attachment objects, and the source message. Grant counts and first-message metadata are repaired transactionally. Recipients never receive server-wide deletion authority.
+
 Client Firestore delete remains denied. No tombstone, broad client delete authority or service-worker semantic owner is permitted.
 
 ## Delete for Me
@@ -20,7 +22,7 @@ Accepted sent or received direct/group messages may be removed only from the cur
 
 ## Current boundary
 
-The 0.9.9.9a+ client exposes pending outgoing deletion and sender-owned accepted **direct** message deletion through the existing long-press action. Delete for Me and accepted group-message deletion are not represented as working. The callable is deployed under dedicated identity `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com`; real-device acceptance remains required.
+The 0.9.9.9k client exposes pending outgoing cancellation, local Delete for Me, and sender-owned accepted direct/group Delete for Everyone through the existing long-press action. The callable is deployed under dedicated identity `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com`; the updated group path requires deployment and real-device acceptance.
 
 ## Acceptance
 

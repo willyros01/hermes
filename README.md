@@ -1,6 +1,6 @@
 # FIDUNIO / Hermes
 
-Current device candidate **0.9.9.9j** repairs group sending: one tap reserves one send, clears the composer immediately, renders the final state, and lets a stale Sending row be deleted locally. Group receipt rules are simplified to member-owned writes without the circular parent barrier.
+Current device candidate **0.9.9.9k** adds sender-only Delete for Everyone to accepted group messages. The server rechecks original authorship and current membership, then removes the source, receipts, attachments, and any granted-history copies. Recipients retain Delete for Me only.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -11,7 +11,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9j**
+- Current checkpoint version: **0.9.9.9k**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

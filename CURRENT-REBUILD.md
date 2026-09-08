@@ -38,6 +38,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9j group-send correction:** the composer clears and Send becomes single-flight before encrypted Outbox work begins, so repeated taps cannot duplicate a message. Group completion now renders Sent immediately. If a row is stale at Sending after its Outbox record has already completed, Delete Message falls back to local Delete for Me. Group receipt rules remove the circular parent/receipt dependency while retaining membership, ownership, existing-message, and monotonic-state checks. Live group receipt repair requires deployment of the reviewed `firestore.rules` with `g.txt`.
 
+**0.9.9.9k sender-owned group deletion:** accepted group messages expose Delete for Everyone only to their original sender. The existing authenticated delete callable now distinguishes direct and group authority, rechecks immutable `senderUid` plus current group membership on the server, and removes the group source, receipt subcollection, encrypted attachment prefix, and any history-grant copies while repairing grant metadata. Other members retain local-only Delete for Me.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

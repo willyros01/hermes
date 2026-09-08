@@ -23,7 +23,8 @@ import {
   readCloudMessageIdsFromServer,
   readCloudGroupMessageIdsFromServer,
   uploadEncryptedAttachment,
-  deleteCloudDirectMessageForEveryone
+  deleteCloudDirectMessageForEveryone,
+  deleteCloudGroupMessageForEveryone
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -1708,7 +1709,8 @@ function renderModal(){
   if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
     const isPending=message&&["queued","sending","failed"].includes(message.state);
-    const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!state.conversations.find(x=>String(x.id)===String(modal.conversationId))?.cloud&&!state.conversations.find(x=>String(x.id)===String(modal.conversationId))?.cloudGroup;
+    const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
+    const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
@@ -1731,7 +1733,7 @@ function renderModal(){
     };
     const pendingBtn=host.querySelector("#modalDeletePending");if(pendingBtn)pendingBtn.onclick=()=>perform(pendingBtn,()=>cancelPendingOutboxMessage(modal.messageId,modal.conversationId));
     const meBtn=host.querySelector("#modalDeleteForMe");if(meBtn)meBtn.onclick=()=>perform(meBtn,()=>deleteMessageForMe(modal.conversationId,modal.messageId));
-    const everyoneBtn=host.querySelector("#modalDeleteForEveryone");if(everyoneBtn)everyoneBtn.onclick=()=>perform(everyoneBtn,async()=>{await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);});
+    const everyoneBtn=host.querySelector("#modalDeleteForEveryone");if(everyoneBtn)everyoneBtn.onclick=()=>perform(everyoneBtn,async()=>{if(conversation?.cloudGroup)await deleteCloudGroupMessageForEveryone(modal.conversationId,modal.messageId);else await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);});
   } else if(modal.type==="addMember"){
     host.innerHTML=`
       <div class="modal">

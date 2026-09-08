@@ -16,6 +16,7 @@
 - [x] Prove iPad → iPhone Read receipt on live devices after rules alignment.
 - [x] Restore account E2EE v3 at the serialized direct Outbox boundary in candidate 0.9.9.9a.
 - [x] Restore the existing pending-delete and sender Delete for Everyone client actions.
+- [x] Extend sender-only Delete for Everyone to accepted group messages, including receipt and history-grant trace cleanup.
 - [x] Add one reusable six-slot FIDUNIO PIN owner to login and local unlock.
 - [ ] Deploy and verify `deleteDirectMessageForEveryoneV1` with its dedicated service account.
 - [ ] Prove 0.9.9.9a encrypted send/read and both delete paths on iPad/iPhone.

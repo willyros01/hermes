@@ -302,6 +302,8 @@ Queued/Sending/Failed deletion is cancellation inside the same serialized `app.j
 
 Accepted direct-message Delete for Everyone is owned solely by `deleteDirectMessageForEveryoneV1`; it authenticates the caller, proves original-sender and conversation-member authority, deletes deterministic attachment traces first and physically deletes the source. Client rules remain deny-delete. See MESSAGE-DELETION-AUTHORITY.md.
 
+0.9.9.9k extends that same server owner to group messages. Only the original sender is eligible; current membership is rechecked server-side, and receipts plus history-grant copies are removed with the source. Recipients retain local Delete for Me only.
+
 User-visible access is email/password plus one six-digit FIDUNIO PIN. Local and account-encryption derivations remain internally separate and domain-separated; all device/message/group/attachment key mechanics are background-only. See USER-ACCESS-KEY-UX.md.
 
 The Settings Security host may coordinate first setup by calling the existing E2EE owner and then the existing local-security owner with the same transient PIN. It may not store the PIN, share derived material, overwrite a mismatched verifier, or create an alternate key lifecycle. Legacy local-PIN verification is migration compatibility only.
