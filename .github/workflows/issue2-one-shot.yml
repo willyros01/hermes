@@ -1,5 +1,4 @@
-# rerun after direct-message shell assertion repair
-name: Issue 2 one-shot optimistic send patch
+name: Issue 2 evidence publisher
 
 on:
   push:
@@ -10,79 +9,53 @@ permissions:
   contents: write
 
 jobs:
-  patch:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Finalize 0.9.9.9y candidate
+      - name: Finalize non-workflow candidate files
         run: |
           python - <<'PY'
           from pathlib import Path
           import json
 
-          app=Path('app.js').read_text()
-          block=app[app.index('async function sendCurrent(){'):app.index('function serializeReconnectRecovery')]
-          assert 'const m=stagedMessage=stampOutgoingDisappearSelection({' in block
-          assert block.index('c.time=m.time;\n  render();') < block.index('await queueOutboxMessage')
-          assert 'stagedMessage.state="failed";' in block
+          pkg=Path('package.json'); data=json.loads(pkg.read_text()); data['scripts']['test:lte-optimistic-message']='node lte-optimistic-message.test.mjs'; pkg.write_text(json.dumps(data,separators=(',',':')))
 
-          Path('lte-optimistic-message.test.mjs').write_text('''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\n\nconst app=readFileSync(new URL("./app.js",import.meta.url),"utf8");\nconst start=app.indexOf("async function sendCurrent(){");\nconst end=app.indexOf("function serializeReconnectRecovery",start);\nassert.ok(start>=0&&end>start,"sendCurrent boundary must exist");\nconst send=app.slice(start,end);\nconst stage=send.indexOf("state.messages[conversationId].push(m);");\nconst optimistic=send.indexOf("c.time=m.time;\\n  render();");\nconst directQueue=send.indexOf("await queueOutboxMessage(conversationId,m);");\nconst groupQueue=send.indexOf("await queueGroupTextForApp({");\nassert.ok(stage>=0&&optimistic>stage,"outgoing row must be staged before optimistic render");\nassert.ok(directQueue>optimistic,"direct Outbox persistence must begin only after the local bubble renders");\nassert.ok(groupQueue>optimistic,"group Outbox persistence must begin only after the local bubble renders");\nassert.match(send,/let stagedMessage=null;[\\s\\S]*const m=stagedMessage=stampOutgoingDisappearSelection/);\nassert.match(send,/catch\\(err\\)\\{[\\s\\S]*if\\(stagedMessage\\)\\{[\\s\\S]*stagedMessage\\.state="failed";[\\s\\S]*persistSoon\\(\\);[\\s\\S]*render\\(\\);/);\nassert.doesNotMatch(send,/if\\(stagedMessage\\)[\\s\\S]{0,160}currentBox\\.value=text/,"an already-visible failed attempt must not silently repopulate the composer");\nconsole.log("LTE optimistic outgoing-message gate passed");\n''')
+          for name in ['outbox-reconciliation-boundary.test.mjs','direct-message-basic-path.test.mjs']:
+              p=Path(name); s=p.read_text(); s=s.replace('0\\.9\\.9\\.9x-ios-camera-session','0\\.9\\.9\\.9y-lte-optimistic-message'); p.write_text(s)
 
-          pkg=Path('package.json')
-          data=json.loads(pkg.read_text())
-          data['scripts']['test:lte-optimistic-message']='node lte-optimistic-message.test.mjs'
-          pkg.write_text(json.dumps(data,separators=(',',':')))
-
-          wf=Path('.github/workflows/rebuild-baseline-security.yml')
-          s=wf.read_text()
-          anchor='      - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}\n'
-          addition=anchor+'      - {name: LTE optimistic outgoing-message visibility, run: npm run test:lte-optimistic-message}\n'
-          assert anchor in s
-          if 'test:lte-optimistic-message' not in s:s=s.replace(anchor,addition,1)
-          wf.write_text(s)
-
-          v=Path('version.js'); s=v.read_text(); assert '0.9.9.9x' in s; v.write_text(s.replace('0.9.9.9x','0.9.9.9y',1))
-          sw=Path('service-worker.js'); s=sw.read_text(); assert '0.9.9.9x-ios-camera-session' in s; sw.write_text(s.replace('0.9.9.9x-ios-camera-session','0.9.9.9y-lte-optimistic-message',1))
-          ot=Path('outbox-reconciliation-boundary.test.mjs'); s=ot.read_text(); assert '0\\.9\\.9\\.9x-ios-camera-session' in s; ot.write_text(s.replace('0\\.9\\.9\\.9x-ios-camera-session','0\\.9\\.9\\.9y-lte-optimistic-message',1))
-          dm=Path('direct-message-basic-path.test.mjs'); s=dm.read_text(); assert '0\\.9\\.9\\.9x-ios-camera-session' in s; dm.write_text(s.replace('0\\.9\\.9\\.9x-ios-camera-session','0\\.9\\.9\\.9y-lte-optimistic-message',1))
-
-          def prepend_after_title(path, title, section):
+          def prepend(path,title,section):
               p=Path(path); s=p.read_text()
-              if section.splitlines()[0] in s:return
-              assert s.startswith(title)
-              p.write_text(title+'\n\n'+section+'\n\n'+s[len(title):].lstrip())
+              if section.splitlines()[0] not in s:
+                  assert s.startswith(title)
+                  p.write_text(title+'\n\n'+section+'\n\n'+s[len(title):].lstrip())
 
           issue='''## 0.9.9.9y LTE optimistic outgoing-message visibility\n\n**Status: DEVICE CANDIDATE — Issue 2 only.**\n\nObserved device defect: immediately after Wi-Fi → LTE transition, tapping Send could clear the composer while the outgoing text remained absent from the conversation until much later. Source review isolated the visibility delay to `sendCurrent()`: it staged the row in memory, then awaited encrypted IndexedDB Outbox creation and local-state persistence before the first render.\n\n0.9.9.9y renders the staged row immediately, before any awaited Outbox/persistence work. The existing serialized encrypted Outbox remains the sole durable send authority. If durable queueing fails after the row becomes visible, that same row becomes `failed`; the composer is not silently repopulated with the same text. No Firebase, E2EE, receipt, attachment, group-authority, or layout ownership changes are included. Device acceptance must reproduce Wi-Fi → LTE and confirm one tap produces one immediate bubble which later advances normally.'''
-          prepend_after_title('CURRENT-REBUILD.md','# FIDUNIO Current Rebuild — Recovery Entry Point',issue)
-          prepend_after_title('BUG-LIST.md','# FIDUNIO / Hermes Bug List',issue)
+          prepend('CURRENT-REBUILD.md','# FIDUNIO Current Rebuild — Recovery Entry Point',issue)
+          prepend('BUG-LIST.md','# FIDUNIO / Hermes Bug List',issue)
 
           dev='''## Issue 2 — LTE outgoing-message visibility\n\n**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.9y — 2026-09-08.**\n\nRequired acceptance: while a direct conversation is open, switch Wi-Fi off so the device uses LTE, send one unique text, and confirm the outgoing bubble appears immediately without leaving/re-entering the conversation. The row may briefly show Sending/Queued but must remain visible, must not duplicate, and must later advance through the normal cloud state. Repeat once from iPhone and once from iPad. Issue 3 remains untouched.'''
-          p=Path('DEVICE-ACCEPTANCE-BUGS.md'); s=p.read_text()
-          if '## Issue 2 — LTE outgoing-message visibility' not in s:
-              anchor='# FIDUNIO Device Acceptance — Current Evidence\n'
-              assert s.startswith(anchor)
-              p.write_text(anchor+'\n'+dev+'\n\n'+s[len(anchor):].lstrip())
+          prepend('DEVICE-ACCEPTANCE-BUGS.md','# FIDUNIO Device Acceptance — Current Evidence',dev)
 
           readme='''## 0.9.9.9y — LTE optimistic outgoing-message candidate\n\nIssue 2 is isolated to sender visibility during Wi-Fi → LTE transition. `sendCurrent()` now renders the newly staged outgoing row before awaiting encrypted local Outbox creation or state persistence. Durable send authority, Firebase synchronization, E2EE, receipts, attachments, and responsive layout are unchanged. A permanent regression gate enforces render-before-Outbox ordering and failed-attempt visibility. Real iPhone/iPad LTE acceptance remains required before this issue is closed.'''
-          prepend_after_title('README.md','# FIDUNIO / Hermes',readme)
+          prepend('README.md','# FIDUNIO / Hermes',readme)
 
-          check='''### Issue 2 LTE outgoing-message visibility — 0.9.9.9y\n\n- [x] Identify the delayed-bubble boundary in `sendCurrent()` before changing transport ownership.\n- [x] Render one staged outgoing row before the first awaited encrypted Outbox/IndexedDB operation.\n- [x] Keep the existing serialized encrypted Outbox as sole durable send authority.\n- [x] Fail an already-visible attempt in place instead of silently restoring duplicate composer text.\n- [x] Add permanent LTE optimistic-message ordering coverage to the baseline gate.\n- [ ] Prove Wi-Fi → LTE immediate outgoing visibility and no duplicate send on iPhone.\n- [ ] Repeat the same acceptance on iPad and confirm normal final receipt state.'''
-          prepend_after_title('FIDUNIO-BUILD-CHECKLIST.md','# FIDUNIO Complete Rebuild — Authoritative Build Checklist',check)
+          check='''### Issue 2 LTE outgoing-message visibility — 0.9.9.9y\n\n- [x] Identify the delayed-bubble boundary in `sendCurrent()` before changing transport ownership.\n- [x] Render one staged outgoing row before the first awaited encrypted Outbox/IndexedDB operation.\n- [x] Keep the existing serialized encrypted Outbox as sole durable send authority.\n- [x] Fail an already-visible attempt in place instead of silently restoring duplicate composer text.\n- [x] Add permanent LTE optimistic-message ordering coverage.\n- [ ] Prove Wi-Fi → LTE immediate outgoing visibility and no duplicate send on iPhone.\n- [ ] Repeat the same acceptance on iPad and confirm normal final receipt state.'''
+          prepend('FIDUNIO-BUILD-CHECKLIST.md','# FIDUNIO Complete Rebuild — Authoritative Build Checklist',check)
 
-          mem=Path('hermes-memory.txt'); s=mem.read_text()
-          note='''\n\n2026-09-08 — Issue 2 candidate 0.9.9.9y: device report showed a text sent just after Wi-Fi→LTE cleared the composer but did not appear in the conversation until much later, creating duplicate-send risk. Source review proved `sendCurrent()` staged the row but awaited encrypted IndexedDB Outbox creation and state persistence before rendering. Candidate renders the staged row first, preserves the serialized Outbox as durable authority, and marks that same row Failed if durable queueing fails. Permanent regression gate added. Issue 3 remains untouched. Device LTE acceptance pending.\n'''
-          if 'Issue 2 candidate 0.9.9.9y' not in s:mem.write_text(s.rstrip()+note)
+          mem=Path('hermes-memory.txt'); s=mem.read_text(); note='''\n\n2026-09-08 — Issue 2 candidate 0.9.9.9y: device report showed a text sent just after Wi-Fi→LTE cleared the composer but did not appear in the conversation until much later, creating duplicate-send risk. Source review proved `sendCurrent()` staged the row but awaited encrypted IndexedDB Outbox creation and state persistence before rendering. Candidate renders the staged row first, preserves the serialized Outbox as durable authority, and marks that same row Failed if durable queueing fails. Permanent regression coverage added. Issue 3 remains untouched. Device LTE acceptance pending.\n'''
+          if 'Issue 2 candidate 0.9.9.9y' not in s: mem.write_text(s.rstrip()+note)
           PY
-      - name: Run focused Issue 2 gates
+      - name: Run focused gates
         run: |
           node lte-optimistic-message.test.mjs
           node outbox-reconciliation-boundary.test.mjs
           node direct-message-basic-path.test.mjs
-      - name: Commit finalized candidate
+      - name: Commit evidence
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app.js lte-optimistic-message.test.mjs package.json .github/workflows/rebuild-baseline-security.yml version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs CURRENT-REBUILD.md BUG-LIST.md DEVICE-ACCEPTANCE-BUGS.md README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
+          git add package.json outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs CURRENT-REBUILD.md BUG-LIST.md DEVICE-ACCEPTANCE-BUGS.md README.md FIDUNIO-BUILD-CHECKLIST.md hermes-memory.txt
           git diff --cached --check
           git commit -m 'Finalize 0.9.9.9y LTE visibility candidate'
           git push
