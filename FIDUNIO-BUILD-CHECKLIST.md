@@ -25,6 +25,7 @@
 - [ ] Prove Delete for Me survives close/reopen on one device while the message remains visible on the other device.
 - [x] Restore immediate lock on app background/pagehide and replace the no-op Groups navigation in 0.9.9.9d.
 - [x] Give direct Read one receipt owner, support legacy iOS Auto appearance changes, and align delete choices in 0.9.9.9e.
+- [x] Preserve the mounted local PIN control and focus while locked cloud callbacks arrive in 0.9.9.9f.
 - [ ] Verify app-switch PIN/biometric lock and Groups list/New Group navigation on iPad.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.

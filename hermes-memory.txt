@@ -31,6 +31,8 @@ CURRENT CANDIDATE 0.9.9.9a: direct text again uses the validated account E2EE v3
 
 0.9.9.9e makes the displayed snapshot callback the sole direct read-receipt owner. It removes the competing per-row write plus unconditional bulk write that could yield a false permission warning after another write already advanced Sent to Read. Auto appearance listens through modern addEventListener and legacy iOS addListener. Accepted-message delete choices are peers on one row; Cancel is separate below.
 
+0.9.9.9f preserves an already-mounted local PIN unlock control across incidental render calls from live cloud callbacks. Partial PIN digits and focus must remain intact until the sixth digit or an explicit failed unlock remount; callbacks while locally locked must never reset entry to box one.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

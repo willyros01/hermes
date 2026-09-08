@@ -28,6 +28,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9e receipt, appearance, and delete-action correction:** displayed unread direct messages now have one bulk receipt owner, eliminating the false permission warning caused by competing receipt writes. Auto appearance supports both current and older iOS media-query change listeners. Delete for Me and Delete for Everyone share one row, with Cancel separated beneath them.
 
+**0.9.9.9f PIN focus correction:** live message and connection callbacks no longer replace an already-mounted local unlock screen. A PIN being entered retains all digits and focus through the sixth box instead of unexpectedly returning to box one.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

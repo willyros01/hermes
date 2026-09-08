@@ -1017,11 +1017,17 @@ function drawTabletConversationList(term=""){
 }
 
 function render(){
+  // Live cloud callbacks may arrive while the local lock screen is open.
+  // Keep the mounted PIN slots and their focus/value intact during those renders.
+  const unlockPinAlreadyMounted=!state.unlocked&&!!document.querySelector("#localUnlockPin .pin-code");
   persistSoon();
   document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
   applyAppearance();
   document.body.dataset.route=state.unlocked ? (state.route||"") : "unlock";
-  if(!state.unlocked) return renderUnlock();
+  if(!state.unlocked){
+    if(unlockPinAlreadyMounted)return;
+    return renderUnlock();
+  }
   const routes={
     messages:renderMessages, groups:renderGroups, chat:renderChat, settings:renderSettings,
     newConversation:renderNewConversation, newGroup:renderNewGroup,
