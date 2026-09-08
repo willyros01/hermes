@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
+assert.match(app,/function syncPhoneChatComposerInset\(\{scrollBottom=false\}=\{\}\)/);
+assert.match(app,/composer\.getBoundingClientRect\(\)\.height/);
+assert.match(app,/chat\.style\.paddingBottom=`\$\{inset\}px`/);
+assert.match(app,/if\(!isWideLayout\(\)\)syncPhoneChatComposerInset\(\{scrollBottom:true\}\)/);
+assert.match(app,/label==="Photo"\|\|label==="Video"/);
+assert.match(app,/modal\.type==="videoSource"/);
+assert.match(app,/id="videoLibraryBtn">Photo Library<\/button>/);
+assert.match(app,/id="videoCameraBtn">Camera<\/button>/);
+assert.match(app,/chooseAndSendAttachment\("video","video\/\*",capture\)/);
+assert.match(app,/if\(isWideLayout\(\)\)\{const a=document\.querySelector\("#chatArea"\);a\.scrollTop=a\.scrollHeight;window\.scrollTo\(0,document\.body\.scrollHeight\);return;\}syncPhoneChatComposerInset/);
+console.log("Issue 3 iPhone composer and video-source gate passed");

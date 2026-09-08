@@ -1,5 +1,17 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### Issue 3 iPhone composer + video source — 0.9.9.9z
+
+- [x] Replace the phone-only fixed composer clearance assumption with measured composer height.
+- [x] Recompute clearance when the phone textarea grows.
+- [x] Preserve the existing wide/iPad scroll path and two-pane layout.
+- [x] Add Video source chooser: Photo Library / Camera / Cancel.
+- [x] Reuse the existing accepted video picker/send owner; do not fork attachment transport.
+- [x] Add focused regression coverage.
+- [ ] Device-confirm iPhone last-line visibility and sticky bottom with tools closed/open and multi-line draft.
+- [ ] Device-confirm Video Photo Library and Camera paths.
+- [ ] Confirm iPad two-pane layout remains unchanged.
+
 ### Issue 2 LTE outgoing-message visibility — 0.9.9.9y
 
 - [x] Identify the delayed-bubble boundary in `sendCurrent()` before changing transport ownership.

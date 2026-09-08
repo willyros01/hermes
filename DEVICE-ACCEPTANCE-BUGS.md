@@ -1,5 +1,11 @@
 # FIDUNIO Device Acceptance — Current Evidence
 
+## Issue 3 — iPhone composer clearance + video chooser
+
+**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.9z — 2026-09-08.**
+
+Acceptance on iPhone: open a conversation with enough messages to reach the bottom; verify the final message lines remain fully above the fixed composer, including with More/tools open and with a multi-line draft. Scroll to the bottom and verify it stays at the true end rather than leaving the last lines behind the composer. Then choose Video and verify both **Photo Library** and **Camera** paths open correctly; send one video from each source if practical. iPad two-pane layout must remain unchanged.
+
 ## Issue 2 — LTE outgoing-message visibility
 
 **Status: DEVICE ACCEPTED on FIDUNIO 0.9.9.9y — 2026-09-08.**

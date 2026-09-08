@@ -1339,9 +1339,9 @@ function renderChat(){
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"){state.modal={type:"photoSource"};return render();}const map={File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"||label==="Video"){state.modal={type:label==="Photo"?"photoSource":"videoSource"};return render();}const map={File:["file","*/*",false],Audio:["audio","audio/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
   const box=document.querySelector("#messageBox");
-  box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
+  box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px";if(!isWideLayout())syncPhoneChatComposerInset({scrollBottom:true});});
   document.querySelector("#sendBtn").onclick=async event=>{
     const button=event.currentTarget;button.disabled=true;
     try{await sendCurrent();}catch(err){alert(err?.message||String(err));}finally{if(button.isConnected)button.disabled=false;}
@@ -1355,7 +1355,15 @@ function renderChat(){
     if(message&&descriptor)loadAttachment(btn.dataset.conversationId,message,descriptor,{retry:true});
     render();
   });
-  requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
+  requestAnimationFrame(()=>{if(isWideLayout()){const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight);return;}syncPhoneChatComposerInset({scrollBottom:true});});
+}
+
+function syncPhoneChatComposerInset({scrollBottom=false}={}){
+  const chat=document.querySelector("#chatArea"),composer=document.querySelector(".composer-wrap");
+  if(!chat||!composer||isWideLayout())return;
+  const inset=Math.ceil(composer.getBoundingClientRect().height)+14;
+  chat.style.paddingBottom=`${inset}px`;
+  if(scrollBottom)window.scrollTo(0,Math.max(document.documentElement.scrollHeight,document.body.scrollHeight));
 }
 
 function renderBubble(m,c){
@@ -1799,6 +1807,22 @@ function renderModal(){
     const choose=capture=>{state.modal=null;host.remove();chooseAndSendAttachment("photo","image/*",capture);};
     host.querySelector("#photoLibraryBtn").onclick=()=>choose(false);
     host.querySelector("#photoCameraBtn").onclick=()=>choose(true);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+  } else if(modal.type==="videoSource"){
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="videoSourceTitle">
+        <h2 id="videoSourceTitle">Send a Video</h2>
+        <p>Choose where your video comes from.</p>
+        <div class="modal-actions">
+          <button class="modal-confirm" id="videoLibraryBtn">Photo Library</button>
+          <button class="modal-confirm" id="videoCameraBtn">Camera</button>
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    const choose=capture=>{state.modal=null;host.remove();chooseAndSendAttachment("video","video/*",capture);};
+    host.querySelector("#videoLibraryBtn").onclick=()=>choose(false);
+    host.querySelector("#videoCameraBtn").onclick=()=>choose(true);
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
   } else if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));

@@ -1,5 +1,13 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## 0.9.9.9z iPhone composer clearance and video source chooser
+
+**Status: DEVICE CANDIDATE — Issue 3.**
+
+The phone chat no longer assumes a fixed 170px composer footprint. After each phone chat render, and whenever the textarea grows, FIDUNIO measures the actual fixed composer height and applies that exact bottom inset to the message area before scrolling to the bottom. Wide/iPad layout retains its prior scroll path and two-pane behavior.
+
+Video now opens a source chooser with **Photo Library**, **Camera**, and **Cancel**. Both choices feed the existing accepted `chooseAndSendAttachment("video", "video/*", capture)` owner, so attachment validation, picker-session locking, encryption, upload, publication, and the 50 MiB video boundary are unchanged.
+
 ## 0.9.9.9y LTE optimistic outgoing-message visibility
 
 **Status: DEVICE CANDIDATE — Issue 2 only.**
