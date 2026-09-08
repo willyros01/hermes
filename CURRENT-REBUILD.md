@@ -22,6 +22,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9b unlock correction:** 0.9.9.9a incorrectly required password plus PIN on a remembered session and `app.js` then rebound the READY identity back to LOCKED. The corrected flow retains the non-extractable account key in UID/keyId/revision-bound local storage after setup, restores it only after PIN or biometric authorization, clears it on sign-out, and never rebinds a READY runtime. Password plus PIN is limited to sign-in, first setup, or recovery. A stale password wrapper gets one bounded recovery attempt that preserves the same identity.
 
+**0.9.9.9c Delete for Me:** accepted sent or received direct/group messages now expose a local-only deletion action. The encrypted local state retains hidden message IDs per conversation so later Firestore snapshots cannot restore them on that device. Delete for Me never calls Firebase delete and does not affect the other participant. Pending cancellation and sender-only Delete for Everyone remain separate paths.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

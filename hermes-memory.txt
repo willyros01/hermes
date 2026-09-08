@@ -25,6 +25,8 @@ CURRENT CANDIDATE 0.9.9.9a: direct text again uses the validated account E2EE v3
 
 0.9.9.9b corrects the 0.9.9.9a unlock regression. Ordinary remembered-session access is PIN or biometric only. Initial sign-in/setup/recovery may use password plus the one PIN. The READY non-extractable account E2EE CryptoKey is retained in UID/keyId/revision-bound local storage, restored only after local authorization, cleared on sign-out, and never overwritten by a second startup bind. A stale password wrapper may use one existing recovery-authority attempt to preserve and rewrap the same identity.
 
+0.9.9.9c adds Delete for Me for accepted sent and received direct/group messages. It physically removes local message/history traces and retains a per-conversation hidden-ID decision inside encrypted local app state so authoritative cloud snapshots do not re-add the row on that device. It never calls cloud delete. Pending cancellation and sender-only server Delete for Everyone remain separate actions.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

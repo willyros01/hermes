@@ -14,6 +14,10 @@ Delete for Everyone is a physical server operation owned only by callable `delet
 
 Client Firestore delete remains denied. No tombstone, broad client delete authority or service-worker semantic owner is permitted.
 
+## Delete for Me
+
+Accepted sent or received direct/group messages may be removed only from the current installation. The physical local purge owner removes message/history traces, while encrypted local app state retains the hidden message ID for that conversation so later cloud snapshots do not restore it. This path never calls Firestore deletion and never changes another device.
+
 ## Current boundary
 
 The 0.9.9.9a+ client exposes pending outgoing deletion and sender-owned accepted **direct** message deletion through the existing long-press action. Delete for Me and accepted group-message deletion are not represented as working. The callable is deployed under dedicated identity `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com`; real-device acceptance remains required.

@@ -12,10 +12,14 @@ assert.match(app,/outboxCancellationRequests\.has\(String\(payload\.messageId\)\
 assert.match(app,/setTimeout\(open,650\)/,"touch press-and-hold must expose message actions");
 assert.match(app,/Delete Message/,"the deletion action must be explicit and readable");
 assert.match(app,/Delete for Everyone/,"accepted sender-owned direct messages must expose controlled server deletion");
+assert.match(app,/Delete for Me/,"accepted sent and received messages must expose local-only deletion");
+assert.match(app,/state\.hiddenMessages\[cid\]=\[\.\.\.hidden\]/,"Delete for Me must durably retain the local hidden-message decision");
+assert.match(app,/rows=\(rows\|\|\[\]\)\.filter\(m=>!isMessageHidden\(conversationId,m\.id\)\)/,"direct cloud refresh must not restore a locally deleted message");
+assert.match(app,/rows=\(rows\|\|\[\]\)\.filter\(m=>!isMessageHidden\(groupId,m\.id\)\)/,"group cloud refresh must not restore a locally deleted message");
 assert.match(app,/deleteCloudDirectMessageForEveryone\(modal\.conversationId,modal\.messageId\)/,"sent direct-message deletion must use the sole Firebase callable owner");
 assert.match(app,/const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true/,'accepted-message deletion must be available through its server authority');
 assert.match(css,/\.modal-delete\{[^}]*background:#a52b2b;[^}]*color:#fff/,"destructive action must have a high-contrast dedicated style");
 assert.doesNotMatch(app,/deleteDoc\s*\(/,"pending-message deletion must not introduce broad client Firestore delete authority");
-assert.match(worker,/SHELL_REVISION="0\.9\.9\.9b-local-e2ee-unlock"/,"the deployed shell must invalidate the prior cache");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.9c-delete-for-me"/,"the deployed shell must invalidate the prior cache");
 
 console.log("Pending encrypted-Outbox message deletion gate passed");

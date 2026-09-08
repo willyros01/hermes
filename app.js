@@ -68,6 +68,7 @@ let state = {
   quickPhrases:["Yes","No","OK","On my way","Running late","Call me"],
   conversations:[],
   messages:{},
+  hiddenMessages:{},
   settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto",disappearingTextSeconds:null},
   peerTrust:{}
 };
@@ -187,6 +188,7 @@ function serializableState(){
   return {
     conversations:state.conversations,
     messages:state.messages,
+    hiddenMessages:state.hiddenMessages,
     settings:state.settings,
     peerTrust:state.peerTrust,
     quickPhrases:state.quickPhrases,
@@ -223,6 +225,7 @@ async function loadPersistedState(){
     const saved=await decryptLocal(encrypted);
     if(saved.conversations) state.conversations=saved.conversations;
     if(saved.messages) state.messages=saved.messages;
+    if(saved.hiddenMessages&&typeof saved.hiddenMessages==="object")state.hiddenMessages=saved.hiddenMessages;
     if(saved.settings) state.settings={...state.settings,...saved.settings};
     if(saved.peerTrust && typeof saved.peerTrust==="object") state.peerTrust=saved.peerTrust;
     if(saved.quickPhrases) state.quickPhrases=saved.quickPhrases;
@@ -380,6 +383,16 @@ async function purgeLocalDisappearingMessageTraces(uid,messageIds){
   });
 }
 
+function isMessageHidden(conversationId,messageId){return(state.hiddenMessages[String(conversationId)]||[]).includes(String(messageId));}
+async function deleteMessageForMe(conversationId,messageId){
+  if(!firebaseUser)throw new Error("A signed-in account is required to delete this message.");
+  const cid=String(conversationId),id=String(messageId),hidden=new Set(state.hiddenMessages[cid]||[]);hidden.add(id);state.hiddenMessages[cid]=[...hidden];
+  await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[id]);
+  const c=state.conversations.find(x=>String(x.id)===cid),last=state.messages[cid]?.at(-1);
+  if(c){c.preview=last?.text||"";c.time=last?.time||"";}
+  await persistState();
+}
+
 async function cacheCloudHistory(conversationId,messages){
   try{
     const db=await openDb();
@@ -522,7 +535,8 @@ function beginCloudGroupMessageSubscription(groupId){
   openGroupForApp(groupId,{
     isOpen:()=>state.route==="chat"&&String(state.selectedId)===String(groupId),
     onRows:async (rows,meta={})=>{
-      const existing=state.messages[groupId]||[];
+      rows=(rows||[]).filter(m=>!isMessageHidden(groupId,m.id));
+      const existing=(state.messages[groupId]||[]).filter(m=>!isMessageHidden(groupId,m.id));
       const outboxIds=(await getOutboxRecords()).map(x=>x.id);
       const projection=planAuthoritativeMessageProjection({existingRows:existing,remoteRows:rows,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
@@ -760,7 +774,8 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
     conversationId,
     firebaseUser.uid,
     async (rows,meta={})=>{
-      const existing=state.messages[conversationId] || [];
+      rows=(rows||[]).filter(m=>!isMessageHidden(conversationId,m.id));
+      const existing=(state.messages[conversationId]||[]).filter(m=>!isMessageHidden(conversationId,m.id));
       // Plain direct messages must reach display/receipt processing without
       // waiting for obsolete compatibility-key lookup. Load that key only if
       // this snapshot actually contains a legacy encrypted row.
@@ -1286,7 +1301,7 @@ function renderBubble(m,c){
   const label=m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
     m.state==="delivered"?"Delivered":m.state==="failed"?"Failed":"Read";
   const cls=m.state==="queued"?"state-queued":m.state==="failed"?"state-failed":"";
-  const hasMessageAction=m.mine&&(["queued","sending","failed"].includes(m.state)||(MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&!!c.cloud&&!c.cloudGroup&&["sent","delivered","read"].includes(m.state)));
+  const hasMessageAction=!m.system;
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
     ${c.type==="group"&&!m.mine&&m.sender?`<div class="sender-label">${esc(m.sender)}</div>`:""}
     <div class="bubble">
@@ -1667,32 +1682,30 @@ function renderModal(){
   if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
     const isPending=message&&["queued","sending","failed"].includes(message.state);
-    const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!state.conversations.find(x=>String(x.id)===String(modal.conversationId))?.cloud;
+    const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!state.conversations.find(x=>String(x.id)===String(modal.conversationId))?.cloud&&!state.conversations.find(x=>String(x.id)===String(modal.conversationId))?.cloudGroup;
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
-        <p>${isPending?"This message has not completed sending. Delete it from this device and permanently stop future retries?":"Delete this message for everyone? It will be permanently removed from the conversation."}</p>
+        <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":"Delete only from this device, or remove it for everyone?"}</p>
         <div class="modal-actions">
           <button class="modal-cancel" id="modalCancel">Cancel</button>
-          <button class="modal-delete" id="modalDelete">${isPending?"Delete Message":"Delete for Everyone"}</button>
+          ${isPending?'<button class="modal-delete" id="modalDeletePending">Delete Message</button>':'<button class="modal-delete" id="modalDeleteForMe">Delete for Me</button>'}
+          ${canDeleteForEveryone?'<button class="modal-delete" id="modalDeleteForEveryone">Delete for Everyone</button>':""}
         </div>
       </div>`;
     document.body.appendChild(host);
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
-    const remove=host.querySelector("#modalDelete");
-    remove.onclick=async()=>{
-      remove.disabled=true;
+    const perform=async(button,work)=>{
+      button.disabled=true;
       try{
-        if(isPending)await cancelPendingOutboxMessage(modal.messageId,modal.conversationId);
-        else{
-          await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);
-          await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);
-        }
+        await work();
         state.modal=null;host.remove();render();
       }
-      catch(err){remove.disabled=false;alert(err?.message||String(err));}
+      catch(err){button.disabled=false;alert(err?.message||String(err));}
     };
-    if(!isPending&&!canDeleteForEveryone){state.modal=null;host.remove();return render();}
+    const pendingBtn=host.querySelector("#modalDeletePending");if(pendingBtn)pendingBtn.onclick=()=>perform(pendingBtn,()=>cancelPendingOutboxMessage(modal.messageId,modal.conversationId));
+    const meBtn=host.querySelector("#modalDeleteForMe");if(meBtn)meBtn.onclick=()=>perform(meBtn,()=>deleteMessageForMe(modal.conversationId,modal.messageId));
+    const everyoneBtn=host.querySelector("#modalDeleteForEveryone");if(everyoneBtn)everyoneBtn.onclick=()=>perform(everyoneBtn,async()=>{await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);});
   } else if(modal.type==="addMember"){
     host.innerHTML=`
       <div class="modal">
