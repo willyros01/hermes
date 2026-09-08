@@ -29,6 +29,8 @@ CURRENT CANDIDATE 0.9.9.9a: direct text again uses the validated account E2EE v3
 
 0.9.9.9d makes leaving the foreground an immediate local-lock event through both visibilitychange and iOS pagehide. The inactivity timeout still governs foreground inactivity. The tablet Groups tab now opens a dedicated Groups route listing existing groups and an explicit New Group action; it must never silently remain on a direct chat when no group exists.
 
+0.9.9.9e makes the displayed snapshot callback the sole direct read-receipt owner. It removes the competing per-row write plus unconditional bulk write that could yield a false permission warning after another write already advanced Sent to Read. Auto appearance listens through modern addEventListener and legacy iOS addListener. Accepted-message delete choices are peers on one row; Cancel is separate below.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

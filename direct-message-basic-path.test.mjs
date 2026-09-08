@@ -14,6 +14,6 @@ assert.match(app,/if\(m\.e2ee===3\)/,"historical account-encrypted messages must
 assert.doesNotMatch(app,/Encryption key changed since first seen/,"ordinary chat must not show key-change warnings");
 assert.doesNotMatch(app,/state\.modal=\{type:"conversationSecurity"/,"ordinary chat info must not open key-management UI");
 assert.match(app,/state\.modal=\{type:"directChatInfo"/,"direct chat info must remain simple and nontechnical");
-assert.match(worker,/SHELL_REVISION="0\.9\.9\.9d-lock-groups"/,"the installed PWA must load the encrypted direct-message candidate");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.9e-receipt-auto-theme"/,"the installed PWA must load the encrypted direct-message candidate");
 
 console.log("Encrypted direct-message send/receive path gate passed");

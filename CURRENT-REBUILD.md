@@ -26,6 +26,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9d lock and Groups correction:** `visibilitychange=hidden` and iOS `pagehide` now lock immediately instead of waiting for the inactivity timeout. The iPad Groups button owns a real Groups route with a group list and explicit New Group action; it no longer attempts to open a nonexistent first group and silently remain in the current chat.
 
+**0.9.9.9e receipt, appearance, and delete-action correction:** displayed unread direct messages now have one bulk receipt owner, eliminating the false permission warning caused by competing receipt writes. Auto appearance supports both current and older iOS media-query change listeners. Delete for Me and Delete for Everyone share one row, with Cancel separated beneath them.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

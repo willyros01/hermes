@@ -11,7 +11,6 @@ import {
   subscribeUserDisplayNames,
   subscribeConversationMessages,
   sendCloudMessage,
-  updateCloudMessageState,
   markCloudConversationRead,
   getCloudUserProfile,
   getCloudConversation,
@@ -819,12 +818,11 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       const unreadIncoming=merged.filter(m=>!m.mine && m.state!=="read");
       if(
         state.route==="chat" &&
-        String(state.selectedId)===String(conversationId)
+        String(state.selectedId)===String(conversationId) &&
+        unreadIncoming.length
       ){
-        for(const m of unreadIncoming){
-          try{ await updateCloudMessageState(conversationId,m.id,"read"); }
-          catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
-        }
+        try{await markCloudConversationRead(conversationId);}
+        catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
       }
 
       if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
@@ -834,13 +832,6 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       if(state.route==="settings") renderSettings();
     }
   );
-  // Opening a direct chat is authoritative user intent to read it. Perform
-  // the existing recipient-only receipt update explicitly as well as through
-  // snapshot processing, so an initial cache snapshot cannot suppress Read.
-  markCloudConversationRead(conversationId).catch(err=>{
-    firebaseError=err?.message||String(err);
-    if(state.route==="chat"&&String(state.selectedId)===wanted)render();
-  });
 }
 async function initializeFirebaseLayer(){
   if(!isFirebaseConfigured()) return;
@@ -1699,10 +1690,10 @@ function renderModal(){
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
         <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":"Delete only from this device, or remove it for everyone?"}</p>
-        <div class="modal-actions">
-          <button class="modal-cancel" id="modalCancel">Cancel</button>
+        <div class="modal-actions ${isPending?"":"message-delete-actions"}">
           ${isPending?'<button class="modal-delete" id="modalDeletePending">Delete Message</button>':'<button class="modal-delete" id="modalDeleteForMe">Delete for Me</button>'}
           ${canDeleteForEveryone?'<button class="modal-delete" id="modalDeleteForEveryone">Delete for Everyone</button>':""}
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
         </div>
       </div>`;
     document.body.appendChild(host);
@@ -2045,9 +2036,11 @@ function settingRow(label,key){
 
 const appearanceMedia=window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 if(appearanceMedia){
-  appearanceMedia.addEventListener?.("change",()=>{
+  const followSystemAppearance=()=>{
     if(state.settings.appearance==="auto") render();
-  });
+  };
+  if(typeof appearanceMedia.addEventListener==="function")appearanceMedia.addEventListener("change",followSystemAppearance);
+  else appearanceMedia.addListener?.(followSystemAppearance);
 }
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js")

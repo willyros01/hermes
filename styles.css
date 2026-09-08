@@ -310,6 +310,7 @@ textarea{
 .modal-cancel{border:1px solid var(--line);background:var(--panel);color:var(--accent)}
 .modal-confirm{border:0;background:var(--accent);color:#fff}
 .modal-delete{border:0;background:#a52b2b;color:#fff}
+.message-delete-actions .modal-cancel{grid-column:1/-1}
 .pending-message-action{touch-action:pan-y}
 .pending-message-action:focus-visible .bubble{outline:4px solid var(--accent);outline-offset:3px}
 .settings{display:flex;flex-direction:column;gap:14px}
