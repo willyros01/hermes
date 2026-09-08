@@ -175,10 +175,12 @@ function renderSignIn(){
     catch(err){resetAccountE2EEForSignOut();try{await signOutFidunio();}catch{}renderGate("signin",err?.message||String(err));}
   };
   document.querySelector("#forgotBtn").onclick=async()=>{
-    const email=document.querySelector("#loginEmail").value.trim(),note=document.querySelector("#loginNote");
+    const email=document.querySelector("#loginEmail").value.trim(),note=document.querySelector("#loginNote"),btn=document.querySelector("#forgotBtn");
     if(!email){note.innerHTML='<p class="warning-note">Enter your email address first.</p>';return;}
+    btn.disabled=true;
     try{await sendPasswordReset(email);note.innerHTML='<p class="small-note">Password reset email sent. Check your inbox.</p>';}
     catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+    finally{btn.disabled=false;}
   };
 }
 

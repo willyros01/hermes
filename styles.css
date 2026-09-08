@@ -577,6 +577,15 @@ html.text-aplusplus .member-card > :last-child{
 .auth-choice.is-selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .auth-choice-icon{display:grid;place-items:center;width:30px;height:30px}
 .auth-choice-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+button.is-busy{position:relative;color:transparent!important;pointer-events:none}
+button.is-busy::after{
+  content:"";position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-13px 0 0 -13px;
+  border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;
+  animation:fidunio-button-spin .7s linear infinite
+}
+button.primary.is-busy::after,button.send-btn.is-busy::after{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+@keyframes fidunio-button-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){button.is-busy::after{animation-duration:1.4s}}
 .warning-note,.warning-banner{
   color:var(--text);background:var(--surface-2);border:1px solid var(--line);
   border-radius:12px;padding:10px 12px;line-height:1.45;

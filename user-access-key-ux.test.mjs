@@ -6,6 +6,7 @@ const local=fs.readFileSync("local-security.js","utf8");
 const quick=fs.readFileSync("quick-start.html","utf8");
 const auth=fs.readFileSync("auth-ui-clean.js","utf8");
 const pinInput=fs.readFileSync("pin-input.js","utf8");
+const bootstrap=fs.readFileSync("bootstrap.js","utf8");
 
 function requireTrue(value,message){if(!value)throw new Error(message);}
 
@@ -22,6 +23,7 @@ requireTrue(quick.includes("one six-digit <strong>FIDUNIO PIN</strong>"),"Quick 
 requireTrue((pinInput.match(/pin-code-slot/g)||[]).length>=1&&pinInput.includes("length:6"),"one reusable PIN owner must render six digit slots");
 requireTrue(!auth.includes('id="loginPinHost"')&&!auth.includes('id="loginPinLabel"'),"Sign In must request only email and password");
 requireTrue(auth.includes('class="auth-choice')&&auth.includes('auth-choice-icon')&&auth.includes('role="tablist"'),"Sign In and Join must use the approved graphic navigation tiles");
+requireTrue(bootstrap.includes('button.classList.add("is-busy")')&&bootstrap.includes('aria-busy'),"disabled action buttons must receive shared spinner feedback");
 requireTrue(auth.includes('id="joinPinHost"')&&auth.includes("mountSixDigitPinInput"),"Join must create the PIN with the shared six-slot owner");
 requireTrue(auth.includes("enterAfterPasswordSignIn(user,bound)"),"successful password sign-in must enter without a PIN prompt");
 requireTrue(auth.includes("restoreLocalAccountE2EE(saved)"),"password sign-in must restore the saved device encryption identity");

@@ -37,6 +37,8 @@ LOGIN-JOIN is implemented in 0.9.9.9g. Sign In displays only email and password 
 
 0.9.9.9h implements the user-approved login-join selector prototype. Sign In and Join FIDUNIO are large side-by-side graphic tab tiles with line icons, and the active mode has an accent surface. They must remain visually distinct from the full-width form submission action below.
 
+0.9.9.9i gives asynchronous action buttons consistent progress feedback. Bootstrap applies an accessible `is-busy`/`aria-busy` spinner whenever an enabled clicked action disables itself, retaining it until re-enabled or replaced. Send and password reset explicitly disable for their awaited work. Synchronous navigation does not simulate delay.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

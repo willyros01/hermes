@@ -34,6 +34,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9h authentication navigation:** the approved prototype is implemented as two large side-by-side graphic tiles with distinct Sign In and Join icons. The selected tile has an accent surface and explicit tab semantics; the full-width form submission button remains visually and structurally separate below.
 
+**0.9.9.9i button progress feedback:** one bootstrap-owned busy treatment observes action buttons that disable while asynchronous work runs, adds an accessible spinner, and removes it when the action completes or the button is replaced by the next rendered screen. Password reset and message Send now participate explicitly. Instant navigation remains immediate.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

@@ -28,6 +28,7 @@
 - [x] Preserve the mounted local PIN control and focus while locked cloud callbacks arrive in 0.9.9.9f.
 - [x] Implement login-join: password-only Sign In, separate invitation/account/PIN Join, and PIN/biometric only for subsequent local unlock in 0.9.9.9g.
 - [x] Implement the approved graphic Sign In/Join navigation tiles without changing login-join form behavior in 0.9.9.9h.
+- [x] Add one accessible, shared busy spinner for asynchronous action buttons and explicitly cover Send/password reset in 0.9.9.9i.
 - [ ] Verify app-switch PIN/biometric lock and Groups list/New Group navigation on iPad.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.

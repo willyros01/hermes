@@ -1299,7 +1299,10 @@ function renderChat(){
   document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();const map={Photo:["photo","image/*",true],File:["file","*/*",false],Audio:["audio","audio/*",true],Video:["video","video/*",true]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
   const box=document.querySelector("#messageBox");
   box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px"});
-  document.querySelector("#sendBtn").onclick=sendCurrent;
+  document.querySelector("#sendBtn").onclick=async event=>{
+    const button=event.currentTarget;button.disabled=true;
+    try{await sendCurrent();}finally{if(button.isConnected)button.disabled=false;}
+  };
   box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendCurrent()}});
   bindPendingMessageActions();
   requestAnimationFrame(()=>{const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight)});
