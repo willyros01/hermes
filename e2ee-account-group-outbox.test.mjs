@@ -6,6 +6,7 @@ const checks=[
   ["persists normalized disappearing duration in encrypted Outbox payload",src.includes("disappearAfterSeconds:duration")],
   ["forwards immutable duration on retry",src.includes("disappearAfterSeconds:payload.disappearAfterSeconds??null")],
   ["revalidates queued epoch",src.includes("revalidateQueuedAccountGroupMessage")],
+  ["repairs legacy null epochs against current server authority",src.includes("const queuedEpoch=Number.isInteger(payload.expectedKeyEpoch)?payload.expectedKeyEpoch:null")&&src.includes("queuedEpoch===null||check.changed")],
   ["sends through group E2EE service",src.includes("sendAccountGroupMessage")],
   ["serialized write path",src.includes("tail.then(task,task)")],
   ["does not import Firebase",!src.includes('from "./firebase.js"')],

@@ -38,7 +38,7 @@ export function closeGroupConversation(){
 }
 
 export function isGroupOutboxPayload(payload){
-  return payload?.kind==="group-e2ee-v1"&&!!payload.groupId&&!!payload.messageId&&Number.isInteger(payload.expectedKeyEpoch);
+  return payload?.kind==="group-e2ee-v1"&&!!payload.groupId&&!!payload.messageId;
 }
 
 export function resetGroupMessagingForSignOut(){

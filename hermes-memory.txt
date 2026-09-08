@@ -49,6 +49,8 @@ The original 0.9.9.9k `d.txt` failed three times at its GitHub archive download 
 
 0.9.9.9l fixes the original group creator's `Unsupported group Outbox payload` failure. `ensureEpoch()` returns `{authority, epochKey}`, but Outbox preparation incorrectly read `epoch.keyEpoch`; the undefined value became null during JSON serialization and failed the bounded payload validator. It now records `epoch.authority.keyEpoch`. The administrator's failed attempt already initialized the group epoch, so no additional key-management action is required.
 
+0.9.9.9m addresses the repeated error after 0.9.9.9l: malformed encrypted Outbox records created by the older build remain on the device and are retried. The bridge now accepts bounded group identity even when the legacy epoch is null; flush revalidates current server membership/epoch and re-encrypts the message. Authorization remains server-controlled.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

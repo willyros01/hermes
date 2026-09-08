@@ -1,6 +1,6 @@
 # FIDUNIO / Hermes
 
-Current device candidate **0.9.9.9l** repairs encrypted group Outbox preparation. The initialized group epoch is now read from the runtime authority result, preventing it from being serialized as null and rejected as an unsupported group Outbox payload. Sender-only group Delete for Everyone remains active.
+Current device candidate **0.9.9.9m** repairs existing malformed group Outbox records in addition to creating correct new records. A record with a valid group/message identity but a missing legacy epoch is revalidated against current server membership and epoch authority, then re-encrypted for delivery instead of being rejected.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -11,7 +11,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9l**
+- Current checkpoint version: **0.9.9.9m**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

@@ -18,12 +18,13 @@ export async function prepareQueuedAccountGroupMessage({groupId,messageId,text,d
 export function flushQueuedAccountGroupMessage(payload){
   return serial(async()=>{
     if(payload?.kind!=="group-e2ee-v1")throw new Error("Unsupported group Outbox payload.");
-    const check=await revalidateQueuedAccountGroupMessage({groupId:payload.groupId,queuedEpoch:payload.expectedKeyEpoch});
+    const queuedEpoch=Number.isInteger(payload.expectedKeyEpoch)?payload.expectedKeyEpoch:null;
+    const check=await revalidateQueuedAccountGroupMessage({groupId:payload.groupId,queuedEpoch});
     // Membership/epoch changes invalidate the old expectation. Runtime send
     // always encrypts against the current epoch, so stale queued plaintext is
     // re-encrypted rather than replaying obsolete ciphertext.
     const result=await sendAccountGroupMessage({groupId:payload.groupId,messageId:payload.messageId,text:payload.text,disappearAfterSeconds:payload.disappearAfterSeconds??null});
-    return{...result,reEncryptedForCurrentEpoch:!check.current,previousKeyEpoch:payload.expectedKeyEpoch};
+    return{...result,reEncryptedForCurrentEpoch:queuedEpoch===null||check.changed,previousKeyEpoch:queuedEpoch};
   });
 }
 

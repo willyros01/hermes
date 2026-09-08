@@ -9,7 +9,7 @@ const checks=[
  ["controller does not import Firebase",!/from\s+["']\.\/firebase\.js["']/.test(src)],
  ["controller does not own IndexedDB",!/indexedDB\.|openDb\(|IDB/.test(src)],
  ["controller does not own crypto",!/crypto\.subtle|deriveKey|encrypt\(|decrypt\(/.test(src)],
- ["controller recognizes epoch-bound group Outbox records",/kind===\"group-e2ee-v1\"/.test(src)&&/Number\.isInteger\(payload\.expectedKeyEpoch\)/.test(src)],
+ ["controller recognizes recoverable group Outbox records by bounded identity",/payload\?\.kind===\"group-e2ee-v1\"&&!!payload\.groupId&&!!payload\.messageId/.test(src)&&!/isGroupOutboxPayload[\s\S]*Number\.isInteger\(payload\.expectedKeyEpoch\)/.test(src)],
  ["sign-out reset clears group messaging owners",/resetGroupMessagingForSignOut/.test(src)&&/resetAccountGroupOutboxQueue/.test(src)&&/resetAccountGroupConversationStreams/.test(src)],
  ["app uses bounded real group administration bridge",/renameGroupForApp/.test(app)&&/addGroupMemberForApp/.test(app)&&/removeGroupMemberForApp/.test(app)&&/leaveGroupForApp/.test(app)&&!/Group messaging is intentionally disabled until group E2EE is implemented/.test(app)]
 ];

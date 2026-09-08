@@ -42,6 +42,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9l group Outbox epoch correction:** group initialization returned the active epoch under `authority.keyEpoch`, but Outbox preparation read the nonexistent wrapper field `epoch.keyEpoch`. `Number(undefined)` serialized as null, so the bounded bridge rejected the record as an unsupported group Outbox payload. Preparation now captures `epoch.authority.keyEpoch`, with a permanent regression assertion.
 
+**0.9.9.9m stored-Outbox repair:** previously malformed group records may remain encrypted in IndexedDB with a null epoch and continue generating the same rejection after the new-write correction. The bounded bridge now recognizes a group record by its discriminator plus group/message IDs; flush treats a non-integer legacy epoch as missing, revalidates membership and current epoch through server authority, and re-encrypts before sending. It does not weaken Firebase authorization.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
