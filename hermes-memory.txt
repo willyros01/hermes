@@ -11,6 +11,8 @@ First basic transport evidence: iPad message reached and was read on iPhone, but
 
 That first receipt repair failed after two iPhone restarts. The missing event was cache-to-server metadata confirmation: default Firestore listeners may display cached content without firing again solely because `fromCache` changes. Candidate 0.9.9.8c enables metadata-change callbacks and preserves real metadata on listener reuse. From now on every device candidate must advance a visible version suffix so the user can verify what is installed.
 
+0.9.9.8c device proof still left all iPad rows Sent. The iPad listener was awake—the conversation timestamp advanced to 8:10 PM—so receiver Read was not written. Plaintext snapshot processing still awaited obsolete compatibility-key lookup. Candidate 0.9.9.8d skips that lookup unless a legacy encrypted row exists, reads explicit receipt recovery from Firestore server authority, and propagates failures instead of `Promise.allSettled` concealment.
+
 MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.

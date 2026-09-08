@@ -9,6 +9,7 @@
 - **Device follow-up:** iPad still displayed a key-change/fingerprint banner. Candidate removes all direct-chat key status banners and makes the Info button open plain Chat Info instead of Conversation Security.
 - **Receipt evidence:** iPad → iPhone delivery and reading succeeded, but iPad remained Sent. Candidate explicitly marks the open direct conversation Read so an initial cached iPhone snapshot cannot suppress the receipt.
 - **Failed ret candidate:** Explicit open-time marking alone did not update the iPad after two iPhone restarts. `0.9.9.8c` adds cache-to-server metadata callbacks so display is followed by the existing Read write.
+- **0.9.9.8c failed:** iPad conversation time proved the sender listener active. `0.9.9.8d` removes legacy-key lookup from plaintext snapshot processing and makes explicit Read recovery server-backed/error-visible.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 

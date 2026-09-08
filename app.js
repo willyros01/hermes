@@ -762,7 +762,13 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
     firebaseUser.uid,
     async (rows,meta={})=>{
       const existing=state.messages[conversationId] || [];
-      const peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});
+      // Plain direct messages must reach display/receipt processing without
+      // waiting for obsolete compatibility-key lookup. Load that key only if
+      // this snapshot actually contains a legacy encrypted row.
+      let peerKey=null;
+      if(rows.some(m=>m.e2ee&&m.e2ee!==3)){
+        try{peerKey=await peerPublicKeyForConversation(conversationId,{refresh:true});}catch{}
+      }
       const remote=[];
       for(const m of rows){
         let text=m.text||"";

@@ -10,6 +10,8 @@ Device proof confirms iPad → iPhone message transmission. The remaining Sent s
 
 The first receipt candidate failed device proof after two iPhone restarts. Root cause refinement: the Firestore listener omitted metadata-change delivery, so an incoming message displayed from cache did not necessarily generate a second server-confirmed callback. Version **0.9.9.8c** enables metadata changes, preserves actual snapshot authority on listener reuse, and gives testers a visible candidate identifier.
 
+0.9.9.8c also failed device receipt proof. The iPad listener is demonstrably active because its conversation timestamp advanced with the 8:10 PM send. The receiver callback still performed a compatibility-key lookup before processing every snapshot, including plaintext. Candidate **0.9.9.8d** bypasses that lookup for basic messages, uses server-authoritative rows for explicit open-chat Read recovery, and no longer swallows receipt-write failures.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
