@@ -18,6 +18,8 @@ The first receipt candidate failed device proof after two iPhone restarts. Root 
 
 The reviewed repository rules were deployed to live project `fidunio-fef13` through the verified Cloud Shell REST script. Live ruleset `6f6d9fda-0698-48db-b1a9-b9dde31b9456` replaced `52ea515e-359f-453f-8822-3c0f6ef2659a`. Client version remains 0.9.9.8e because this was backend-only; real-device receipt confirmation remains required.
 
+Real-device iPad → iPhone Read receipt proof passed after the rules deployment. Candidate **0.9.9.9a** restores the already-validated account E2EE v3 envelope at the sole serialized direct Outbox send boundary, enables the existing sender-owned Delete for Everyone callable UI, and mounts one reusable six-slot FIDUNIO PIN control in the signed-out login and local-unlock screens. Login now unlocks the existing account encryption with the entered password and PIN; ordinary chat remains free of key-management prompts. Delete for Everyone still requires live deployment of its dedicated callable before device acceptance.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

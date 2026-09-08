@@ -16,7 +16,7 @@ Client Firestore delete remains denied. No tombstone, broad client delete author
 
 ## Current boundary
 
-The repository candidate covers pending outgoing deletion and sender-owned accepted **direct** messages. Delete for Me and accepted group-message deletion are not represented as working. The callable requires the dedicated `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com` identity with narrowly reviewed Firestore/Storage permissions and must be deployed before the client action is released for device acceptance.
+The 0.9.9.9a client exposes pending outgoing deletion and sender-owned accepted **direct** message deletion through the existing long-press action. Delete for Me and accepted group-message deletion are not represented as working. The callable requires the dedicated `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com` identity with narrowly reviewed Firestore/Storage permissions and must be deployed before Delete for Everyone can pass device acceptance.
 
 ## Acceptance
 

@@ -13,6 +13,12 @@
 - [x] Reject 0.9.9.8d after four failed attempts; make displayed/open incoming rows trigger Read without metadata gating in 0.9.9.8e.
 - [x] Capture 0.9.9.8e permission-denied evidence and add exact plaintext recipient-Read rules coverage.
 - [x] Deploy and verify the reviewed Firestore rules to live project `fidunio-fef13` (ruleset `6f6d9fda-0698-48db-b1a9-b9dde31b9456`).
+- [x] Prove iPad → iPhone Read receipt on live devices after rules alignment.
+- [x] Restore account E2EE v3 at the serialized direct Outbox boundary in candidate 0.9.9.9a.
+- [x] Restore the existing pending-delete and sender Delete for Everyone client actions.
+- [x] Add one reusable six-slot FIDUNIO PIN owner to login and local unlock.
+- [ ] Deploy and verify `deleteDirectMessageForEveryoneV1` with its dedicated service account.
+- [ ] Prove 0.9.9.9a encrypted send/read and both delete paths on iPad/iPhone.
 - [ ] Complete full repository gate and Pages deployment.
 - [ ] User proves iPad → iPhone and iPhone → iPad Sent → Delivered → Read.
 

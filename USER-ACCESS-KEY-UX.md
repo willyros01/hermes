@@ -1,5 +1,9 @@
 # FIDUNIO User Access and Encryption UX
 
+## 0.9.9.9a login and PIN surface
+
+Signed-out login collects email, account password, and the one six-digit FIDUNIO PIN. One reusable `pin-input.js` owner renders six individual digit slots for login and local unlock. Login unlocks the existing account E2EE identity before app startup; ordinary conversations do not expose key setup, fingerprints, or verification controls.
+
 ## User-visible credentials
 
 For a fresh account, the user sees and remembers only:

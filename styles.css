@@ -1073,6 +1073,12 @@ html.text-aplusplus .member-card > :last-child{
   }
 }
 
+/* One visible six-digit FIDUNIO PIN control for login and local unlock. */
+.pin-code{display:flex;justify-content:center;gap:10px;margin:8px 0 4px}
+.pin-code-slot{width:48px;height:56px;box-sizing:border-box;border:2px solid var(--line);border-radius:12px;background:var(--input);color:var(--ink);text-align:center;font-size:28px;font-weight:800;line-height:1;padding:0}
+.pin-code-slot:focus{outline:3px solid rgba(16,126,151,.22);border-color:var(--accent)}
+@media(max-width:420px){.pin-code{gap:6px}.pin-code-slot{width:42px;height:52px;font-size:25px}}
+
 /* 0.9.9.8 themed disappearing selector.
    iPad otherwise paints the native select as a bright white control inside
    the dark composer. Keep the existing composer owner and use CSS only. */

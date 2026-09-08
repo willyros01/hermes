@@ -37,12 +37,11 @@ import {
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
-import { decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
+import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
+import { mountSixDigitPinInput } from "./pin-input.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 
-// Remains false until the dedicated least-privilege callable is explicitly
-// provisioned and deployed. Publishing static client code cannot activate it.
-const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=false;
+const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
 import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
@@ -1054,25 +1053,25 @@ function renderUnlock(){
         <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
         <h1>Unlock FIDUNIO</h1>
         ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with device</button>':""}
-        <label class="form-label" for="localUnlockPin">PIN</label>
-        <input class="text-input" id="localUnlockPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" pattern="[0-9]*" placeholder="FIDUNIO PIN">
+        <label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label>
+        <div id="localUnlockPin"></div>
         <button class="${security.hasBiometric?"secondary":"primary"}" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>
         ${unlockError?`<p class="warning-note">${esc(unlockError)}</p>`:""}
         <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} • Local unlock keeps your Firebase session signed in.</div>
       </section>
     </main>`;
-  const input=document.querySelector("#localUnlockPin");
   const pinButton=document.querySelector("#localPinUnlockBtn");
+  let pinInput;
   const tryPin=async()=>{
     pinButton.disabled=true;
+    pinInput.setDisabled(true);
     pinButton.textContent="Checking…";
-    if(await verifyLocalPin(input.value)){unlockLocalApp();return;}
+    if(await verifyLocalPin(pinInput.value())){unlockLocalApp();return;}
     unlockError="Incorrect PIN.";
     renderUnlock();
-    document.querySelector("#localUnlockPin")?.focus();
   };
+  pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
   pinButton.onclick=tryPin;
-  input.onkeydown=e=>{if(e.key==="Enter")tryPin();};
   const deviceButton=document.querySelector("#deviceUnlockBtn");
   if(deviceButton)deviceButton.onclick=async()=>{
     deviceButton.disabled=true;
@@ -1081,7 +1080,7 @@ function renderUnlock(){
     unlockError="Device unlock was cancelled or unavailable. Use your PIN instead.";
     renderUnlock();
   };
-  setTimeout(()=>document.querySelector("#localUnlockPin")?.focus(),0);
+  setTimeout(()=>pinInput.focus(),0);
 }
 
 function renderMessages(){
@@ -1530,9 +1529,10 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         await markOutboxSendAttempted(payload.messageId);
         sendAttempted=true;
         if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
-        // Basic direct text must not depend on manual key setup or verification.
-        // The fixed message ID keeps Firestore retries idempotent.
-        await awaitBoundedOutboxReconciliation(sendCloudMessage(payload.conversationId,{id:payload.messageId,text:payload.text,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null}),{stage:"send-confirmation"});
+        const peerUid=await awaitBoundedOutboxReconciliation(resolvePeerUidForConversation(payload.conversationId),{stage:"peer-resolution"});
+        if(!peerUid)throw new Error("Recipient account identity is unavailable.");
+        const encrypted=await awaitBoundedOutboxReconciliation(prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text}),{stage:"envelope-preparation"});
+        await awaitBoundedOutboxReconciliation(sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null}),{stage:"send-confirmation"});
 
         m.state="sent";
         // Remove the Outbox item only after Firestore confirms the write.
