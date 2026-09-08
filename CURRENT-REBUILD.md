@@ -16,6 +16,8 @@ The first receipt candidate failed device proof after two iPhone restarts. Root 
 
 0.9.9.8e device evidence exposed the exact failure: Firebase returns `Missing or insufficient permissions` to the iPhone Read write. This proves listener execution and rejects further UI/lifecycle speculation. The rules gate previously covered plaintext creation but not plaintext receipt update; exact emulator coverage is now mandatory before any live rules action.
 
+The reviewed repository rules were deployed to live project `fidunio-fef13` through the verified Cloud Shell REST script. Live ruleset `6f6d9fda-0698-48db-b1a9-b9dde31b9456` replaced `52ea515e-359f-453f-8822-3c0f6ef2659a`. Client version remains 0.9.9.8e because this was backend-only; real-device receipt confirmation remains required.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:

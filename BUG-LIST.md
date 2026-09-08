@@ -12,6 +12,7 @@
 - **0.9.9.8c failed:** iPad conversation time proved the sender listener active. `0.9.9.8d` removes legacy-key lookup from plaintext snapshot processing and makes explicit Read recovery server-backed/error-visible.
 - **0.9.9.8d rejected:** Four device attempts remained Sent. `0.9.9.8e` writes Read whenever an incoming message is displayed in the open chat and exposes the exact Firebase failure if rejected.
 - **0.9.9.8e evidence:** iPhone reports `Read receipt failed: Missing or insufficient permissions.` Add exact plaintext Sent → Read emulator proof and align the deployed Firestore rule; do not add more listener workarounds.
+- **Live rules aligned:** Cloud Shell deployed and verified ruleset `6f6d9fda-0698-48db-b1a9-b9dde31b9456` to `fidunio-fef13`, replacing `52ea515e-359f-453f-8822-3c0f6ef2659a`. Await real-device Sent → Read proof before closing.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 
