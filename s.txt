@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+BUCKET="fidunio-fef13.firebasestorage.app"
+CORS_FILE="$(mktemp)"
+trap 'rm -f "$CORS_FILE"' EXIT
+
+printf '%s\n' '[{"origin":["https://willyros01.github.io"],"method":["GET","HEAD"],"responseHeader":["Content-Type","Content-Length","ETag"],"maxAgeSeconds":3600}]' > "$CORS_FILE"
+
+echo "FIDUNIO Storage download CORS setup"
+echo "Project: $PROJECT"
+echo "Bucket:  $BUCKET"
+
+gcloud config set project "$PROJECT" >/dev/null
+gcloud storage buckets update "gs://$BUCKET" --cors-file="$CORS_FILE"
+
+echo "SUCCESS"
+echo "Encrypted attachment downloads are allowed from the FIDUNIO website."
+gcloud storage buckets describe "gs://$BUCKET" --format='json(cors_config)'

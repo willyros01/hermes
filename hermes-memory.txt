@@ -1,6 +1,10 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### ATTACHMENT STORAGE CORS DIAGNOSIS — 2026-09-08
+
+Attachment acceptance on visible build 0.9.9.9t changed the error from the old SDK timeout to `Manifest download failed (storage/unknown): Load failed` on the recipient and on the sender after its temporary local preview was lost. This proves the durable Storage object path is being used and isolates the failure to Safari's cross-origin Storage fetch. Root script `s.txt` applies a narrow bucket CORS entry for `https://willyros01.github.io`; it does not weaken Storage rules, Firestore rules, authentication, membership authorization, or E2EE. Acceptance remains open until a new photo displays on both devices and still displays after sender restart.
+
 ### BASIC DIRECT-MESSAGE PRIORITY — 2026-09-07
 
 The user explicitly ended further audit/design/key-management cycling. Immediate goal: prove ordinary one-to-one message transmission. Minimal candidate removes account-key preparation and fingerprint verification as prerequisites for new direct text, using the authenticated member-only plaintext format already accepted by `firestore.rules`. Existing encrypted rows remain readable. Do not expand this slice into App Check, groups, attachments, deletion, or further security redesign. Required exit is full gate/Pages followed by real two-device Sent → Delivered → Read in both directions.

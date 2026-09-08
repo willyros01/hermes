@@ -1,5 +1,9 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## 2026-09-08 attachment download diagnosis
+
+Device acceptance on 0.9.9.9t proved that upload, metadata verification, download-URL lookup, and version refresh succeed, while Safari fails at the cross-origin object fetch with `storage/unknown: Load failed`. The bounded repair is the root `s.txt` Cloud Shell script, which configures the live Storage bucket CORS for `https://willyros01.github.io`. No Firestore-rule or encryption change is involved.
+
 ## Basic direct-message transport candidate — 2026-09-07
 
 By explicit user direction, direct one-to-one text messaging is the immediate priority and must not wait on account-key readiness or manual fingerprint verification. The minimal candidate sends new direct text through the existing authenticated Firestore/Outbox path in the plaintext format already allowed by current rules. Existing encrypted messages remain readable. No Firebase rules, App Check, group, attachment, or deletion change is included. Repository validation, `main` deployment, and real iPad-to-iPhone Sent → Delivered → Read proof remain required.

@@ -1,5 +1,11 @@
 # FIDUNIO / Hermes Bug List
 
+## Open acceptance: encrypted attachment download
+
+- **Observed on 0.9.9.9t:** After the sender closes and reopens the conversation, both sender and recipient report `Manifest download failed (storage/unknown): Load failed`.
+- **Diagnosis:** The temporary sender object-URL preview works, upload verification succeeds, and the persistent fetch fails at the browser cross-origin boundary. The bucket lacks the required FIDUNIO GitHub Pages CORS entry.
+- **Repair prepared:** Run `bash s.txt` once in Google Cloud Shell, then retest with a newly sent photo. Keep this item open until both devices display the photo after reopening.
+
 ## FDA-DM-001 — minimal direct-text transport candidate
 
 - **Decision:** Stop requiring account-E2EE/key verification for new one-to-one text messages.

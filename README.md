@@ -1,5 +1,9 @@
 # FIDUNIO / Hermes
 
+## Storage download CORS repair
+
+If an encrypted attachment uploads successfully but Safari reports `Manifest download failed (storage/unknown): Load failed`, run the root-level `s.txt` script once in Google Cloud Shell with `bash s.txt`. It grants only the FIDUNIO GitHub Pages origin permission to read Storage objects through browser CORS; Storage security rules and authenticated membership checks remain authoritative.
+
 Current device candidate **0.9.9.9t** fixes the proven recipient failure at the first manifest read. Upload verification established that the encrypted Storage objects exist, while iPad Safari timed out inside Firebase Storage `getBytes()`. The receiver now performs an authenticated `getDownloadURL()` lookup and a bounded browser `fetch()` of the encrypted object. The temporary URL remains in memory and is never written into a message or local state.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
