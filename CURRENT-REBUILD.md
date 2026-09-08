@@ -46,6 +46,8 @@ Real-device iPad → iPhone Read receipt proof passed after the rules deployment
 
 **0.9.9.9p mobile attachment download completion:** the shared sender/receiver stall was below rendering: encrypted chunks were fetched strictly serially. The Storage owner now uses a bounded six-worker download pool while preserving chunk order, and gives each Storage read a 30-second timeout. A stalled request therefore reaches the existing retry UI instead of waiting forever. The PWA shell now explicitly precaches the Firebase Storage SDK.
 
+**0.9.9.9q immediate sender preview:** the selected browser `File` becomes visible immediately through `URL.createObjectURL(file)`, before `arrayBuffer()`, encryption, or upload. This is a pointer to the selected object rather than another picture copy. The preview retains the normal Sending/Sent/Failed status and is revoked on sign-out; after restart the encrypted remote copy is downloaded normally.
+
 **0.9.9.9m stored-Outbox repair:** previously malformed group records may remain encrypted in IndexedDB with a null epoch and continue generating the same rejection after the new-write correction. The bounded bridge now recognizes a group record by its discriminator plus group/message IDs; flush treats a non-integer legacy epoch as missing, revalidates membership and current epoch through server authority, and re-encrypts before sending. It does not weaken Firebase authorization.
 
 **Sole authoritative development and deployment branch:** `main`

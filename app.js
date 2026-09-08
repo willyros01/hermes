@@ -105,6 +105,7 @@ let localSecurityMessageIsError = false;
 let unlockError = "";
 let messageSendInFlight=false;
 const attachmentRuntime=new Map();
+const localAttachmentPreviewUrls=new Set();
 const attachmentReceiveService=createAttachmentReceiveService({downloadEncryptedAttachment});
 
 function parseAttachmentDescriptor(text){
@@ -117,10 +118,15 @@ function messagePreview(text){
   return descriptor.kind==="photo"||String(descriptor.type||"").startsWith("image/")?"📷 Photo":`📎 ${descriptor.name||"Attachment"}`;
 }
 function attachmentRuntimeKey(conversationId,messageId){return `${conversationId}:${messageId}`;}
+function releaseAttachmentResult(result){
+  if(!result?.url)return;
+  if(result.localPreview){if(localAttachmentPreviewUrls.delete(result.url))URL.revokeObjectURL(result.url);}
+  else attachmentReceiveService.release(result.url);
+}
 function loadAttachment(conversationId,message,descriptor,{retry=false}={}){
   const key=attachmentRuntimeKey(conversationId,message.id),existing=attachmentRuntime.get(key);
   if(existing&&!retry)return;
-  if(existing?.result?.url)attachmentReceiveService.release(existing.result.url);
+  if(existing?.result?.url)releaseAttachmentResult(existing.result);
   attachmentRuntime.set(key,{status:"loading",descriptor});
   attachmentReceiveService.receive(descriptor).then(result=>{
     attachmentRuntime.set(key,{status:"ready",descriptor,result});
@@ -878,6 +884,8 @@ async function initializeFirebaseLayer(){
         if(state.online) scheduleReconnectRecovery();
       }else{
         attachmentReceiveService.releaseAll();
+        for(const url of localAttachmentPreviewUrls)URL.revokeObjectURL(url);
+        localAttachmentPreviewUrls.clear();
         attachmentRuntime.clear();
         resetGroupAppIntegrationForSignOut();
         resetAccountE2EEForSignOut();
@@ -1396,7 +1404,7 @@ function bindPendingMessageActions(){
 async function chooseAndSendAttachment(kind,accept,capture){
   const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
   const input=document.createElement("input");input.type="file";input.accept=accept;if(capture)input.setAttribute("capture",kind==="audio"?"user":"environment");
-  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{const bytes=new Uint8Array(await file.arrayBuffer());const descriptor={kind,name:file.name||`${kind}-${Date.now()}`,type:file.type||"application/octet-stream",size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};let stagedMessage=null;const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{const text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage=stampOutgoingDisappearSelection({id:row.messageId,mine:true,text,time:nowTime(),state:"sending",cloud:true,attachment:{kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size}},row.disappearAfterSeconds);if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async()=>{await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});await svc.send(descriptor);}catch(err){alert("Attachment could not be sent: "+(err?.message||err));}};input.click();
+  input.onchange=async()=>{const file=input.files?.[0];if(!file)return;const messageId=crypto.randomUUID(),attachmentId=crypto.randomUUID(),name=file.name||`${kind}-${Date.now()}`,type=file.type||"application/octet-stream",previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name,type,size:file.size});const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),state:"sending",cloud:true,attachment:{kind,name,type,size:file.size}},state.settings.disappearingTextSeconds??null);localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name,type,size:file.size,kind,localPreview:true}});if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();try{const bytes=new Uint8Array(await file.arrayBuffer());const descriptor={attachmentId,messageId,kind,name,type,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async()=>{await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});await svc.send(descriptor);}catch(err){stagedMessage.state="failed";await persistState();render();alert("Attachment could not be sent: "+(err?.message||err));}};input.click();
 }
 
 async function sendCurrent(){

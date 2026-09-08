@@ -27,6 +27,6 @@ assert.doesNotMatch(app,/deleteDoc\s*\(/,"pending-message deletion must not intr
 assert.match(app,/if\(messageSendInFlight\)return;[\s\S]*?messageSendInFlight=true;[\s\S]*?box\.value=""/,"send must reserve one attempt and clear the composer before asynchronous work");
 assert.match(app,/document\.querySelector\("#sendBtn"\)\?\.click\(\)/,"keyboard send must use the same guarded button path");
 assert.match(app,/if\(isGroupPayload\)[\s\S]*?m\.state="sent";await persistState\(\);[\s\S]*?if\(state\.route==="chat"&&String\(state\.selectedId\)===String\(payload\.conversationId\)\)render\(\)/,"group send completion must immediately replace stale Sending UI");
-assert.match(worker,/SHELL_REVISION="0\.9\.9\.9p-attachment-download"/,"the deployed shell must invalidate the prior cache");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.9q-local-attachment-preview"/,"the deployed shell must invalidate the prior cache");
 
 console.log("Pending encrypted-Outbox message deletion gate passed");
