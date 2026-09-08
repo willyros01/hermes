@@ -25,6 +25,7 @@
 - **0.9.9.9i:** Added visible spinner feedback for asynchronous button actions so network and storage work no longer appears hung.
 - **0.9.9.9j:** Group send is single-flight, clears the composer immediately, renders its final state, and permits local deletion of stale Sending rows. Simplified member-owned group receipt rules await live deployment.
 - **0.9.9.9k:** Group Delete for Everyone is enabled only for the original sender and enforced again by the authenticated server callable; recipients remain limited to Delete for Me.
+- **0.9.9.9k-c deployment script:** the failed `d.txt` archive downloader is retired. The replacement `n.txt` downloads the small reviewed Function source set directly from pinned raw GitHub files, avoiding the archive endpoint that returned HTTP 404 in Cloud Shell.
 
 This file is the durable working bug list for current development. Keep it concise, factual, and update status as issues are verified or resolved.
 
