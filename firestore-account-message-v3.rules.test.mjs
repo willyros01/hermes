@@ -46,6 +46,7 @@ await test("20 repeat Read cannot move first-read timestamp",()=>assertFails(upd
 await test("21 recipient receipt update cannot mutate ciphertext",()=>assertFails(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{state:"read",readAt:serverTimestamp(),ciphertext:"BBBBBBBBBBBBBBBBBBBBBB"})));
 await test("22 legacy e2ee v2 create remains allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-v3","messages","m21"),{senderUid:A,senderName:"Owner A",timeLabel:"12:01 PM",state:"sent",createdAt:serverTimestamp(),text:"",e2ee:2,ciphertext:"",iv:"",envelopes:{legacyDevice:{ciphertext:"legacy",iv:"legacy"}},recipientDeviceIds:["legacyDevice"],senderDeviceId:"legacyDevice",senderDevicePublicJwk:{kty:"EC",crv:"P-256",x:"x",y:"y"}})));
 await test("23 legacy plaintext create remains allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-v3","messages","m22"),{senderUid:A,state:"sent",createdAt:serverTimestamp(),text:"legacy regression"})));
+await test("24 recipient can mark plaintext message Read",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","m22"),{state:"read",readAt:serverTimestamp()})));
 
 const failed=results.filter(([,ok])=>!ok);
 console.log(`\n${results.length-failed.length}/${results.length} account-message rule assertions passed.`);

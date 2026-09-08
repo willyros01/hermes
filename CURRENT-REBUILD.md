@@ -14,6 +14,8 @@ The first receipt candidate failed device proof after two iPhone restarts. Root 
 
 0.9.9.8d failed four device attempts and is rejected. Candidate **0.9.9.8e** applies the basic contract directly: any unread incoming message displayed in the currently open chat immediately attempts the existing Firestore Read update, regardless of cache metadata. Failure becomes a visible `Read receipt failed` message.
 
+0.9.9.8e device evidence exposed the exact failure: Firebase returns `Missing or insufficient permissions` to the iPhone Read write. This proves listener execution and rejects further UI/lifecycle speculation. The rules gate previously covered plaintext creation but not plaintext receipt update; exact emulator coverage is now mandatory before any live rules action.
+
 **Sole authoritative development and deployment branch:** `main`
 
 If a ChatGPT session is interrupted or a handover is required, start here:
