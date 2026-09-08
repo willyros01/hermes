@@ -8,9 +8,9 @@ Acceptance on iPhone: tap Audio and confirm **Record Audio / Choose Audio File /
 
 ## Issue 3 — iPhone composer clearance + video chooser
 
-**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.9z — 2026-09-08.**
+**Status: DEVICE ACCEPTED on FIDUNIO 0.9.9.9z — 2026-09-08.**
 
-Acceptance on iPhone: open a conversation with enough messages to reach the bottom; verify the final message lines remain fully above the fixed composer, including with More/tools open and with a multi-line draft. Scroll to the bottom and verify it stays at the true end rather than leaving the last lines behind the composer. Then choose Video and verify both **Photo Library** and **Camera** paths open correctly; send one video from each source if practical. iPad two-pane layout must remain unchanged.
+The user reported that the Issue 3 acceptance set was good on the deployed build. This closes the iPhone composer/footer overlap and scroll-position defect and accepts the added Video source chooser. Accepted scope includes the phone bottom-content clearance behavior, the video **Photo Library / Camera / Cancel** chooser, and preservation of the existing attachment send path. No further Issue 3 correction is pending.
 
 ## Issue 2 — LTE outgoing-message visibility
 
@@ -26,7 +26,7 @@ Real-device acceptance completed on iPhone using the reported failure path:
 
 The iPad LTE case is **N/A** because the test iPad has no cellular capability. This is not a missing acceptance test for the reported defect; the defect specifically depended on a Wi-Fi → cellular transition. The permanent regression gate continues to enforce render-before-Outbox ordering in source, while iPhone device proof covers the real network-transition path.
 
-Issue 2 is closed for device acceptance. Issue 3 (iPhone composer overlap/scroll position) remains separate and untouched.
+Issue 2 is closed for device acceptance.
 
 ## Issue 1 — iOS camera video continuity
 
@@ -45,4 +45,4 @@ Accepted evidence:
 
 The earlier explanation that the original 20-second failure was caused by a detached file input/background lock interaction was a hypothesis, not instrumented proof of root cause. The deployed 0.9.9.9x picker-session change is accepted because the required real-device behavior now passes; do not rewrite historical evidence to claim the precise original cause was proven.
 
-Issue 1 is closed for device acceptance. Issue 3 (iPhone composer overlap/scroll position) remains separate and was not changed by the Issue 1 or Issue 2 closeout.
+Issue 1 is closed for device acceptance.
