@@ -4,7 +4,7 @@
 
 If an encrypted attachment uploads successfully but Safari reports `Manifest download failed (storage/unknown): Load failed`, run the root-level `s.txt` script once in Google Cloud Shell with `bash s.txt`. It grants only the FIDUNIO GitHub Pages origin permission to read Storage objects through browser CORS; Storage security rules and authenticated membership checks remain authoritative.
 
-Current device candidate **0.9.9.9w** repairs the video-selection failure path. Attachment type/size validation now occurs before a preview or conversation row is created. Rejected camera videos therefore show the real bounded-selection error and leave no partial descriptor. A later encryption/upload failure renders as **Video was not sent** and remains deletable instead of being passed incorrectly to the download/decryption path.
+Current device candidate **0.9.9.9x** repairs longer iOS camera capture continuity. The native file input is mounted in the document for the full system-camera session, and FIDUNIO defers its background lock only while that trusted picker is active. Normal locking resumes as soon as the camera returns a file or is cancelled. This prevents a longer recording from losing its browser callback and leaving no message trace.
 
 FIDUNIO is the public product name for the Hermes private-messaging project. This repository contains the web/PWA implementation, Firebase integration, account-authoritative E2EE work, deterministic UI/runtime architecture, and the complete rebuild now in progress.
 
@@ -15,7 +15,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9w**
+- Current checkpoint version: **0.9.9.9x**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

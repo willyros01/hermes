@@ -1,5 +1,12 @@
 # FIDUNIO / Hermes Bug List
 
+## 0.9.9.9x 20-second iOS video leaves no trace
+
+- **Evidence:** 10-second videos send/receive on iPhone and iPad; 20-second videos on both devices create no conversation row or validation error.
+- **Boundary:** The loss occurs before FIDUNIO receives the file callback, not in encryption, Storage, Firestore, or recipient playback.
+- **Fixed:** Keep the native file input mounted throughout capture and defer only the background-lock transition caused by that active system picker. Restore ordinary lock behavior immediately on change/cancel.
+- **Acceptance:** Send a 20-second camera video from both iPhone and iPad and confirm an immediate local row followed by receipt on the peer.
+
 ## 0.9.9.9w iPhone camera-video failure
 
 - **Observed:** A camera video failed, then appeared as `Invalid encrypted attachment descriptor` because an incomplete preview descriptor was retained and sent into the receive path.

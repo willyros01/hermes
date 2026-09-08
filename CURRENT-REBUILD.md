@@ -1,5 +1,9 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## 0.9.9.9x iOS camera-session continuity
+
+Cross-device testing proved 10-second camera videos (~1.5 MB) send and receive, while 20-second captures on both iPhone and iPad return no bubble, warning, or other trace. This occurs before attachment validation or upload: the detached transient file input and immediate background lock do not reliably survive the longer native-camera session. The picker is now mounted under `document.body`, the security monitor defers background locking only while that picker is active, and the exception ends on file return or cancellation. Issues 2 and 3 remain untouched.
+
 ## 0.9.9.9w video failure-path correction
 
 The reported iPhone camera video left a failed partial descriptor that the renderer later treated as a downloadable encrypted attachment. Selection validation now runs before local preview/message creation, so unsupported or over-50-MiB videos produce an immediate actionable alert without inserting a bubble. Any failure after valid staging is rendered explicitly as a send failure and can be deleted; it is never routed to attachment receive/decrypt. LTE optimistic-message visibility and iPhone composer overlap remain separate, pending issues by user direction.

@@ -1,6 +1,10 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### IOS LONGER CAMERA CAPTURE CONTINUITY — 0.9.9.9x
+
+Issue 1 remained open after 0.9.9.9w: 10-second/~1.5-MB camera videos sent and received on iPhone and iPad, but 20-second captures on both devices returned with no bubble, warning or trace. Because preflight validation itself never appeared, the failure boundary was the native-picker callback. Build 0.9.9.9x mounts the temporary file input in the document and marks the system picker active. The local security monitor does not lock/re-render while that picker owns the camera; it resumes normal behavior immediately when change or cancel closes the picker. This narrow exception must not weaken normal leave-app locking. Issues 2 (LTE optimistic visibility) and 3 (iPhone composer overlap/scroll anchoring) remain deferred and untouched.
+
 ### IPHONE CAMERA-VIDEO FAILURE PATH — 0.9.9.9w
 
 The user directed that three reported issues be handled separately and in order: (1) camera-video send failure, (2) sent LTE message absent from the conversation until delayed reconciliation, and (3) the last iPhone lines covered by the widgets/composer with non-sticky scrolling. Build 0.9.9.9w addresses only issue 1. Attachment validation now precedes creation of the temporary preview and local message. An invalid/over-limit camera video (current video limit 50 MiB) shows the true selection error and leaves no partial row. Failures occurring after valid staging render as send failures and never invoke the attachment receiver. Issues 2 and 3 remain untouched for later, in that order.
