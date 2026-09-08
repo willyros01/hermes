@@ -1,0 +1,47 @@
+name: Issue 2 one-shot optimistic send patch
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/issue2-one-shot.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply bounded app patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app.js')
+          s=p.read_text()
+          old='''  try{\n    const conversationId=state.selectedId;'''
+          new='''  let stagedMessage=null;\n  try{\n    const conversationId=state.selectedId;'''
+          assert s.count(old)==1, 'sendCurrent try anchor changed'
+          s=s.replace(old,new,1)
+          old='''  const m=stampOutgoingDisappearSelection({'''
+          new='''  const m=stagedMessage=stampOutgoingDisappearSelection({'''
+          assert s.count(old)==1, 'sendCurrent message anchor changed'
+          s=s.replace(old,new,1)
+          old='''  c.preview=messagePreview(text);\n  c.time=m.time;\n\n  // The Outbox is authoritative.'''
+          new='''  c.preview=messagePreview(text);\n  c.time=m.time;\n  render();\n\n  // The Outbox is authoritative.'''
+          assert s.count(old)==1, 'optimistic render anchor changed'
+          s=s.replace(old,new,1)
+          old='''  }catch(err){\n    const currentBox=document.querySelector("#messageBox");\n    if(currentBox&&!currentBox.value)currentBox.value=text;\n    throw err;\n  }finally{'''
+          new='''  }catch(err){\n    if(stagedMessage){\n      stagedMessage.state="failed";\n      persistSoon();\n      render();\n    }else{\n      const currentBox=document.querySelector("#messageBox");\n      if(currentBox&&!currentBox.value)currentBox.value=text;\n    }\n    throw err;\n  }finally{'''
+          assert s.count(old)==1, 'sendCurrent failure anchor changed'
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Commit bounded patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js
+          git diff --cached --check
+          git commit -m 'Show outgoing text before Outbox wait'
+          git push
