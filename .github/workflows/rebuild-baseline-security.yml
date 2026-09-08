@@ -83,6 +83,7 @@ jobs:
       - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}
       - {name: LTE optimistic outgoing-message visibility, run: npm run test:lte-optimistic-message}
       - {name: Issue 3 iPhone composer and video source, run: npm run test:issue3-iphone-ui}
+      - {name: Audio source chooser and recorder, run: npm run test:audio-source-recorder}
       - {name: Startup and local PIN fail-closed resilience, run: npm run test:startup-auth-resilience}
       - {name: Pending encrypted-Outbox message deletion, run: npm run test:pending-message-delete}
       - {name: Controlled sender direct-message deletion, run: npm run test:message-delete-core}
