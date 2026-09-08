@@ -1423,6 +1423,7 @@ async function sendCurrent(){
   box.value="";
   box.style.height="46px";
 
+  let stagedMessage=null;
   try{
     const conversationId=state.selectedId;
     const c=currentConversation();
@@ -1431,7 +1432,7 @@ async function sendCurrent(){
 
   if(cloud && c?.peerUid && !firebaseUser){throw new Error("Sign in before sending an encrypted message.");}
 
-  const m=stampOutgoingDisappearSelection({
+  const m=stagedMessage=stampOutgoingDisappearSelection({
     id:crypto.randomUUID(),
     mine:true,
     text,
@@ -1444,6 +1445,7 @@ async function sendCurrent(){
   state.messages[conversationId].push(m);
   c.preview=messagePreview(text);
   c.time=m.time;
+  render();
 
   // The Outbox is authoritative. Group plaintext enters only the encrypted local Outbox.
   if(cloudGroup){
@@ -1463,8 +1465,14 @@ async function sendCurrent(){
       }
     }
   }catch(err){
-    const currentBox=document.querySelector("#messageBox");
-    if(currentBox&&!currentBox.value)currentBox.value=text;
+    if(stagedMessage){
+      stagedMessage.state="failed";
+      persistSoon();
+      render();
+    }else{
+      const currentBox=document.querySelector("#messageBox");
+      if(currentBox&&!currentBox.value)currentBox.value=text;
+    }
     throw err;
   }finally{
     messageSendInFlight=false;
