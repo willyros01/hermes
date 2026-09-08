@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+REGION="us-central1"
+FUNCTION="deleteDirectMessageForEveryoneV1"
+SERVICE_ACCOUNT="fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com"
+COMMIT="64174738e31705cb6a69f4cbfc13d47a89d02f7b"
+
+ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
+if [[ "$ACTIVE_PROJECT" != "$PROJECT" ]]; then
+  echo "STOP: Cloud Shell project is '$ACTIVE_PROJECT', expected '$PROJECT'."
+  exit 1
+fi
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+echo "FIDUNIO group Delete for Everyone deployment"
+echo "Project: $PROJECT"
+curl -fsSL "https://github.com/willyros01/hermes/archive/$COMMIT.tar.gz" -o "$WORK/source.tgz"
+tar -xzf "$WORK/source.tgz" -C "$WORK"
+SOURCE="$WORK/hermes-$COMMIT/functions"
+
+if [[ ! -f "$SOURCE/index.mjs" ]] || ! grep -q 'messageKind==="group"' "$SOURCE/message-delete/message-delete-callable-core.mjs"; then
+  echo "STOP: The pinned source does not contain the reviewed group-delete implementation."
+  exit 1
+fi
+
+gcloud functions deploy "$FUNCTION" \
+  --gen2 \
+  --project="$PROJECT" \
+  --region="$REGION" \
+  --runtime=nodejs22 \
+  --source="$SOURCE" \
+  --entry-point="$FUNCTION" \
+  --trigger-http \
+  --allow-unauthenticated \
+  --service-account="$SERVICE_ACCOUNT" \
+  --memory=256Mi \
+  --timeout=30s \
+  --max-instances=10 \
+  --quiet
+
+STATE="$(gcloud functions describe "$FUNCTION" --gen2 --project="$PROJECT" --region="$REGION" --format='value(state)')"
+if [[ "$STATE" != "ACTIVE" ]]; then
+  echo "STOP: Function deployment state is '$STATE'."
+  exit 1
+fi
+
+echo "SUCCESS"
+echo "Sender-only group Delete for Everyone is ACTIVE."
