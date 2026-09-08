@@ -87,6 +87,6 @@ assert.match(workflow,/npm run test:outbox-reconciliation-boundary/,"the permane
 
 const worker=readFileSync(new URL("./service-worker.js",import.meta.url),"utf8");
 assert.match(worker,/\.\/outbox-reconciliation-boundary\.js/,"the bounded send dependency must be part of the deterministic offline shell");
-assert.match(worker,/SHELL_REVISION="0\.9\.9\.9x-ios-camera-session"/,"the release must deterministically invalidate the prior shell cache");
+assert.match(worker,/SHELL_REVISION="0\.9\.9\.9y-lte-optimistic-message"/,"the release must deterministically invalidate the prior shell cache");
 
 console.log("Bounded Firebase Outbox reconciliation gate passed");

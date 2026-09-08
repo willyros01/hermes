@@ -1,5 +1,13 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## 0.9.9.9y LTE optimistic outgoing-message visibility
+
+**Status: DEVICE CANDIDATE — Issue 2 only.**
+
+Observed device defect: immediately after Wi-Fi → LTE transition, tapping Send could clear the composer while the outgoing text remained absent from the conversation until much later. Source review isolated the visibility delay to `sendCurrent()`: it staged the row in memory, then awaited encrypted IndexedDB Outbox creation and local-state persistence before the first render.
+
+0.9.9.9y renders the staged row immediately, before any awaited Outbox/persistence work. The existing serialized encrypted Outbox remains the sole durable send authority. If durable queueing fails after the row becomes visible, that same row becomes `failed`; the composer is not silently repopulated with the same text. No Firebase, E2EE, receipt, attachment, group-authority, or layout ownership changes are included. Device acceptance must reproduce Wi-Fi → LTE and confirm one tap produces one immediate bubble which later advances normally.
+
 ## 0.9.9.9x iOS camera-session continuity
 
 Cross-device testing proved 10-second camera videos (~1.5 MB) send and receive, while 20-second captures on both iPhone and iPad return no bubble, warning, or other trace. This occurs before attachment validation or upload: the detached transient file input and immediate background lock do not reliably survive the longer native-camera session. The picker is now mounted under `document.body`, the security monitor defers background locking only while that picker is active, and the exception ends on file return or cancellation. Issues 2 and 3 remain untouched.

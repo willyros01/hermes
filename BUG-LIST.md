@@ -1,5 +1,13 @@
 # FIDUNIO / Hermes Bug List
 
+## 0.9.9.9y LTE optimistic outgoing-message visibility
+
+**Status: DEVICE CANDIDATE — Issue 2 only.**
+
+Observed device defect: immediately after Wi-Fi → LTE transition, tapping Send could clear the composer while the outgoing text remained absent from the conversation until much later. Source review isolated the visibility delay to `sendCurrent()`: it staged the row in memory, then awaited encrypted IndexedDB Outbox creation and local-state persistence before the first render.
+
+0.9.9.9y renders the staged row immediately, before any awaited Outbox/persistence work. The existing serialized encrypted Outbox remains the sole durable send authority. If durable queueing fails after the row becomes visible, that same row becomes `failed`; the composer is not silently repopulated with the same text. No Firebase, E2EE, receipt, attachment, group-authority, or layout ownership changes are included. Device acceptance must reproduce Wi-Fi → LTE and confirm one tap produces one immediate bubble which later advances normally.
+
 ## 0.9.9.9x 20-second iOS video leaves no trace
 
 - **Evidence:** 10-second videos send/receive on iPhone and iPad; 20-second videos on both devices create no conversation row or validation error.

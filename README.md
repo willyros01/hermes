@@ -1,5 +1,9 @@
 # FIDUNIO / Hermes
 
+## 0.9.9.9y — LTE optimistic outgoing-message candidate
+
+Issue 2 is isolated to sender visibility during Wi-Fi → LTE transition. `sendCurrent()` now renders the newly staged outgoing row before awaiting encrypted local Outbox creation or state persistence. Durable send authority, Firebase synchronization, E2EE, receipts, attachments, and responsive layout are unchanged. A permanent regression gate enforces render-before-Outbox ordering and failed-attempt visibility. Real iPhone/iPad LTE acceptance remains required before this issue is closed.
+
 ## Storage download CORS repair
 
 If an encrypted attachment uploads successfully but Safari reports `Manifest download failed (storage/unknown): Load failed`, run the root-level `s.txt` script once in Google Cloud Shell with `bash s.txt`. It grants only the FIDUNIO GitHub Pages origin permission to read Storage objects through browser CORS; Storage security rules and authenticated membership checks remain authoritative.

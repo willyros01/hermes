@@ -1,5 +1,11 @@
 # FIDUNIO Device Acceptance — Current Evidence
 
+## Issue 2 — LTE outgoing-message visibility
+
+**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.9y — 2026-09-08.**
+
+Required acceptance: while a direct conversation is open, switch Wi-Fi off so the device uses LTE, send one unique text, and confirm the outgoing bubble appears immediately without leaving/re-entering the conversation. The row may briefly show Sending/Queued but must remain visible, must not duplicate, and must later advance through the normal cloud state. Repeat once from iPhone and once from iPad. Issue 3 remains untouched.
+
 ## Issue 1 — iOS camera video continuity
 
 **Status: DEVICE ACCEPTED on FIDUNIO 0.9.9.9x — 2026-09-08.**

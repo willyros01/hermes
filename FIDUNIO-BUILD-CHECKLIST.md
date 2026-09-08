@@ -1,5 +1,15 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### Issue 2 LTE outgoing-message visibility — 0.9.9.9y
+
+- [x] Identify the delayed-bubble boundary in `sendCurrent()` before changing transport ownership.
+- [x] Render one staged outgoing row before the first awaited encrypted Outbox/IndexedDB operation.
+- [x] Keep the existing serialized encrypted Outbox as sole durable send authority.
+- [x] Fail an already-visible attempt in place instead of silently restoring duplicate composer text.
+- [x] Add permanent LTE optimistic-message ordering coverage.
+- [ ] Prove Wi-Fi → LTE immediate outgoing visibility and no duplicate send on iPhone.
+- [ ] Repeat the same acceptance on iPad and confirm normal final receipt state.
+
 ## Authoritative publishing rule
 
 - [ ] Every completed and validated build is committed and pushed directly to `main` before it is reported complete.
