@@ -45,7 +45,7 @@ assert.deepEqual(planTimedOutOutboxRequeue({
     {id:"already-attempted",state:"sending"},
     {id:"queued-already",state:"queued"},
     {id:"not-in-outbox",state:"sending"}
-  ]
+  ]}
 }),["never-attempted"],"only an unattempted Outbox-backed Sending row may return to Queued");
 
 {
