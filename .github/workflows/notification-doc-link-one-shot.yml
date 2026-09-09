@@ -1,0 +1,36 @@
+name: Notification architecture documentation one-shot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/notification-doc-link-one-shot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconcile durable notification references
+        run: python notification-doc-link-patch.py
+      - name: Verify authoritative references
+        run: |
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' hermes-memory.txt
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' FIDUNIO-BUILD-CHECKLIST.md
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' CURRENT-REBUILD.md
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' README.md
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' RUNTIME-AUTHORITY-MAP.md
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' architecture-ownership.txt
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' CODING-GUIDELINES.md
+          grep -q 'FCM-NOTIFICATION-ARCHITECTURE.md' FIREBASE-RECOVERY-PROJECT-CONFIG.md
+          git diff --check
+      - name: Commit reconciled durable docs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md CURRENT-REBUILD.md README.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt CODING-GUIDELINES.md FIREBASE-RECOVERY-PROJECT-CONFIG.md
+          git commit -m 'Point durable docs to notification architecture authority'
+          git push
