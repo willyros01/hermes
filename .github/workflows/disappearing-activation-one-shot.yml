@@ -15,7 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply disappearing activation patch
-        run: python disappearing-activation-patch.py
+        run: |
+          python disappearing-cache-prep.py
+          python disappearing-activation-patch.py
       - name: Install root test dependencies
         run: npm install --ignore-scripts
       - name: Run focused disappearing gates
