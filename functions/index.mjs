@@ -1,8 +1,10 @@
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { getMessaging } from "firebase-admin/messaging";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { createRecoveryCallableCore } from "./recovery/e2ee-recovery-callable-core.mjs";
 import { createRecoveryFirestoreAdminRepositories } from "./recovery/e2ee-recovery-firestore-admin-adapter.mjs";
@@ -11,6 +13,8 @@ import { createMessageDeleteAdminRepositories } from "./message-delete/message-d
 import { createDisappearingPurgeExecutor } from "./disappearing/disappearing-purge-executor.js";
 import { createDisappearingPurgeFirestoreAdminRepository } from "./disappearing/disappearing-purge-firestore-admin-adapter.mjs";
 import { runDisappearingPurgeSweep } from "./disappearing/disappearing-scheduler-core.mjs";
+import { createDirectMessageNotificationCore } from "./notification/direct-message-notification-core.mjs";
+import { createDirectNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
 
 if (!getApps().length) initializeApp();
 
@@ -18,6 +22,7 @@ const RECOVERY_MASTER = defineSecret("FIDUNIO_RECOVERY_MASTER_V1");
 const RECOVERY_SERVICE_ACCOUNT = "fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com";
 const MESSAGE_DELETE_SERVICE_ACCOUNT = "fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com";
 const DISAPPEARING_PURGE_SERVICE_ACCOUNT = "fidunio-disappearing-purge@fidunio-fef13.iam.gserviceaccount.com";
+const NOTIFICATION_SERVICE_ACCOUNT = "fidunio-notification@fidunio-fef13.iam.gserviceaccount.com";
 const ATTACHMENT_BUCKET = "fidunio-fef13.firebasestorage.app";
 const db = getFirestore();
 const attachmentBucket=getStorage().bucket(ATTACHMENT_BUCKET);
@@ -25,6 +30,8 @@ const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({
 const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:attachmentBucket});
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
+const {conversationRepo:notificationConversationRepo,deviceRepo:notificationDeviceRepo}=createDirectNotificationAdminRepositories({db});
+const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
 
 function decodeMasterSecret() {
   const raw = String(RECOVERY_MASTER.value() || "");
@@ -113,6 +120,21 @@ export const deleteDirectMessageForEveryoneV1 = onCall(
   request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request)
 );
 
+export const notifyDirectMessageCreatedV1 = onDocumentCreated(
+  {
+    document:"conversations/{conversationId}/messages/{messageId}",
+    region:"us-central1",
+    serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,
+    timeoutSeconds:30,
+    memory:"256MiB",
+    maxInstances:20,
+    retry:false
+  },
+  async event=>{
+    const message=event.data?.data?.();if(!message)return null;
+    return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});
+  }
+);
 
 export const purgeDisappearingMessagesV1 = onSchedule(
   {
