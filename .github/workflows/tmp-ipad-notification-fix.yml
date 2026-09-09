@@ -1,0 +1,123 @@
+name: Temporary iPad notification subscription fix
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'Stage iPad notification subscription fix'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply deterministic subscription correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('app.js'); s=p.read_text()
+          old='beginCloudMessageSubscription(c.id,{force:true});'
+          if s.count(old)!=1: raise SystemExit(f'notification route forced subscription anchor count={s.count(old)}')
+          s=s.replace(old,'beginCloudMessageSubscription(c.id);',1)
+
+          old='''let foregroundRecoveryTail=Promise.resolve();
+let foregroundLifecycleActive=document.visibilityState==="visible";
+function recoverForegroundCloudSession(){
+  const resumeNeeded=!foregroundLifecycleActive;
+  foregroundLifecycleActive=true;
+  const run=foregroundRecoveryTail.then(async()=>{
+    state.online=navigator.onLine;
+    // A notification route owns its one forced direct-message subscription.
+    // Otherwise a genuine background -> foreground transition may rebind once.
+    // Duplicate iOS visibility/pageshow events must never restart the listener.
+    const routed=await applyPendingNotificationRoute();
+    ensureActiveCloudMessageSubscription(resumeNeeded&&!routed);
+    if(state.online) scheduleReconnectRecovery();
+  });
+  foregroundRecoveryTail=run.catch(err=>console.warn("Foreground cloud recovery failed",err));
+  return run;
+}'''
+          new='''let foregroundRecoveryTail=Promise.resolve();
+function recoverForegroundCloudSession(){
+  const run=foregroundRecoveryTail.then(async()=>{
+    state.online=navigator.onLine;
+    // Firestore owns one live listener for the selected conversation. iOS
+    // foreground events must not tear it down and replace it: the SDK resumes
+    // the listener itself. Notification routing changes the selected
+    // conversation when necessary and otherwise reuses the existing stream.
+    await applyPendingNotificationRoute();
+    ensureActiveCloudMessageSubscription();
+    if(state.online) scheduleReconnectRecovery();
+  });
+  foregroundRecoveryTail=run.catch(err=>console.warn("Foreground cloud recovery failed",err));
+  return run;
+}'''
+          if s.count(old)!=1: raise SystemExit('foreground recovery block mismatch')
+          s=s.replace(old,new,1)
+          old='''document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible") void recoverForegroundCloudSession();
+  else foregroundLifecycleActive=false;
+});
+window.addEventListener("pagehide",()=>{foregroundLifecycleActive=false;});'''
+          new='''document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible") void recoverForegroundCloudSession();
+});'''
+          if s.count(old)!=1: raise SystemExit('visibility block mismatch')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('version.js'); s=p.read_text();
+          if s.count('version: "1.1.11"')!=1: raise SystemExit('version anchor mismatch')
+          p.write_text(s.replace('version: "1.1.11"','version: "1.1.12"',1))
+
+          p=Path('service-worker.js'); s=p.read_text();
+          if s.count('SHELL_REVISION="1.1.11-ios-foreground-lifecycle"')!=1: raise SystemExit('SW anchor mismatch')
+          p.write_text(s.replace('SHELL_REVISION="1.1.11-ios-foreground-lifecycle"','SHELL_REVISION="1.1.12-ipad-notification-stream-stability"',1))
+
+          # Carry release assertions forward without weakening their behavioral checks.
+          for t in Path('.').glob('*.test.mjs'):
+            x=t.read_text()
+            x=x.replace('1\\.1\\.11-ios-foreground-lifecycle','1\\.1\\.12-ipad-notification-stream-stability')
+            x=x.replace('1\\.1\\.11','1\\.1\\.12')
+            t.write_text(x)
+
+          gate='''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst app=readFileSync("app.js","utf8"),sw=readFileSync("service-worker.js","utf8"),version=readFileSync("version.js","utf8");\nconst route=app.match(/async function applyPendingNotificationRoute\\(\\)\\{[\\s\\S]*?notificationRouteRunning=false;[\\s\\S]*?\\}/u)?.[0]||"";\nassert.ok(route,"notification route owner missing");\nassert.match(route,/beginCloudMessageSubscription\\(c\\.id\\);/u,"route must reuse the selected conversation stream when already active");\nassert.doesNotMatch(route,/beginCloudMessageSubscription\\(c\\.id,\\{force:true\\}\\)/u,"notification tap must not force-restart the same Firestore stream");\nconst recovery=app.match(/let foregroundRecoveryTail=Promise\\.resolve\\(\\);[\\s\\S]*?window\\.addEventListener\\(\"online\"/u)?.[0]||"";\nassert.match(recovery,/await applyPendingNotificationRoute\\(\\);/u);\nassert.match(recovery,/ensureActiveCloudMessageSubscription\\(\\);/u,"foreground recovery must preserve the existing Firestore listener");\nassert.doesNotMatch(recovery,/ensureActiveCloudMessageSubscription\\(true\\)|resumeNeeded|foregroundLifecycleActive/u,"iOS foreground recovery must not force-rebind the live stream");\nassert.match(version,/version: \"1\\.1\\.12\"/u);\nassert.match(sw,/SHELL_REVISION=\"1\\.1\\.12-ipad-notification-stream-stability\"/u);\nconsole.log("iPad notification stream-stability gate passed");\n'''
+          Path('ipad-notification-stream-stability.test.mjs').write_text(gate)
+
+          wf=Path('.github/workflows/rebuild-baseline-security.yml'); w=wf.read_text()
+          anchor='      - {name: iOS foreground lifecycle stabilization, run: node ios-foreground-lifecycle.test.mjs}\n'
+          if w.count(anchor)!=1: raise SystemExit(f'baseline anchor count={w.count(anchor)}')
+          w=w.replace(anchor,anchor+'      - {name: iPad notification stream stability, run: node ipad-notification-stream-stability.test.mjs}\n',1)
+          wf.write_text(w)
+
+          note='''### FIDUNIO 1.1.12 — iPad notification stream stability\n\nReal-device 1.1.11 evidence disproved the Settings-hydration theory for the remaining delay: User Administration and related Settings panels were already ready when checked, while the notified message became even slower on iPad. Source tracing isolated a more direct message-path collision. A notification route used `force:true` on the active conversation subscription, and 1.1.11 foreground recovery could force another rebind. The Firebase subscription owner deliberately retains a just-closed stream briefly and, on same-conversation reuse, performs an additional query before serializing delivery. On iPad this creates avoidable work exactly during notification resume. 1.1.12 removes forced same-conversation restarts from notification routing and iOS foreground recovery. The one existing Firestore listener is retained and allowed to resume; switching to a different conversation still selects/subscribes normally. The already-correct Settings publication change from 1.1.11 is retained. No timer, reload, observer, second message fetch owner, E2EE change, receipt change, FCM payload change, or iPad layout change is introduced. Device acceptance is required, with iPad as the primary criterion.\n\n'''
+          for name in ['CURRENT-REBUILD.md','hermes-memory.txt']:
+            q=Path(name); q.write_text(note+q.read_text())
+
+          readme='''## 1.1.12 — iPad notification stream stability — 2026-09-09\n\n- Real-device 1.1.11 result: Settings account panels were already available, but notified-message display became slower on iPad.\n- Source correction: notification routing and foreground resume no longer force-restart an already-owned direct-message Firestore stream.\n- The existing listener remains the sole live message owner and is allowed to resume naturally; conversation changes still subscribe through the same owner.\n- The 1.1.11 Settings stability correction remains in place.\n- No Firebase backend deployment is required. iPad notification-tap latency is the primary device acceptance criterion.\n\n'''
+          q=Path('README.md'); q.write_text(readme+q.read_text())
+
+          bug='''### DA-NOTIF-003 — iPad notified-message delay worsened by same-stream rebind\n- Build observed: 1.1.11.\n- Device evidence: iPad notified-message display became slower; Settings/User Administration was already ready when checked.\n- Revised diagnosis: remaining delay is in direct-message subscription resume, not Settings hydration. Notification routing plus foreground lifecycle could force-restart the same conversation stream and trigger the subscription owner's same-stream catch-up query/serialized delivery path.\n- Repair candidate: 1.1.12 retains the live stream and removes forced same-conversation rebinds.\n- Status: REPOSITORY CANDIDATE; device acceptance pending.\n- Exit: notification tap on iPad opens the intended conversation and the notified message appears promptly without a growing delay.\n\n'''
+          for name in ['BUG-LIST.md','DEVICE-ACCEPTANCE-BUGS.md']:
+            q=Path(name); q.write_text(bug+q.read_text())
+
+          checklist='''### 1.1.12 iPad notification stream-stability candidate\n- [x] Retain one live Firestore message listener for the selected conversation.\n- [x] Notification route does not force-restart an already-selected conversation stream.\n- [x] iOS foreground recovery does not force-rebind the live stream.\n- [x] Preserve 1.1.11 Settings stability correction.\n- [x] Bump visible version and service-worker revision for deterministic cache retirement.\n- [ ] Full repository security gate green for exact final commit.\n- [ ] GitHub Pages deploy green for exact final commit.\n- [ ] iPad notification-tap notified-message latency accepted.\n- [ ] iPhone notification-tap regression check accepted.\n\n'''
+          q=Path('FIDUNIO-BUILD-CHECKLIST.md'); q.write_text(checklist+q.read_text())
+
+          det='''\n## 1.1.12 iOS message-stream ownership refinement\nA foreground lifecycle event is not authority to replace the active Firestore message listener. The existing selected-conversation stream remains owned by the Firebase/message subscription path and is allowed to resume naturally. Notification routing changes the selected conversation when needed but does not force-restart an already-active stream. This prevents lifecycle and route events from creating duplicate same-stream catch-up work on iPad.\n'''
+          q=Path('DETERMINISTIC-UI-LIFECYCLE.md'); q.write_text(q.read_text()+det)
+          PY
+      - name: Run focused gate
+        run: node ipad-notification-stream-stability.test.mjs
+      - name: Commit correction
+        run: |
+          git config user.name "willyros01"
+          git config user.email "willyros01@gmail.com"
+          git add app.js version.js service-worker.js '*.test.mjs' .github/workflows/rebuild-baseline-security.yml CURRENT-REBUILD.md hermes-memory.txt README.md BUG-LIST.md DEVICE-ACCEPTANCE-BUGS.md FIDUNIO-BUILD-CHECKLIST.md DETERMINISTIC-UI-LIFECYCLE.md
+          git commit -m "Stabilize iPad notification message stream"
+          git push origin HEAD:main
