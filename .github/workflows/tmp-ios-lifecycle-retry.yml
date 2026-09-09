@@ -1,0 +1,43 @@
+name: Temporary iOS lifecycle retry
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'Retry deterministic iOS lifecycle writer'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply corrected writer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          src=Path('.github/workflows/tmp-ios-lifecycle-fix.yml').read_text()
+          start=src.index("          python - <<'PY'\n")+len("          python - <<'PY'\n")
+          end=src.index("\n          PY\n",start)
+          script=src[start:end]
+          script='\n'.join(line[10:] if line.startswith('          ') else line for line in script.splitlines())
+          old="""anchor='''      - name: Notification tap message projection\\n        run: node notification-message-projection.test.mjs\\n'''\naddition=anchor+'''      - name: iOS foreground lifecycle stabilization\\n        run: node ios-foreground-lifecycle.test.mjs\\n'''"""
+          new="""anchor='''      - {name: Notification tap message projection, run: node notification-message-projection.test.mjs}\\n'''\naddition=anchor+'''      - {name: iOS foreground lifecycle stabilization, run: node ios-foreground-lifecycle.test.mjs}\\n'''"""
+          if old not in script:
+              raise SystemExit('embedded workflow anchor patch not found')
+          script=script.replace(old,new,1)
+          exec(compile(script,'embedded-ios-lifecycle-writer','exec'),{'__name__':'__main__'})
+          PY
+      - name: Run focused lifecycle gate
+        run: node ios-foreground-lifecycle.test.mjs
+      - name: Commit deterministic correction
+        run: |
+          rm -f .github/workflows/tmp-ios-lifecycle-retry.yml
+          git config user.name "willyros01"
+          git config user.email "willyros01@gmail.com"
+          git add -A
+          git commit -m "Stabilize deterministic iOS foreground lifecycle"
+          git push origin HEAD:main
