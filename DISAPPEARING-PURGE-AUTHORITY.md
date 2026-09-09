@@ -1,8 +1,8 @@
 # FIDUNIO Disappearing-Content Purge Authority
 
-**STATUS: BINDING REBUILD SECURITY CONTRACT — REPOSITORY FOUNDATION ONLY**
+**STATUS: BINDING SECURITY CONTRACT — LIVE TEXT PURGE BACKEND DEPLOYED; DEVICE ACCEPTANCE PENDING**
 
-This document defines the single physical-deletion ownership boundary for disappearing content. It does not authorize a live Firebase deployment.
+This document defines the single physical-deletion ownership boundary for disappearing content. Live text-only activation is now deployed for `disappearingPurgeVersion: 1` through the reviewed server scheduler/Firestore path. Attachments remain intentionally non-disappearing until server Storage trace cleanup satisfies the same source-delete-last contract.
 
 ## Core invariant
 

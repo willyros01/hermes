@@ -9,7 +9,7 @@
 - [x] Preserve direct/group first-Read duration semantics and authoritative local anti-resurrection convergence.
 - [x] Extend exact Firestore create schemas for the bounded optional activation marker.
 - [x] Add permanent disappearing activation gate and deployment-mirror drift gate.
-- [ ] Deploy/verify reviewed Firestore rules, dedicated purge IAM, and scheduled Function to live `fidunio-fef13`.
+- [x] Deploy/verify reviewed Firestore rules, dedicated purge IAM, and scheduled Function to live `fidunio-fef13`. Evidence: Cloud Shell SUCCESS; Function `purgeDisappearingMessagesV1` ACTIVE; dedicated runtime SA verified; scheduler present; Firestore rules deployed.
 - [ ] Device-confirm direct 5-minute disappearing text from Read -> physical absence on sender and recipient.
 - [ ] Device-confirm group 5-minute disappearing text with all entitled recipients Read -> physical absence.
 - [ ] Device-confirm unread message does not disappear and offline/reopen does not resurrect a purged message.
