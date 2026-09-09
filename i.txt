@@ -9,10 +9,13 @@ trap 'rm -rf "$WORK"' EXIT
 RAW="https://raw.githubusercontent.com/willyros01/hermes/$COMMIT"
 curl --retry 3 --retry-delay 2 -fsSL "$RAW/firebase.json" -o "$WORK/firebase.json"
 curl --retry 3 --retry-delay 2 -fsSL "$RAW/firestore.indexes.json" -o "$WORK/firestore.indexes.json"
+# Firebase CLI parses the full Firestore stanza even for --only firestore:indexes,
+# so the reviewed rules companion must be present in this isolated work directory.
+curl --retry 3 --retry-delay 2 -fsSL "$RAW/firestore.rules" -o "$WORK/firestore.rules"
 echo "Deploying reviewed disappearing-message Firestore collection-group index..."
 cd "$WORK"
 firebase deploy --project "$PROJECT" --only firestore:indexes --non-interactive
 echo "Index deployment accepted. Waiting for scheduler to retry..."
 sleep 75
 gcloud scheduler jobs describe "$JOB" --location="$REGION" --project="$PROJECT" --format="yaml(state,lastAttemptTime,status,httpTarget.uri)"
-echo "If status is empty or code is 0, scheduler invocation is healthy. If a nonzero code remains, wait 60 seconds and run: bash i.txt again only after consulting ChatGPT."
+echo "If status is empty or code is 0, scheduler invocation is healthy. If a nonzero code remains, wait 60 seconds and consult ChatGPT before retrying."
