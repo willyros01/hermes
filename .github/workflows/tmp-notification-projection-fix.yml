@@ -67,12 +67,12 @@ jobs:
           fcm=Path('FCM-NOTIFICATION-ARCHITECTURE.md')
           ft=fcm.read_text()
           checkpoint='''\n## FIDUNIO 1.1.10 notification-tap projection checkpoint — 2026-09-09\n\nAfter a valid notification route selects the authoritative direct conversation, the existing direct Firestore subscription remains the sole message owner. Once that subscription has decrypted/projected an authoritative snapshot into application state, the active chat must render that state before waiting for encrypted local-history persistence or the existing Read-receipt network write. Persistence still precedes receipt mutation. Notification metadata still never manufactures a message row. No timer, reload, observer, second message fetcher, or second projection owner is allowed.\n'''
-          if checkpoint not in ft: fcm.write_text(ft.rstrip()+checkpoint+'\n')
+          if checkpoint not in ft: fcm.write_text((ft.rstrip()+checkpoint).rstrip()+'\n')
 
           bug=Path('BUG-LIST.md')
           bt=bug.read_text()
           note='''\n### Notification tap opens chat before new message appears — FIX CANDIDATE 1.1.10\nObserved after 1.1.9 sender-name notification acceptance: tapping a notification routes to the correct direct chat, but the newly notified message can remain absent until local persistence and Read-receipt network work complete. 1.1.10 renders the authoritative subscription projection immediately before those awaits while preserving persistence-before-receipt ordering. Device acceptance pending.\n'''
-          if note not in bt: bug.write_text(bt.rstrip()+note+'\n')
+          if note not in bt: bug.write_text((bt.rstrip()+note).rstrip()+'\n')
           PY
 
           rm .github/workflows/tmp-notification-projection-fix.yml
