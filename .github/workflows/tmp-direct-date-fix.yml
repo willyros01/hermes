@@ -1,0 +1,63 @@
+name: Temporary direct date timestamp fix
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tmp-direct-date-fix.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build 0.9.9.18 direct date timestamp fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p=Path(path); s=p.read_text()
+              if old not in s: raise SystemExit(f'anchor missing: {path}')
+              p.write_text(s.replace(old,new,count))
+
+          p=Path('app.js'); s=p.read_text()
+          old='remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null,disappearingPurgeVersion:m.disappearingPurgeVersion??null});'
+          new='remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",createdAt:m.createdAt?.toDate?.()||m.createdAt||null,state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null,disappearingPurgeVersion:m.disappearingPurgeVersion??null});'
+          if old not in s: raise SystemExit('direct projection anchor missing')
+          p.write_text(s.replace(old,new,1))
+
+          replace('version.js','version: "0.9.9.17"','version: "0.9.9.18"')
+          replace('service-worker.js','SHELL_REVISION="0.9.9.17-all-chat-date-separators"','SHELL_REVISION="0.9.9.18-direct-date-createdat"')
+          for f in ['outbox-reconciliation-boundary.test.mjs','direct-message-basic-path.test.mjs']:
+              q=Path(f); t=q.read_text()
+              if '0.9.9.17-all-chat-date-separators' in t:
+                  t=t.replace('0.9.9.17-all-chat-date-separators','0.9.9.18-direct-date-createdat')
+              elif '0\\.9\\.9\\.17-all-chat-date-separators' in t:
+                  t=t.replace('0\\.9\\.9\\.17-all-chat-date-separators','0\\.9\\.9\\.18-direct-date-createdat')
+              else: raise SystemExit(f'cache anchor missing: {f}')
+              q.write_text(t)
+
+          test=Path('group-date-separator.test.mjs')
+          t=test.read_text()
+          add='assert.ok(app.includes(\'createdAt:m.createdAt?.toDate?.()||m.createdAt||null\'),"direct cloud projection must retain authoritative createdAt for date separators");\n'
+          if add not in t:
+              t=t.replace('console.log("All-conversation date separator gate passed");',add+'console.log("All-conversation date separator gate passed");')
+          test.write_text(t)
+
+          prefixes={
+            'CURRENT-REBUILD.md':'### DIRECT DATE TIMESTAMP CORRECTION — 0.9.9.18\n\n0.9.9.17 correctly broadened the date-separator renderer to direct chats, but real-device testing proved direct rows still showed no date. Root cause: the direct Firestore projection dropped authoritative message `createdAt` while constructing display rows. 0.9.9.18 preserves `createdAt` in that existing projection so the same accepted day-separator renderer can classify direct messages. No Firebase write, E2EE, receipt, Outbox, disappearing-content, attachment, or group authority changed. Release cache revision is bumped.\n\n',
+            'hermes-memory.txt':'DIRECT DATE TIMESTAMP CORRECTION (0.9.9.18): 0.9.9.17 failed device acceptance because direct-message projection omitted Firestore `createdAt`; renderer therefore had no day key. Preserve `createdAt` in the existing direct projection. Date rendering remains one shared owner for direct and group. Visible version and service-worker shell revision must both bump on every release.\n\n',
+            'DEVICE-ACCEPTANCE-BUGS.md':'## Direct chat date separators — 0.9.9.18 correction\n\n**Status: DEVICE CANDIDATE.** 0.9.9.17 failed: direct chats showed no date separator. Root cause was projection loss of authoritative Firestore `createdAt`, not the renderer. 0.9.9.18 carries `createdAt` into direct display rows. Confirm existing and new direct messages show the horizontal-line `Month D, YYYY` separator, same-day messages share one separator, times remain visible, and close/reopen preserves it.\n\n'
+          }
+          for f,x in prefixes.items():
+              q=Path(f); q.write_text(x+q.read_text())
+
+          q=Path('FIDUNIO-BUILD-CHECKLIST.md'); t=q.read_text()
+          line='- [ ] **Direct chat date separators — 0.9.9.18 correction:** preserve authoritative direct-message `createdAt` through projection so the shared date separator can render; pending device acceptance.\n'
+          if line not in t: q.write_text(line+t)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app.js version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs group-date-separator.test.mjs CURRENT-REBUILD.md hermes-memory.txt DEVICE-ACCEPTANCE-BUGS.md FIDUNIO-BUILD-CHECKLIST.md
+          git commit -m "Preserve direct message createdAt for date separators"
+          git push
