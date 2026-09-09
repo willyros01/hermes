@@ -1,0 +1,77 @@
+name: Temporary group sender time build
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tmp-group-sender-time-build.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply bounded 0.9.9.15 sender-time build
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p=Path(path); s=p.read_text()
+              if old not in s:
+                  raise SystemExit(f'anchor missing: {path}: {old[:100]!r}')
+              p.write_text(s.replace(old,new,count))
+
+          # App: keep date separators and existing bubble time, and ALSO show
+          # the message time beside the creator name for group messages only.
+          p=Path('app.js'); s=p.read_text()
+          old='''    ${groupSender?`<div class="sender-label">${esc(groupSender)}</div>`:""}\n    <div class="bubble">'''
+          new='''    ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span></div>`:""}\n    <div class="bubble">'''
+          if old not in s: raise SystemExit('sender label render anchor missing')
+          p.write_text(s.replace(old,new,1))
+
+          css=Path('styles.css'); c=css.read_text()
+          marker='/* 0.9.9.15 group sender time */'
+          if marker not in c:
+              c += '''\n\n/* 0.9.9.15 group sender time */\n.sender-label{display:flex;align-items:baseline;gap:7px}\n.sender-label .sender-name{font-weight:700}\n.sender-label .sender-time{font-size:.82em;font-weight:500;opacity:.72;white-space:nowrap}\n'''
+              css.write_text(c)
+
+          replace('version.js','version: "0.9.9.14"','version: "0.9.9.15"')
+          replace('service-worker.js','SHELL_REVISION="0.9.9.14-group-date-separators"','SHELL_REVISION="0.9.9.15-group-sender-time"')
+
+          # Keep cache revision regression assertions aligned with the release.
+          for f in ['outbox-reconciliation-boundary.test.mjs','direct-message-basic-path.test.mjs']:
+              q=Path(f)
+              t=q.read_text()
+              if '0.9.9.14-group-date-separators' not in t:
+                  raise SystemExit(f'cache revision anchor missing: {f}')
+              q.write_text(t.replace('0.9.9.14-group-date-separators','0.9.9.15-group-sender-time'))
+
+          # Permanent regression gate for exact requested presentation.
+          Path('group-sender-time.test.mjs').write_text('''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst app=readFileSync("app.js","utf8");\nconst css=readFileSync("styles.css","utf8");\nassert.ok(app.includes('const groupSender=groupSenderDisplayName(m,c)'),"group sender identity owner must remain unchanged");\nassert.ok(app.includes('<span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span>'),"group creator name must show message time beside it");\nassert.ok(app.includes('<div class="msg-meta"><span>${esc(m.time)}</span>'),"existing per-message time metadata must remain present as requested in addition to sender-line time");\nassert.ok(app.includes('function renderConversationMessages(msgs,c)'),"0.9.9.14 date separators must remain intact");\nassert.ok(app.includes('messageDayKey(m?.createdAt)'),"date separator grouping must remain createdAt-based");\nassert.ok(css.includes('.sender-label .sender-time'),"sender-line time must have bounded presentation styling");\nconsole.log("Group sender-time gate passed");\n''')
+
+          wf=Path('.github/workflows/rebuild-baseline-security.yml'); w=wf.read_text()
+          anchor='      - {name: Group date separators, run: node group-date-separator.test.mjs}\n'
+          gate='      - {name: Group sender time, run: node group-sender-time.test.mjs}\n'
+          if gate not in w:
+              if anchor not in w: raise SystemExit('group date baseline anchor missing')
+              wf.write_text(w.replace(anchor,anchor+gate,1))
+
+          prefixes={
+            'CURRENT-REBUILD.md':'''### GROUP SENDER TIME CANDIDATE — 0.9.9.15\n\nGroup conversations retain the accepted horizontal-line date separators from 0.9.9.14 and now also show each message's existing time immediately beside the message creator's displayed name. This is additive presentation only: the existing time inside message metadata remains unchanged, direct-message sender presentation remains unchanged, and no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority changed.\n\n''',
+            'hermes-memory.txt':'''GROUP SENDER TIME CANDIDATE (0.9.9.15): Preserve 0.9.9.14 group date separators. For each group message, render the message's existing display time immediately beside the resolved sender name (for example `Willy  10:42 PM`). Keep the existing per-message time metadata as well; this request is additive. Direct-message sender presentation remains unchanged. No messaging/Firebase/E2EE authority changed.\n\n''',
+            'DEVICE-ACCEPTANCE-BUGS.md':'''## Group sender time — 0.9.9.15\n\n**Status: DEVICE CANDIDATE.** Confirm on iPhone/iPad that each group message shows the creator name with that message's time immediately beside the name, the 0.9.9.14 date separator remains correct, same-day messages do not repeat the date, sender names remain correct, and close/reopen preserves the layout.\n\n'''
+          }
+          for f,x in prefixes.items():
+              q=Path(f); q.write_text(x+q.read_text())
+
+          checklist=Path('FIDUNIO-BUILD-CHECKLIST.md'); t=checklist.read_text()
+          anchor='- [ ] **Group date separators — 0.9.9.14 candidate:** horizontal-line `Month D, YYYY` demarcation at group calendar-day boundaries while every message keeps time only; pending iPhone/iPad device acceptance.\n'
+          replacement=anchor+'- [ ] **Group sender time — 0.9.9.15 candidate:** retain group date separators and add each message time immediately beside the creator name; existing message metadata time remains present; pending iPhone/iPad device acceptance.\n'
+          if anchor not in t: raise SystemExit('checklist date candidate anchor missing')
+          checklist.write_text(t.replace(anchor,replacement,1))
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app.js styles.css version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs group-sender-time.test.mjs .github/workflows/rebuild-baseline-security.yml CURRENT-REBUILD.md hermes-memory.txt DEVICE-ACCEPTANCE-BUGS.md FIDUNIO-BUILD-CHECKLIST.md
+          git commit -m "Add time beside group sender name"
+          git push
