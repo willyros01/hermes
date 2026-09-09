@@ -2,6 +2,11 @@
 
 ### Disappearing text activation — 0.9.9.12
 
+- [x] Diagnose live Test 1 no-purge failure from Cloud Function logs: missing `COLLECTION_GROUP ASCENDING` index for `messages.disappearingPurgeVersion`.
+- [x] Add durable `firestore.indexes.json` authority and wire it through `firebase.json`.
+- [x] Add permanent disappearing index wiring gate.
+- [ ] Deploy the reviewed Firestore index to live `fidunio-fef13` and verify scheduler invocation returns success.
+
 - [x] Preserve server-time-only eligibility and the existing single purge executor/repository path.
 - [x] Add explicit activation marker `disappearingPurgeVersion: 1` only to newly sent disappearing text.
 - [x] Exclude pre-activation rows and attachment payloads from scheduler discovery.

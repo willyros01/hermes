@@ -1,3 +1,7 @@
+### DISAPPEARING LIVE INDEX REPAIR — 0.9.9.12
+
+Real-device Test 1 proved send and authoritative Read but no purge. Live Function logs isolated the backend failure to `FAILED_PRECONDITION`: the scheduler collection-group query on `messages.disappearingPurgeVersion` lacked its required `COLLECTION_GROUP ASCENDING` Firestore field index. `firestore.indexes.json` is now durable deployment authority for this index and `firebase.json` explicitly references it. Future disappearing scheduler deployment must include Firestore indexes and must verify a successful post-index scheduler invocation; ACTIVE Function + existing scheduler alone is insufficient live proof.
+
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
 ### Disappearing text activation — 0.9.9.12
