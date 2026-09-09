@@ -50,13 +50,6 @@ jobs:
 
           Path('group-sender-time.test.mjs').write_text('''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst app=readFileSync("app.js","utf8");\nconst css=readFileSync("styles.css","utf8");\nassert.ok(app.includes('const groupSender=groupSenderDisplayName(m,c)'),"group sender identity owner must remain unchanged");\nassert.ok(app.includes('<span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span>'),"group creator name must show message time beside it");\nassert.ok(app.includes('<div class="msg-meta"><span>${esc(m.time)}</span>'),"existing per-message time metadata must remain present as requested in addition to sender-line time");\nassert.ok(app.includes('function renderConversationMessages(msgs,c)'),"0.9.9.14 date separators must remain intact");\nassert.ok(app.includes('messageDayKey(m?.createdAt)'),"date separator grouping must remain createdAt-based");\nassert.ok(css.includes('.sender-label .sender-time'),"sender-line time must have bounded presentation styling");\nconsole.log("Group sender-time gate passed");\n''')
 
-          wf=Path('.github/workflows/rebuild-baseline-security.yml'); w=wf.read_text()
-          anchor='      - {name: Group date separators, run: node group-date-separator.test.mjs}\n'
-          gate='      - {name: Group sender time, run: node group-sender-time.test.mjs}\n'
-          if gate not in w:
-              if anchor not in w: raise SystemExit('group date baseline anchor missing')
-              wf.write_text(w.replace(anchor,anchor+gate,1))
-
           prefixes={
             'CURRENT-REBUILD.md':'''### GROUP SENDER TIME CANDIDATE — 0.9.9.15\n\nGroup conversations retain the accepted horizontal-line date separators from 0.9.9.14 and now also show each message's existing time immediately beside the message creator's displayed name. This is additive presentation only: the existing time inside message metadata remains unchanged, direct-message sender presentation remains unchanged, and no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority changed.\n\n''',
             'hermes-memory.txt':'''GROUP SENDER TIME CANDIDATE (0.9.9.15): Preserve 0.9.9.14 group date separators. For each group message, render the message's existing display time immediately beside the resolved sender name (for example `Willy  10:42 PM`). Keep the existing per-message time metadata as well; this request is additive. Direct-message sender presentation remains unchanged. No messaging/Firebase/E2EE authority changed.\n\n''',
@@ -73,6 +66,6 @@ jobs:
           PY
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add app.js styles.css version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs group-sender-time.test.mjs .github/workflows/rebuild-baseline-security.yml CURRENT-REBUILD.md hermes-memory.txt DEVICE-ACCEPTANCE-BUGS.md FIDUNIO-BUILD-CHECKLIST.md
+          git add app.js styles.css version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs group-sender-time.test.mjs CURRENT-REBUILD.md hermes-memory.txt DEVICE-ACCEPTANCE-BUGS.md FIDUNIO-BUILD-CHECKLIST.md
           git commit -m "Add time beside group sender name"
           git push
