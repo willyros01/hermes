@@ -24,6 +24,6 @@ assert.match(app,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)/);
 assert.match(app,/state\.selectedId=c\.id;state\.route="chat"/);
 assert.match(app,/unlockLocalApp\(\)[\s\S]*?applyPendingNotificationRoute\(\)/);
 assert.doesNotMatch(app,/pendingNotificationRoute[\s\S]{0,500}state\.messages\[/);
-assert.match(sw,/SHELL_REVISION="1\.1\.9-fcm-sender-name"/);
-assert.match(version,/version: "1\.1\.9"/);
+assert.match(sw,/SHELL_REVISION="1\.1\.10-notification-message-projection"/);
+assert.match(version,/version: "1\.1\.10"/);
 console.log("FCM N5 notification tap routing gate passed");
