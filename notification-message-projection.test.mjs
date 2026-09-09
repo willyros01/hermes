@@ -11,7 +11,7 @@ const receipt=app.indexOf("await markCloudConversationRead(conversationId);",per
 assert.ok(projected>=0&&visible>projected,"authoritative projection must drive the visible chat");
 assert.ok(visible<cache,"visible incoming message must render before local durability awaits");
 assert.ok(cache<persist&&persist<receipt,"local durability must remain before Read-receipt network work");
-assert.match(version,/version: "1\.1\.10"/);
-assert.match(sw,/SHELL_REVISION="1\.1\.10-notification-message-projection"/);
+assert.match(version,/version: "1\.1\.11"/);
+assert.match(sw,/SHELL_REVISION="1\.1\.11-ios-foreground-lifecycle"/);
 assert.doesNotMatch(app,/setTimeout\([^)]*notification|location\.reload\(\).*notification/i);
 console.log("Notification-tap message projection latency gate passed");
