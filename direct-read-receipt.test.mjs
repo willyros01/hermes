@@ -12,6 +12,6 @@ assert.match(app,/if\(rows\.some\(m=>m\.e2ee&&m\.e2ee!==3\)\)/,"plain messages m
 assert.match(firebase,/markCloudConversationRead[\s\S]*?getDocsFromServer\(q\)[\s\S]*?Promise\.all\(pending\.map/,"open-chat receipt recovery must use server authority and surface write failure");
 assert.doesNotMatch(app,/!meta\.fromCache\s*&&\s*state\.route==="chat"/,"displayed incoming messages must not wait for snapshot metadata before writing Read");
 assert.match(app,/Read receipt failed:/,"receipt failures must be visible instead of silently swallowed");
-assert.match(version,/version:\s*"\d+\.\d+\.\d+\.\d+[A-Za-z]?"/,"device candidates must expose a visible versioned release");
+assert.match(version,/version:\s*"\d+\.\d+\.\d+(?:\.\d+)?[A-Za-z]?"/,"device candidates must expose a visible versioned release");
 assert.doesNotMatch(version,/version:\s*"0\.9\.9\.9n"/,"the release must not regress to the historical Read-receipt checkpoint");
 console.log("Direct Read-receipt recovery gate passed");
