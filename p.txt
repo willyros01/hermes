@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+REGION="us-central1"
+FUNCTION="purgeDisappearingMessagesV1"
+CODEBASE="recovery"
+SERVICE_ACCOUNT="fidunio-disappearing-purge@fidunio-fef13.iam.gserviceaccount.com"
+COMMIT="48797ad41ade2cb3becadf9e2b0c6f73f104c82c"
+SCRIPT_VERSION="0.9.9.12-a"
+
+ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
+if [[ "$ACTIVE_PROJECT" != "$PROJECT" ]]; then
+  echo "STOP: Cloud Shell project is '$ACTIVE_PROJECT', expected '$PROJECT'."
+  exit 1
+fi
+
+if ! command -v firebase >/dev/null 2>&1; then
+  echo "Firebase CLI not found; installing firebase-tools..."
+  npm install -g firebase-tools
+fi
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+ROOT="$WORK/fidunio"
+SOURCE="$ROOT/functions"
+mkdir -p "$SOURCE/recovery" "$SOURCE/message-delete" "$SOURCE/disappearing"
+RAW="https://raw.githubusercontent.com/willyros01/hermes/$COMMIT"
+
+echo "FIDUNIO disappearing-text activation deployment"
+echo "Project: $PROJECT"
+echo "Region: $REGION"
+echo "Script: $SCRIPT_VERSION"
+echo "Pinned source: $COMMIT"
+
+download_root(){
+  local file="$1"
+  curl --retry 3 --retry-delay 2 -fsSL "$RAW/$file" -o "$ROOT/$file"
+}
+download_function(){
+  local file="$1"
+  curl --retry 3 --retry-delay 2 -fsSL "$RAW/functions/$file" -o "$SOURCE/$file"
+}
+
+download_root "firebase.json"
+download_root "firestore.rules"
+download_function "package.json"
+download_function "package-lock.json"
+download_function "index.mjs"
+download_function "recovery/e2ee-recovery-callable-core.mjs"
+download_function "recovery/e2ee-recovery-firestore-admin-adapter.mjs"
+download_function "recovery/e2ee-recovery-server-crypto.mjs"
+download_function "recovery/e2ee-recovery-session-policy.mjs"
+download_function "message-delete/message-delete-callable-core.mjs"
+download_function "message-delete/message-delete-firestore-admin-adapter.mjs"
+download_function "disappearing/disappearing-purge-policy.js"
+download_function "disappearing/disappearing-purge-executor.js"
+download_function "disappearing/disappearing-purge-firestore-admin-adapter.mjs"
+download_function "disappearing/disappearing-group-grant-trace-plan.js"
+download_function "disappearing/disappearing-scheduler-core.mjs"
+
+if ! grep -q 'purgeDisappearingMessagesV1' "$SOURCE/index.mjs"; then
+  echo "STOP: Pinned source does not export the reviewed disappearing purge scheduler."
+  exit 1
+fi
+if ! grep -q 'disappearingPurgeVersion' "$ROOT/firestore.rules"; then
+  echo "STOP: Pinned Firestore rules do not contain the reviewed activation marker."
+  exit 1
+fi
+if ! grep -q 'every 1 minutes' "$SOURCE/index.mjs"; then
+  echo "STOP: Pinned scheduler cadence is not the reviewed one-minute cadence."
+  exit 1
+fi
+
+if ! gcloud iam service-accounts describe "$SERVICE_ACCOUNT" --project="$PROJECT" >/dev/null 2>&1; then
+  echo "Creating dedicated disappearing-purge service account..."
+  gcloud iam service-accounts create fidunio-disappearing-purge \
+    --project="$PROJECT" \
+    --display-name="FIDUNIO Disappearing Purge" \
+    --description="Dedicated runtime identity for trace-free disappearing text purge"
+fi
+
+echo "Ensuring least-purpose Firestore runtime access..."
+gcloud projects add-iam-policy-binding "$PROJECT" \
+  --member="serviceAccount:$SERVICE_ACCOUNT" \
+  --role="roles/datastore.user" \
+  --condition=None \
+  --quiet >/dev/null
+
+cd "$ROOT"
+
+echo "Deploying scheduled purge owner FIRST..."
+firebase deploy \
+  --project "$PROJECT" \
+  --only "functions:$CODEBASE:$FUNCTION" \
+  --non-interactive
+
+STATE="$(gcloud functions describe "$FUNCTION" --gen2 --project="$PROJECT" --region="$REGION" --format='value(state)')"
+RUNTIME_SA="$(gcloud functions describe "$FUNCTION" --gen2 --project="$PROJECT" --region="$REGION" --format='value(serviceConfig.serviceAccountEmail)')"
+if [[ "$STATE" != "ACTIVE" ]]; then
+  echo "STOP: Function deployment state is '$STATE'. Firestore rules were NOT changed."
+  exit 1
+fi
+if [[ "$RUNTIME_SA" != "$SERVICE_ACCOUNT" ]]; then
+  echo "STOP: Function runtime service account is '$RUNTIME_SA', expected '$SERVICE_ACCOUNT'. Firestore rules were NOT changed."
+  exit 1
+fi
+
+SCHEDULER_MATCH="$(gcloud scheduler jobs list --location="$REGION" --project="$PROJECT" --filter="name~${FUNCTION}" --format='value(name)' | head -n 1 || true)"
+if [[ -z "$SCHEDULER_MATCH" ]]; then
+  echo "STOP: Scheduled trigger for $FUNCTION was not found. Firestore rules were NOT changed."
+  exit 1
+fi
+
+echo "Scheduled purge owner verified ACTIVE. Deploying reviewed Firestore rules..."
+firebase deploy \
+  --project "$PROJECT" \
+  --only firestore:rules \
+  --non-interactive
+
+echo "Final verification..."
+STATE="$(gcloud functions describe "$FUNCTION" --gen2 --project="$PROJECT" --region="$REGION" --format='value(state)')"
+if [[ "$STATE" != "ACTIVE" ]]; then
+  echo "STOP: Function is no longer ACTIVE after rules deployment."
+  exit 1
+fi
+
+echo "SUCCESS"
+echo "FIDUNIO 0.9.9.12 disappearing TEXT activation backend is deployed."
+echo "Function: $FUNCTION ($STATE)"
+echo "Runtime SA: $RUNTIME_SA"
+echo "Scheduler: $SCHEDULER_MATCH"
+echo "Pinned source: $COMMIT"
+echo "Attachments remain intentionally NON-disappearing in this activation checkpoint."
