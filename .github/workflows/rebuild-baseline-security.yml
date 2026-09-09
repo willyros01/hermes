@@ -85,6 +85,7 @@ jobs:
       - {name: Notification device Firestore rules, run: npm run emulator:test:notification-rules}
       - {name: FCM N3 registration and Settings, run: npm run test:notification-n3}
       - {name: FCM N4 direct background notification, run: node functions/notification/direct-message-notification-core.test.mjs && node notification-n4.test.mjs}
+      - {name: FCM N5 notification tap routing, run: npm run test:notification-n5}
       - {name: Cloud Functions recovery scaffold, run: npm run test:functions-scaffold}
       - {name: Runtime transform anchor gate, run: npm run test:runtime-transform-anchors}
       - {name: Runtime authority gate, run: npm run test:runtime-authority}
