@@ -1,3 +1,7 @@
+### DISAPPEARING TEXT FEATURE DEVICE CLOSEOUT — 0.9.9.12
+
+Group real-device acceptance passed: sent yes, all tested recipients received, all required Reads confirmed, message disappeared from sender and all recipients, and after close/reopen it did not return. Together with the previously accepted direct 5-minute purge and unread-protection tests, disappearing TEXT is DEVICE ACCEPTED and closed for this activation checkpoint. Attachments remain intentionally non-disappearing until their Storage trace-deletion contract is implemented and separately accepted.
+
 ### DISAPPEARING UNREAD-PROTECTION DEVICE ACCEPTANCE — 0.9.9.12
 
 Real-device unread protection passed: a 5-minute disappearing text remained present beyond five minutes while the recipient had not Read it. This confirms expiry is not authorized from send or delivery time and begins only after the authoritative Read condition. Direct disappearing text and unread protection are device accepted; group disappearing text remains the only outstanding acceptance test for this activation checkpoint. Attachments remain intentionally non-disappearing.

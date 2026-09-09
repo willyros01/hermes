@@ -223,3 +223,6 @@ After the production collection-group index recovery, a fresh 5-minute direct di
 
 ### Unread-protection real-device acceptance — 0.9.9.12
 A 5-minute disappearing text remained present beyond five minutes while the recipient had not produced authoritative Read. This validates the first-Read start rule on real devices and proves send/delivery time alone cannot authorize expiry. Direct purge and unread protection are accepted; group acceptance remains pending.
+
+### Group real-device acceptance and text-feature closeout — 0.9.9.12
+The group 5-minute disappearing-text path passed on real devices: all tested recipients received the message, all required Read conditions were satisfied, the server purge removed the authoritative source, sender and recipients converged to absence, and close/reopen did not resurrect it. Combined with the accepted direct purge and unread-protection tests, disappearing TEXT is accepted and closed for this activation checkpoint. Attachment disappearance remains outside this activation until Storage trace deletion satisfies the same source-delete-last authority.
