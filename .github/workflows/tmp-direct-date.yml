@@ -1,0 +1,61 @@
+name: Temporary direct date separator build
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/tmp-direct-date.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build 0.9.9.17 direct date separators
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p=Path(path); s=p.read_text()
+              if old not in s: raise SystemExit(f'anchor missing: {path}: {old[:100]!r}')
+              p.write_text(s.replace(old,new,count))
+
+          p=Path('app.js'); s=p.read_text()
+          old='''function renderConversationMessages(msgs,c){\n  if(c?.type!=="group"&&!c?.cloudGroup)return msgs.map(m=>renderBubble(m,c)).join("");\n  let priorDay="";'''
+          new='''function renderConversationMessages(msgs,c){\n  let priorDay="";'''
+          if old not in s: raise SystemExit('conversation date separator scope anchor missing')
+          p.write_text(s.replace(old,new,1))
+
+          replace('version.js','version: "0.9.9.16"','version: "0.9.9.17"')
+          replace('service-worker.js','SHELL_REVISION="0.9.9.16-group-sender-time-fallback"','SHELL_REVISION="0.9.9.17-all-chat-date-separators"')
+
+          for f in ['outbox-reconciliation-boundary.test.mjs','direct-message-basic-path.test.mjs']:
+              q=Path(f); t=q.read_text()
+              old_plain='0.9.9.16-group-sender-time-fallback'
+              old_regex='0\\.9\\.9\\.16-group-sender-time-fallback'
+              if old_plain in t: t=t.replace(old_plain,'0.9.9.17-all-chat-date-separators')
+              elif old_regex in t: t=t.replace(old_regex,'0\\.9\\.9\\.17-all-chat-date-separators')
+              else: raise SystemExit(f'cache anchor missing: {f}')
+              q.write_text(t)
+
+          test=Path('group-date-separator.test.mjs')
+          test.write_text('''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst app=readFileSync("app.js","utf8"),css=readFileSync("styles.css","utf8");\nassert.ok(app.includes('function renderConversationMessages(msgs,c)'));\nassert.ok(app.includes('messageDayKey(m?.createdAt)'));\nassert.ok(app.includes('month:"long",day:"numeric",year:"numeric"'));\nassert.ok(app.includes('renderConversationMessages(msgs,c)'));\nassert.ok(app.includes('createdAt:new Date()'));\nassert.ok(css.includes('.chat-date-separator::before,.chat-date-separator::after'));\nassert.ok(app.includes('<div class="msg-meta"><span>${esc(m.time)}</span>'));\nassert.ok(!app.includes('if(c?.type!=="group"&&!c?.cloudGroup)return msgs.map(m=>renderBubble(m,c)).join("")'),"date separators must apply to direct chats as well as groups");\nconsole.log("All-conversation date separator gate passed");\n''')
+
+          prefixes={
+            'CURRENT-REBUILD.md':'''### DIRECT DATE SEPARATORS — 0.9.9.17\n\nThe accepted `Month D, YYYY` horizontal-line date separator now applies to one-to-one/direct conversations as well as group conversations. Message bubbles retain their existing time display; group sender name/time presentation remains unchanged. This is presentation-only and changes no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority. Release cache revision is bumped so installed PWAs deterministically retire the prior shell.\n\n''',
+            'hermes-memory.txt':'''DIRECT DATE SEPARATORS (0.9.9.17): Apply the same horizontal-line `Month D, YYYY` day demarcation used in groups to one-to-one/direct conversations. Message times remain unchanged. Group sender name/time remains accepted. No messaging authority changes. Every release must bump both visible version and service-worker shell revision so installed PWAs flush/retire the prior shell cache.\n\n''',
+            'DEVICE-ACCEPTANCE-BUGS.md':'''## Direct chat date separators — 0.9.9.17\n\n**Status: DEVICE CANDIDATE.** Confirm iPhone/iPad one-to-one conversations show the same horizontal-line `Month D, YYYY` separator at day boundaries as groups, same-day messages do not repeat the date, message times remain present, and close/reopen preserves the layout. Group sender name/time and group date behavior remain unchanged.\n\n'''
+          }
+          for f,x in prefixes.items():
+              q=Path(f); q.write_text(x+q.read_text())
+
+          q=Path('FIDUNIO-BUILD-CHECKLIST.md'); t=q.read_text()
+          line='- [ ] **Direct chat date separators — 0.9.9.17 candidate:** apply the accepted horizontal-line `Month D, YYYY` day separator to one-to-one conversations while preserving per-message times and group sender name/time; pending iPhone/iPad device acceptance.\n'
+          if line not in t: q.write_text(line+t)
+
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app.js version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs group-date-separator.test.mjs CURRENT-REBUILD.md hermes-memory.txt DEVICE-ACCEPTANCE-BUGS.md FIDUNIO-BUILD-CHECKLIST.md
+          git commit -m "Add direct chat date separators"
+          git push
