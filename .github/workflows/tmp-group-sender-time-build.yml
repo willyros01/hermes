@@ -21,8 +21,6 @@ jobs:
                   raise SystemExit(f'anchor missing: {path}: {old[:100]!r}')
               p.write_text(s.replace(old,new,count))
 
-          # App: keep date separators and existing bubble time, and ALSO show
-          # the message time beside the creator name for group messages only.
           p=Path('app.js'); s=p.read_text()
           old='''    ${groupSender?`<div class="sender-label">${esc(groupSender)}</div>`:""}\n    <div class="bubble">'''
           new='''    ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span></div>`:""}\n    <div class="bubble">'''
@@ -38,15 +36,18 @@ jobs:
           replace('version.js','version: "0.9.9.14"','version: "0.9.9.15"')
           replace('service-worker.js','SHELL_REVISION="0.9.9.14-group-date-separators"','SHELL_REVISION="0.9.9.15-group-sender-time"')
 
-          # Keep cache revision regression assertions aligned with the release.
           for f in ['outbox-reconciliation-boundary.test.mjs','direct-message-basic-path.test.mjs']:
-              q=Path(f)
-              t=q.read_text()
-              if '0.9.9.14-group-date-separators' not in t:
+              q=Path(f); t=q.read_text()
+              old_plain='0.9.9.14-group-date-separators'
+              old_regex='0\\.9\\.9\\.14-group-date-separators'
+              if old_plain in t:
+                  t=t.replace(old_plain,'0.9.9.15-group-sender-time')
+              elif old_regex in t:
+                  t=t.replace(old_regex,'0\\.9\\.9\\.15-group-sender-time')
+              else:
                   raise SystemExit(f'cache revision anchor missing: {f}')
-              q.write_text(t.replace('0.9.9.14-group-date-separators','0.9.9.15-group-sender-time'))
+              q.write_text(t)
 
-          # Permanent regression gate for exact requested presentation.
           Path('group-sender-time.test.mjs').write_text('''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst app=readFileSync("app.js","utf8");\nconst css=readFileSync("styles.css","utf8");\nassert.ok(app.includes('const groupSender=groupSenderDisplayName(m,c)'),"group sender identity owner must remain unchanged");\nassert.ok(app.includes('<span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span>'),"group creator name must show message time beside it");\nassert.ok(app.includes('<div class="msg-meta"><span>${esc(m.time)}</span>'),"existing per-message time metadata must remain present as requested in addition to sender-line time");\nassert.ok(app.includes('function renderConversationMessages(msgs,c)'),"0.9.9.14 date separators must remain intact");\nassert.ok(app.includes('messageDayKey(m?.createdAt)'),"date separator grouping must remain createdAt-based");\nassert.ok(css.includes('.sender-label .sender-time'),"sender-line time must have bounded presentation styling");\nconsole.log("Group sender-time gate passed");\n''')
 
           wf=Path('.github/workflows/rebuild-baseline-security.yml'); w=wf.read_text()
