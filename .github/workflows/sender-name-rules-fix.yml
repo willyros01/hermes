@@ -1,0 +1,32 @@
+name: Fix sender-name notification rules
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/sender-name-rules-fix.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Correct notification preference update authority
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('firestore.rules')
+          s=p.read_text()
+          old='request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fcmToken","platform","enabled","updatedAt","lastSeenAt"])&&validNotificationDevice(uid,installationId,request.resource.data)'
+          new='request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fcmToken","platform","enabled","showSenderName","updatedAt","lastSeenAt"])&&validNotificationDevice(uid,installationId,request.resource.data)'
+          if old not in s: raise SystemExit('notification update-rule anchor missing')
+          p.write_text(s.replace(old,new,1))
+          PY
+      - name: Commit correction
+        run: |
+          git config user.name "willyros01"
+          git config user.email "willyros01@gmail.com"
+          git add firestore.rules
+          git commit -m "Allow owned sender-name notification preference update"
+          git push origin main
