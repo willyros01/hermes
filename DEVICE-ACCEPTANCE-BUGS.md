@@ -2,15 +2,30 @@
 
 ## Audio recorder send — MIME normalization
 
-**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.11 — 2026-09-08.**
+**Status: DEVICE ACCEPTED on FIDUNIO 0.9.9.11 — 2026-09-08.**
 
-0.9.9.10 device result: chooser **good**; recorder **good**; camera did not open **yes**; send **no**. The failure occurred after finishing the recording, with `Audio could not be selected: Unsupported attachment type`. 0.9.9.11 canonicalizes codec-parameterized recorder MIME values before validation. Acceptance: repeat Record Audio for 5–10 seconds, Stop & Send, confirm no unsupported-type alert, confirm sender bubble appears and recipient receives the audio, then reopen and confirm accessibility.
+Real-device acceptance completed on iPhone after the 0.9.9.11 MIME-normalization correction.
+
+Accepted evidence:
+
+- Audio source chooser behaved correctly.
+- Record Audio used the microphone and did not launch the camera.
+- A short recording completed successfully.
+- Stop & Send no longer produced the unsupported-attachment-type rejection.
+- The sender-side audio bubble appeared.
+- The recipient received the audio attachment.
+- Recipient playback succeeded.
+- The previously failing recorder-send path is therefore accepted on the real device.
+
+0.9.9.10 had already established that the chooser and microphone recorder were correct but the send failed after recording because the recorder-provided MIME value was rejected. 0.9.9.11 canonicalizes codec-parameterized recorder MIME values before attachment validation while preserving audio-only validation and the existing encrypted attachment send path.
+
+The audio recorder/send issue is closed for device acceptance.
 
 ## Audio tool — source chooser and recorder
 
-**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.10 — 2026-09-08.**
+**Status: SUPERSEDED BY ACCEPTED 0.9.9.11 — 2026-09-08.**
 
-Acceptance on iPhone: tap Audio and confirm **Record Audio / Choose Audio File / Cancel**. Record Audio must request microphone access and must not launch the camera; record a short clip, use Stop & Send, and confirm it appears locally and reaches the peer. Choose Audio File must open saved audio selection without launching the camera; choose a valid saved audio file and send it. Reopen the conversation and confirm both audio attachments remain accessible. Confirm Photo and Video source choosers still behave normally.
+0.9.9.10 established that **Record Audio / Choose Audio File / Cancel** displayed correctly, Record Audio used microphone capture rather than launching the camera, and the saved-audio chooser used the audio-file path. Its recorded-audio send then exposed the MIME-normalization defect corrected and accepted in 0.9.9.11 above.
 
 ## Issue 3 — iPhone composer clearance + video chooser
 
