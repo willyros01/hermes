@@ -118,8 +118,16 @@ Issue 1 is closed for device acceptance.
 
 ## FIDUNIO 1.1.7 N5 warm-routing correction — 2026-09-09
 
-**Status: DEVICE CANDIDATE.** Warm-open N5 failed on iPhone: the generic notification arrived, tapping it opened the PIN screen, but after PIN unlock FIDUNIO returned to the conversation list instead of the notified conversation.
+**Status: DEVICE FAILED.** Warm-open N5 still failed on iPhone after 1.1.7. The generic notification arrived and PIN unlock worked, but FIDUNIO returned to the conversation list instead of the notified conversation.
 
-The 1.1.6 warm path used a transient service-worker `postMessage` after focusing the existing PWA window. The 1.1.7 correction removes that transient warm handoff: the service worker now navigates the existing same-origin FIDUNIO window to the same opaque notification-route URL format used for cold-open. The URL carries only notification type, conversation ID and message ID. After normal PIN/auth hydration, `app.js` remains the sole route/message owner and resolves the conversation through existing Firestore/E2EE state. No message content, sender name, decrypted data, receipt write or fabricated message row is introduced by the notification route.
+The 1.1.7 attempt navigated the existing same-origin PWA window to the opaque notification-route URL. That did not reliably survive the iOS suspended-window lifecycle, so it is historical evidence only and is superseded by 1.1.8.
 
-Acceptance: repeat the warm-open iPhone test first. Tap `FIDUNIO — New message`, complete PIN unlock if required, and confirm FIDUNIO opens the notified direct conversation. Do not start cold-open acceptance until warm-open passes.
+## FIDUNIO 1.1.8 N5 warm-open acceptance — 2026-09-09
+
+**Status: DEVICE ACCEPTED for warm-open direct notification routing.**
+
+The 1.1.8 correction always uses the service worker `openWindow()` notification-route path instead of relying on the existing suspended iPhone PWA window. The route carries only opaque notification type, conversation ID and message ID. The normal PIN gate remains mandatory; after successful PIN unlock, `app.js` remains the sole route/message owner and resolves the authoritative conversation through the existing Firestore/E2EE path.
+
+Real-device acceptance on iPhone passed: the background notification remained the intended generic `FIDUNIO — New message`; tapping it presented the PIN screen; after PIN unlock FIDUNIO opened the notified direct conversation as expected.
+
+N5 is **not yet fully closed**. Cold-open acceptance is still required: fully close FIDUNIO, send one new direct message, tap the notification, complete PIN unlock, and confirm the correct direct conversation opens rather than the conversation list.
