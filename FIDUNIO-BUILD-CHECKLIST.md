@@ -1,4 +1,4 @@
-- [ ] **Disappearing attachments — 0.9.9.19 candidate:** same selection metadata for future attachments; one server purge repository deletes deterministic Storage ciphertext prefix before source, local object URLs converge, no client delete/tombstone; live `att.txt` deployment + direct/group/unread/reopen/multi-device acceptance pending.
+- [x] **Disappearing attachments — 0.9.9.19:** live backend deployed; direct photo/file/audio/video and group photo all device accepted after authoritative Read with close/reopen anti-resurrection pass.
 - [x] **Date/time presentation — 0.9.9.18:** group sender name/time + group/direct date separators device accepted.
 - [ ] **Direct chat date separators — 0.9.9.18 correction:** preserve authoritative direct-message `createdAt` through projection so the shared date separator can render; pending device acceptance.
 - [ ] **Direct chat date separators — 0.9.9.17 candidate:** apply the accepted horizontal-line `Month D, YYYY` day separator to one-to-one conversations while preserving per-message times and group sender name/time; pending iPhone/iPad device acceptance.
@@ -45,8 +45,8 @@
 - [x] Define explicit Settings permission flow; no automatic startup permission prompt.
 - [x] Define server-only recipient resolution, FCM send, invalid-token cleanup, direct/group policy, multi-device behavior, disappearing-content behavior, and Fire OS limitation.
 - [x] Define phased implementation N2-N7 and the live Google/Firebase handoff barrier.
-- [ ] N2 — Firebase Messaging ownership foundation.
-- [ ] N3 — Settings permission + UID-scoped token registration + rules/emulator tests.
+- [x] N2 — Firebase Messaging ownership foundation implemented; permanent ownership gate added.
+- [ ] N3 — 1.1.1 repository candidate: deterministic Settings permission UI + UID/installation token registration + exact rules/emulator tests implemented; live VAPID/rules handoff and device registration proof pending.
 - [ ] Google/Firebase handoff only after repo-side N2/N3 readiness is proven.
 - [ ] N4 — Direct-message background notification.
 - [ ] N5 — Notification tap routing through existing app/Firestore/E2EE path.

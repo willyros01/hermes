@@ -1,0 +1,1 @@
+export const FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY="";

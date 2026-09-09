@@ -1,3 +1,5 @@
+FCM N3 OWNERSHIP — 1.1.1: firebase.js is sole Firebase Messaging/Firestore notification-device API owner; notification-registration.js is the sole serialized notification intent/registration coordinator; settings-lifecycle.js owns the predefined Notifications Settings host. No second Firebase initializer, message store, receipt owner, or service-worker message authority.
+
 FIDUNIO / HERMES ARCHITECTURE OWNERSHIP RULES
 
 ## 0.9.9.12 disappearing text activation owner

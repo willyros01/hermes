@@ -17,7 +17,15 @@ import {
   changeFidunioPassword,
   listFidunioUsersForAdmin,
   updateFidunioUserLifecycle,
+  getFidunioNotificationCapability,
+  getFidunioMessagingToken,
+  deleteFidunioMessagingToken,
+  getCloudNotificationDevice,
+  upsertCloudNotificationDevice,
+  deleteCloudNotificationDevice,
 } from "./firebase.js";
+import {createNotificationRegistrationOwner} from "./notification-registration.js";
+import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
 import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";
 import {mountInstallGuidance} from "./install-guidance.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
@@ -42,7 +50,8 @@ function serializeSettingsMutation(label,work){
 
 const GROUPS=[
   {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
-  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, device unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
+  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, device unlock, and end-to-end encryption."},
+  {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, and expiration."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
@@ -50,7 +59,7 @@ const GROUPS=[
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","users","invites","install","data","about"];
+const PANEL_ORDER=["profile","general","privacy","notifications","users","invites","install","data","about"];
 let activeGroup="profile";
 
 function directCards(settings){return[...settings.querySelectorAll(":scope > .card")];}
@@ -217,8 +226,24 @@ function renderAccountEncryption(encryptionHost,info){
   const recover=card.querySelector("#accountE2EERecoverBtn");if(recover)recover.onclick=async()=>{const newPassword=card.querySelector("#accountE2EEPassword").value,pin=card.querySelector("#accountE2EEPin").value;if(!confirm("Use recovery only after the Firebase password has been reset. Continue with the existing six-digit account E2EE PIN?"))return;recover.disabled=true;recover.textContent="Recovering…";try{await recoverAccountE2EE({uid,newPassword,pin});renderAccountEncryption(encryptionHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;recover.disabled=false;recover.textContent="Recover After Password Reset";}};
 }
 
+const notificationRegistrationOwner=createNotificationRegistrationOwner({
+  getCapability:getFidunioNotificationCapability,getToken:getFidunioMessagingToken,deleteToken:deleteFidunioMessagingToken,
+  readRegistration:getCloudNotificationDevice,writeRegistration:upsertCloudNotificationDevice,deleteRegistration:deleteCloudNotificationDevice,
+  getConfigured:()=>String(FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY||"").trim().length>0
+});
+function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Web Push setup required"})[status]||status;}
+async function renderNotifications(notificationsHost,info){
+  notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note">Loading notification status…</p></div>';
+  const card=notificationsHost.querySelector("#fidunioNotificationsCard");
+  try{const state=await notificationRegistrationOwner.getStatus(info.user.uid);if(!card.isConnected)return;const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&!state.enabled;card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(notificationStatusText(state.status))}</p><p class="small-note">FIDUNIO notifications contain only <strong>FIDUNIO — New message</strong>. Message text, attachment names, and decrypted content are never placed in the push payload.</p>${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${state.enabled?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
+    const enable=card.querySelector("#enableNotificationsBtn"),disable=card.querySelector("#disableNotificationsBtn"),note=card.querySelector("#notificationNote");
+    enable.onclick=async()=>{enable.disabled=true;enable.textContent="Enabling…";try{await notificationRegistrationOwner.enableFromUserGesture({uid:info.user.uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;enable.disabled=false;enable.textContent="Enable Notifications";}};
+    disable.onclick=async()=>{disable.disabled=true;disable.textContent="Turning off…";try{await notificationRegistrationOwner.disable({uid:info.user.uid});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;disable.disabled=false;disable.textContent="Turn Off Notifications";}};
+  }catch(err){card.innerHTML=`<h2>Notifications</h2><p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+}
+
 async function hydrateAccountPanels(g,shell){
-  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy");
+  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications");
   /* Claim the legacy IDs synchronously so old observer-era modules cannot
      become competing writers while this migration build is being validated. */
   profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="small-note">Loading profile…</p></div>';
@@ -227,7 +252,7 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);
+    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 

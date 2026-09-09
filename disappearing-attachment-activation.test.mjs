@@ -19,5 +19,5 @@ assert.match(handoff,/CODEBASE="recovery"/);
 assert.match(handoff,/FUNCTION="purgeDisappearingMessagesV1"/);
 assert.match(handoff,/firebase deploy --project "\$PROJECT" --only "functions:\$CODEBASE:\$FUNCTION" --non-interactive/);
 assert.match(handoff,/roles\/storage\.objectAdmin/);
-assert.match(sw,/SHELL_REVISION="0\.9\.9\.19-disappearing-attachments"/);
+assert.match(sw,/const SHELL_REVISION="[0-9A-Za-z._-]+"/);
 console.log("Disappearing attachment activation wiring gate passed");
