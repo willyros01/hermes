@@ -1387,6 +1387,12 @@ function messageDayLabel(value){
   const d=messageCalendarDate(value);
   return d?new Intl.DateTimeFormat("en-US",{month:"long",day:"numeric",year:"numeric"}).format(d):"";
 }
+function messageDisplayTime(m){
+  const explicit=String(m?.time||"").trim();
+  if(explicit)return explicit;
+  const d=messageCalendarDate(m?.createdAt);
+  return d?new Intl.DateTimeFormat("en-US",{hour:"numeric",minute:"2-digit"}).format(d):"";
+}
 function renderConversationMessages(msgs,c){
   if(c?.type!=="group"&&!c?.cloudGroup)return msgs.map(m=>renderBubble(m,c)).join("");
   let priorDay="";
@@ -1425,8 +1431,9 @@ function renderBubble(m,c){
     }
   }
   const groupSender=groupSenderDisplayName(m,c);
+  const displayTime=messageDisplayTime(m);
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
-    ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span></div>`:""}
+    ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(displayTime)}</span></div>`:""}
     <div class="bubble">
       ${messageContent}
       <div class="msg-meta"><span>${esc(m.time)}</span>${m.mine?`<span class="${cls}">${label}</span>`:""}</div>

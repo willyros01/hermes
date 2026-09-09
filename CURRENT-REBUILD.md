@@ -1,3 +1,7 @@
+### GROUP SENDER TIME CORRECTION — 0.9.9.16
+
+0.9.9.15 exposed that server-projected/historical group rows may have an empty legacy `time` display field even though authoritative `createdAt` is present. 0.9.9.16 keeps the accepted date separators and sender labels, uses the existing time when present, and otherwise derives `h:mm AM/PM` from `createdAt` beside the sender name. No Firebase, E2EE, Outbox, receipt, disappearing-content, attachment, or membership authority changed.
+
 ### GROUP SENDER TIME CANDIDATE — 0.9.9.15
 
 Group conversations retain the accepted horizontal-line date separators from 0.9.9.14 and now also show each message's existing time immediately beside the message creator's displayed name. This is additive presentation only: the existing time inside message metadata remains unchanged, direct-message sender presentation remains unchanged, and no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority changed.

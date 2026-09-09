@@ -1,3 +1,7 @@
+## Group sender time — 0.9.9.16 correction
+
+**Status: DEVICE CANDIDATE.** 0.9.9.15 failed device presentation because existing projected group rows showed sender names without time. 0.9.9.16 resolves time from the legacy display field when present, otherwise from authoritative `createdAt`. Confirm existing and newly sent group messages show `Sender Name  h:mm AM/PM`, date separators remain correct, and close/reopen preserves the display.
+
 ## Group sender time — 0.9.9.15
 
 **Status: DEVICE CANDIDATE.** Confirm on iPhone/iPad that each group message shows the creator name with that message's time immediately beside the name, the 0.9.9.14 date separator remains correct, same-day messages do not repeat the date, sender names remain correct, and close/reopen preserves the layout.
