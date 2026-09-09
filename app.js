@@ -1394,7 +1394,6 @@ function messageDisplayTime(m){
   return d?new Intl.DateTimeFormat("en-US",{hour:"numeric",minute:"2-digit"}).format(d):"";
 }
 function renderConversationMessages(msgs,c){
-  if(c?.type!=="group"&&!c?.cloudGroup)return msgs.map(m=>renderBubble(m,c)).join("");
   let priorDay="";
   return msgs.map(m=>{
     const day=m?.system?"":messageDayKey(m?.createdAt);

@@ -1,3 +1,4 @@
+- [ ] **Direct chat date separators — 0.9.9.17 candidate:** apply the accepted horizontal-line `Month D, YYYY` day separator to one-to-one conversations while preserving per-message times and group sender name/time; pending iPhone/iPad device acceptance.
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
 ### Open follow-up items

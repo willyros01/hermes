@@ -8,4 +8,5 @@ assert.ok(app.includes('renderConversationMessages(msgs,c)'));
 assert.ok(app.includes('createdAt:new Date()'));
 assert.ok(css.includes('.chat-date-separator::before,.chat-date-separator::after'));
 assert.ok(app.includes('<div class="msg-meta"><span>${esc(m.time)}</span>'));
-console.log("Group date separator gate passed");
+assert.ok(!app.includes('if(c?.type!=="group"&&!c?.cloudGroup)return msgs.map(m=>renderBubble(m,c)).join("")'),"date separators must apply to direct chats as well as groups");
+console.log("All-conversation date separator gate passed");

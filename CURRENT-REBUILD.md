@@ -1,3 +1,7 @@
+### DIRECT DATE SEPARATORS — 0.9.9.17
+
+The accepted `Month D, YYYY` horizontal-line date separator now applies to one-to-one/direct conversations as well as group conversations. Message bubbles retain their existing time display; group sender name/time presentation remains unchanged. This is presentation-only and changes no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority. Release cache revision is bumped so installed PWAs deterministically retire the prior shell.
+
 ### GROUP SENDER TIME CORRECTION — 0.9.9.16
 
 0.9.9.15 exposed that server-projected/historical group rows may have an empty legacy `time` display field even though authoritative `createdAt` is present. 0.9.9.16 keeps the accepted date separators and sender labels, uses the existing time when present, and otherwise derives `h:mm AM/PM` from `createdAt` beside the sender name. No Firebase, E2EE, Outbox, receipt, disappearing-content, attachment, or membership authority changed.

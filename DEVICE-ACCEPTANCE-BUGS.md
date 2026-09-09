@@ -1,3 +1,7 @@
+## Direct chat date separators — 0.9.9.17
+
+**Status: DEVICE CANDIDATE.** Confirm iPhone/iPad one-to-one conversations show the same horizontal-line `Month D, YYYY` separator at day boundaries as groups, same-day messages do not repeat the date, message times remain present, and close/reopen preserves the layout. Group sender name/time and group date behavior remain unchanged.
+
 ## Group sender time — 0.9.9.16 correction
 
 **Status: DEVICE CANDIDATE.** 0.9.9.15 failed device presentation because existing projected group rows showed sender names without time. 0.9.9.16 resolves time from the legacy display field when present, otherwise from authoritative `createdAt`. Confirm existing and newly sent group messages show `Sender Name  h:mm AM/PM`, date separators remain correct, and close/reopen preserves the display.
