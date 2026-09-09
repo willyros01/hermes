@@ -61,6 +61,7 @@ jobs:
       - {name: Disappearing compose policy and UI wiring, run: npm run test:disappearing-compose-policy}
       - {name: Disappearing text end-to-end closeout, run: npm run test:disappearing-text-closeout}
       - {name: Disappearing text activation, run: npm run test:disappearing-activation}
+      - {name: Disappearing attachment activation, run: npm run test:disappearing-attachment-activation}
       - {name: Disappearing Firestore index wiring, run: npm run test:disappearing-index-wiring}
       - {name: Group sender display label, run: node group-sender-label.test.mjs}
       - {name: Group date separators, run: node group-date-separator.test.mjs}
