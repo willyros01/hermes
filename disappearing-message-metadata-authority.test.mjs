@@ -8,8 +8,8 @@ const rules=fs.readFileSync(new URL("./firestore.rules",import.meta.url),"utf8")
 const checks=[
  ["canonical metadata field",policy.includes('DISAPPEARING_DURATION_FIELD="disappearAfterSeconds"')],
  ["direct Firebase writer normalizes selection",/sendCloudMessage[\s\S]*?normalizeDisappearSelection\(message\.disappearAfterSeconds\)/.test(firebase)],
- ["group Firebase writer keeps duration outside envelope",/sendCloudEncryptedGroupMessage\(\{groupId,messageId,envelope,disappearAfterSeconds=null\}\)[\s\S]*?row=\{\.\.\.envelope[\s\S]*?row\.disappearAfterSeconds=duration/.test(firebase)],
- ["group runtime forwards separate metadata",/sendEncryptedGroupMessage\(\{groupId,messageId,senderUid:id\.uid,envelope,disappearAfterSeconds:duration\}\)/.test(groupRuntime)],
+ ["group Firebase writer keeps duration and activation marker outside envelope",/sendCloudEncryptedGroupMessage\(\{groupId,messageId,envelope,disappearAfterSeconds=null,disappearingPurgeVersion=null\}\)[\s\S]*?row=\{\.\.\.envelope[\s\S]*?row\.disappearAfterSeconds=duration[\s\S]*?row\.disappearingPurgeVersion=1/.test(firebase)],
+ ["group runtime forwards separate disappearing metadata",/sendEncryptedGroupMessage\(\{groupId,messageId,senderUid:id\.uid,envelope,disappearAfterSeconds:duration,disappearingPurgeVersion:disappearingPurgeVersion===1\?1:null\}\)/.test(groupRuntime)],
  ["group Outbox persists duration",groupOutbox.includes('disappearAfterSeconds:duration')],
  ["direct encrypted Outbox persists duration",app.includes('disappearAfterSeconds:message.disappearAfterSeconds??null')],
  ["direct reconnect forwards duration",app.includes('disappearAfterSeconds:payload.disappearAfterSeconds??null')],
