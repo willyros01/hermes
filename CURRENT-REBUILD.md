@@ -1,3 +1,7 @@
+### DISAPPEARING LIVE INDEX RECOVERY — 0.9.9.12
+
+Live device/backend diagnosis proved the scheduled purge Function was returning HTTP 500 because Firestore required a `COLLECTION_GROUP ASCENDING` index on collection group `messages`, field `disappearingPurgeVersion`. The reviewed `firestore.indexes.json` index was deployed successfully to `fidunio-fef13`. After index activation, Cloud Scheduler job `firebase-schedule-purgeDisappearingMessagesV1-us-central1` reported `state: ENABLED` with empty `status.code`; the live scheduler invocation boundary is therefore healthy again. Device acceptance must now repeat a fresh 5-minute direct disappearing-text test before closing the feature.
+
 ### DISAPPEARING LIVE INDEX REPAIR — 0.9.9.12
 
 Real-device Test 1 proved send and authoritative Read but no purge. Live Function logs isolated the backend failure to `FAILED_PRECONDITION`: the scheduler collection-group query on `messages.disappearingPurgeVersion` lacked its required `COLLECTION_GROUP ASCENDING` Firestore field index. `firestore.indexes.json` is now durable deployment authority for this index and `firebase.json` explicitly references it. Future disappearing scheduler deployment must include Firestore indexes and must verify a successful post-index scheduler invocation; ACTIVE Function + existing scheduler alone is insufficient live proof.
