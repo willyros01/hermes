@@ -6,8 +6,8 @@ REGION="us-central1"
 FUNCTION="purgeDisappearingMessagesV1"
 CODEBASE="recovery"
 SERVICE_ACCOUNT="fidunio-disappearing-purge@fidunio-fef13.iam.gserviceaccount.com"
-COMMIT="48797ad41ade2cb3becadf9e2b0c6f73f104c82c"
-SCRIPT_VERSION="0.9.9.12-a"
+COMMIT="e03c9f6e19060a9c3034df4ea54ede48d7cf6a38"
+SCRIPT_VERSION="0.9.9.12-b"
 
 ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
 if [[ "$ACTIVE_PROJECT" != "$PROJECT" ]]; then
@@ -53,6 +53,7 @@ download_function "recovery/e2ee-recovery-server-crypto.mjs"
 download_function "recovery/e2ee-recovery-session-policy.mjs"
 download_function "message-delete/message-delete-callable-core.mjs"
 download_function "message-delete/message-delete-firestore-admin-adapter.mjs"
+download_function "disappearing/disappearing-content-policy.js"
 download_function "disappearing/disappearing-purge-policy.js"
 download_function "disappearing/disappearing-purge-executor.js"
 download_function "disappearing/disappearing-purge-firestore-admin-adapter.mjs"
@@ -71,6 +72,17 @@ if ! grep -q 'every 1 minutes' "$SOURCE/index.mjs"; then
   echo "STOP: Pinned scheduler cadence is not the reviewed one-minute cadence."
   exit 1
 fi
+if [[ ! -s "$SOURCE/disappearing/disappearing-content-policy.js" ]]; then
+  echo "STOP: Required disappearing-content policy dependency is missing."
+  exit 1
+fi
+
+echo "Preflighting exact pinned Functions module graph..."
+npm --prefix "$SOURCE" install --ignore-scripts --silent
+(
+  cd "$ROOT"
+  node --input-type=module -e "const m=await import('./functions/index.mjs');if(typeof m.purgeDisappearingMessagesV1!=='function')throw new Error('scheduled purge export missing');console.log('Pinned Functions graph imports successfully')"
+)
 
 if ! gcloud iam service-accounts describe "$SERVICE_ACCOUNT" --project="$PROJECT" >/dev/null 2>&1; then
   echo "Creating dedicated disappearing-purge service account..."
