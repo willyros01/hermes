@@ -21,7 +21,7 @@ assert.match(app,/Disappearing:/);assert.match(app,/disappearingPurgeVersion:mes
 assert.match(fb,/row\.disappearingPurgeVersion=1/);assert.match(rules,/disappearingPurgeVersion/);
 assert.match(fn,/purgeDisappearingMessagesV1/);assert.match(fn,/every 1 minutes/);
 for(const n of ['disappearing-content-policy.js','disappearing-purge-policy.js','disappearing-purge-executor.js','disappearing-purge-firestore-admin-adapter.mjs','disappearing-group-grant-trace-plan.js'])assert.equal(readFileSync(n,'utf8'),readFileSync('functions/disappearing/'+n,'utf8'),n+' deployment mirror drifted');
-assert.match(deploy,/download_function "disappearing\/disappearing-content-policy\.js"/, 'deployment package must include disappearing content policy dependency');
+assert.match(deploy,/download_function\s+disappearing\/disappearing-content-policy\.js/, 'deployment package must include disappearing content policy dependency');
 assert.match(deploy,/COMMIT="[0-9a-f]{40}"/, 'deployment package must be pinned to an immutable commit');
 assert.match(fn,/createDisappearingPurgeFirestoreAdminRepository\(\{db,bucket:attachmentBucket,requireStorage:true\}\)/);
 assert.match(deploy,/roles\/storage\.objectAdmin/);
