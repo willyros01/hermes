@@ -1,0 +1,51 @@
+name: Disappearing group acceptance closeout
+on:
+  push:
+    paths:
+      - '.github/workflows/disappearing-group-acceptance.yml'
+permissions:
+  contents: write
+jobs:
+  closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Record group acceptance and close disappearing text
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('DEVICE-ACCEPTANCE-BUGS.md'); t=p.read_text()
+          old='Group acceptance remains the only outstanding device test before the overall disappearing-text feature is fully closed.'
+          new='Group acceptance also passed on real devices: the group message was sent and received by all tested recipients, all required Reads were confirmed, the message disappeared from sender and all recipients after expiry, and it did not return after close/reopen. The disappearing-text feature is therefore DEVICE ACCEPTED and closed for this activation checkpoint. Attachments remain intentionally non-disappearing.'
+          if old in t: p.write_text(t.replace(old,new,1))
+
+          p=Path('CURRENT-REBUILD.md'); t=p.read_text()
+          note='''### DISAPPEARING TEXT FEATURE DEVICE CLOSEOUT — 0.9.9.12\n\nGroup real-device acceptance passed: sent yes, all tested recipients received, all required Reads confirmed, message disappeared from sender and all recipients, and after close/reopen it did not return. Together with the previously accepted direct 5-minute purge and unread-protection tests, disappearing TEXT is DEVICE ACCEPTED and closed for this activation checkpoint. Attachments remain intentionally non-disappearing until their Storage trace-deletion contract is implemented and separately accepted.\n\n'''
+          if '### DISAPPEARING TEXT FEATURE DEVICE CLOSEOUT — 0.9.9.12' not in t: p.write_text(note+t)
+
+          p=Path('hermes-memory.txt'); t=p.read_text()
+          mem='''DISAPPEARING TEXT FEATURE DEVICE CLOSEOUT (2026-09-08): FIDUNIO 0.9.9.12 passed the group real-device acceptance test after the already accepted direct purge and unread-protection tests. Group message sent; all tested recipients received it; all required Reads were confirmed; the message disappeared from sender and all recipients; after close/reopen it did not return. Disappearing TEXT is now device accepted and closed for this activation checkpoint. Attachments remain intentionally NON-disappearing until server Storage trace deletion satisfies the source-delete-last contract and receives separate activation/device acceptance. Preserve `DISAPPEARING-PURGE-AUTHORITY.md` as binding authority for any future disappearing-content work.\n\n'''
+          if 'DISAPPEARING TEXT FEATURE DEVICE CLOSEOUT (2026-09-08)' not in t: p.write_text(mem+t)
+
+          p=Path('FIDUNIO-BUILD-CHECKLIST.md'); t=p.read_text()
+          t=t.replace('- [ ] Device-confirm group 5-minute disappearing text with all entitled recipients Read -> physical absence.','- [x] Device-confirm group 5-minute disappearing text with all entitled recipients Read -> physical absence on sender and all tested recipients; close/reopen confirmed no resurrection.',1)
+          t=t.replace('- [ ] Device-confirm unread message does not disappear and offline/reopen does not resurrect a purged message.','- [x] Device-confirm unread message does not disappear before authoritative Read; direct/group close/reopen confirmed no resurrection after purge.',1)
+          if '- [x] Disappearing TEXT overall device closeout' not in t:
+              anchor='- [ ] Attachment disappearing remains NOT ACTIVE until server Storage trace cleanup meets the source-delete-last contract.'
+              t=t.replace(anchor,'- [x] Disappearing TEXT overall device closeout: direct purge, unread protection, group purge, and reopen anti-resurrection accepted on real devices.\n'+anchor,1)
+          p.write_text(t)
+
+          p=Path('DISAPPEARING-PURGE-AUTHORITY.md'); t=p.read_text()
+          add='''\n### Group real-device acceptance and text-feature closeout — 0.9.9.12\nThe group 5-minute disappearing-text path passed on real devices: all tested recipients received the message, all required Read conditions were satisfied, the server purge removed the authoritative source, sender and recipients converged to absence, and close/reopen did not resurrect it. Combined with the accepted direct purge and unread-protection tests, disappearing TEXT is accepted and closed for this activation checkpoint. Attachment disappearance remains outside this activation until Storage trace deletion satisfies the same source-delete-last authority.\n'''
+          if '### Group real-device acceptance and text-feature closeout — 0.9.9.12' not in t: p.write_text(t+add)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add DEVICE-ACCEPTANCE-BUGS.md CURRENT-REBUILD.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md DISAPPEARING-PURGE-AUTHORITY.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Close disappearing-text device acceptance"
+          git push origin HEAD:main
