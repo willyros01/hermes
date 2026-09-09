@@ -1,56 +1,70 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {
+  OUTBOX_RECONCILIATION_TIMEOUT_CODE,
+  OUTBOX_RECONCILIATION_TIMEOUT_MS,
   awaitBoundedOutboxReconciliation,
-  createOutboxReconciliationBoundary,
-  planAuthoritativeOutboxReconciliation,
-  planTimedOutOutboxRequeue
+  isOutboxReconciliationTimeout,
+  planTimedOutOutboxRequeue,
+  timeoutRequiresFailedState
 } from "./outbox-reconciliation-boundary.js";
 
-const held=new Promise(()=>{});
-const timeoutResult=await awaitBoundedOutboxReconciliation(held,{timeoutMs:10});
-assert.equal(timeoutResult.timedOut,true,"a stalled reconciliation must stop waiting at the bounded deadline");
-assert.deepEqual(timeoutResult.value,[],"a stalled reconciliation must fail closed with no remote rows");
+assert.equal(OUTBOX_RECONCILIATION_TIMEOUT_MS,12000,"the live Firebase wait must be bounded and user-visible");
 
-const boundary=createOutboxReconciliationBoundary({timeoutMs:25});
-const one=await boundary.run(async()=>["server-row"]);
-assert.equal(one.timedOut,false,"a prompt reconciliation should complete normally");
-assert.deepEqual(one.value,["server-row"]);
-assert.equal(boundary.isActive(),false,"the boundary must release after success");
+{
+  let timerCallback=null,cleared=false;
+  const value=await awaitBoundedOutboxReconciliation(Promise.resolve("ready"),{
+    setTimer(callback){timerCallback=callback;return 7;},
+    clearTimer(id){assert.equal(id,7);cleared=true;}
+  });
+  assert.equal(value,"ready");
+  assert.equal(cleared,true,"successful reconciliation must clear its timeout");
+  timerCallback?.();
+}
 
-const timed=await boundary.run(()=>new Promise(()=>{}));
-assert.equal(timed.timedOut,true,"the reusable boundary must also release a stalled call");
-assert.equal(boundary.isActive(),false,"the boundary must release after timeout");
+{
+  let fireTimeout;
+  const bounded=awaitBoundedOutboxReconciliation(new Promise(()=>{}),{stage:"send-confirmation",setTimer(callback){fireTimeout=callback;return 10;},clearTimer(){}});
+  fireTimeout();
+  await assert.rejects(bounded,error=>{
+    assert.equal(timeoutRequiresFailedState(error),true);
+    assert.match(error.message,/preserved as Failed/i);
+    assert.match(error.message,/will not automatically retry/i);
+    return true;
+  });
+}
 
-const plan=planAuthoritativeOutboxReconciliation({
+assert.deepEqual(planTimedOutOutboxRequeue({
   outboxRecords:[
-    {id:"retry-me",conversationId:"c",sendAttempted:false},
-    {id:"fail-me",conversationId:"c",sendAttempted:true},
-    {id:"keep-local",conversationId:"c",sendAttempted:false}
+    {id:"never-attempted",payload:"encrypted"},
+    {id:"already-attempted",payload:"encrypted",sendAttempted:true},
+    {id:"queued-already",payload:"encrypted"}
   ],
-  remoteRows:[{id:"remote-only"}],
-  localRows:[
-    {id:"retry-me",state:"pending"},
-    {id:"fail-me",state:"pending"},
-    {id:"keep-local",state:"queued"}
-  ]
-});
-assert.ok(plan.requeueIds.includes("retry-me"),"a stale pre-send pending row must be returned to the replay queue");
-assert.ok(plan.failIds.includes("fail-me"),"an attempted-but-unconfirmed row must fail closed rather than replay");
-assert.ok(!plan.requeueIds.includes("fail-me"),"an attempted row must never be requeued by reconciliation");
-
-const timeoutPlan=planTimedOutOutboxRequeue({
-  outboxRecords:[
-    {id:"pre",conversationId:"c",sendAttempted:false},
-    {id:"post",conversationId:"c",sendAttempted:true}
-  ],
-  messagesByConversation:{c:[
-    {id:"pre",state:"pending"},
-    {id:"post",state:"pending"}
+  messagesByConversation:{dm:[
+    {id:"never-attempted",state:"sending"},
+    {id:"already-attempted",state:"sending"},
+    {id:"queued-already",state:"queued"},
+    {id:"not-in-outbox",state:"sending"}
   ]}
-});
-assert.deepEqual(timeoutPlan.requeueIds,["pre"],"timeout recovery may requeue only known pre-attempt work");
-assert.deepEqual(timeoutPlan.failIds,["post"],"timeout recovery must fail attempted work closed");
+}),["never-attempted"],"only an unattempted Outbox-backed Sending row may return to Queued");
+
+{
+  let fireTimeout;
+  const bounded=awaitBoundedOutboxReconciliation(new Promise(()=>{}),{timeoutMs:5,setTimer(callback){fireTimeout=callback;return 8;},clearTimer(){}});
+  fireTimeout();
+  await assert.rejects(bounded,error=>{
+    assert.equal(error.code,OUTBOX_RECONCILIATION_TIMEOUT_CODE);
+    assert.equal(isOutboxReconciliationTimeout(error),true);
+    assert.match(error.message,/remains safely queued/i);
+    return true;
+  });
+}
+
+{
+  const failure=Object.assign(new Error("permission denied"),{code:"permission-denied"});
+  await assert.rejects(awaitBoundedOutboxReconciliation(Promise.reject(failure),{setTimer(){return 9;},clearTimer(){}}),error=>error===failure);
+  assert.equal(isOutboxReconciliationTimeout(failure),false,"ordinary Firebase failures must not be mislabeled as timeouts");
+}
 
 const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
 const workflow=readFileSync(new URL("./.github/workflows/rebuild-baseline-security.yml",import.meta.url),"utf8");
