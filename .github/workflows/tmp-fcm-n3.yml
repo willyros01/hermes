@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/tmp-fcm-n3.yml'
       - 'tmp-fcm-n3-build.py'
+      - 'tmp-fcm-n3-fix.py'
 permissions:
   contents: write
 jobs:
@@ -14,6 +15,7 @@ jobs:
       - name: Build N3
         shell: bash
         run: |
+          python3 tmp-fcm-n3-fix.py
           python3 tmp-fcm-n3-build.py
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
