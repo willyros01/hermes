@@ -49,16 +49,6 @@ jobs:
           test = Path('notification-message-projection.test.mjs')
           test.write_text('''import assert from "node:assert/strict";\nimport {readFileSync} from "node:fs";\nconst app=readFileSync("app.js","utf8"),version=readFileSync("version.js","utf8"),sw=readFileSync("service-worker.js","utf8");\nconst start=app.indexOf("function beginCloudMessageSubscription");\nassert.ok(start>=0,"direct message subscription owner missing");\nconst projected=app.indexOf("state.messages[conversationId]=merged;",start);\nconst visible=app.indexOf('if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();',projected);\nconst cache=app.indexOf("await cacheCloudHistory(conversationId,merged);",projected);\nconst persist=app.indexOf("await persistState();",cache);\nconst receipt=app.indexOf("await markCloudConversationRead(conversationId);",persist);\nassert.ok(projected>=0&&visible>projected,"authoritative projection must drive the visible chat");\nassert.ok(visible<cache,"visible incoming message must render before local durability awaits");\nassert.ok(cache<persist&&persist<receipt,"local durability must remain before Read-receipt network work");\nassert.match(version,/version: "1\\.1\\.10"/);\nassert.match(sw,/SHELL_REVISION="1\\.1\\.10-notification-message-projection"/);\nassert.doesNotMatch(app,/setTimeout\\([^)]*notification|location\\.reload\\(\\).*notification/i);\nconsole.log("Notification-tap message projection latency gate passed");\n''')
 
-          wf = Path('.github/workflows/rebuild-baseline-security.yml')
-          w = wf.read_text()
-          n5 = '      - {name: FCM N5 notification tap routing, run: npm run test:notification-n5}\n'
-          step = '      - {name: Notification tap message projection, run: node notification-message-projection.test.mjs}\n'
-          if step not in w:
-              if n5 not in w:
-                  raise SystemExit('baseline N5 anchor missing')
-              w = w.replace(n5, n5 + step, 1)
-          wf.write_text(w)
-
           section = '''### FIDUNIO 1.1.10 — notification-tap message projection latency\n\nReal-device 1.1.9 acceptance proved sender-name notifications and notification routing, but after tapping a notification the correct direct conversation could open before the newly notified message became visible. The direct Firestore subscription already owned the authoritative message projection; the delay came from awaiting encrypted local-history persistence and the Read-receipt network write before rendering that projected snapshot. 1.1.10 keeps the same sole Firestore/E2EE/message owner and renders the already-projected in-memory snapshot immediately, then preserves the existing local durability-before-receipt ordering. No timer, reload, observer, second fetch owner, notification-derived message row, or E2EE/receipt authority change is introduced. Device acceptance must confirm warm/cold notification tap opens the correct conversation and the new message appears promptly on iPhone and iPad.\n\n'''
           for name in ['CURRENT-REBUILD.md','hermes-memory.txt']:
               p=Path(name); t=p.read_text()
@@ -83,6 +73,6 @@ jobs:
         run: |
           git config user.name "FIDUNIO Build Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add app.js version.js service-worker.js notification-message-projection.test.mjs .github/workflows/rebuild-baseline-security.yml CURRENT-REBUILD.md hermes-memory.txt FCM-NOTIFICATION-ARCHITECTURE.md BUG-LIST.md .github/workflows/tmp-notification-projection-fix.yml
+          git add app.js version.js service-worker.js notification-message-projection.test.mjs CURRENT-REBUILD.md hermes-memory.txt FCM-NOTIFICATION-ARCHITECTURE.md BUG-LIST.md .github/workflows/tmp-notification-projection-fix.yml
           git commit -m "Fix notification tap message projection latency"
           git push origin HEAD:notification-projection-fix
