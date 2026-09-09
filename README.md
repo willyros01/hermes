@@ -1,3 +1,7 @@
+### 1.1.0 — FCM N2 ownership foundation
+
+Begins FIDUNIO 1.1 notification work without activating live push: central Firebase owner gains bounded Messaging APIs, with separate pure registration/policy owners and permanent ownership tests. Disappearing attachments from 0.9.9.19 are device accepted across direct photo/file/audio/video and group photo tests.
+
 ## 0.9.9.19 disappearing-attachment candidate
 
 Disappearing selection now covers future encrypted attachments as well as text. Server deletion stays behind the existing serialized purge executor/repository: deterministic Storage ciphertext prefix first, Firestore source last after revalidation. Client delete permissions are unchanged. Live Storage IAM + Function redeployment and real-device acceptance are still required.
