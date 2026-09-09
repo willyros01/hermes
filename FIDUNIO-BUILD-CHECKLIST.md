@@ -1,5 +1,27 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### FIDUNIO 1.1 Message Notifications — N1 architecture/specification
+
+**Authoritative design:** `FCM-NOTIFICATION-ARCHITECTURE.md`.
+
+- [x] Preserve the approved notification architecture as one durable authoritative document on `main`.
+- [x] Define FCM/Web Push as notification/wake-up transport only; Firestore + existing E2EE remain message authority.
+- [x] Prohibit plaintext/decrypted message and attachment content in push payloads.
+- [x] Preserve `firebase.js` as sole Firebase SDK/service owner and service worker as infrastructure-only notification display/click owner.
+- [x] Define installation-scoped notification-token storage and owner-only rules model.
+- [x] Define explicit Settings permission flow; no automatic startup permission prompt.
+- [x] Define server-only recipient resolution, FCM send, invalid-token cleanup, direct/group policy, multi-device behavior, disappearing-content behavior, and Fire OS limitation.
+- [x] Define phased implementation N2-N7 and the live Google/Firebase handoff barrier.
+- [ ] N2 — Firebase Messaging ownership foundation.
+- [ ] N3 — Settings permission + UID-scoped token registration + rules/emulator tests.
+- [ ] Google/Firebase handoff only after repo-side N2/N3 readiness is proven.
+- [ ] N4 — Direct-message background notification.
+- [ ] N5 — Notification tap routing through existing app/Firestore/E2EE path.
+- [ ] N6 — Group + multi-device notification fan-out.
+- [ ] N7 — lifecycle/reliability/device acceptance closeout.
+
+Every future Message Notification/FCM task must read `FCM-NOTIFICATION-ARCHITECTURE.md` first and reconcile this checklist with it. N1 is documentation/architecture only and does not activate FCM or alter live Firebase configuration.
+
 ### iOS recorded-audio MIME normalization — 0.9.9.11
 
 - [x] Preserve the accepted Audio chooser and microphone-only recorder.

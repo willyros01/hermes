@@ -1,6 +1,13 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### MESSAGE NOTIFICATION / FCM AUTHORITY — FIDUNIO 1.1
+
+`FCM-NOTIFICATION-ARCHITECTURE.md` is the authoritative durable design for every FIDUNIO Message Notification / FCM / Web Push task. BEFORE any notification implementation, testing, deployment, debugging, Firebase Messaging configuration, token-registration change, Cloud Function notification work, service-worker notification handling, or notification-click routing, reread that document together with the normal mandatory architecture documents. Do not rely on conversational memory. If a future notification proposal conflicts with that document, stop and reconcile the architecture before coding.
+
+Governing notification principle: FCM tells the user that FIDUNIO has something new; Firestore plus the existing account-authoritative E2EE messaging system remain the only authority for what the message actually is. FCM carries no plaintext message/attachment content and is never a second message, receipt, E2EE, Firebase-init, or persistence authority. FCM activation remains FIDUNIO 1.1 work. No live Firebase/Google configuration change was made when this architecture was approved/documented.
+
+
 ### IOS LONGER CAMERA CAPTURE CONTINUITY — 0.9.9.9x
 
 Issue 1 remained open after 0.9.9.9w: 10-second/~1.5-MB camera videos sent and received on iPhone and iPad, but 20-second captures on both devices returned with no bubble, warning or trace. Because preflight validation itself never appeared, the failure boundary was the native-picker callback. Build 0.9.9.9x mounts the temporary file input in the document and marks the system picker active. The local security monitor does not lock/re-render while that picker owns the camera; it resumes normal behavior immediately when change or cancel closes the picker. This narrow exception must not weaken normal leave-app locking. Issues 2 (LTE optimistic visibility) and 3 (iPhone composer overlap/scroll anchoring) remain deferred and untouched.
@@ -75,6 +82,7 @@ MANDATORY FIRST READ — BEFORE ANY CODE CHANGE
 - Every future chat/coding session MUST begin by reading supporting repo documentation. Do not rely on conversational memory alone.
 - `FIDUNIO-BUILD-CHECKLIST.md` is the authoritative operational completion ledger and is a MANDATORY read before every build. Select work from NOT DONE/IN PROGRESS items and update its state/evidence after every substantive build run. Never mark DONE merely because code exists; DONE requires real-app integration plus applicable repository validation.
 - At minimum: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `ACCOUNT-E2EE-FIRESTORE-AUTHORITY.md`, `E2EE-V1-CRYPTO-FORMAT.md`, `FIRESTORE-E2EE-V1-RULES.md`, `FIRESTORE-E2EE-V1-EMULATOR-TESTS.md`, `E2EE-RECOVERY-PROTOCOL.md`, `FIREBASE-RECOVERY-PROJECT-CONFIG.md`, `DETERMINISTIC-UI-LIFECYCLE.md`, `RUNTIME-CONSOLIDATION-PLAN.md`, `RUNTIME-TRANSFORM-INVENTORY.md`, `RUNTIME-AUTHORITY-MAP.md`, `REBUILD-BASELINE-AUDIT.md`, `architecture-ownership.txt`, `BUG-LIST.md`, `DEVICE-ACCEPTANCE-BUGS.md`; E2EE work also reads `E2EE-IDENTITY-LIFECYCLE.md` and `ACCOUNT-E2EE-DIRECT-MESSAGE-FORMAT.md`.
+- Message Notification / FCM / Web Push work additionally MUST read `FCM-NOTIFICATION-ARCHITECTURE.md` before any consequential design, code, test, deploy, or Google/Firebase configuration instruction.
 - Core: ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH.
 - ENFORCEMENT RULE: if the mandatory first read has not been completed in the current work session, STOP. Do not code, change architecture, alter a guardrail, or give consequential Firebase/Google console instructions until the documents have been reread and reconciled with the requested task.
 - A green CI result does not override a published architecture rule. If a gate conflicts with an implementation, investigate the implementation first; do not weaken the gate merely to make the new implementation pass.

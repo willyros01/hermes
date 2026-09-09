@@ -1,5 +1,9 @@
 # FIDUNIO / Hermes
 
+## FIDUNIO 1.1 Message Notifications — authoritative plan
+
+The approved durable design is `FCM-NOTIFICATION-ARCHITECTURE.md`. It governs all future FCM/Web Push notification implementation, testing, deployment, token registration, server notification triggers, service-worker notification handling, and tap routing. FCM must remain a generic wake-up/notification layer; authoritative messages continue to come only from Firestore through the existing E2EE path. The N1 architecture checkpoint changes documentation only and does not enable FCM or change live Firebase configuration.
+
 ## 0.9.9.11 iOS recorded-audio MIME normalization
 
 **Status: DEVICE CANDIDATE.**

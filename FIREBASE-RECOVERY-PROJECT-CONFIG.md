@@ -1,5 +1,9 @@
 # FIDUNIO Firebase Recovery Project Configuration Gate
 
+## FIDUNIO 1.1 notification configuration authority
+
+Before any live Firebase Messaging / Web Push / VAPID / notification Cloud Function configuration or deployment, read `FCM-NOTIFICATION-ARCHITECTURE.md`. That document defines the notification architecture and the explicit Google/Firebase handoff barrier. The N1 documentation checkpoint does NOT authorize or imply any live Firebase Messaging, VAPID, Functions, Firestore-rule, or Google Cloud configuration change.
+
 **STATUS: RECOVERY SOURCE + APP CHECK OWNERSHIP REPAIRED AND FULL SECURITY GATE GREEN; LIVE FUNCTIONS DEPLOYMENT NEXT; APP CHECK ENFORCEMENT OFF**
 
 This document is the controlled handoff from repository account-E2EE/recovery preparation to the remaining Firebase/Google deployment step. The three-component recovery architecture is settled. Recovery source, App Check ownership, Firestore rules, Secret Manager and recovery-secret IAM preparation have been reconciled. Recovery Functions have not yet been deployed.

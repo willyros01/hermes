@@ -1,5 +1,9 @@
 # FIDUNIO Runtime Authority Map
 
+## Message Notification / FCM authority — FIDUNIO 1.1
+
+`FCM-NOTIFICATION-ARCHITECTURE.md` is the authoritative notification ownership map and must be read before notification work. Key boundary: `firebase.js` remains sole client Firebase SDK/service owner; a dedicated registration owner may manage notification intent/status only; server Functions/Admin own recipient resolution/FCM send/token cleanup; `service-worker.js` owns only generic push display/click transport; `app.js`/existing conversation owners retain routing/message projection; existing E2EE and receipt owners are unchanged. Push never constructs message state or decrypts content.
+
 **STATUS: REBUILD CONTROL DOCUMENT — SEPTEMBER 5, 2026**
 
 This map identifies the current runtime owner for each major resource and separates target architecture from temporary compatibility code. It is used to avoid deleting behavior before its replacement is authoritative.

@@ -1,5 +1,9 @@
 # FIDUNIO / Hermes Mandatory Coding Guidelines
 
+## Message Notification / FCM mandatory reference
+
+For every Message Notification, Firebase Cloud Messaging, Web Push, notification token, notification Cloud Function, notification service-worker, or notification-click task, `FCM-NOTIFICATION-ARCHITECTURE.md` is a mandatory pre-code read in addition to this document. A notification implementation that conflicts with that authority must stop for architecture reconciliation rather than introducing a workaround or second owner.
+
 **STATUS: MANDATORY — READ BEFORE WRITING, EDITING, MOVING, OR DELETING ANY APPLICATION CODE**
 
 These rules are part of the project architecture. They are not optional style preferences. Every future code change must be checked against this document before implementation.

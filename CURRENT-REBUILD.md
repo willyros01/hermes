@@ -1,5 +1,9 @@
 # FIDUNIO Current Rebuild — Recovery Entry Point
 
+## FIDUNIO 1.1 Message Notification authority
+
+`FCM-NOTIFICATION-ARCHITECTURE.md` is now the authoritative architecture for Message Notifications / FCM / Web Push. All future notification work must read it before implementation. FCM is notification/wake-up transport only; Firestore + existing account-authoritative E2EE remain message authority. No plaintext message or attachment content may enter push payloads. N1 architecture is approved; N2-N7 remain future implementation phases. This documentation checkpoint made no live Firebase/Google change and no runtime version change.
+
 ## 0.9.9.11 iOS recorded-audio MIME normalization
 
 **Status: DEVICE CANDIDATE.**
