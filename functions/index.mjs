@@ -30,8 +30,8 @@ const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({
 const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:attachmentBucket});
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
-const {conversationRepo:notificationConversationRepo,deviceRepo:notificationDeviceRepo}=createDirectNotificationAdminRepositories({db});
-const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
+const {conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo}=createDirectNotificationAdminRepositories({db});
+const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
 
 function decodeMasterSecret() {
   const raw = String(RECOVERY_MASTER.value() || "");

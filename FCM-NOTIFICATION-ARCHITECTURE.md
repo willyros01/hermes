@@ -53,7 +53,7 @@ Opaque routing metadata may include only what is required to route the applicati
 - opaque conversation ID;
 - opaque message ID.
 
-Sender names are not required for the first implementation because lock-screen social metadata is also a privacy concern.
+Sender identity remains private by default. A user may explicitly enable **Show sender name** per installation. When enabled, the server may place only the authoritative `users/{senderUid}.displayName` value in the OS-visible body (`New message from <FIDUNIO display name>`). The message document's `senderName` is not notification authority. No message text, attachment name, email, UID, phone number, key material, or decrypted content may be added.
 
 ## 3. Ownership map
 
@@ -133,6 +133,7 @@ Bounded fields may include:
 - `fcmToken`
 - `platform`
 - `enabled`
+- `showSenderName` — boolean, default `false`, installation-scoped privacy preference
 - `createdAt`
 - `updatedAt`
 - `lastSeenAt`
@@ -493,3 +494,6 @@ Do not implement:
 - Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
 - Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.
 
+## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
+
+**Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
