@@ -5,8 +5,9 @@ import {classifyDisappearingMessagePath,runDisappearingPurgeSweep} from './funct
 assert.equal(disappearingPurgeVersionForOutgoing({text:'hello',value:300}),1);
 assert.equal(stampOutgoingDisappearSelection({text:'hello'},300).disappearingPurgeVersion,1);
 const attachment=JSON.stringify({fidunioAttachment:1,attachmentId:'a'});
-assert.equal(disappearingPurgeVersionForOutgoing({text:attachment,value:300}),null);
-assert.equal(stampOutgoingDisappearSelection({text:attachment},300).disappearAfterSeconds,undefined);
+assert.equal(disappearingPurgeVersionForOutgoing({text:attachment,value:300}),1);
+assert.equal(stampOutgoingDisappearSelection({text:attachment},300).disappearAfterSeconds,300);
+assert.equal(stampOutgoingDisappearSelection({text:attachment},300).disappearingPurgeVersion,1);
 assert.deepEqual(classifyDisappearingMessagePath('conversations/c1/messages/m1'),{kind:'direct',conversationId:'c1',messageId:'m1'});
 assert.deepEqual(classifyDisappearingMessagePath('groups/g1/messages/m2'),{kind:'group',groupId:'g1',messageId:'m2'});
 assert.equal(classifyDisappearingMessagePath('groups/g1/historyGrants/h/messages/m2'),null);
@@ -15,11 +16,13 @@ const docs=[{ref:{path:'conversations/c1/messages/m1'}},{ref:{path:'groups/g1/me
 const db={collectionGroup(){return{where(field,op,value){assert.deepEqual([field,op,value],['disappearingPurgeVersion','==',1]);return{limit(n){assert.equal(n,200);return{async get(){return{docs};}};}};}};}};
 const executor={async purgeDirect(){direct++;return{purged:true};},async purgeGroup(){group++;return{purged:false};}};
 const r=await runDisappearingPurgeSweep({db,executor});assert.equal(direct,1);assert.equal(group,1);assert.deepEqual(r,{examined:2,purged:1,retained:1,deferred:0,ignored:1});
-const app=readFileSync('app.js','utf8'),fb=readFileSync('firebase.js','utf8'),rules=readFileSync('firestore.rules','utf8'),fn=readFileSync('functions/index.mjs','utf8'),deploy=readFileSync('p.txt','utf8');
-assert.match(app,/Disappearing text:/);assert.match(app,/disappearingPurgeVersion:message\.disappearingPurgeVersion/);
+const app=readFileSync('app.js','utf8'),fb=readFileSync('firebase.js','utf8'),rules=readFileSync('firestore.rules','utf8'),fn=readFileSync('functions/index.mjs','utf8'),deploy=readFileSync('att.txt','utf8');
+assert.match(app,/Disappearing:/);assert.match(app,/disappearingPurgeVersion:message\.disappearingPurgeVersion/);
 assert.match(fb,/row\.disappearingPurgeVersion=1/);assert.match(rules,/disappearingPurgeVersion/);
 assert.match(fn,/purgeDisappearingMessagesV1/);assert.match(fn,/every 1 minutes/);
 for(const n of ['disappearing-content-policy.js','disappearing-purge-policy.js','disappearing-purge-executor.js','disappearing-purge-firestore-admin-adapter.mjs','disappearing-group-grant-trace-plan.js'])assert.equal(readFileSync(n,'utf8'),readFileSync('functions/disappearing/'+n,'utf8'),n+' deployment mirror drifted');
 assert.match(deploy,/download_function "disappearing\/disappearing-content-policy\.js"/, 'deployment package must include disappearing content policy dependency');
 assert.match(deploy,/COMMIT="[0-9a-f]{40}"/, 'deployment package must be pinned to an immutable commit');
-console.log('Disappearing-message activation gate passed');
+assert.match(fn,/createDisappearingPurgeFirestoreAdminRepository\(\{db,bucket:attachmentBucket,requireStorage:true\}\)/);
+assert.match(deploy,/roles\/storage\.objectAdmin/);
+console.log('Disappearing text + attachment activation gate passed');

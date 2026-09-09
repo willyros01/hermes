@@ -1,3 +1,7 @@
+## 0.9.9.19 disappearing-attachment candidate
+
+Disappearing selection now covers future encrypted attachments as well as text. Server deletion stays behind the existing serialized purge executor/repository: deterministic Storage ciphertext prefix first, Firestore source last after revalidation. Client delete permissions are unchanged. Live Storage IAM + Function redeployment and real-device acceptance are still required.
+
 ### 0.9.9.13 group sender-name labels
 
 **Status: DEVICE CANDIDATE.**

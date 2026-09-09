@@ -418,8 +418,16 @@ async function purgeLocalDisappearingMessageTraces(uid,messageIds){
     for(const row of historyWrites)history.put(row.value,row.key);
     for(const id of plan.outboxDeleteIds)outbox.delete(id);
     await txDone(tx);
+    let attachmentUrlsReleased=0;
+    const targetIds=new Set(ids);
+    for(const [key,runtime] of [...attachmentRuntime.entries()]){
+      const messageId=String(key).slice(String(key).lastIndexOf(":")+1);
+      if(!targetIds.has(messageId))continue;
+      if(runtime?.result?.url){releaseAttachmentResult(runtime.result);attachmentUrlsReleased++;}
+      attachmentRuntime.delete(key);
+    }
     await persistState();
-    return{purgedMessageIds:ids,outboxDeleted:plan.outboxDeleteIds.length,historyUpdated:historyWrites.length};
+    return{purgedMessageIds:ids,outboxDeleted:plan.outboxDeleteIds.length,historyUpdated:historyWrites.length,attachmentUrlsReleased};
   });
 }
 
@@ -1303,7 +1311,7 @@ function renderChat(){
       <section class="chat" id="chatArea">${renderConversationMessages(msgs,c)}</section>
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing text:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
+        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
         <div class="compose-line">
           <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
           <textarea id="messageBox" rows="1" placeholder="Type a message…"></textarea>

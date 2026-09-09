@@ -1,3 +1,11 @@
+## Disappearing attachments — 0.9.9.19
+
+**Status: NOT YET DEVICE-TESTABLE until live backend handoff succeeds.** After deployment, test a fresh direct photo and a fresh group attachment with 5 minutes: recipients can open before expiry; expiry begins from the accepted Read authority; after expiry the message and encrypted attachment disappear from all devices; close/reopen must not restore them; unread attachments must remain beyond the duration until authoritative Read.
+
+## Date/time presentation — 0.9.9.18
+
+**Status: DEVICE ACCEPTED.** Group date, sender name/time, and direct date separator are working.
+
 ## Direct chat date separators — 0.9.9.18 correction
 
 **Status: DEVICE CANDIDATE.** 0.9.9.17 failed: direct chats showed no date separator. Root cause was projection loss of authoritative Firestore `createdAt`, not the renderer. 0.9.9.18 carries `createdAt` into direct display rows. Confirm existing and new direct messages show the horizontal-line `Month D, YYYY` separator, same-day messages share one separator, times remain visible, and close/reopen preserves it.

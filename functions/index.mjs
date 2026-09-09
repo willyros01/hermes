@@ -20,9 +20,10 @@ const MESSAGE_DELETE_SERVICE_ACCOUNT = "fidunio-message-delete@fidunio-fef13.iam
 const DISAPPEARING_PURGE_SERVICE_ACCOUNT = "fidunio-disappearing-purge@fidunio-fef13.iam.gserviceaccount.com";
 const ATTACHMENT_BUCKET = "fidunio-fef13.firebasestorage.app";
 const db = getFirestore();
+const attachmentBucket=getStorage().bucket(ATTACHMENT_BUCKET);
 const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({ db });
-const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:getStorage().bucket(ATTACHMENT_BUCKET)});
-const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db});
+const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:attachmentBucket});
+const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
 
 function decodeMasterSecret() {

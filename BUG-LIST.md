@@ -1,3 +1,7 @@
+## Disappearing attachments — 0.9.9.19
+
+**Status: REPOSITORY CANDIDATE / LIVE BACKEND HANDOFF REQUIRED.** Photos, files, audio and video now carry disappearing activation metadata and have server Storage-prefix + local object-URL cleanup wiring. Do not mark closed until `att.txt` live deployment succeeds and direct/group attachment expiry, unread protection, reopen, and multi-device absence are device-proven.
+
 ### 0.9.9.13 group sender name missing from bubbles
 
 - **Observed:** Group message bubbles do not reliably identify the sender because the renderer expected `m.sender`, while the account-authoritative group projection carries `senderUid`.

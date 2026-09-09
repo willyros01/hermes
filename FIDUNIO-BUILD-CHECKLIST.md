@@ -1,3 +1,5 @@
+- [ ] **Disappearing attachments — 0.9.9.19 candidate:** same selection metadata for future attachments; one server purge repository deletes deterministic Storage ciphertext prefix before source, local object URLs converge, no client delete/tombstone; live `att.txt` deployment + direct/group/unread/reopen/multi-device acceptance pending.
+- [x] **Date/time presentation — 0.9.9.18:** group sender name/time + group/direct date separators device accepted.
 - [ ] **Direct chat date separators — 0.9.9.18 correction:** preserve authoritative direct-message `createdAt` through projection so the shared date separator can render; pending device acceptance.
 - [ ] **Direct chat date separators — 0.9.9.17 candidate:** apply the accepted horizontal-line `Month D, YYYY` day separator to one-to-one conversations while preserving per-message times and group sender name/time; pending iPhone/iPad device acceptance.
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist

@@ -15,19 +15,16 @@ export function composeDisappearLabel(value){
   return DISAPPEARING_COMPOSE_PRESETS.find(x=>x.value===seconds)?.label||`${seconds} seconds`;
 }
 export const DISAPPEARING_PURGE_VERSION=1;
-function isAttachmentPayload(text){
-  if(typeof text!=="string"||!text.trimStart().startsWith("{"))return false;
-  try{return JSON.parse(text)?.fidunioAttachment===1;}catch{return false;}
-}
-export function disappearingPurgeVersionForOutgoing({text,value}={}){
+export function disappearingPurgeVersionForOutgoing({value}={}){
   const duration=resolveComposeDisappearSelection(value);
-  return duration!=null&&!isAttachmentPayload(text)?DISAPPEARING_PURGE_VERSION:null;
+  return duration!=null?DISAPPEARING_PURGE_VERSION:null;
 }
 export function stampOutgoingDisappearSelection(message,value){
   const duration=resolveComposeDisappearSelection(value);
-  // Activation 0.9.9.12 is text-only. Attachment Storage deletion is a
-  // separate server trace resource and must not be implied by this timer.
-  if(duration==null||isAttachmentPayload(message?.text))return {...message};
+  if(duration==null)return {...message};
+  // 0.9.9.19 extends the already-accepted disappearing selection to future
+  // attachments. The server purge repository remains the sole Firestore/Storage
+  // physical-delete owner.
   return {...message,disappearAfterSeconds:duration,disappearingPurgeVersion:DISAPPEARING_PURGE_VERSION};
 }
 

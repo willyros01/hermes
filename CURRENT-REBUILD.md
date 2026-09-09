@@ -1,3 +1,11 @@
+### DISAPPEARING ATTACHMENTS — 0.9.9.19 REPOSITORY CANDIDATE
+
+Item 2 is wired through the existing disappearing-message authority. Future photos/files/audio/video selected while `Disappearing` is enabled receive the same immutable `disappearAfterSeconds` + `disappearingPurgeVersion: 1` metadata as text. The existing scheduled executor remains the one purge coordinator. Its single server repository now receives the already-owned Admin Storage bucket, revalidates the source basis before physical mutation, deletes deterministic encrypted Storage prefix `attachments/{senderUid}/{conversationId}/{messageId}/`, then revalidates again and executes the existing Firestore receipt/grant/source commit with source last. The UID-scoped local purge owner also releases attachment object URLs/runtime entries after authoritative source absence. No client Storage-delete authority, tombstone, second scheduler, or second Firebase owner is introduced. Live activation requires the controlled `att.txt` handoff plus device acceptance.
+
+### DATE/TIME DEVICE ACCEPTANCE — 0.9.9.18
+
+User confirmed group sender name/time, group date separators, and one-to-one/direct date separators are working. These presentation items are closed.
+
 ### DIRECT DATE TIMESTAMP CORRECTION — 0.9.9.18
 
 0.9.9.17 correctly broadened the date-separator renderer to direct chats, but real-device testing proved direct rows still showed no date. Root cause: the direct Firestore projection dropped authoritative message `createdAt` while constructing display rows. 0.9.9.18 preserves `createdAt` in that existing projection so the same accepted day-separator renderer can classify direct messages. No Firebase write, E2EE, receipt, Outbox, disappearing-content, attachment, or group authority changed. Release cache revision is bumped.
