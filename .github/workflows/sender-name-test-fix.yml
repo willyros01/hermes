@@ -1,0 +1,36 @@
+name: Align sender-name notification gates
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/sender-name-test-fix.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Align release-sensitive gates
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          paths=['notification-n3.test.mjs','notification-n4.test.mjs','notification-n5.test.mjs','direct-message-basic-path.test.mjs','outbox-reconciliation-boundary.test.mjs']
+          for path in paths:
+              p=Path(path); s=p.read_text();
+              s=s.replace('1\\.1\\.8-fcm-n5-openwindow-routing','1\\.1\\.9-fcm-sender-name')
+              s=s.replace('version: "1\\.1\\.8"','version: "1\\.1\\.9"')
+              p.write_text(s)
+          p=Path('notification-n4.test.mjs'); s=p.read_text()
+          s=s.replace('assert.match(core,/notification:\\{title:FIDUNIO_NOTIFICATION_TITLE,body:FIDUNIO_NOTIFICATION_BODY\\}/);', 'assert.match(core,/notification:\\{title:FIDUNIO_NOTIFICATION_TITLE,body\\}/);assert.match(core,/profileRepo\\.getDisplayName\\(senderUid\\)/);assert.match(core,/showSenderName===true/);')
+          s=s.replace('assert.match(sw,/showNotification\\(\\"FIDUNIO\\",\\{body:\\"New message\\"/);', 'assert.match(sw,/showNotification\\(\\"FIDUNIO\\",\\{body,/);assert.match(sw,/New message from/);')
+          p.write_text(s)
+          PY
+      - name: Commit gate alignment
+        run: |
+          git config user.name "willyros01"
+          git config user.email "willyros01@gmail.com"
+          git add notification-n3.test.mjs notification-n4.test.mjs notification-n5.test.mjs direct-message-basic-path.test.mjs outbox-reconciliation-boundary.test.mjs
+          git commit -m "Align notification gates with 1.1.9 sender-name release"
+          git push origin main
