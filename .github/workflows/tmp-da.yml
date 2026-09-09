@@ -11,7 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply repository candidate
-        run: python3 tmp-da.py
+        run: |
+          python3 tmp-da.py
+          git checkout -- .github/workflows/rebuild-baseline-security.yml
       - name: Commit candidate
         run: |
           git config user.name github-actions[bot]
@@ -21,7 +23,7 @@ jobs:
           echo "CODE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Create controlled Cloud Shell handoff
         run: |
-          cat > att.txt <<EOF
+          cat > att.txt <<'EOF'
           #!/usr/bin/env bash
           set -euo pipefail
           PROJECT="fidunio-fef13"
@@ -30,7 +32,7 @@ jobs:
           CODEBASE="recovery"
           SERVICE_ACCOUNT="fidunio-disappearing-purge@fidunio-fef13.iam.gserviceaccount.com"
           BUCKET="gs://fidunio-fef13.firebasestorage.app"
-          COMMIT="$CODE_SHA"
+          COMMIT="__CODE_SHA__"
           SCRIPT_VERSION="0.9.9.19-att"
           ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
           if [[ "$ACTIVE_PROJECT" != "$PROJECT" ]]; then echo "STOP: Cloud Shell project is '$ACTIVE_PROJECT', expected '$PROJECT'."; exit 1; fi
@@ -78,6 +80,7 @@ jobs:
           echo "Scheduler: $SCHEDULER"
           echo "Pinned source: $COMMIT"
           EOF
+          sed -i "s/__CODE_SHA__/$CODE_SHA/" att.txt
           git add att.txt
           git commit -m "Add disappearing attachment deployment handoff"
       - name: Push candidate
