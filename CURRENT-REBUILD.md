@@ -1,3 +1,7 @@
+### GROUP SENDER LABEL CANDIDATE — 0.9.9.13
+
+Group message rendering now resolves each message's existing `senderUid` against the current group member projection and displays that FIDUNIO member name above the bubble. The change is presentation-only and applies to group rows, including the local user's outgoing group rows. Direct-message bubble structure remains unchanged. No Firebase, E2EE, receipts, Outbox, disappearing-content, attachment, or group membership write path changed. Permanent regression coverage is included; iPhone/iPad device acceptance remains required.
+
 ### OPEN FOLLOW-UP ITEMS — after 0.9.9.12
 
 1. **Disappearing attachments** — photos, files, audio, and video remain intentionally non-disappearing. Future activation must extend the binding `DISAPPEARING-PURGE-AUTHORITY.md` path to physically remove Firebase Storage manifests/chunks and every related durable trace before deleting the authoritative Firestore source message. No attachment disappearance may be enabled until the source-delete-last contract is implemented, permanently gated, live-deployed, and device accepted.

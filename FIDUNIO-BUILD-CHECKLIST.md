@@ -3,7 +3,7 @@
 ### Open follow-up items
 
 - [ ] **Disappearing attachments:** implement trace-free disappearance for photos/files/audio/video, including physical Firebase Storage manifest/chunk deletion and related-trace cleanup under `DISAPPEARING-PURGE-AUTHORITY.md`; preserve source-delete-last ordering; add permanent gates; deploy backend changes; complete direct/group/reopen device acceptance.
-- [ ] **Group chat sender label:** show the sender's FIDUNIO display name on each group-message bubble; preserve direct-message bubble layout and existing group-message authority; add regression coverage and iPhone/iPad device acceptance.
+- [ ] **Group chat sender label — 0.9.9.13 candidate:** implementation and permanent regression gate complete; sender UID resolves through the existing group member projection; direct-message bubbles unchanged. Pending iPhone/iPad device acceptance.
 
 ### Disappearing text activation — 0.9.9.12
 

@@ -1368,6 +1368,13 @@ function syncPhoneChatComposerInset({scrollBottom=false}={}){
   if(scrollBottom)window.scrollTo(0,Math.max(document.documentElement.scrollHeight,document.body.scrollHeight));
 }
 
+function groupSenderDisplayName(m,c){
+  if(c?.type!=="group"&&!c?.cloudGroup)return "";
+  const senderUid=String(m?.senderUid||(m?.mine?firebaseUser?.uid:"")||"");
+  const member=(Array.isArray(c?.members)?c.members:[]).find(row=>String(row?.id||row?.uid||"")===senderUid);
+  return member?.name||m?.sender||(m?.mine?"You":"FIDUNIO member");
+}
+
 function renderBubble(m,c){
   if(m.system) return `<div class="day-divider">${esc(m.text)} • ${esc(m.time)}</div>`;
   const label=m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
@@ -1394,8 +1401,9 @@ function renderBubble(m,c){
       }else messageContent=`<div class="attachment-card attachment-loading">Loading ${descriptor.kind==="photo"?"photo":"attachment"}…</div>`;
     }
   }
+  const groupSender=groupSenderDisplayName(m,c);
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
-    ${c.type==="group"&&!m.mine&&m.sender?`<div class="sender-label">${esc(m.sender)}</div>`:""}
+    ${groupSender?`<div class="sender-label">${esc(groupSender)}</div>`:""}
     <div class="bubble">
       ${messageContent}
       <div class="msg-meta"><span>${esc(m.time)}</span>${m.mine?`<span class="${cls}">${label}</span>`:""}</div>

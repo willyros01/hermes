@@ -1,3 +1,10 @@
+### 0.9.9.13 group sender name missing from bubbles
+
+- **Observed:** Group message bubbles do not reliably identify the sender because the renderer expected `m.sender`, while the account-authoritative group projection carries `senderUid`.
+- **Correction:** Resolve the existing `senderUid` against the current group member projection at render time and show the resulting FIDUNIO display name above every group bubble.
+- **Scope:** Presentation only. No direct-message, Firebase, E2EE, receipt, Outbox, membership, disappearing-content, or attachment authority changes.
+- **Status:** DEVICE CANDIDATE — repository gate and iPhone/iPad acceptance required.
+
 # FIDUNIO / Hermes Bug List
 
 ### Disappearing text activation — 0.9.9.12

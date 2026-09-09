@@ -1,5 +1,11 @@
 # FIDUNIO Device Acceptance — Current Evidence
 
+## Group chat sender labels — 0.9.9.13
+
+**Status: DEVICE CANDIDATE.**
+
+Acceptance: in an existing group, confirm incoming and outgoing bubbles show the correct FIDUNIO sender name on iPhone and iPad; send from at least two members if available; close/reopen and confirm labels persist; open a direct chat and confirm no sender label is added there.
+
 ## Disappearing text — direct-message device acceptance
 
 **Status: DEVICE ACCEPTED for direct text on FIDUNIO 0.9.9.12 — 2026-09-08.**

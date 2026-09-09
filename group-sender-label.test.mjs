@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const app=readFileSync("app.js","utf8");
+const groupConversation=readFileSync("e2ee-account-group-conversation.js","utf8");
+assert.ok(groupConversation.includes("senderUid:row.senderUid"),"group read projection must preserve senderUid");
+assert.ok(app.includes("function groupSenderDisplayName(m,c)"),"app must own one group sender-name resolver");
+assert.ok(app.includes('c?.type!=="group"&&!c?.cloudGroup'),"sender labels must be group-only");
+assert.ok(app.includes("Array.isArray(c?.members)"),"resolver must use existing group member projection");
+assert.ok(app.includes("row?.id||row?.uid"),"resolver must map sender UID to member identity");
+assert.ok(app.includes("const groupSender=groupSenderDisplayName(m,c)"),"renderBubble must consume resolver");
+assert.ok(app.includes('groupSender?`<div class="sender-label">'),"group bubbles must render sender label");
+assert.ok(!app.includes('c.type==="group"&&!m.mine&&m.sender'),"legacy incoming-only sender dependency must be removed");
+console.log("Group sender-label gate passed");

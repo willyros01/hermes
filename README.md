@@ -1,3 +1,9 @@
+### 0.9.9.13 group sender-name labels
+
+**Status: DEVICE CANDIDATE.**
+
+0.9.9.13 is a bounded group-chat presentation change. Every group-message row now resolves the sender UID against the already-owned group member projection and shows that member's FIDUNIO display name above the bubble. This includes incoming and outgoing group bubbles. Direct-message bubbles are unchanged. No Firebase schema/rules, group E2EE, receipt, Outbox, disappearing-message, attachment, PIN, or responsive-layout authority changes are included. A permanent baseline gate verifies that sender identity remains carried by the existing group conversation projection and that rendering is group-only. Device acceptance must confirm names on iPhone and iPad and verify direct chats remain unchanged.
+
 # FIDUNIO / Hermes
 
 ### Disappearing text activation — 0.9.9.12
@@ -49,7 +55,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.9x**
+- Current checkpoint version: **0.9.9.13**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.
