@@ -217,3 +217,6 @@ Repository implementation does not activate production by itself. Live activatio
 
 ### Live scheduler index recovery — 0.9.9.12
 Real-device acceptance exposed a production-only discovery prerequisite: `collectionGroup('messages').where('disappearingPurgeVersion','==',1)` requires a Firestore `COLLECTION_GROUP ASCENDING` index on `messages.disappearingPurgeVersion`. The index is now declared in durable `firestore.indexes.json`, referenced by `firebase.json`, covered by a permanent baseline gate, deployed to `fidunio-fef13`, and live scheduler health was verified by an ENABLED job with empty `status.code`. Function ACTIVE plus scheduler existence alone is not sufficient future deployment evidence; the collection-group query must execute successfully after index activation.
+
+### Direct real-device acceptance — 0.9.9.12
+After the production collection-group index recovery, a fresh 5-minute direct disappearing-text test passed end to end on real devices: authoritative Read established the expiry start, the server scheduler physically deleted the source from Firestore, both sender and recipient converged to absence, and close/reopen did not resurrect the message. This accepts the direct-text purge path. Unread-protection and group acceptance remain required before overall feature closeout.

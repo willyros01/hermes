@@ -1,3 +1,7 @@
+### DISAPPEARING DIRECT DEVICE ACCEPTANCE — 0.9.9.12
+
+Fresh direct 5-minute disappearing-text acceptance passed after the live Firestore collection-group index recovery: sent yes, authoritative Read yes, disappeared on sender yes, disappeared on recipient yes, and after close/reopen the message did not return. Direct disappearing text is device accepted. Unread-protection and group behavior remain pending acceptance; attachments remain intentionally non-disappearing in this checkpoint.
+
 ### DISAPPEARING LIVE INDEX RECOVERY — 0.9.9.12
 
 Live device/backend diagnosis proved the scheduled purge Function was returning HTTP 500 because Firestore required a `COLLECTION_GROUP ASCENDING` index on collection group `messages`, field `disappearingPurgeVersion`. The reviewed `firestore.indexes.json` index was deployed successfully to `fidunio-fef13`. After index activation, Cloud Scheduler job `firebase-schedule-purgeDisappearingMessagesV1-us-central1` reported `state: ENABLED` with empty `status.code`; the live scheduler invocation boundary is therefore healthy again. Device acceptance must now repeat a fresh 5-minute direct disappearing-text test before closing the feature.

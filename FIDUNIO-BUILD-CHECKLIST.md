@@ -16,7 +16,7 @@
 - [x] Add permanent disappearing activation gate and deployment-mirror drift gate.
 - [x] Deploy/verify reviewed Firestore rules, dedicated purge IAM, and scheduled Function to live `fidunio-fef13`. Evidence: Cloud Shell SUCCESS; Function `purgeDisappearingMessagesV1` ACTIVE; dedicated runtime SA verified; scheduler present; Firestore rules deployed.
 - [x] Deploy required COLLECTION_GROUP ASCENDING index for `messages.disappearingPurgeVersion` and verify scheduler returns healthy empty status.code.
-- [ ] Device-confirm direct 5-minute disappearing text from Read -> physical absence on sender and recipient.
+- [x] Device-confirm direct 5-minute disappearing text from Read -> physical absence on sender and recipient; close/reopen confirmed no resurrection.
 - [ ] Device-confirm group 5-minute disappearing text with all entitled recipients Read -> physical absence.
 - [ ] Device-confirm unread message does not disappear and offline/reopen does not resurrect a purged message.
 - [ ] Attachment disappearing remains NOT ACTIVE until server Storage trace cleanup meets the source-delete-last contract.
