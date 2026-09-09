@@ -1,3 +1,13 @@
+### DA-NOTIF-002 — iOS notification-tap / resume lifecycle latency
+- Build observed: 1.1.10.
+- Devices: iPhone (minor residual delay), iPad (unacceptable delay).
+- Related observation: Settings Profile/User Administration/Invitations could populate late after resume.
+- Expected: notification tap projects the authoritative new direct message promptly and Settings-owned panels remain stable once mounted.
+- Cause allocated to duplicate foreground lifecycle rebind/render activity, not notification sender-name privacy mode.
+- Repair candidate: 1.1.11 deterministic foreground lifecycle stabilization.
+- Status: REPOSITORY CANDIDATE; device acceptance pending.
+- Exit: warm/cold notification taps on iPhone+iPad are prompt and Settings account panels do not disappear/restart during foreground resume.
+
 ## Disappearing attachments — 0.9.9.19
 
 **Status: NOT YET DEVICE-TESTABLE until live backend handoff succeeds.** After deployment, test a fresh direct photo and a fresh group attachment with 5 minutes: recipients can open before expiry; expiry begins from the accepted Read authority; after expiry the message and encrypted attachment disappear from all devices; close/reopen must not restore them; unread attachments must remain beyond the duration until authoritative Read.

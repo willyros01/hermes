@@ -1,3 +1,15 @@
+### 1.1.11 iOS foreground lifecycle candidate
+- [x] Preserve one direct-message Firestore/E2EE projection owner.
+- [x] Serialize foreground recovery and distinguish genuine resume from duplicate iOS lifecycle events.
+- [x] Notification route owns its single forced subscription; duplicate pageshow/visibility events do not restart it.
+- [x] Background E2EE device publication no longer structurally rebuilds Settings during hydration.
+- [x] Bump visible version and service-worker revision for deterministic cache retirement.
+- [ ] Full repository security gate green for exact final commit.
+- [ ] GitHub Pages deploy green for exact final commit.
+- [ ] iPhone warm/cold notification-tap latency accepted.
+- [ ] iPad warm/cold notification-tap latency accepted.
+- [ ] Settings Profile/User Administration/Invitations appear without restart/disappearance after resume.
+
 - [x] **Disappearing attachments — 0.9.9.19:** live backend deployed; direct photo/file/audio/video and group photo all device accepted after authoritative Read with close/reopen anti-resurrection pass.
 - [x] **Date/time presentation — 0.9.9.18:** group sender name/time + group/direct date separators device accepted.
 - [ ] **Direct chat date separators — 0.9.9.18 correction:** preserve authoritative direct-message `createdAt` through projection so the shared date separator can render; pending device acceptance.

@@ -824,7 +824,9 @@ async function publishMyE2EEKey(){
       deviceRegistryStatus=err?.message||String(err);
       console.warn("Device registry publication failed",err);
     }
-    if(state.route==="settings")renderSettings();
+    // Device-registry publication is background account state. Do not rebuild
+    // Settings here: its owned account panels may already be hydrating, and a
+    // second structural render would invalidate that generation.
   })().finally(()=>{e2eePublishPromise=null;});
   return e2eePublishPromise;
 }
@@ -923,7 +925,7 @@ async function initializeFirebaseLayer(){
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
         beginCloudGroupSubscription();
-        ensureActiveCloudMessageSubscription(true);
+        ensureActiveCloudMessageSubscription();
         void applyPendingNotificationRoute();
         if(state.online) scheduleReconnectRecovery();
       }else{
@@ -943,7 +945,7 @@ async function initializeFirebaseLayer(){
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
     if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
-    ensureActiveCloudMessageSubscription(true);
+    ensureActiveCloudMessageSubscription();
     void applyPendingNotificationRoute();
     if(firebaseUser && state.online) scheduleReconnectRecovery();
   }catch(err){
@@ -1800,14 +1802,22 @@ function scheduleReconnectRecovery(){
     if(state.online && firebaseUser) flushQueuedAfterAuthoritativeReconcile();
   },4000);
 }
+let foregroundRecoveryTail=Promise.resolve();
+let foregroundLifecycleActive=document.visibilityState==="visible";
 function recoverForegroundCloudSession(){
-  state.online=navigator.onLine;
-  void applyPendingNotificationRoute();
-  // Lifecycle recovery is one of the few times we deliberately replace the
-  // listener. Normal conversation metadata snapshots no longer restart it.
-  ensureActiveCloudMessageSubscription(true);
-  if(state.online) scheduleReconnectRecovery();
-  render();
+  const resumeNeeded=!foregroundLifecycleActive;
+  foregroundLifecycleActive=true;
+  const run=foregroundRecoveryTail.then(async()=>{
+    state.online=navigator.onLine;
+    // A notification route owns its one forced direct-message subscription.
+    // Otherwise a genuine background -> foreground transition may rebind once.
+    // Duplicate iOS visibility/pageshow events must never restart the listener.
+    const routed=await applyPendingNotificationRoute();
+    ensureActiveCloudMessageSubscription(resumeNeeded&&!routed);
+    if(state.online) scheduleReconnectRecovery();
+  });
+  foregroundRecoveryTail=run.catch(err=>console.warn("Foreground cloud recovery failed",err));
+  return run;
 }
 window.addEventListener("online",()=>{
   state.online=true;
@@ -1823,8 +1833,10 @@ window.addEventListener("offline",()=>{
   render();
 });
 document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible") recoverForegroundCloudSession();
+  if(document.visibilityState==="visible") void recoverForegroundCloudSession();
+  else foregroundLifecycleActive=false;
 });
+window.addEventListener("pagehide",()=>{foregroundLifecycleActive=false;});
 
 let lastWideLayout=isWideLayout();
 window.addEventListener("resize",()=>{
@@ -1835,7 +1847,7 @@ window.addEventListener("resize",()=>{
   }
 });
 
-window.addEventListener("pageshow",recoverForegroundCloudSession);
+window.addEventListener("pageshow",()=>{void recoverForegroundCloudSession();});
 
 function renderGroupInfo(){
   const c=currentConversation();

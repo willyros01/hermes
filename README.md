@@ -1,3 +1,12 @@
+## 1.1.11 — iOS foreground lifecycle stabilization — 2026-09-09
+
+- Previous runtime: 1.1.10. New runtime: 1.1.11.
+- Reason: 1.1.10 improved direct notification-tap message projection, but real-device testing still showed a smaller delay on iPhone and an unacceptable delay on iPad; Settings account panels could also appear late after resume.
+- Root cause addressed: duplicate iOS foreground lifecycle events and Firebase startup could repeatedly force-restart the same direct-message subscription; background device-registry publication could also rebuild Settings while its account-panel owner was hydrating.
+- Correction: one serialized foreground recovery path, one genuine resume rebind at most, notification route retains sole forced route subscription, and no structural Settings rebuild from device publication.
+- Protected behavior: existing direct notifications (including optional FIDUNIO display name), PIN, account E2EE, Outbox, receipts, groups, attachments, iPad two-pane layout, and Firebase backend configuration are unchanged.
+- Validation: repository gate added; iPhone/iPad warm/cold notification-tap and Settings-panel device acceptance required. No Firebase deployment is required.
+
 FCM N3 REPOSITORY CANDIDATE — 1.1.1: Deterministic Settings now has a Notifications panel. Permission is requested only from the explicit Enable Notifications user gesture. One installation ID is retained locally; firebase.js remains sole Firebase owner and reads/writes only users/{uid}/notificationDevices/{installationId}. Exact owner-only Firestore rules + emulator matrix are included. Public VAPID configuration remains intentionally empty in notification-config.js pending the controlled Google/Firebase handoff; no live rules or Messaging configuration has been changed. N2 stale attachment-cache regression assertion was made release-agnostic without weakening attachment purge coverage. Disappearing attachments are device accepted across direct photo/file/audio/video and group photo, including reopen anti-resurrection.
 
 ### 1.1.0 — FCM N2 ownership foundation

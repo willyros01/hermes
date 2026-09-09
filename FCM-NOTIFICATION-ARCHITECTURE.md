@@ -500,3 +500,6 @@ Do not implement:
 ## FIDUNIO 1.1.10 notification-tap projection checkpoint — 2026-09-09
 
 After a valid notification route selects the authoritative direct conversation, the existing direct Firestore subscription remains the sole message owner. Once that subscription has decrypted/projected an authoritative snapshot into application state, the active chat must render that state before waiting for encrypted local-history persistence or the existing Read-receipt network write. Persistence still precedes receipt mutation. Notification metadata still never manufactures a message row. No timer, reload, observer, second message fetcher, or second projection owner is allowed.
+
+## 1.1.11 iOS foreground lifecycle stabilization
+Real-device 1.1.10 testing showed that notification delivery/routing remained correct but iOS foreground lifecycle events could repeatedly force-rebind the already-owned direct-message listener. 1.1.11 does not change FCM payloads, token ownership, server notification authority, or notification-click routing. The app lifecycle now serializes foreground recovery, distinguishes a genuine resume from duplicate `visibilitychange`/`pageshow` events, and allows the notification route to own its single forced message subscription. Device acceptance remains required.
