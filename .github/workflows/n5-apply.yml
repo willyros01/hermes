@@ -1,0 +1,119 @@
+name: Apply N5 deterministic routing patch
+
+on:
+  push:
+    branches: [main]
+    paths: [n5-patch-trigger.txt]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply exact N5 source and ledger patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          def replace_once(path, old, new):
+              p=Path(path); s=p.read_text()
+              if new in s:
+                  return
+              if old not in s:
+                  raise SystemExit(f"missing anchor in {path}: {old[:100]!r}")
+              p.write_text(s.replace(old,new,1))
+
+          # App: one deterministic route owner. Push metadata never creates message state.
+          replace_once("app.js",
+            'import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";\n',
+            'import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";\nimport { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";\n')
+
+          replace_once("app.js",
+            'let firebaseUser = null;\nlet cloudConversationUnsub = null;',
+            'let firebaseUser = null;\nlet pendingNotificationRoute=notificationRouteFromUrl(globalThis.location?.href||"");\nlet notificationRouteRunning=false;\nlet cloudConversationUnsub = null;')
+
+          replace_once("app.js",
+            'function unlockLocalApp(){\n  state.unlocked=true;\n  unlockError="";\n  noteLocalUnlock();\n  render();\n}\n',
+            'function unlockLocalApp(){\n  state.unlocked=true;\n  unlockError="";\n  noteLocalUnlock();\n  render();\n  void applyPendingNotificationRoute();\n}\n')
+
+          route_owner='''\nasync function applyPendingNotificationRoute(){\n  if(notificationRouteRunning||!pendingNotificationRoute||!hydrated||!state.unlocked||!firebaseUser)return false;\n  const route=pendingNotificationRoute;\n  notificationRouteRunning=true;\n  try{\n    let c=state.conversations.find(x=>String(x.id)===String(route.conversationId));\n    if(!c){\n      const remote=await getCloudConversation(route.conversationId,firebaseUser.uid);\n      if(!remote){\n        pendingNotificationRoute=null;\n        history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));\n        return false;\n      }\n      c=mergeCloudConversation(remote);\n    }\n    if(!c?.cloud||c?.cloudGroup||c?.type==="group"){\n      pendingNotificationRoute=null;\n      history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));\n      return false;\n    }\n    state.selectedId=c.id;state.route="chat";state.modal=null;state.toolsOpen=false;c.unread=0;\n    closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});\n    pendingNotificationRoute=null;\n    history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));\n    await persistState();\n    render();\n    return true;\n  }catch(err){\n    console.warn("Notification route could not be applied yet",err);\n    return false;\n  }finally{notificationRouteRunning=false;}\n}\n'''
+          replace_once("app.js",
+            'function mergeCloudGroup(remote){',
+            route_owner+'function mergeCloudGroup(remote){')
+
+          replace_once("app.js",
+            '        beginCloudGroupSubscription();\n        ensureActiveCloudMessageSubscription(true);',
+            '        beginCloudGroupSubscription();\n        ensureActiveCloudMessageSubscription(true);\n        void applyPendingNotificationRoute();')
+
+          replace_once("app.js",
+            '    firebaseUser=getFirebaseUser();\n    if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));\n    ensureActiveCloudMessageSubscription(true);',
+            '    firebaseUser=getFirebaseUser();\n    if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));\n    ensureActiveCloudMessageSubscription(true);\n    void applyPendingNotificationRoute();')
+
+          replace_once("app.js",
+            'function recoverForegroundCloudSession(){\n  state.online=navigator.onLine;\n',
+            'function recoverForegroundCloudSession(){\n  state.online=navigator.onLine;\n  void applyPendingNotificationRoute();\n')
+
+          replace_once("app.js",
+            'if("serviceWorker" in navigator){\n  window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js")',
+            'if("serviceWorker" in navigator){\n  navigator.serviceWorker.addEventListener("message",event=>{\n    if(event.data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;\n    const route=normalizeNotificationRoute(event.data?.route);\n    if(!route)return;\n    pendingNotificationRoute=route;\n    void applyPendingNotificationRoute();\n  });\n  window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js")')
+
+          # Service worker: display stays generic; click only hands opaque route intent to the app owner.
+          p=Path("service-worker.js"); s=p.read_text()
+          s=s.replace('SHELL_REVISION="1.1.5-fcm-n4-direct"','SHELL_REVISION="1.1.6-fcm-n5-routing"')
+          s=s.replace('"./notification-config.js","./settings-lifecycle.js"','"./notification-config.js","./notification-routing.js","./settings-lifecycle.js"')
+          click='''\nfunction notificationClickRoute(value){try{if(value?.type!=="direct-message")return null;const conversationId=String(value.conversationId||""),messageId=String(value.messageId||"");if(!conversationId||conversationId.length>256||!messageId||messageId.length>256)return null;return{type:"direct-message",conversationId,messageId};}catch{return null;}}\nself.addEventListener("notificationclick",event=>{event.notification.close();const route=notificationClickRoute(event.notification.data);if(!route)return;event.waitUntil((async()=>{const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});const client=windows.find(row=>{try{return new URL(row.url).origin===self.location.origin;}catch{return false;}});if(client){await client.focus();client.postMessage({type:"fidunio-notification-route",route});return;}const url=new URL("./",self.registration.scope);url.searchParams.set("fidunioNotification",route.type);url.searchParams.set("conversationId",route.conversationId);url.searchParams.set("messageId",route.messageId);await self.clients.openWindow(url.href);})());});\n'''
+          if 'addEventListener("notificationclick"' not in s:
+              s=s.rstrip()+click
+          p.write_text(s)
+
+          Path("version.js").write_text('globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "1.1.6" });\n')
+
+          # Keep prior release gates aligned with deterministic cache retirement.
+          for p in Path('.').glob('*.test.mjs'):
+              s=p.read_text().replace('1\\.1\\.5-fcm-n4-direct','1\\.1\\.6-fcm-n5-routing').replace('1.1.5-fcm-n4-direct','1.1.6-fcm-n5-routing')
+              if p.name=='notification-n4.test.mjs':
+                  s=s.replace('version: "1\\.1\\.5"','version: "1\\.1\\.6"')
+              p.write_text(s)
+
+          # Permanent N5 test command.
+          package=Path("package.json")
+          data=json.loads(package.read_text())
+          data.setdefault("scripts",{})["test:notification-n5"]="node notification-n5.test.mjs"
+          package.write_text(json.dumps(data,separators=(",",":"))+"\n")
+
+          workflow=Path('.github/workflows/rebuild-baseline-security.yml')
+          w=workflow.read_text()
+          step='      - {name: FCM N5 notification tap routing, run: npm run test:notification-n5}\n'
+          if step not in w:
+              anchor='      - {name: FCM N4 direct background notification, run: npm run test:notification-n4}\n'
+              if anchor not in w: raise SystemExit('N4 workflow anchor missing')
+              w=w.replace(anchor,anchor+step,1)
+              workflow.write_text(w)
+
+          ledger='''\n\n## FIDUNIO 1.1.6 notification routing checkpoint — 2026-09-09\n\n- N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.\n- Live N4 trigger: `notifyDirectMessageCreatedV1`; Eventarc trigger region is `nam5`; the trigger service account has `roles/run.invoker` only on the N4 Cloud Run service.\n- N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.\n- Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.\n- Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.\n'''
+          for name in [
+              'FCM-NOTIFICATION-ARCHITECTURE.md','hermes-memory.txt','CURRENT-REBUILD.md','README.md',
+              'FIDUNIO-BUILD-CHECKLIST.md','RUNTIME-AUTHORITY-MAP.md','architecture-ownership.txt',
+              'FIREBASE-RECOVERY-PROJECT-CONFIG.md','DEVICE-ACCEPTANCE-BUGS.md'
+          ]:
+              p=Path(name)
+              if p.exists():
+                  s=p.read_text()
+                  if 'FIDUNIO 1.1.6 notification routing checkpoint' not in s:
+                      p.write_text(s.rstrip()+ledger+'\n')
+          PY
+      - name: Run focused N5 gate
+        run: npm run test:notification-n5
+      - name: Commit N5 candidate
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js service-worker.js version.js notification-routing.js notification-n5.test.mjs package.json .github/workflows/rebuild-baseline-security.yml FCM-NOTIFICATION-ARCHITECTURE.md hermes-memory.txt CURRENT-REBUILD.md README.md FIDUNIO-BUILD-CHECKLIST.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt FIREBASE-RECOVERY-PROJECT-CONFIG.md DEVICE-ACCEPTANCE-BUGS.md
+          git commit -m "Implement deterministic N5 notification tap routing"
+          git push origin HEAD:main
