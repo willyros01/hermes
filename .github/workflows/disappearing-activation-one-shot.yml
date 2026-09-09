@@ -18,6 +18,7 @@ jobs:
         run: |
           python disappearing-cache-prep.py
           python disappearing-activation-patch.py
+          python disappearing-test-prep.py
       - name: Install root test dependencies
         run: npm install --ignore-scripts
       - name: Run focused disappearing gates
@@ -44,7 +45,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app.js firebase.js firestore.rules disappearing-compose-policy.js e2ee-account-message-service.js e2ee-account-group-outbox.js e2ee-account-group-service.js e2ee-account-group-runtime.js functions package.json version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs disappearing-activation.test.mjs CURRENT-REBUILD.md BUG-LIST.md README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt DISAPPEARING-PURGE-AUTHORITY.md
+          git add app.js firebase.js firestore.rules disappearing-compose-policy.js disappearing-compose-policy.test.mjs e2ee-account-message-service.js e2ee-account-group-outbox.js e2ee-account-group-service.js e2ee-account-group-runtime.js functions package.json version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs disappearing-activation.test.mjs CURRENT-REBUILD.md BUG-LIST.md README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt DISAPPEARING-PURGE-AUTHORITY.md
           git diff --cached --check
           git commit -m 'Build 0.9.9.12 disappearing text activation candidate'
           git push
