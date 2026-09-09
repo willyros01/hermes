@@ -1,3 +1,8 @@
+### OPEN FOLLOW-UP ITEMS — after 0.9.9.12
+
+1. **Disappearing attachments** — photos, files, audio, and video remain intentionally non-disappearing. Future activation must extend the binding `DISAPPEARING-PURGE-AUTHORITY.md` path to physically remove Firebase Storage manifests/chunks and every related durable trace before deleting the authoritative Firestore source message. No attachment disappearance may be enabled until the source-delete-last contract is implemented, permanently gated, live-deployed, and device accepted.
+2. **Group chat sender label** — group message bubbles must display the sender's current/displayed FIDUNIO name so recipients can identify who sent each message. This is a group-chat presentation change only; direct-message bubble layout and existing sender/message authority must remain unchanged.
+
 ### DISAPPEARING TEXT FEATURE DEVICE CLOSEOUT — 0.9.9.12
 
 Group real-device acceptance passed: sent yes, all tested recipients received, all required Reads confirmed, message disappeared from sender and all recipients, and after close/reopen it did not return. Together with the previously accepted direct 5-minute purge and unread-protection tests, disappearing TEXT is DEVICE ACCEPTED and closed for this activation checkpoint. Attachments remain intentionally non-disappearing until their Storage trace-deletion contract is implemented and separately accepted.
