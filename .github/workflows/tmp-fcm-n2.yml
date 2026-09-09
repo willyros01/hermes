@@ -1,0 +1,68 @@
+name: Temporary FCM N2 builder
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-fcm-n2.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build N2 foundation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('firebase.js')
+          s=p.read_text()
+          old='import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-storage.js`)]).then(([appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk])=>({appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk}))'
+          new='import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-storage.js`),import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-messaging.js`)]).then(([appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk])=>({appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk}))'
+          if old not in s: raise SystemExit('firebase loadSdk anchor missing')
+          s=s.replace(old,new,1)
+          old2='const {appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk}=await loadSdk();'
+          new2='const {appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk}=await loadSdk();'
+          if old2 not in s: raise SystemExit('firebase ensureServices destructure anchor missing')
+          s=s.replace(old2,new2,1)
+          old3='services={app,appCheck,auth,db,functions,storage,authSdk,fsSdk,functionsSdk,storageSdk};return services;}'
+          new3='services={app,appCheck,auth,db,functions,storage,authSdk,fsSdk,functionsSdk,storageSdk,messagingSdk,messaging:null};return services;}'
+          if old3 not in s: raise SystemExit('firebase services anchor missing')
+          s=s.replace(old3,new3,1)
+          anchor='export async function ensureFirebaseAuthSession(){const s=await ensureServices(),user=s.auth.currentUser;if(!user||!authUser||user.uid!==authUser.uid)throw new Error("Firebase authentication session is unavailable.");await user.getIdToken();authUser=user;return{uid:user.uid};}\n'
+          addition='''\nasync function ensureNotificationMessaging(){const s=await ensureServices();if(!(await s.messagingSdk.isSupported()))return null;if(!s.messaging)s.messaging=s.messagingSdk.getMessaging(s.app);return{s,messaging:s.messaging};}\nexport async function getFidunioNotificationCapability(){if(typeof Notification==="undefined")return{supported:false,permission:"unsupported"};const pair=await ensureNotificationMessaging();return{supported:!!pair,permission:Notification.permission};}\nexport async function getFidunioMessagingToken({vapidKey,serviceWorkerRegistration}={}){if(!authUser)throw new Error("Sign in first.");if(typeof Notification==="undefined"||Notification.permission!=="granted")throw new Error("Notification permission has not been granted.");const pair=await ensureNotificationMessaging();if(!pair)throw new Error("Notifications are not supported on this device/browser.");const key=String(vapidKey||"").trim();if(!key)throw new Error("FIDUNIO Web Push is not configured yet.");const options={vapidKey:key};if(serviceWorkerRegistration)options.serviceWorkerRegistration=serviceWorkerRegistration;return pair.s.messagingSdk.getToken(pair.messaging,options);}\nexport async function deleteFidunioMessagingToken(){const pair=await ensureNotificationMessaging();if(!pair)return false;return pair.s.messagingSdk.deleteToken(pair.messaging);}\n'''
+          if anchor not in s: raise SystemExit('firebase auth-session anchor missing')
+          s=s.replace(anchor,anchor+addition,1)
+          p.write_text(s)
+
+          Path('notification-policy.js').write_text('''export const NOTIFICATION_STATUS=Object.freeze({OFF:"off",READY:"ready",DENIED:"denied",UNSUPPORTED:"unsupported",CONFIG_REQUIRED:"config-required"});\nexport function deriveNotificationStatus({enabled=false,supported=false,permission="default",configured=false}={}){if(!supported)return NOTIFICATION_STATUS.UNSUPPORTED;if(permission==="denied")return NOTIFICATION_STATUS.DENIED;if(!enabled)return NOTIFICATION_STATUS.OFF;if(!configured)return NOTIFICATION_STATUS.CONFIG_REQUIRED;return permission==="granted"?NOTIFICATION_STATUS.READY:NOTIFICATION_STATUS.OFF;}\nexport function assertOpaqueNotificationRoute(route={}){const type=String(route.type||"");const conversationId=String(route.conversationId||"");const messageId=String(route.messageId||"");if(!["direct","group"].includes(type))throw new Error("Unsupported notification type.");if(!conversationId||conversationId.length>200)throw new Error("Invalid notification conversation route.");if(messageId.length>200)throw new Error("Invalid notification message route.");return{type,conversationId,messageId};}\n''')
+          Path('notification-registration.js').write_text('''import {deriveNotificationStatus} from "./notification-policy.js";\nexport function createNotificationRegistrationOwner({getCapability,getToken,deleteToken,getConfigured=()=>false}={}){if(typeof getCapability!=="function"||typeof getToken!=="function"||typeof deleteToken!=="function")throw new Error("Notification registration owner requires bounded Firebase APIs.");let enabled=false;let token="";return Object.freeze({async getStatus(){const capability=await getCapability();return{...capability,enabled,configured:!!getConfigured(),status:deriveNotificationStatus({enabled,supported:capability.supported,permission:capability.permission,configured:!!getConfigured()})};},async acquireTokenAfterPermission(options={}){const capability=await getCapability();if(!capability.supported)throw new Error("Notifications are not supported on this device/browser.");if(capability.permission!=="granted")throw new Error("Notification permission must be granted by an explicit user action first.");token=String(await getToken(options)||"");if(!token)throw new Error("FCM did not return a registration token.");enabled=true;return token;},async disable(){if(token)await deleteToken();token="";enabled=false;return true;}});}\n''')
+          Path('notification-n2-foundation.test.mjs').write_text('''import assert from "node:assert/strict";import {readFileSync} from "node:fs";import {deriveNotificationStatus,NOTIFICATION_STATUS,assertOpaqueNotificationRoute} from "./notification-policy.js";import {createNotificationRegistrationOwner} from "./notification-registration.js";\nconst firebase=readFileSync("firebase.js","utf8"),registration=readFileSync("notification-registration.js","utf8"),sw=readFileSync("service-worker.js","utf8");\nassert.match(firebase,/firebase-messaging\\.js/);assert.match(firebase,/getFidunioNotificationCapability/);assert.match(firebase,/getFidunioMessagingToken/);assert.match(firebase,/deleteFidunioMessagingToken/);assert.equal((firebase.match(/initializeApp\\(/g)||[]).length,1);assert.doesNotMatch(registration,/firebase-app|firebase-firestore|initializeApp|getFirestore/);assert.doesNotMatch(registration,/requestPermission/);\nassert.equal(deriveNotificationStatus({supported:false}),NOTIFICATION_STATUS.UNSUPPORTED);assert.equal(deriveNotificationStatus({supported:true,permission:"denied",enabled:true,configured:true}),NOTIFICATION_STATUS.DENIED);assert.deepEqual(assertOpaqueNotificationRoute({type:"direct",conversationId:"c1",messageId:"m1"}),{type:"direct",conversationId:"c1",messageId:"m1"});assert.throws(()=>assertOpaqueNotificationRoute({type:"x",conversationId:"c1"}));\nlet deletes=0;const owner=createNotificationRegistrationOwner({getCapability:async()=>({supported:true,permission:"granted"}),getToken:async()=>"tok",deleteToken:async()=>{deletes++;return true},getConfigured:()=>true});assert.equal(await owner.acquireTokenAfterPermission({vapidKey:"public"}),"tok");assert.equal((await owner.getStatus()).status,"ready");await owner.disable();assert.equal(deletes,1);\nassert.match(sw,/firebase-messaging\\.js/);console.log("FCM N2 ownership foundation gate passed");\n''')
+
+          pkg=Path('package.json')
+          import json
+          data=json.loads(pkg.read_text())
+          data['scripts']['test:notification-n2-foundation']='node notification-n2-foundation.test.mjs'
+          pkg.write_text(json.dumps(data,separators=(',',':'))+'\n')
+
+          v=Path('version.js'); v.write_text('globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "1.1.0" });\n')
+          sw=Path('service-worker.js'); t=sw.read_text();
+          t=t.replace('0.9.9.19-disappearing-attachments','1.1.0-fcm-n2-foundation')
+          t=t.replace('"./firebase.js","./firebase-config.js"','"./firebase.js","./firebase-config.js","./notification-policy.js","./notification-registration.js"')
+          t=t.replace('"https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js"]','"https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js"]')
+          sw.write_text(t)
+
+          for name,prefix in [('CURRENT-REBUILD.md','### FIDUNIO 1.1 N2 — FCM OWNERSHIP FOUNDATION — 1.1.0\n\nRepository-only N2 foundation: `firebase.js` remains the sole Firebase initializer and now owns bounded Messaging SDK capability/token APIs. `notification-registration.js` owns only notification registration intent and is dependency-injected; it never initializes Firebase, requests permission, writes message/receipt state, or persists a second message store. `notification-policy.js` keeps generic/opaque routing policy. No notification permission UI, Firestore token document, server push trigger, service-worker push display, or live Firebase configuration is activated in N2. Item 2 disappearing attachments is device accepted: direct photo/file/audio/video plus group photo all purged after authoritative Read and did not resurrect after reopen.\n\n'),('hermes-memory.txt','FCM N2 OWNERSHIP FOUNDATION (1.1.0): Start Item 3 under authoritative `FCM-NOTIFICATION-ARCHITECTURE.md`. `firebase.js` remains sole Firebase initializer and owns bounded Messaging SDK capability/get-token/delete-token APIs. `notification-registration.js` is a dependency-injected registration owner with no Firebase imports and no permission prompt; `notification-policy.js` restricts status and opaque route metadata. N2 makes no live Firebase/Google change and does not activate notifications. Item 2 disappearing attachments is DEVICE ACCEPTED/CLOSED after direct photo, file, audio, video and group photo 5-minute tests all disappeared correctly after authoritative Read and did not return after close/reopen.\n\n')]:
+              q=Path(name); q.write_text(prefix+q.read_text())
+
+          readme=Path('README.md'); r=readme.read_text(); readme.write_text('### 1.1.0 — FCM N2 ownership foundation\n\nBegins FIDUNIO 1.1 notification work without activating live push: central Firebase owner gains bounded Messaging APIs, with separate pure registration/policy owners and permanent ownership tests. Disappearing attachments from 0.9.9.19 are device accepted across direct photo/file/audio/video and group photo tests.\n\n'+r)
+          PY
+          node notification-n2-foundation.test.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add firebase.js notification-policy.js notification-registration.js notification-n2-foundation.test.mjs package.json version.js service-worker.js CURRENT-REBUILD.md hermes-memory.txt README.md
+          git commit -m "Build FCM N2 ownership foundation"
+          git push
