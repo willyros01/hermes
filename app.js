@@ -1300,7 +1300,7 @@ function renderChat(){
       ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
       ${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}
       ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
-      <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
+      <section class="chat" id="chatArea">${renderConversationMessages(msgs,c)}</section>
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
         <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing text:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
@@ -1375,6 +1375,29 @@ function groupSenderDisplayName(m,c){
   return member?.name||m?.sender||(m?.mine?"You":"FIDUNIO member");
 }
 
+function messageCalendarDate(value){
+  const d=value instanceof Date?value:value?.toDate?.()||new Date(value);
+  return d instanceof Date&&!Number.isNaN(d.getTime())?d:null;
+}
+function messageDayKey(value){
+  const d=messageCalendarDate(value);
+  return d?`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`:"";
+}
+function messageDayLabel(value){
+  const d=messageCalendarDate(value);
+  return d?new Intl.DateTimeFormat("en-US",{month:"long",day:"numeric",year:"numeric"}).format(d):"";
+}
+function renderConversationMessages(msgs,c){
+  if(c?.type!=="group"&&!c?.cloudGroup)return msgs.map(m=>renderBubble(m,c)).join("");
+  let priorDay="";
+  return msgs.map(m=>{
+    const day=m?.system?"":messageDayKey(m?.createdAt);
+    const separator=day&&day!==priorDay?`<div class="chat-date-separator"><span>${esc(messageDayLabel(m.createdAt))}</span></div>`:"";
+    if(day)priorDay=day;
+    return separator+renderBubble(m,c);
+  }).join("");
+}
+
 function renderBubble(m,c){
   if(m.system) return `<div class="day-divider">${esc(m.text)} • ${esc(m.time)}</div>`;
   const label=m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
@@ -1431,7 +1454,7 @@ async function sendSelectedAttachmentFile(kind,file){
   try{validateAttachmentSelection({kind,name:originalName,type:originalType,size:file.size});}
   catch(err){const limit=Math.round((ATTACHMENT_LIMITS_V1[kind]||0)/(1024*1024));const label=kind==="video"?"Video":kind==="audio"?"Audio":kind==="photo"?"Photo":"Attachment";alert(`${label} could not be selected: ${err?.message||err}${limit?` Maximum size is ${limit} MB.`:""}`);return;}
   const previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});
-  const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);
+  const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),createdAt:new Date(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);
   localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});
   if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();
   try{
@@ -1474,6 +1497,7 @@ async function sendCurrent(){
     mine:true,
     text,
     time:nowTime(),
+    createdAt:new Date(),
     state:(state.online && (!cloud || firebaseUser))?"sending":"queued",
     cloud
   },state.settings.disappearingTextSeconds);

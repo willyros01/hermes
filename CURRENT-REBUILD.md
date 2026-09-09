@@ -1,3 +1,7 @@
+### GROUP DATE SEPARATOR CANDIDATE — 0.9.9.14
+
+Group conversations now insert a centered `Month D, YYYY` date demarcation with horizontal lines before the first visible dated message and whenever the next message falls on a different local calendar day. Individual messages continue to show time only. The accepted 0.9.9.13 sender-name labels remain unchanged. This is presentation-only: no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority changed.
+
 ### GROUP SENDER LABEL CANDIDATE — 0.9.9.13
 
 Group message rendering now resolves each message's existing `senderUid` against the current group member projection and displays that FIDUNIO member name above the bubble. The change is presentation-only and applies to group rows, including the local user's outgoing group rows. Direct-message bubble structure remains unchanged. No Firebase, E2EE, receipts, Outbox, disappearing-content, attachment, or group membership write path changed. Permanent regression coverage is included; iPhone/iPad device acceptance remains required.

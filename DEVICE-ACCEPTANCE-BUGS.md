@@ -1,3 +1,7 @@
+## Group date separators — 0.9.9.14
+
+**Status: DEVICE CANDIDATE.** Confirm on iPhone/iPad that a line-and-date separator appears between different calendar dates, the date is `Month D, YYYY`, every message still shows time only, same-day messages do not repeat the date, sender-name labels remain correct, and reopen preserves the layout.
+
 # FIDUNIO Device Acceptance — Current Evidence
 
 ## Group chat sender labels — 0.9.9.13

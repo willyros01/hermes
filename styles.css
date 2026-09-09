@@ -1465,3 +1465,9 @@ button.primary.is-busy::after,button.send-btn.is-busy::after{border-color:rgba(2
     padding-top:max(26px,calc(10px + env(safe-area-inset-top)));
   }
 }
+
+
+/* 0.9.9.14 group date separators */
+.chat-date-separator{display:flex;align-items:center;gap:12px;margin:18px 4px 14px;color:var(--muted,#8a969b);font-size:.88rem;font-weight:700;letter-spacing:.01em;clear:both}
+.chat-date-separator::before,.chat-date-separator::after{content:"";height:1px;background:currentColor;opacity:.32;flex:1}
+.chat-date-separator span{white-space:nowrap}

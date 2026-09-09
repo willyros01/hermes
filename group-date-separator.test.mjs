@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const app=readFileSync("app.js","utf8"),css=readFileSync("styles.css","utf8");
+assert.ok(app.includes('function renderConversationMessages(msgs,c)'));
+assert.ok(app.includes('messageDayKey(m?.createdAt)'));
+assert.ok(app.includes('month:"long",day:"numeric",year:"numeric"'));
+assert.ok(app.includes('renderConversationMessages(msgs,c)'));
+assert.ok(app.includes('createdAt:new Date()'));
+assert.ok(css.includes('.chat-date-separator::before,.chat-date-separator::after'));
+assert.ok(app.includes('<div class="msg-meta"><span>${esc(m.time)}</span>'));
+console.log("Group date separator gate passed");

@@ -3,7 +3,8 @@
 ### Open follow-up items
 
 - [ ] **Disappearing attachments:** implement trace-free disappearance for photos/files/audio/video, including physical Firebase Storage manifest/chunk deletion and related-trace cleanup under `DISAPPEARING-PURGE-AUTHORITY.md`; preserve source-delete-last ordering; add permanent gates; deploy backend changes; complete direct/group/reopen device acceptance.
-- [ ] **Group chat sender label — 0.9.9.13 candidate:** implementation and permanent regression gate complete; sender UID resolves through the existing group member projection; direct-message bubbles unchanged. Pending iPhone/iPad device acceptance.
+- [x] **Group chat sender label — 0.9.9.13:** device evidence confirmed sender names display correctly across tested group devices; the one observed reconciliation timeout subsequently completed delivery after Close and a repeat send from another device completed normally.
+- [ ] **Group date separators — 0.9.9.14 candidate:** horizontal-line `Month D, YYYY` demarcation at group calendar-day boundaries while every message keeps time only; pending iPhone/iPad device acceptance.
 
 ### Disappearing text activation — 0.9.9.12
 
