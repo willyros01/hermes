@@ -15,9 +15,11 @@ const docs=[{ref:{path:'conversations/c1/messages/m1'}},{ref:{path:'groups/g1/me
 const db={collectionGroup(){return{where(field,op,value){assert.deepEqual([field,op,value],['disappearingPurgeVersion','==',1]);return{limit(n){assert.equal(n,200);return{async get(){return{docs};}};}};}};}};
 const executor={async purgeDirect(){direct++;return{purged:true};},async purgeGroup(){group++;return{purged:false};}};
 const r=await runDisappearingPurgeSweep({db,executor});assert.equal(direct,1);assert.equal(group,1);assert.deepEqual(r,{examined:2,purged:1,retained:1,deferred:0,ignored:1});
-const app=readFileSync('app.js','utf8'),fb=readFileSync('firebase.js','utf8'),rules=readFileSync('firestore.rules','utf8'),fn=readFileSync('functions/index.mjs','utf8');
+const app=readFileSync('app.js','utf8'),fb=readFileSync('firebase.js','utf8'),rules=readFileSync('firestore.rules','utf8'),fn=readFileSync('functions/index.mjs','utf8'),deploy=readFileSync('p.txt','utf8');
 assert.match(app,/Disappearing text:/);assert.match(app,/disappearingPurgeVersion:message\.disappearingPurgeVersion/);
 assert.match(fb,/row\.disappearingPurgeVersion=1/);assert.match(rules,/disappearingPurgeVersion/);
 assert.match(fn,/purgeDisappearingMessagesV1/);assert.match(fn,/every 1 minutes/);
-for(const n of ['disappearing-purge-policy.js','disappearing-purge-executor.js','disappearing-purge-firestore-admin-adapter.mjs','disappearing-group-grant-trace-plan.js'])assert.equal(readFileSync(n,'utf8'),readFileSync('functions/disappearing/'+n,'utf8'),n+' deployment mirror drifted');
+for(const n of ['disappearing-content-policy.js','disappearing-purge-policy.js','disappearing-purge-executor.js','disappearing-purge-firestore-admin-adapter.mjs','disappearing-group-grant-trace-plan.js'])assert.equal(readFileSync(n,'utf8'),readFileSync('functions/disappearing/'+n,'utf8'),n+' deployment mirror drifted');
+assert.match(deploy,/download_function "disappearing\/disappearing-content-policy\.js"/, 'deployment package must include disappearing content policy dependency');
+assert.match(deploy,/COMMIT="[0-9a-f]{40}"/, 'deployment package must be pinned to an immutable commit');
 console.log('Disappearing-message activation gate passed');
