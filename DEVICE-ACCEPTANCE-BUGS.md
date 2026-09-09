@@ -116,3 +116,10 @@ Issue 1 is closed for device acceptance.
 - Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
 - Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.
 
+## FIDUNIO 1.1.7 N5 warm-routing correction — 2026-09-09
+
+**Status: DEVICE CANDIDATE.** Warm-open N5 failed on iPhone: the generic notification arrived, tapping it opened the PIN screen, but after PIN unlock FIDUNIO returned to the conversation list instead of the notified conversation.
+
+The 1.1.6 warm path used a transient service-worker `postMessage` after focusing the existing PWA window. The 1.1.7 correction removes that transient warm handoff: the service worker now navigates the existing same-origin FIDUNIO window to the same opaque notification-route URL format used for cold-open. The URL carries only notification type, conversation ID and message ID. After normal PIN/auth hydration, `app.js` remains the sole route/message owner and resolves the conversation through existing Firestore/E2EE state. No message content, sender name, decrypted data, receipt write or fabricated message row is introduced by the notification route.
+
+Acceptance: repeat the warm-open iPhone test first. Tap `FIDUNIO — New message`, complete PIN unlock if required, and confirm FIDUNIO opens the notified direct conversation. Do not start cold-open acceptance until warm-open passes.
