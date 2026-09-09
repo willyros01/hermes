@@ -9,6 +9,8 @@ assert.match(app,/chooseAndSendAttachment\("audio","audio\/\*",false\)/);
 assert.match(app,/navigator\.mediaDevices\?\.getUserMedia/);
 assert.match(app,/getUserMedia\(\{audio:true,video:false\}\)/);
 assert.match(app,/new MediaRecorder\(stream/);
+assert.match(app,/const reportedType=recorder\.mimeType\|\|mime\|\|chunks\[0\]\?\.type\|\|"audio\/mp4"/);
+assert.match(app,/String\(reportedType\)\.split\(";",1\)\[0\]\.trim\(\)\.toLowerCase\(\)/);
 assert.match(app,/sendSelectedAttachmentFile\("audio",file\)/);
 assert.doesNotMatch(app,/Audio:\["audio","audio\/\*",true\]/);
 assert.doesNotMatch(app,/kind==="audio"\?"user":"environment"/);

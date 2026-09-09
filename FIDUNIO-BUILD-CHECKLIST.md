@@ -1,5 +1,15 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### iOS recorded-audio MIME normalization — 0.9.9.11
+
+- [x] Preserve the accepted Audio chooser and microphone-only recorder.
+- [x] Normalize only recorded-audio MIME parameters to a canonical base media type before validation.
+- [x] Do not classify `video/*` as audio.
+- [x] Preserve the 25 MiB audio limit and existing attachment send authority.
+- [x] Extend the permanent audio regression gate.
+- [ ] Device-confirm Record Audio → Stop & Send succeeds on iPhone.
+- [ ] Confirm sender and recipient can access the audio after reopen.
+
 ### Audio source chooser + recorder — 0.9.9.10
 
 - [x] Remove the generic audio capture hint that could launch iPhone video capture.

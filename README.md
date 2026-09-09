@@ -1,5 +1,11 @@
 # FIDUNIO / Hermes
 
+## 0.9.9.11 iOS recorded-audio MIME normalization
+
+**Status: DEVICE CANDIDATE.**
+
+Real-device 0.9.9.10 evidence: Audio chooser passed, microphone recorder opened correctly, and the camera did not open; after **Stop & Send**, the recorded clip was rejected before send as `Unsupported attachment type`. Source review showed the recorder was passing `MediaRecorder.mimeType` verbatim into the attachment validator. Browser recorder MIME values may include codec parameters (for example `audio/mp4;codecs=...`), while FIDUNIO's attachment authority deliberately validates canonical media types. 0.9.9.11 normalizes only the recorded-audio MIME to the lower-case base media type before constructing the File. It does not accept video MIME as audio and does not change encryption, Storage, Outbox, limits, or recipient handling.
+
 ## 0.9.9.10 Audio source chooser and microphone recorder
 
 **Status: DEVICE CANDIDATE.**

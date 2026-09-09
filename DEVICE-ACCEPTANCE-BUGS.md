@@ -1,5 +1,11 @@
 # FIDUNIO Device Acceptance — Current Evidence
 
+## Audio recorder send — MIME normalization
+
+**Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.11 — 2026-09-08.**
+
+0.9.9.10 device result: chooser **good**; recorder **good**; camera did not open **yes**; send **no**. The failure occurred after finishing the recording, with `Audio could not be selected: Unsupported attachment type`. 0.9.9.11 canonicalizes codec-parameterized recorder MIME values before validation. Acceptance: repeat Record Audio for 5–10 seconds, Stop & Send, confirm no unsupported-type alert, confirm sender bubble appears and recipient receives the audio, then reopen and confirm accessibility.
+
 ## Audio tool — source chooser and recorder
 
 **Status: DEVICE CANDIDATE on FIDUNIO 0.9.9.10 — 2026-09-08.**

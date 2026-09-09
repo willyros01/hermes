@@ -1889,7 +1889,8 @@ function renderModal(){
         recorder.onstop=async()=>{
           stopTracks();
           if(discard||!chunks.length)return;
-          const type=recorder.mimeType||mime||"audio/mp4";
+          const reportedType=recorder.mimeType||mime||chunks[0]?.type||"audio/mp4";
+          const type=String(reportedType).split(";",1)[0].trim().toLowerCase();
           const ext=type.includes("mp4")?"m4a":type.includes("ogg")?"ogg":"webm";
           const blob=new Blob(chunks,{type});
           const file=new File([blob],`fidunio-audio-${Date.now()}.${ext}`,{type,lastModified:Date.now()});
