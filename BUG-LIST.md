@@ -302,3 +302,5 @@ Queued/Sending/Failed outgoing messages lacked deletion. Candidate adds press-an
 - **Status:** REPAIR CANDIDATE — OPEN.
 
 Repository/deployment evidence: commit `5e22a9484029d02f9f6691b82329a55d4695c848`, complete baseline `34139245770` SUCCESS, Pages `34139244639` SUCCESS. FDA-UX-001 remains OPEN pending user-device acceptance.
+### Notification tap opens chat before new message appears — FIX CANDIDATE 1.1.10
+Observed after 1.1.9 sender-name notification acceptance: tapping a notification routes to the correct direct chat, but the newly notified message can remain absent until local persistence and Read-receipt network work complete. 1.1.10 renders the authoritative subscription projection immediately before those awaits while preserving persistence-before-receipt ordering. Device acceptance pending.

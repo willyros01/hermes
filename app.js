@@ -880,6 +880,12 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         c.time=last.time;
       }
 
+      // Project the authoritative in-memory snapshot immediately. Local
+      // durability and the existing Read-receipt write remain serialized
+      // below, but neither may hold the visible incoming message behind a
+      // network round-trip after a notification tap.
+      if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
+
       /*
        * Local-first durability:
        * persist the merged result before any read-receipt network work.

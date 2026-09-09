@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const app=readFileSync("app.js","utf8"),version=readFileSync("version.js","utf8"),sw=readFileSync("service-worker.js","utf8");
+const start=app.indexOf("function beginCloudMessageSubscription");
+assert.ok(start>=0,"direct message subscription owner missing");
+const projected=app.indexOf("state.messages[conversationId]=merged;",start);
+const visible=app.indexOf('if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();',projected);
+const cache=app.indexOf("await cacheCloudHistory(conversationId,merged);",projected);
+const persist=app.indexOf("await persistState();",cache);
+const receipt=app.indexOf("await markCloudConversationRead(conversationId);",persist);
+assert.ok(projected>=0&&visible>projected,"authoritative projection must drive the visible chat");
+assert.ok(visible<cache,"visible incoming message must render before local durability awaits");
+assert.ok(cache<persist&&persist<receipt,"local durability must remain before Read-receipt network work");
+assert.match(version,/version: "1\.1\.10"/);
+assert.match(sw,/SHELL_REVISION="1\.1\.10-notification-message-projection"/);
+assert.doesNotMatch(app,/setTimeout\([^)]*notification|location\.reload\(\).*notification/i);
+console.log("Notification-tap message projection latency gate passed");
