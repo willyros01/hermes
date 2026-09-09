@@ -1,3 +1,5 @@
+DIRECT DATE TIMESTAMP CORRECTION (0.9.9.18): 0.9.9.17 failed device acceptance because direct-message projection omitted Firestore `createdAt`; renderer therefore had no day key. Preserve `createdAt` in the existing direct projection. Date rendering remains one shared owner for direct and group. Visible version and service-worker shell revision must both bump on every release.
+
 DIRECT DATE SEPARATORS (0.9.9.17): Apply the same horizontal-line `Month D, YYYY` day demarcation used in groups to one-to-one/direct conversations. Message times remain unchanged. Group sender name/time remains accepted. No messaging authority changes. Every release must bump both visible version and service-worker shell revision so installed PWAs flush/retire the prior shell cache.
 
 GROUP SENDER TIME CORRECTION (0.9.9.16): Device evidence showed 0.9.9.15 sender names but no sender-line time on existing group messages. Root cause: some projected group rows have empty legacy `time` while authoritative `createdAt` remains available. The display now resolves explicit `time` first and falls back to `createdAt` formatted as h:mm AM/PM. Date separators and messaging authority are unchanged.

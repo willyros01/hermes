@@ -1,3 +1,7 @@
+### DIRECT DATE TIMESTAMP CORRECTION — 0.9.9.18
+
+0.9.9.17 correctly broadened the date-separator renderer to direct chats, but real-device testing proved direct rows still showed no date. Root cause: the direct Firestore projection dropped authoritative message `createdAt` while constructing display rows. 0.9.9.18 preserves `createdAt` in that existing projection so the same accepted day-separator renderer can classify direct messages. No Firebase write, E2EE, receipt, Outbox, disappearing-content, attachment, or group authority changed. Release cache revision is bumped.
+
 ### DIRECT DATE SEPARATORS — 0.9.9.17
 
 The accepted `Month D, YYYY` horizontal-line date separator now applies to one-to-one/direct conversations as well as group conversations. Message bubbles retain their existing time display; group sender name/time presentation remains unchanged. This is presentation-only and changes no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority. Release cache revision is bumped so installed PWAs deterministically retire the prior shell.

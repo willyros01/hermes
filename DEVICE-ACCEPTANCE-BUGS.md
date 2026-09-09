@@ -1,3 +1,7 @@
+## Direct chat date separators — 0.9.9.18 correction
+
+**Status: DEVICE CANDIDATE.** 0.9.9.17 failed: direct chats showed no date separator. Root cause was projection loss of authoritative Firestore `createdAt`, not the renderer. 0.9.9.18 carries `createdAt` into direct display rows. Confirm existing and new direct messages show the horizontal-line `Month D, YYYY` separator, same-day messages share one separator, times remain visible, and close/reopen preserves it.
+
 ## Direct chat date separators — 0.9.9.17
 
 **Status: DEVICE CANDIDATE.** Confirm iPhone/iPad one-to-one conversations show the same horizontal-line `Month D, YYYY` separator at day boundaries as groups, same-day messages do not repeat the date, message times remain present, and close/reopen preserves the layout. Group sender name/time and group date behavior remain unchanged.
