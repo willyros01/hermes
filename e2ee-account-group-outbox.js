@@ -1,5 +1,6 @@
 import {ensureAccountGroupEpoch,sendAccountGroupMessage,revalidateQueuedAccountGroupMessage} from "./e2ee-account-group-service.js";
 import {normalizeDisappearSelection} from "./disappearing-content-policy.js";
+import {disappearingPurgeVersionForOutgoing} from "./disappearing-compose-policy.js";
 
 // Group Outbox orchestration owner. Local persistence stays injected so this
 // module never owns IndexedDB or Firebase. A queued plaintext exists only
@@ -12,7 +13,7 @@ export async function prepareQueuedAccountGroupMessage({groupId,messageId,text,d
   if(!String(text||"").trim())throw new Error("Group message text is required.");
   const epoch=await ensureAccountGroupEpoch(String(groupId));
   const duration=normalizeDisappearSelection(disappearAfterSeconds);
-  return{kind:"group-e2ee-v1",groupId:String(groupId),messageId:String(messageId),text:String(text),expectedKeyEpoch:Number(epoch.authority?.keyEpoch),disappearAfterSeconds:duration};
+  return{kind:"group-e2ee-v1",groupId:String(groupId),messageId:String(messageId),text:String(text),expectedKeyEpoch:Number(epoch.authority?.keyEpoch),disappearAfterSeconds:duration,disappearingPurgeVersion:disappearingPurgeVersionForOutgoing({text:String(text),value:duration})};
 }
 
 export function flushQueuedAccountGroupMessage(payload){
@@ -23,7 +24,7 @@ export function flushQueuedAccountGroupMessage(payload){
     // Membership/epoch changes invalidate the old expectation. Runtime send
     // always encrypts against the current epoch, so stale queued plaintext is
     // re-encrypted rather than replaying obsolete ciphertext.
-    const result=await sendAccountGroupMessage({groupId:payload.groupId,messageId:payload.messageId,text:payload.text,disappearAfterSeconds:payload.disappearAfterSeconds??null});
+    const result=await sendAccountGroupMessage({groupId:payload.groupId,messageId:payload.messageId,text:payload.text,disappearAfterSeconds:payload.disappearAfterSeconds??null,disappearingPurgeVersion:payload.disappearingPurgeVersion??null});
     return{...result,reEncryptedForCurrentEpoch:queuedEpoch===null||check.changed,previousKeyEpoch:queuedEpoch};
   });
 }

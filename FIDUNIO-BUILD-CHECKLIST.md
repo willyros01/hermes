@@ -1,5 +1,20 @@
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### Disappearing text activation — 0.9.9.12
+
+- [x] Preserve server-time-only eligibility and the existing single purge executor/repository path.
+- [x] Add explicit activation marker `disappearingPurgeVersion: 1` only to newly sent disappearing text.
+- [x] Exclude pre-activation rows and attachment payloads from scheduler discovery.
+- [x] Add scheduled server discovery owner `purgeDisappearingMessagesV1` (one-minute sweep).
+- [x] Preserve direct/group first-Read duration semantics and authoritative local anti-resurrection convergence.
+- [x] Extend exact Firestore create schemas for the bounded optional activation marker.
+- [x] Add permanent disappearing activation gate and deployment-mirror drift gate.
+- [ ] Deploy/verify reviewed Firestore rules, dedicated purge IAM, and scheduled Function to live `fidunio-fef13`.
+- [ ] Device-confirm direct 5-minute disappearing text from Read -> physical absence on sender and recipient.
+- [ ] Device-confirm group 5-minute disappearing text with all entitled recipients Read -> physical absence.
+- [ ] Device-confirm unread message does not disappear and offline/reopen does not resurrect a purged message.
+- [ ] Attachment disappearing remains NOT ACTIVE until server Storage trace cleanup meets the source-delete-last contract.
+
 ### FIDUNIO 1.1 Message Notifications — N1 architecture/specification
 
 **Authoritative design:** `FCM-NOTIFICATION-ARCHITECTURE.md`.

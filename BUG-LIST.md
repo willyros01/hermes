@@ -1,5 +1,11 @@
 # FIDUNIO / Hermes Bug List
 
+### Disappearing text activation — 0.9.9.12
+
+**Status: REPOSITORY CANDIDATE; LIVE SCHEDULER DEPLOYMENT REQUIRED.**
+
+The previously visible compose selector had policy, immutable metadata, server eligibility, physical Firestore purge repositories, authoritative local convergence and reconnect anti-resurrection foundations, but no scheduled server owner was deployed. 0.9.9.12 adds the missing scheduled Function owner `purgeDisappearingMessagesV1`. Only newly created text messages explicitly stamped `disappearingPurgeVersion: 1` are discoverable by the scheduler. This is an activation boundary: old pre-activation rows and attachment descriptors are intentionally excluded. The scheduler runs from server time, invokes the existing serialized purge executor/revalidated repository path, and never authorizes deletion from a browser clock. Attachments remain non-disappearing in this activation build until Storage trace deletion can satisfy the source-delete-last contract. Live Firebase rules/Function/IAM remain unchanged until the reviewed deployment handoff is run and verified.
+
 ## 0.9.9.11 iOS recorded-audio MIME normalization
 
 **Status: DEVICE CANDIDATE.**

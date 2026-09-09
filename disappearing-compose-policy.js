@@ -14,11 +14,21 @@ export function composeDisappearLabel(value){
   if(seconds==null)return 'Off';
   return DISAPPEARING_COMPOSE_PRESETS.find(x=>x.value===seconds)?.label||`${seconds} seconds`;
 }
+export const DISAPPEARING_PURGE_VERSION=1;
+function isAttachmentPayload(text){
+  if(typeof text!=="string"||!text.trimStart().startsWith("{"))return false;
+  try{return JSON.parse(text)?.fidunioAttachment===1;}catch{return false;}
+}
+export function disappearingPurgeVersionForOutgoing({text,value}={}){
+  const duration=resolveComposeDisappearSelection(value);
+  return duration!=null&&!isAttachmentPayload(text)?DISAPPEARING_PURGE_VERSION:null;
+}
 export function stampOutgoingDisappearSelection(message,value){
   const duration=resolveComposeDisappearSelection(value);
-  // Expiry is stamped once, while the application row remains mutable for
-  // the sole Outbox owner's Queued/Sending/Sent receipt transitions.
-  return duration==null?{...message}:{...message,disappearAfterSeconds:duration};
+  // Activation 0.9.9.12 is text-only. Attachment Storage deletion is a
+  // separate server trace resource and must not be implied by this timer.
+  if(duration==null||isAttachmentPayload(message?.text))return {...message};
+  return {...message,disappearAfterSeconds:duration,disappearingPurgeVersion:DISAPPEARING_PURGE_VERSION};
 }
 
 export const DISAPPEARING_COMPOSE_POLICY_V1=Object.freeze({

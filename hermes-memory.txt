@@ -1,6 +1,11 @@
 HERMES PROJECT — FIDUNIO PRODUCT
 CUMULATIVE PROJECT MEMORY
 
+### DISAPPEARING TEXT ACTIVATION — 0.9.9.12
+
+Disappearing text is activated only through the binding `DISAPPEARING-PURGE-AUTHORITY.md` ownership path. New text rows receive `disappearingPurgeVersion: 1`; pre-activation rows and attachments do not. `purgeDisappearingMessagesV1` is the only scheduled server discovery owner and calls the existing purge executor/revalidated server repository. Browser clocks and client delete rules remain prohibited. Before any future disappearing-content change, reread `DISAPPEARING-PURGE-AUTHORITY.md` plus the normal mandatory architecture documents. Attachment disappearance remains intentionally unactivated until server Storage deletion can satisfy the trace-free source-delete-last contract. Repository code does not equal live activation: live rules, dedicated purge IAM and scheduled Function must be deployed and verified through the controlled Firebase handoff.
+
+
 ### MESSAGE NOTIFICATION / FCM AUTHORITY — FIDUNIO 1.1
 
 `FCM-NOTIFICATION-ARCHITECTURE.md` is the authoritative durable design for every FIDUNIO Message Notification / FCM / Web Push task. BEFORE any notification implementation, testing, deployment, debugging, Firebase Messaging configuration, token-registration change, Cloud Function notification work, service-worker notification handling, or notification-click routing, reread that document together with the normal mandatory architecture documents. Do not rely on conversational memory. If a future notification proposal conflicts with that document, stop and reconcile the architecture before coding.

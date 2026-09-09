@@ -278,6 +278,7 @@ async function queueOutboxMessage(conversationId,message){
     text:message.text,
     time:message.time,
     disappearAfterSeconds:message.disappearAfterSeconds??null,
+    disappearingPurgeVersion:message.disappearingPurgeVersion??null,
     cloud:!!message.cloud,
     conversation:c ? {
       id:c.id,
@@ -361,6 +362,7 @@ function ensureQueuedMessageFromPayload(payload){
       state:"queued",
       cloud:payload.cloud,
       disappearAfterSeconds:payload.disappearAfterSeconds??null,
+      disappearingPurgeVersion:payload.disappearingPurgeVersion??null,
       serverBacked:false
     };
     state.messages[conversationId].push(m);
@@ -831,7 +833,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
           else text="[Encrypted message — key unavailable]";
         }
-        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null});
+        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null,disappearingPurgeVersion:m.disappearingPurgeVersion??null});
       }
 
       const outboxIds=(await getOutboxRecords()).map(x=>x.id);
@@ -1301,7 +1303,7 @@ function renderChat(){
       <section class="chat" id="chatArea">${msgs.map(m=>renderBubble(m,c)).join("")}</section>
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
+        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing text:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
         <div class="compose-line">
           <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
           <textarea id="messageBox" rows="1" placeholder="Type a message…"></textarea>
@@ -1678,7 +1680,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
         const peerUid=await awaitBoundedOutboxReconciliation(resolvePeerUidForConversation(payload.conversationId),{stage:"peer-resolution"});
         if(!peerUid)throw new Error("Recipient account identity is unavailable.");
-        const encrypted=await awaitBoundedOutboxReconciliation(prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text}),{stage:"envelope-preparation"});
+        const encrypted=await awaitBoundedOutboxReconciliation(prepareAccountDirectMessage({uid:firebaseUser.uid,peerUid,conversationId:payload.conversationId,messageId:payload.messageId,text:payload.text,disappearingPurgeVersion:payload.disappearingPurgeVersion??null}),{stage:"envelope-preparation"});
         await awaitBoundedOutboxReconciliation(sendCloudMessage(payload.conversationId,{id:payload.messageId,text:"",...encrypted,timeLabel:payload.time,state:"sent",disappearAfterSeconds:payload.disappearAfterSeconds??null}),{stage:"send-confirmation"});
 
         m.state="sent";

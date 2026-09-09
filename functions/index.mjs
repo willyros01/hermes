@@ -2,21 +2,28 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import { createRecoveryCallableCore } from "./recovery/e2ee-recovery-callable-core.mjs";
 import { createRecoveryFirestoreAdminRepositories } from "./recovery/e2ee-recovery-firestore-admin-adapter.mjs";
 import { createMessageDeleteCallableCore } from "./message-delete/message-delete-callable-core.mjs";
 import { createMessageDeleteAdminRepositories } from "./message-delete/message-delete-firestore-admin-adapter.mjs";
+import { createDisappearingPurgeExecutor } from "./disappearing/disappearing-purge-executor.js";
+import { createDisappearingPurgeFirestoreAdminRepository } from "./disappearing/disappearing-purge-firestore-admin-adapter.mjs";
+import { runDisappearingPurgeSweep } from "./disappearing/disappearing-scheduler-core.mjs";
 
 if (!getApps().length) initializeApp();
 
 const RECOVERY_MASTER = defineSecret("FIDUNIO_RECOVERY_MASTER_V1");
 const RECOVERY_SERVICE_ACCOUNT = "fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com";
 const MESSAGE_DELETE_SERVICE_ACCOUNT = "fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com";
+const DISAPPEARING_PURGE_SERVICE_ACCOUNT = "fidunio-disappearing-purge@fidunio-fef13.iam.gserviceaccount.com";
 const ATTACHMENT_BUCKET = "fidunio-fef13.firebasestorage.app";
 const db = getFirestore();
 const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({ db });
 const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:getStorage().bucket(ATTACHMENT_BUCKET)});
+const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db});
+const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
 
 function decodeMasterSecret() {
   const raw = String(RECOVERY_MASTER.value() || "");
@@ -103,4 +110,17 @@ export const deleteDirectMessageForEveryoneV1 = onCall(
     maxInstances:10
   },
   request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request)
+);
+
+
+export const purgeDisappearingMessagesV1 = onSchedule(
+  {
+    region:"us-central1",
+    schedule:"every 1 minutes",
+    timeZone:"UTC",
+    serviceAccount:DISAPPEARING_PURGE_SERVICE_ACCOUNT,
+    timeoutSeconds:120,
+    memory:"256MiB"
+  },
+  async()=>runDisappearingPurgeSweep({db,executor:disappearingPurgeExecutor,limit:200})
 );

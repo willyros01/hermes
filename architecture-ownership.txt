@@ -1,5 +1,8 @@
 FIDUNIO / HERMES ARCHITECTURE OWNERSHIP RULES
 
+## 0.9.9.12 disappearing text activation owner
+`purgeDisappearingMessagesV1` is the sole scheduled discovery trigger. It discovers only exact direct/group message documents carrying `disappearingPurgeVersion: 1`, then delegates eligibility/serialization to `disappearing-purge-executor.js` and physical Firestore mutation to `disappearing-purge-firestore-admin-adapter.mjs`. Server time is mandatory. The marker is stamped only on newly sent text; attachments and pre-activation rows are excluded. `app.js` remains sole UID-local physical convergence/Outbox owner. No client delete rule, tombstone, second Firebase owner, or service-worker semantic owner is introduced.
+
 MESSAGE NOTIFICATION / FCM AUTHORITY — FIDUNIO 1.1
 `FCM-NOTIFICATION-ARCHITECTURE.md` is the authoritative design for all Message Notification / FCM / Web Push resources. It is mandatory reading before notification work. The core ownership rule remains ONE RESOURCE -> ONE OWNER -> ONE PREDEFINED AREA -> ONE SERIALIZED WRITE PATH. FCM is notification/wake-up transport only; Firestore + existing E2EE remain message authority. firebase.js remains sole client Firebase owner; server notification Functions own recipient resolution/send/token cleanup; service-worker.js may display/click-route generic notifications only and may not decrypt, write receipts, persist chat state, or create message rows.
 

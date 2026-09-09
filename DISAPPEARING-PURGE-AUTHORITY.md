@@ -203,3 +203,10 @@ Builds 0.9.7.0 through 0.9.7.4 establish one attachment send owner and wire phot
 ## 0.9.7.5–0.9.7.9 attachment phase closeout — repository validated
 
 Runtime 0.9.7.9 completes the allocated attachment phase: integrity-checked receive/decrypt with explicit object-URL lifecycle; UID-scoped offline/cache recovery policy; message-level receipt authority; trace-free disappearing-attachment purge planning and serialized storage/local-before-source execution; and the permanent attachment closeout matrix. Firebase Storage download remains solely in `firebase.js`. Client Storage deletion remains denied; server purge dependencies are injected into the dedicated purge executor and no live Firebase deployment occurred. Full Rebuild Baseline Security Gate `34064314857` SUCCESS. Next allocated build is 0.9.8.0 invitation deterministic-owner rebuild; rejected 0.9.4.12-.15 invite/install logic remains forbidden.
+## Activation checkpoint — 0.9.9.12
+
+The first live-capable scheduler is `purgeDisappearingMessagesV1`. It may discover only exact `conversations/{id}/messages/{id}` and `groups/{id}/messages/{id}` rows carrying `disappearingPurgeVersion: 1`. That marker is an explicit activation boundary, not expiry authority: eligibility remains exclusively in the existing pure purge policy using authoritative first-Read state and server time. The scheduler delegates all mutation to the existing executor/revalidated repository.
+
+Only new text payloads receive marker v1. Pre-activation rows are not retroactively swept. Attachment payloads receive neither the marker nor disappearing duration in this checkpoint because Storage-object deletion cannot yet satisfy this document's source-delete-last trace contract under concurrent authority changes. This restriction is deliberate fail-closed behavior, not a change to future product intent.
+
+Repository implementation does not activate production by itself. Live activation requires reviewed Firestore rules, dedicated `fidunio-disappearing-purge` service account/IAM, Function deployment, and verification.

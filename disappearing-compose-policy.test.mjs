@@ -10,6 +10,6 @@ const later=stampOutgoingDisappearSelection({id:'b',text:'later'},300);
 if(sent.disappearAfterSeconds!==86400||later.disappearAfterSeconds!==300)throw new Error('later preference retroactively changed sent metadata');
 if(!DISAPPEARING_COMPOSE_POLICY_V1.selectionAppliesOnlyToFutureMessages||!DISAPPEARING_COMPOSE_POLICY_V1.sentMessageMetadataImmutable)throw new Error('compose policy contract weakened');
 const app=fs.readFileSync('./app.js','utf8');
-for(const anchor of ['stampOutgoingDisappearSelection','disappearingTextSeconds','id="disappearSelect"','Disappearing:','disappearAfterSeconds:m.disappearAfterSeconds??null'])if(!app.includes(anchor))throw new Error('app disappearing UI/send anchor missing: '+anchor);
+for(const anchor of ['stampOutgoingDisappearSelection','disappearingTextSeconds','id="disappearSelect"','Disappearing text:','disappearAfterSeconds:m.disappearAfterSeconds??null'])if(!app.includes(anchor))throw new Error('app disappearing UI/send anchor missing: '+anchor);
 if(!/queueGroupTextForApp\(\{groupId:conversationId,messageId:m\.id,text,time:m\.time,disappearAfterSeconds:m\.disappearAfterSeconds\?\?null/.test(app))throw new Error('group send path does not receive selected immutable duration');
 console.log('Disappearing compose policy/UI wiring gate passed');

@@ -53,7 +53,7 @@ export function createAccountDirectMessageService({getRuntimeIdentity,getPublicI
     return{runtime,peer:validatePeerIdentity(peerRecord,peer)};
   }
 
-  async function prepareOutgoing({uid,peerUid,conversationId,messageId,text}){
+  async function prepareOutgoing({uid,peerUid,conversationId,messageId,text,disappearingPurgeVersion=null}){
     const {runtime,peer}=await resolveContext(uid,peerUid);
     const envelope=await encryptFn({
       text:String(text??""),
@@ -66,7 +66,7 @@ export function createAccountDirectMessageService({getRuntimeIdentity,getPublicI
       senderPrivateKey:runtime.privateKey,
       recipientPublicJwk:peer.publicJwk
     });
-    return Object.freeze({...envelope});
+    return Object.freeze({...envelope,...(disappearingPurgeVersion===1?{disappearingPurgeVersion:1}:{})});
   }
 
   async function decryptIncoming({uid,peerUid,conversationId,messageId,row}){
