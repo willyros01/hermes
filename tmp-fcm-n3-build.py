@@ -1,0 +1,117 @@
+from pathlib import Path
+import json
+
+def replace(path, old, new):
+    p=Path(path); s=p.read_text()
+    if old not in s:
+        raise SystemExit(f"anchor missing: {path}: {old[:100]}")
+    p.write_text(s.replace(old,new,1))
+
+p=Path("disappearing-attachment-activation.test.mjs")
+s=p.read_text()
+old='assert.match(sw,/SHELL_REVISION="0\\.9\\.9\\.19-disappearing-attachments"/);'
+if old in s:
+    s=s.replace(old,'assert.match(sw,/const SHELL_REVISION="[0-9A-Za-z._-]+"/);',1)
+p.write_text(s)
+
+Path("notification-config.js").write_text('export const FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY="";\n')
+
+Path("notification-registration.js").write_text(r'''import {deriveNotificationStatus} from "./notification-policy.js";
+const INSTALLATION_KEY="fidunio.notification.installation.v1";
+function boundedUid(v){const x=String(v||"").trim();if(!x||x.length>180)throw new Error("Authenticated notification UID is required.");return x;}
+function randomInstallationId(){return globalThis.crypto?.randomUUID?.()||`web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;}
+export function getOrCreateNotificationInstallationId(storage=globalThis.localStorage){if(!storage)throw new Error("Notification installation storage is unavailable.");let id=String(storage.getItem(INSTALLATION_KEY)||"").trim();if(id.length>=8&&id.length<=128)return id;id=randomInstallationId();storage.setItem(INSTALLATION_KEY,id);return id;}
+export function classifyNotificationPlatform({userAgent=globalThis.navigator?.userAgent||"",standalone=globalThis.matchMedia?.("(display-mode: standalone)")?.matches===true||globalThis.navigator?.standalone===true}={}){const ua=String(userAgent).toLowerCase();if(/iphone|ipad|ipod/.test(ua))return standalone?"ios-pwa":"ios-browser";if(/android/.test(ua))return "android-browser";return "desktop-browser";}
+export function createNotificationRegistrationOwner({getCapability,getToken,deleteToken,readRegistration,writeRegistration,deleteRegistration,getConfigured=()=>false,requestPermission=()=>globalThis.Notification?.requestPermission?.(),getServiceWorkerRegistration=()=>globalThis.navigator?.serviceWorker?.ready,getInstallationId=()=>getOrCreateNotificationInstallationId(),getPlatform=()=>classifyNotificationPlatform()}={}){
+  for(const [name,fn] of Object.entries({getCapability,getToken,deleteToken,readRegistration,writeRegistration,deleteRegistration}))if(typeof fn!=="function")throw new Error(`Notification registration owner requires ${name}.`);
+  let mutationTail=Promise.resolve();
+  const serialize=work=>{const run=mutationTail.then(work);mutationTail=run.catch(()=>{});return run;};
+  async function status(uid){uid=boundedUid(uid);const capability=await getCapability(),installationId=getInstallationId(),registration=await readRegistration(installationId),configured=!!getConfigured();return{...capability,installationId,enabled:registration?.enabled===true,configured,registration:registration||null,status:deriveNotificationStatus({enabled:registration?.enabled===true,supported:capability.supported,permission:capability.permission,configured})};}
+  async function enableFromUserGesture({uid,vapidKey}={}){uid=boundedUid(uid);if(!getConfigured())throw new Error("FIDUNIO Web Push configuration is not active yet.");const permissionPromise=requestPermission();if(!permissionPromise)throw new Error("Notification permission is unavailable on this device/browser.");const permission=await permissionPromise;if(permission!=="granted")throw new Error(permission==="denied"?"Notification permission was denied.":"Notification permission was not granted.");return serialize(async()=>{const capability=await getCapability();if(!capability.supported)throw new Error("Notifications are not supported on this device/browser.");const installationId=getInstallationId(),serviceWorkerRegistration=await getServiceWorkerRegistration();if(!serviceWorkerRegistration)throw new Error("FIDUNIO service worker is unavailable.");const token=String(await getToken({vapidKey,serviceWorkerRegistration})||"");if(!token)throw new Error("FCM did not return a registration token.");await writeRegistration({installationId,fcmToken:token,platform:getPlatform(),enabled:true});return status(uid);});}
+  async function disable({uid}={}){uid=boundedUid(uid);return serialize(async()=>{const installationId=getInstallationId();await deleteToken().catch(()=>false);await deleteRegistration(installationId);return status(uid);});}
+  return Object.freeze({getStatus:status,enableFromUserGesture,disable});
+}
+''')
+
+anchor='export async function deleteFidunioMessagingToken(){const pair=await ensureNotificationMessaging();if(!pair)return false;return pair.s.messagingSdk.deleteToken(pair.messaging);}\n'
+addition=anchor+r'''function notificationDeviceId(value){const id=String(value||"").trim();if(id.length<8||id.length>128)throw new Error("Invalid notification installation ID.");return id;}
+function notificationPlatform(value){const platform=String(value||"");if(!["ios-pwa","ios-browser","android-browser","desktop-browser"].includes(platform))throw new Error("Invalid notification platform.");return platform;}
+export async function getCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return snap.exists()?{id:snap.id,...snap.data()}:null;}
+export async function upsertCloudNotificationDevice({installationId,fcmToken,platform,enabled=true}={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),token=String(fcmToken||"").trim(),kind=notificationPlatform(platform);if(token.length<20||token.length>4096)throw new Error("Invalid FCM registration token.");const ref=s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id),snap=await s.fsSdk.getDoc(ref),row={installationId:id,fcmToken:token,platform:kind,enabled:enabled===true,updatedAt:s.fsSdk.serverTimestamp(),lastSeenAt:s.fsSdk.serverTimestamp()};if(snap.exists())await s.fsSdk.updateDoc(ref,row);else await s.fsSdk.setDoc(ref,{...row,createdAt:s.fsSdk.serverTimestamp()});return{id,...row};}
+export async function deleteCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId);await s.fsSdk.deleteDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return true;}
+'''
+replace("firebase.js",anchor,addition)
+
+fr=Path("firestore.rules")
+rs=fr.read_text()
+marker='    function validNormalWrapper(w)'
+idx=rs.find(marker)
+if idx < 0: raise SystemExit("rules helper anchor missing")
+helper='    function validNotificationDevice(uid,installationId,d){return request.auth.uid==uid&&d.keys().hasAll(["installationId","fcmToken","platform","enabled","createdAt","updatedAt","lastSeenAt"])&&d.keys().hasOnly(["installationId","fcmToken","platform","enabled","createdAt","updatedAt","lastSeenAt"])&&d.installationId==installationId&&d.installationId is string&&d.installationId.size()>=8&&d.installationId.size()<=128&&d.fcmToken is string&&d.fcmToken.size()>=20&&d.fcmToken.size()<=4096&&d.platform in ["ios-pwa","ios-browser","android-browser","desktop-browser"]&&d.enabled is bool&&d.createdAt is timestamp&&d.updatedAt==request.time&&d.lastSeenAt==request.time;}\n'
+if "function validNotificationDevice" not in rs:
+    rs=rs[:idx]+helper+rs[idx:]
+old='match /devices/{deviceId}{allow read: if registered();allow create,update: if registered()&&request.auth.uid==uid&&request.resource.data.uid==uid&&request.resource.data.deviceId==deviceId&&request.resource.data.e2eeVersion==1&&request.resource.data.publicJwk is map&&request.resource.data.fingerprint is string&&request.resource.data.fingerprint.size()<=128;allow delete: if false;}}'
+new='match /devices/{deviceId}{allow read: if registered();allow create,update: if registered()&&request.auth.uid==uid&&request.resource.data.uid==uid&&request.resource.data.deviceId==deviceId&&request.resource.data.e2eeVersion==1&&request.resource.data.publicJwk is map&&request.resource.data.fingerprint is string&&request.resource.data.fingerprint.size()<=128;allow delete: if false;}match /notificationDevices/{installationId}{allow get: if registered()&&request.auth.uid==uid;allow list: if false;allow create: if registered()&&request.auth.uid==uid&&request.resource.data.createdAt==request.time&&validNotificationDevice(uid,installationId,request.resource.data);allow update: if registered()&&request.auth.uid==uid&&request.resource.data.createdAt==resource.data.createdAt&&request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fcmToken","platform","enabled","updatedAt","lastSeenAt"])&&validNotificationDevice(uid,installationId,request.resource.data);allow delete: if registered()&&request.auth.uid==uid;}}'
+if "match /notificationDevices/{installationId}" not in rs:
+    if old not in rs: raise SystemExit("users nested match anchor missing")
+    rs=rs.replace(old,new,1)
+fr.write_text(rs)
+
+Path("firestore-notification.rules.test.mjs").write_text(r'''import {readFileSync} from 'node:fs';import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';import {doc,getDoc,setDoc,updateDoc,deleteDoc,serverTimestamp} from 'firebase/firestore';
+const rules=readFileSync(new URL('./firestore.rules',import.meta.url),'utf8'),env=await initializeTestEnvironment({projectId:'demo-fidunio-notification-rules',firestore:{rules}}),A='user-a',B='user-b',dbA=env.authenticatedContext(A).firestore(),dbB=env.authenticatedContext(B).firestore(),dbN=env.unauthenticatedContext().firestore();let bad=0;async function t(n,f){try{await f();console.log('PASS',n)}catch(e){bad++;console.error('FAIL',n,e.message)}}
+await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();await setDoc(doc(db,'users',A),{displayName:'A',email:'a@example.test',systemRole:'user',active:true,status:'active'});await setDoc(doc(db,'users',B),{displayName:'B',email:'b@example.test',systemRole:'user',active:true,status:'active'});});
+const ID='install-12345678',refA=doc(dbA,'users',A,'notificationDevices',ID);const valid=()=>({installationId:ID,fcmToken:'x'.repeat(80),platform:'ios-pwa',enabled:true,createdAt:serverTimestamp(),updatedAt:serverTimestamp(),lastSeenAt:serverTimestamp()});
+await t('owner creates own notification installation',()=>assertSucceeds(setDoc(refA,valid())));await t('owner reads own notification installation',()=>assertSucceeds(getDoc(refA)));await t('other UID cannot read notification installation',()=>assertFails(getDoc(doc(dbB,'users',A,'notificationDevices',ID))));await t('anonymous cannot read notification installation',()=>assertFails(getDoc(doc(dbN,'users',A,'notificationDevices',ID))));await t('other UID cannot write notification installation',()=>assertFails(setDoc(doc(dbB,'users',A,'notificationDevices','install-87654321'),{...valid(),installationId:'install-87654321'})));await t('unexpected field denied',()=>assertFails(setDoc(doc(dbA,'users',A,'notificationDevices','install-extra123'),{...valid(),installationId:'install-extra123',messagePreview:'secret'})));await t('invalid token denied',()=>assertFails(setDoc(doc(dbA,'users',A,'notificationDevices','install-short123'),{...valid(),installationId:'install-short123',fcmToken:'short'})));await t('invalid platform denied',()=>assertFails(setDoc(doc(dbA,'users',A,'notificationDevices','install-platform'),{...valid(),installationId:'install-platform',platform:'unknown'})));await t('owner rotates own token',()=>assertSucceeds(updateDoc(refA,{fcmToken:'y'.repeat(90),platform:'ios-pwa',enabled:true,updatedAt:serverTimestamp(),lastSeenAt:serverTimestamp()})));await t('owner cannot change installationId',()=>assertFails(updateDoc(refA,{installationId:'install-other999',updatedAt:serverTimestamp(),lastSeenAt:serverTimestamp()})));await t('other UID cannot delete',()=>assertFails(deleteDoc(doc(dbB,'users',A,'notificationDevices',ID))));await t('owner deletes own installation',()=>assertSucceeds(deleteDoc(refA)));await env.cleanup();if(bad)process.exitCode=1;
+''')
+
+Path("notification-n3.test.mjs").write_text(r'''import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {createNotificationRegistrationOwner,classifyNotificationPlatform} from './notification-registration.js';
+assert.equal(classifyNotificationPlatform({userAgent:'iPhone',standalone:true}),'ios-pwa');assert.equal(classifyNotificationPlatform({userAgent:'iPhone',standalone:false}),'ios-browser');
+let permissionCalls=0,writes=[],deleted=false,tokenDeleted=false;const owner=createNotificationRegistrationOwner({getCapability:async()=>({supported:true,permission:'granted'}),getToken:async()=> 't'.repeat(80),deleteToken:async()=>{tokenDeleted=true;return true;},readRegistration:async()=>writes.at(-1)||null,writeRegistration:async row=>{writes.push(row);},deleteRegistration:async()=>{deleted=true;writes=[];},getConfigured:()=>true,requestPermission:()=>{permissionCalls++;return Promise.resolve('granted');},getServiceWorkerRegistration:async()=>({scope:'/'}),getInstallationId:()=> 'install-12345678',getPlatform:()=> 'ios-pwa'});
+await owner.enableFromUserGesture({uid:'u1',vapidKey:'public-key'});assert.equal(permissionCalls,1);assert.equal(writes.length,1);assert.equal(writes[0].enabled,true);assert.equal(writes[0].installationId,'install-12345678');await owner.disable({uid:'u1'});assert.equal(tokenDeleted,true);assert.equal(deleted,true);
+const firebase=readFileSync('firebase.js','utf8'),settings=readFileSync('settings-lifecycle.js','utf8'),sw=readFileSync('service-worker.js','utf8'),rules=readFileSync('firestore.rules','utf8');assert.match(firebase,/firebase-messaging\.js/);assert.match(firebase,/upsertCloudNotificationDevice/);assert.match(firebase,/notificationDevices/);assert.doesNotMatch(settings,/initializeApp\(/);assert.match(settings,/Enable Notifications/);assert.match(settings,/enableFromUserGesture/);assert.match(settings,/fidunioSettingsHost-notifications/);assert.match(rules,/match \/notificationDevices\/\{installationId\}/);assert.match(sw,/1\.1\.1-fcm-n3-registration/);console.log('FCM N3 registration and Settings ownership gate passed');
+''')
+
+replace("settings-lifecycle.js",'  updateFidunioUserLifecycle,\n} from "./firebase.js";','  updateFidunioUserLifecycle,\n  getFidunioNotificationCapability,\n  getFidunioMessagingToken,\n  deleteFidunioMessagingToken,\n  getCloudNotificationDevice,\n  upsertCloudNotificationDevice,\n  deleteCloudNotificationDevice,\n} from "./firebase.js";\nimport {createNotificationRegistrationOwner} from "./notification-registration.js";\nimport {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";')
+replace("settings-lifecycle.js",'  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, device unlock, and end-to-end encryption."},','  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, device unlock, and end-to-end encryption."},\n  {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},')
+replace("settings-lifecycle.js",'const PANEL_ORDER=["profile","general","privacy","users","invites","install","data","about"];','const PANEL_ORDER=["profile","general","privacy","notifications","users","invites","install","data","about"];')
+notification_ui=r'''const notificationRegistrationOwner=createNotificationRegistrationOwner({
+  getCapability:getFidunioNotificationCapability,getToken:getFidunioMessagingToken,deleteToken:deleteFidunioMessagingToken,
+  readRegistration:getCloudNotificationDevice,writeRegistration:upsertCloudNotificationDevice,deleteRegistration:deleteCloudNotificationDevice,
+  getConfigured:()=>String(FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY||"").trim().length>0
+});
+function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Web Push setup required"})[status]||status;}
+async function renderNotifications(notificationsHost,info){
+  notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note">Loading notification status…</p></div>';
+  const card=notificationsHost.querySelector("#fidunioNotificationsCard");
+  try{const state=await notificationRegistrationOwner.getStatus(info.user.uid);if(!card.isConnected)return;const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&!state.enabled;card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(notificationStatusText(state.status))}</p><p class="small-note">FIDUNIO notifications contain only <strong>FIDUNIO — New message</strong>. Message text, attachment names, and decrypted content are never placed in the push payload.</p>${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${state.enabled?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
+    const enable=card.querySelector("#enableNotificationsBtn"),disable=card.querySelector("#disableNotificationsBtn"),note=card.querySelector("#notificationNote");
+    enable.onclick=async()=>{enable.disabled=true;enable.textContent="Enabling…";try{await notificationRegistrationOwner.enableFromUserGesture({uid:info.user.uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;enable.disabled=false;enable.textContent="Enable Notifications";}};
+    disable.onclick=async()=>{disable.disabled=true;disable.textContent="Turning off…";try{await notificationRegistrationOwner.disable({uid:info.user.uid});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;disable.disabled=false;disable.textContent="Turn Off Notifications";}};
+  }catch(err){card.innerHTML=`<h2>Notifications</h2><p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+}
+
+'''
+replace("settings-lifecycle.js","async function hydrateAccountPanels(g,shell){\n",notification_ui+"async function hydrateAccountPanels(g,shell){\n")
+replace("settings-lifecycle.js",'  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy");','  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications");')
+replace("settings-lifecycle.js",'    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);','    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);')
+
+Path("version.js").write_text('globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "1.1.1" });\n')
+sw=Path("service-worker.js").read_text().replace('const SHELL_REVISION="1.1.0-fcm-n2-foundation";','const SHELL_REVISION="1.1.1-fcm-n3-registration";')
+sw=sw.replace('"./notification-policy.js","./notification-registration.js"','"./notification-policy.js","./notification-registration.js","./notification-config.js"')
+Path("service-worker.js").write_text(sw)
+
+pp=Path("package.json"); pkg=json.loads(pp.read_text())
+pkg["scripts"]["emulator:test:notification-rules"]='firebase emulators:exec --only firestore --project demo-fidunio-notification-rules "node firestore-notification.rules.test.mjs"'
+pkg["scripts"]["test:notification-n3"]="node notification-n3.test.mjs"
+pp.write_text(json.dumps(pkg,separators=(",",":"))+"\n")
+
+note='FCM N3 REPOSITORY CANDIDATE — 1.1.1: Deterministic Settings now has a Notifications panel. Permission is requested only from the explicit Enable Notifications user gesture. One installation ID is retained locally; firebase.js remains sole Firebase owner and reads/writes only users/{uid}/notificationDevices/{installationId}. Exact owner-only Firestore rules + emulator matrix are included. Public VAPID configuration remains intentionally empty in notification-config.js pending the controlled Google/Firebase handoff; no live rules or Messaging configuration has been changed. N2 stale attachment-cache regression assertion was made release-agnostic without weakening attachment purge coverage. Disappearing attachments are device accepted across direct photo/file/audio/video and group photo, including reopen anti-resurrection.\n\n'
+for f in ["CURRENT-REBUILD.md","hermes-memory.txt","README.md"]:
+    p=Path(f);p.write_text(note+p.read_text())
+p=Path("FIDUNIO-BUILD-CHECKLIST.md"); c=p.read_text()
+c=c.replace('- [ ] **Disappearing attachments — 0.9.9.19 candidate:** same selection metadata for future attachments; one server purge repository deletes deterministic Storage ciphertext prefix before source, local object URLs converge, no client delete/tombstone; live `att.txt` deployment + direct/group/unread/reopen/multi-device acceptance pending.','- [x] **Disappearing attachments — 0.9.9.19:** live backend deployed; direct photo/file/audio/video and group photo all device accepted after authoritative Read with close/reopen anti-resurrection pass.')
+c=c.replace('- [ ] N2 — Firebase Messaging ownership foundation.','- [x] N2 — Firebase Messaging ownership foundation implemented; permanent ownership gate added.')
+c=c.replace('- [ ] N3 — Settings permission + UID-scoped token registration + rules/emulator tests.','- [ ] N3 — 1.1.1 repository candidate: deterministic Settings permission UI + UID/installation token registration + exact rules/emulator tests implemented; live VAPID/rules handoff and device registration proof pending.')
+p.write_text(c)
+for f in ["RUNTIME-AUTHORITY-MAP.md","architecture-ownership.txt"]:
+    p=Path(f);p.write_text("FCM N3 OWNERSHIP — 1.1.1: firebase.js is sole Firebase Messaging/Firestore notification-device API owner; notification-registration.js is the sole serialized notification intent/registration coordinator; settings-lifecycle.js owns the predefined Notifications Settings host. No second Firebase initializer, message store, receipt owner, or service-worker message authority.\n\n"+p.read_text())
