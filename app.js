@@ -1426,7 +1426,7 @@ function renderBubble(m,c){
   }
   const groupSender=groupSenderDisplayName(m,c);
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
-    ${groupSender?`<div class="sender-label">${esc(groupSender)}</div>`:""}
+    ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span></div>`:""}
     <div class="bubble">
       ${messageContent}
       <div class="msg-meta"><span>${esc(m.time)}</span>${m.mine?`<span class="${cls}">${label}</span>`:""}</div>

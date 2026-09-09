@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const app=readFileSync("app.js","utf8");
+const css=readFileSync("styles.css","utf8");
+assert.ok(app.includes('const groupSender=groupSenderDisplayName(m,c)'),"group sender identity owner must remain unchanged");
+assert.ok(app.includes('<span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(m.time)}</span>'),"group creator name must show message time beside it");
+assert.ok(app.includes('<div class="msg-meta"><span>${esc(m.time)}</span>'),"existing per-message time metadata must remain present as requested in addition to sender-line time");
+assert.ok(app.includes('function renderConversationMessages(msgs,c)'),"0.9.9.14 date separators must remain intact");
+assert.ok(app.includes('messageDayKey(m?.createdAt)'),"date separator grouping must remain createdAt-based");
+assert.ok(css.includes('.sender-label .sender-time'),"sender-line time must have bounded presentation styling");
+console.log("Group sender-time gate passed");

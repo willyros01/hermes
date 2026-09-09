@@ -1,3 +1,7 @@
+### GROUP SENDER TIME CANDIDATE — 0.9.9.15
+
+Group conversations retain the accepted horizontal-line date separators from 0.9.9.14 and now also show each message's existing time immediately beside the message creator's displayed name. This is additive presentation only: the existing time inside message metadata remains unchanged, direct-message sender presentation remains unchanged, and no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority changed.
+
 ### GROUP DATE SEPARATOR CANDIDATE — 0.9.9.14
 
 Group conversations now insert a centered `Month D, YYYY` date demarcation with horizontal lines before the first visible dated message and whenever the next message falls on a different local calendar day. Individual messages continue to show time only. The accepted 0.9.9.13 sender-name labels remain unchanged. This is presentation-only: no Firebase, E2EE, receipt, Outbox, disappearing-content, attachment, or membership authority changed.
