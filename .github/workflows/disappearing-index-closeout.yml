@@ -1,0 +1,46 @@
+name: Disappearing index closeout one-shot
+on:
+  push:
+    paths:
+      - '.github/workflows/disappearing-index-closeout.yml'
+permissions:
+  contents: write
+jobs:
+  closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Reconcile index deployment records
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p=Path('package.json')
+          data=json.loads(p.read_text())
+          data['scripts']['test:disappearing-index-wiring']='node disappearing-index-wiring.test.mjs'
+          p.write_text(json.dumps(data,separators=(',',':'))+'\n')
+
+          note='''### DISAPPEARING LIVE INDEX REPAIR — 0.9.9.12\n\nReal-device Test 1 proved send and authoritative Read but no purge. Live Function logs isolated the backend failure to `FAILED_PRECONDITION`: the scheduler collection-group query on `messages.disappearingPurgeVersion` lacked its required `COLLECTION_GROUP ASCENDING` Firestore field index. `firestore.indexes.json` is now durable deployment authority for this index and `firebase.json` explicitly references it. Future disappearing scheduler deployment must include Firestore indexes and must verify a successful post-index scheduler invocation; ACTIVE Function + existing scheduler alone is insufficient live proof.\n\n'''
+          for name in ['hermes-memory.txt','CURRENT-REBUILD.md','DISAPPEARING-PURGE-AUTHORITY.md']:
+              q=Path(name); txt=q.read_text();
+              if 'DISAPPEARING LIVE INDEX REPAIR' not in txt:
+                  q.write_text(note+txt)
+
+          q=Path('FIDUNIO-BUILD-CHECKLIST.md'); txt=q.read_text()
+          marker='### Disappearing text activation — 0.9.9.12\n'
+          add='''\n- [x] Diagnose live Test 1 no-purge failure from Cloud Function logs: missing `COLLECTION_GROUP ASCENDING` index for `messages.disappearingPurgeVersion`.\n- [x] Add durable `firestore.indexes.json` authority and wire it through `firebase.json`.\n- [x] Add permanent disappearing index wiring gate.\n- [ ] Deploy the reviewed Firestore index to live `fidunio-fef13` and verify scheduler invocation returns success.\n'''
+          if 'Diagnose live Test 1 no-purge failure' not in txt:
+              txt=txt.replace(marker,marker+add,1)
+              q.write_text(txt)
+
+          Path('i.txt').write_text('''#!/usr/bin/env bash\nset -euo pipefail\nPROJECT="fidunio-fef13"\nREGION="us-central1"\nJOB="firebase-schedule-purgeDisappearingMessagesV1-us-central1"\nCOMMIT="5e42efb0b3a20580c63418902b0761509fe2da88"\nWORK="$(mktemp -d)"\ntrap 'rm -rf "$WORK"' EXIT\nRAW="https://raw.githubusercontent.com/willyros01/hermes/$COMMIT"\ncurl --retry 3 --retry-delay 2 -fsSL "$RAW/firebase.json" -o "$WORK/firebase.json"\ncurl --retry 3 --retry-delay 2 -fsSL "$RAW/firestore.indexes.json" -o "$WORK/firestore.indexes.json"\necho "Deploying reviewed disappearing-message Firestore collection-group index..."\ncd "$WORK"\nfirebase deploy --project "$PROJECT" --only firestore:indexes --non-interactive\necho "Index deployment accepted. Waiting for scheduler to retry..."\nsleep 75\ngcloud scheduler jobs describe "$JOB" --location="$REGION" --project="$PROJECT" --format="yaml(state,lastAttemptTime,status,httpTarget.uri)"\necho "If status is empty or code is 0, scheduler invocation is healthy. If a nonzero code remains, wait 60 seconds and run: bash i.txt again only after consulting ChatGPT."\n''')
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package.json hermes-memory.txt CURRENT-REBUILD.md DISAPPEARING-PURGE-AUTHORITY.md FIDUNIO-BUILD-CHECKLIST.md i.txt
+          git commit -m 'Record disappearing index repair and deployment handoff' || exit 0
+          git push origin main
