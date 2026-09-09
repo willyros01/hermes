@@ -1,3 +1,7 @@
+### DISAPPEARING UNREAD-PROTECTION DEVICE ACCEPTANCE — 0.9.9.12
+
+Real-device unread protection passed: a 5-minute disappearing text remained present beyond five minutes while the recipient had not Read it. This confirms expiry is not authorized from send or delivery time and begins only after the authoritative Read condition. Direct disappearing text and unread protection are device accepted; group disappearing text remains the only outstanding acceptance test for this activation checkpoint. Attachments remain intentionally non-disappearing.
+
 ### DISAPPEARING DIRECT DEVICE ACCEPTANCE — 0.9.9.12
 
 Fresh direct 5-minute disappearing-text acceptance passed after the live Firestore collection-group index recovery: sent yes, authoritative Read yes, disappeared on sender yes, disappeared on recipient yes, and after close/reopen the message did not return. Direct disappearing text is device accepted. Unread-protection and group behavior remain pending acceptance; attachments remain intentionally non-disappearing in this checkpoint.

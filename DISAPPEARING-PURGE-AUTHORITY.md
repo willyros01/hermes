@@ -220,3 +220,6 @@ Real-device acceptance exposed a production-only discovery prerequisite: `collec
 
 ### Direct real-device acceptance — 0.9.9.12
 After the production collection-group index recovery, a fresh 5-minute direct disappearing-text test passed end to end on real devices: authoritative Read established the expiry start, the server scheduler physically deleted the source from Firestore, both sender and recipient converged to absence, and close/reopen did not resurrect the message. This accepts the direct-text purge path. Unread-protection and group acceptance remain required before overall feature closeout.
+
+### Unread-protection real-device acceptance — 0.9.9.12
+A 5-minute disappearing text remained present beyond five minutes while the recipient had not produced authoritative Read. This validates the first-Read start rule on real devices and proves send/delivery time alone cannot authorize expiry. Direct purge and unread protection are accepted; group acceptance remains pending.

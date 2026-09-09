@@ -4,7 +4,7 @@
 
 **Status: DEVICE ACCEPTED for direct text on FIDUNIO 0.9.9.12 — 2026-09-08.**
 
-Fresh real-device acceptance after live scheduler/index recovery passed the complete direct 5-minute path: message sent, recipient opened it and authoritative state advanced to Read, the message physically disappeared on both sender and recipient after the read-based expiry window plus scheduler interval, and after closing/reopening both apps the purged message did not return. This validates the direct-text physical purge and local anti-resurrection path on real devices. Unread-protection and group acceptance remain separate required tests before the overall disappearing-message feature is fully closed.
+Fresh real-device acceptance after live scheduler/index recovery passed the complete direct 5-minute path: message sent, recipient opened it and authoritative state advanced to Read, the message physically disappeared on both sender and recipient after the read-based expiry window plus scheduler interval, and after closing/reopening both apps the purged message did not return. This validates the direct-text physical purge and local anti-resurrection path on real devices. Unread protection also passed on real devices: a 5-minute disappearing message remained present beyond five minutes while the recipient had not Read it, proving expiry does not start from send or delivery time. Group acceptance remains the only outstanding device test before the overall disappearing-text feature is fully closed.
 
 ## Audio recorder send — MIME normalization
 
