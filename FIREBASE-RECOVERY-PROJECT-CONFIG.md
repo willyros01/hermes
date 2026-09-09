@@ -152,3 +152,12 @@ Do not let the console operator improvise architecture/security changes.
 ## Live Recovery Functions verification — September 6, 2026
 
 The deployment handoff is COMPLETE. enrollRecoveryV1, startE2EERecoveryV1 and completeE2EERecoveryV1 are ACTIVE in us-central1 under the dedicated recovery service account. Enrollment/completion have the recovery-secret binding; start does not. Artifact Registry cleanup is configured for images older than one day. App Check enforcement remains OFF. No further planned Firebase/Google Console setup remains before later conditional App Check enforcement.
+
+## FIDUNIO 1.1.6 notification routing checkpoint — 2026-09-09
+
+- N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.
+- Live N4 trigger: `notifyDirectMessageCreatedV1`; Eventarc trigger region is `nam5`; the trigger service account has `roles/run.invoker` only on the N4 Cloud Run service.
+- N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.
+- Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
+- Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.
+

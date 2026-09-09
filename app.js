@@ -51,6 +51,7 @@ import { createAttachmentSendService } from "./attachment-send-service.js";
 import { createAttachmentReceiveService } from "./attachment-receive-service.js";
 import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-transport-policy.js";
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
+import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -88,6 +89,8 @@ let reconnectRecoveryTail=Promise.resolve();
 let firebaseReady = false;
 let firebaseError = "";
 let firebaseUser = null;
+let pendingNotificationRoute=notificationRouteFromUrl(globalThis.location?.href||"");
+let notificationRouteRunning=false;
 let cloudConversationUnsub = null;
 let cloudConversationSyncPending = false;
 let peerDisplayNameUnsub = ()=>{};
@@ -156,6 +159,7 @@ function unlockLocalApp(){
   unlockError="";
   noteLocalUnlock();
   render();
+  void applyPendingNotificationRoute();
 }
 
 function openDb(){
@@ -511,6 +515,26 @@ function mergeCloudConversation(remote){
   else state.conversations.unshift(item);
   if(!state.messages[item.id]) state.messages[item.id]=[];
   return existing || item;
+}
+
+async function applyPendingNotificationRoute(){
+  if(notificationRouteRunning||!pendingNotificationRoute||!hydrated||!state.unlocked||!firebaseUser)return false;
+  const route=pendingNotificationRoute;
+  notificationRouteRunning=true;
+  try{
+    let c=state.conversations.find(x=>String(x.id)===String(route.conversationId));
+    if(!c){
+      const remote=await getCloudConversation(route.conversationId,firebaseUser.uid);
+      if(!remote){pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
+      c=mergeCloudConversation(remote);
+    }
+    if(!c?.cloud||c?.cloudGroup||c?.type==="group"){pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
+    state.selectedId=c.id;state.route="chat";state.modal=null;state.toolsOpen=false;c.unread=0;
+    closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
+    pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));
+    await persistState();render();return true;
+  }catch(err){console.warn("Notification route could not be applied yet",err);return false;}
+  finally{notificationRouteRunning=false;}
 }
 function mergeCloudGroup(remote){
   const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
@@ -894,6 +918,7 @@ async function initializeFirebaseLayer(){
         beginCloudConversationSubscription();
         beginCloudGroupSubscription();
         ensureActiveCloudMessageSubscription(true);
+        void applyPendingNotificationRoute();
         if(state.online) scheduleReconnectRecovery();
       }else{
         attachmentReceiveService.releaseAll();
@@ -913,6 +938,7 @@ async function initializeFirebaseLayer(){
     firebaseUser=getFirebaseUser();
     if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
     ensureActiveCloudMessageSubscription(true);
+    void applyPendingNotificationRoute();
     if(firebaseUser && state.online) scheduleReconnectRecovery();
   }catch(err){
     firebaseError=err?.message || String(err);
@@ -1770,6 +1796,7 @@ function scheduleReconnectRecovery(){
 }
 function recoverForegroundCloudSession(){
   state.online=navigator.onLine;
+  void applyPendingNotificationRoute();
   // Lifecycle recovery is one of the few times we deliberately replace the
   // listener. Normal conversation metadata snapshots no longer restart it.
   ensureActiveCloudMessageSubscription(true);
@@ -2311,6 +2338,11 @@ if(appearanceMedia){
   else appearanceMedia.addListener?.(followSystemAppearance);
 }
 if("serviceWorker" in navigator){
+  navigator.serviceWorker.addEventListener("message",event=>{
+    if(event.data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
+    const route=normalizeNotificationRoute(event.data?.route);if(!route)return;
+    pendingNotificationRoute=route;void applyPendingNotificationRoute();
+  });
   window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js")
     .catch(err=>console.warn("Service worker registration failed",err)));
 }

@@ -706,3 +706,12 @@ The approved fresh-account UX retains email/password plus one six-digit FIDUNIO 
 The 0.9.9.8 candidate now implements that ordinary Settings presentation: Account, one Security area, one six-digit FIDUNIO PIN, optional device unlock, and plain encryption status. Existing differing PINs fail closed rather than being overwritten. Focused gates pass locally; full baseline/deployment/device evidence remains outstanding, so the version and 96% ledger do not advance.
 
 Commit `5e22a9484029d02f9f6691b82329a55d4695c848` passed full baseline `34139245770`; Pages `34139244639` succeeded. Device proof remains outstanding. The accepted-message cloud-delete control is still off until the dedicated server authority is explicitly activated. Completion remains 96%.
+
+## FIDUNIO 1.1.6 notification routing checkpoint — 2026-09-09
+
+- N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.
+- Live N4 trigger: `notifyDirectMessageCreatedV1`; Eventarc trigger region is `nam5`; the trigger service account has `roles/run.invoker` only on the N4 Cloud Run service.
+- N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.
+- Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
+- Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.
+

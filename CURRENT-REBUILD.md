@@ -360,3 +360,12 @@ The next bounded deletion layer is built but not deployed: sender-owned accepted
 Ordinary Settings now retains only Account email/password, one Security area, one six-digit FIDUNIO PIN, and optional device unlock. Separate Device Identity and Account Encryption options and technical key/fingerprint presentation are absent. Existing local-security and account-E2EE derivations remain separate and established owners remain unchanged. First setup writes the local verifier from the same transient PIN only after E2EE succeeds; a different existing installation PIN fails closed. Focused UX and established candidate/iPad/runtime gates pass locally. Full baseline, deployment and device proof remain required; completion stays 96%.
 
 Candidate commit `5e22a9484029d02f9f6691b82329a55d4695c848` passed complete Rebuild Baseline Security Gate `34139245770`; Pages run `34139244639` succeeded. Repository/deployment criteria are green. Device acceptance remains required. Accepted-message Delete for Everyone remains deliberately disabled until its dedicated least-privilege callable is explicitly provisioned and deployed. Completion remains 96%.
+
+## FIDUNIO 1.1.6 notification routing checkpoint — 2026-09-09
+
+- N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.
+- Live N4 trigger: `notifyDirectMessageCreatedV1`; Eventarc trigger region is `nam5`; the trigger service account has `roles/run.invoker` only on the N4 Cloud Run service.
+- N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.
+- Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
+- Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.
+
