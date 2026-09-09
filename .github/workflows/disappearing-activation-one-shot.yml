@@ -1,0 +1,48 @@
+name: Disappearing activation one-shot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/disappearing-activation-one-shot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply disappearing activation patch
+        run: python disappearing-activation-patch.py
+      - name: Install root test dependencies
+        run: npm install --ignore-scripts
+      - name: Run focused disappearing gates
+        run: |
+          npm run test:disappearing-content-policy
+          npm run test:disappearing-compose-policy
+          npm run test:disappearing-purge-policy
+          npm run test:disappearing-purge-executor
+          npm run test:disappearing-purge-firestore
+          npm run test:disappearing-local-convergence
+          npm run test:disappearing-authoritative-projection
+          npm run test:disappearing-reconnect-recovery
+          npm run test:disappearing-text-closeout
+          npm run test:disappearing-activation
+          npm run test:outbox-reconciliation-boundary
+          node direct-message-basic-path.test.mjs
+      - name: Validate Functions module graph
+        working-directory: functions
+        run: |
+          npm install --ignore-scripts
+          node --check index.mjs
+          node --check disappearing/disappearing-scheduler-core.mjs
+      - name: Commit candidate
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js firebase.js firestore.rules disappearing-compose-policy.js e2ee-account-message-service.js e2ee-account-group-outbox.js e2ee-account-group-service.js e2ee-account-group-runtime.js functions package.json version.js service-worker.js outbox-reconciliation-boundary.test.mjs direct-message-basic-path.test.mjs disappearing-activation.test.mjs CURRENT-REBUILD.md BUG-LIST.md README.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md RUNTIME-AUTHORITY-MAP.md architecture-ownership.txt DISAPPEARING-PURGE-AUTHORITY.md
+          git diff --cached --check
+          git commit -m 'Build 0.9.9.12 disappearing text activation candidate'
+          git push
