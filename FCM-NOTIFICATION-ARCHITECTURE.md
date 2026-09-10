@@ -508,3 +508,7 @@ The server sends no common notification object. The bounded data payload is limi
 ## FIDUNIO 1.1.18 — rejected click-route experiment
 
 The attempt to keep `openWindow(routed URL)` while also messaging its returned client did not improve iPad routing and reduced perceived iPhone stability/performance. It is removed completely. The active frontend returns exactly to the 1.1.17 routed URL path; the live 1.1.17 data-only backend remains valid. Any next iPad design must begin from that clean baseline, preserve one click owner and remain separate from delayed message projection/lifecycle work.
+
+## FIDUNIO 1.1.19 — temporary diagnostic ownership exception
+
+One diagnostic ledger may receive append-only event records from the worker and page because those are separate execution environments. The dedicated module owns only its isolated IndexedDB database and serializes writes per context; it never reads or writes app, message, Outbox, receipt, Settings or E2EE storage. Instrumentation observes the existing click/route/projection owners without changing their decisions. The ledger must be removed after diagnosis. Security-secret values are excluded even from diagnostics.

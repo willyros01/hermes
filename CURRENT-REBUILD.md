@@ -404,3 +404,7 @@ Full gate run 34436403470 passed stages 1–81, including all notification, life
 ## FIDUNIO 1.1.18 — REJECTED; exact 1.1.17 frontend restored — 2026-09-10
 
 Live 1.1.17 backend deployment succeeded. 1.1.17 iPhone routing passed twice at approximately five seconds while iPad returned to Settings twice. The 1.1.18 returned-client route message did not improve iPad and reduced perceived iPhone stability/performance. Every 1.1.18 runtime/test-expectation change is removed; frontend version and cache revision return exactly to 1.1.17 and the live 1.1.17 backend is untouched. Clean-baseline investigation keeps iPad click routing separate from the independently observed delayed direct-message projection.
+
+## FIDUNIO 1.1.19 — one-shot correlated diagnostic build — 2026-09-10
+
+Prior diagnostics established active worker but no route query/pending route on iPad, no recorded FIDUNIO notificationclick under browser-managed display, and no recorded push/click under the earlier data-only diagnostic. They did not correlate the current Firebase Messaging callback, notification data, click, clients, actual open result, bootstrap/PIN/hydration, route gates and projection in one ledger. 1.1.19 adds that correlation without changing the restored 1.1.17 route action. One device run and copied report must decide the next repair; no further diagnostic release is allocated.

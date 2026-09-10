@@ -146,3 +146,7 @@ No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachm
 ## FIDUNIO 1.1.18 — rejected and removed
 
 The returned-client notification message/focus experiment is removed after device rejection. The exact 1.1.17 `notificationclick -> routed openWindow` runtime is restored. No source transform, timer, reconnect handler, subscription replacement, application render path, PIN flow, Settings host, Outbox, receipt, E2EE or projection code is added or changed.
+
+## FIDUNIO 1.1.19 — diagnostic observation only
+
+No runtime transform or route decision changes. Instrumentation records entry/exit state around the existing worker click, bootstrap/auth, pending-route, lifecycle and message-projection functions into a separate ledger. `void recordNotificationDiagnostic(...)` submissions enqueue through the diagnostic module's sole `writeTail`; they do not gate or mutate app behavior. Direct-message callback ordering remains projection -> cache -> persist -> optional Read -> render.

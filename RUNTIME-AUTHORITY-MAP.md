@@ -330,3 +330,7 @@ The Settings Security host coordinates first setup through existing public opera
 ## FIDUNIO 1.1.18 notification-click experiment — REJECTED
 
 The returned-client message/focus addition is removed. The restored 1.1.17 authority remains: `service-worker.js` opens the validated routed URL; `app.js` alone owns pending-route retention, conversation selection, Firestore subscription and rendering. No message, receipt, PIN, Settings or navigation authority changed.
+
+## FIDUNIO 1.1.19 diagnostic ledger authority
+
+`notification-diagnostics.js` solely owns the isolated append-only diagnostic database. Worker and page owners may submit observations but cannot use the ledger as routing/message authority. `service-worker.js`, bootstrap/auth, `app.js`, Settings, Firebase, Outbox, receipts and E2EE retain their existing decisions and storage owners.

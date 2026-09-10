@@ -155,3 +155,12 @@ N5 is **not yet fully closed**. Cold-open acceptance is still required: fully cl
 - **Restoration:** remove all 1.1.18 returned-client message/focus code and restore exact 1.1.17 frontend/cache behavior; leave the deployed 1.1.17 backend unchanged.
 - **Separate projection evidence:** one iPad message appeared only after leaving/re-entering the conversation; another appeared after about five seconds. Track under FDA-DM-001, not FDA-NOTIFY-002.
 - **Status:** OPEN on restored 1.1.17 for clean-baseline investigation.
+
+### 1.1.19 one-shot diagnostic procedure
+
+- Confirm visible version 1.1.19 on both devices.
+- In Settings -> Notifications -> Open Notification Diagnostics, choose Clear and Start Test.
+- Return to FIDUNIO Settings, background the installed PWA, send exactly one direct message, tap its notification, enter PIN and observe the final screen.
+- Reopen Notification Diagnostics, Refresh, Copy Full Report and return the complete report.
+- Run iPad first, then repeat once on iPhone as control; do not clear either ledger until its report is copied.
+- Record notification delay, any flicker/overlay, final screen and whether the message was already visible or required leave/re-entry.

@@ -706,3 +706,17 @@ No point earned; completion remains 96%.
 - [x] Keep delayed iPad message projection separate under the rogue-code investigation.
 - [ ] Full Rebuild Baseline Security Gate passes on exact restored 1.1.17 frontend.
 - [ ] Exact GitHub Pages restoration passes.
+
+### FIDUNIO 1.1.19 one-shot notification diagnostics
+
+- [x] Recover and document all prior diagnostic findings before implementation.
+- [x] Preserve the restored 1.1.17 notification routing action unchanged.
+- [x] Add one isolated serialized worker/page diagnostic ledger.
+- [x] Trace FCM receipt/display/click, clients/open result, bootstrap/PIN/hydration, route gates and projection/render.
+- [x] Add visible Settings access and copyable full report.
+- [x] Preserve full opaque IDs/URLs and redact security-secret values only.
+- [x] Add permanent diagnostic coverage and shell-version gates.
+- [ ] Full Rebuild Baseline Security Gate passes.
+- [ ] Exact GitHub Pages deployment passes.
+- [ ] One iPad report and one iPhone control report captured.
+- [ ] Diagnostic code removed after evidence-based repair allocation.

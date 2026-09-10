@@ -32,6 +32,6 @@ assert.match(app,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)/);
 assert.match(app,/state\.selectedId=c\.id;state\.route="chat"/);
 assert.match(app,/unlockLocalApp\(\)[\s\S]*?applyPendingNotificationRoute\(\)/);
 assert.doesNotMatch(app,/pendingNotificationRoute[\s\S]{0,500}state\.messages\[/);
-assert.match(sw,/SHELL_REVISION="1\.1\.17-data-only-sw-owner"/);
-assert.match(version,/version: "1\.1\.17"/);
+assert.match(sw,/SHELL_REVISION="1\.1\.19-one-shot-notification-diagnostics"/);
+assert.match(version,/version: "1\.1\.19"/);
 console.log("FCM N5 data-only notification tap routing gate passed");

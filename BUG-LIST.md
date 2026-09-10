@@ -334,3 +334,7 @@ Exit criteria: full baseline green; exact Pages deployment; reviewed live notifi
 ### FDA-DM-001 — additional iPad projection evidence
 
 During 1.1.18 testing, one message had arrived but became visible only after leaving and returning to the conversation; a second appeared after about five seconds. This is recorded as delayed direct-message projection/lifecycle evidence, not notification routing. It remains governed by `ROGUE-CODE-RAMIFICATIONS.md` and must not be combined with the next click-routing candidate.
+
+### FDA-NOTIFY-002 — 1.1.19 one-shot diagnostic allocation
+
+Previous diagnostics proved no iPad query route/pending route and no recorded FIDUNIO click/push in their respective experimental delivery models, but lacked one correlated cross-context timeline. 1.1.19 is diagnostic only and preserves 1.1.17 routing. Exit evidence is one cleared-ledger iPad notification -> PIN -> final-screen run plus copied full report, followed by the equivalent iPhone control report. No further diagnostic build is permitted; the reports must support a specific repair or a documented platform boundary.
