@@ -372,3 +372,12 @@ Candidate commit `5e22a9484029d02f9f6691b82329a55d4695c848` passed complete Rebu
 ## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
+
+
+## 2026-09-10 — restored 1.1.9 routing evidence and rogue-code documentation checkpoint
+
+**Status: DOCUMENTATION ONLY — NO RUNTIME BUILD OR REPAIR.** Exact frontend checkpoint remains `a3830afd8a01f88448e42703ac4b803058451ef8`, version 1.1.9. The user confirmed the `fcm.txt` backend/rules restoration completed successfully. Fresh device proof now shows both iPhone and iPad follow `notification -> tap -> PIN -> Settings`, rather than the intended direct conversation. iPhone notification arrival was about 1–2 seconds; the reported iPad delivery event took approximately 30 seconds or more. The earlier iPhone-success baseline is therefore not reproducible in the restored environment.
+
+Read-only source and official-contract investigation places the routing break before `app.js`: the backend sends a common FCM notification plus opaque data, while the application expects its own service-worker push/click path to create a routed URL. Device diagnostics showed the resumed root URL without routing parameters and no pending route. PIN and Settings must not be changed to compensate. The latency boundary remains unclassified and separate.
+
+`ROGUE-CODE-RAMIFICATIONS.md` is now the binding screen/functionality impact and retest authority for the timing-driven reconnect, forced subscription, duplicate lifecycle and delayed projection behavior discovered in 1.1.9. No rogue-code cleanup is approved. Notification redesign, lifecycle cleanup and projection-latency work must remain separate releases.
