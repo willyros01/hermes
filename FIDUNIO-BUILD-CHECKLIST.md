@@ -694,3 +694,15 @@ No point earned; completion remains 96%.
 - [x] Full rerun 34436403470 passed stages 1–81; stopped only at the second stale 1.1.9 shell assertion in the direct-message basic-path gate.
 - [x] Scan all 78 permanent test files and confirm no additional 1.1.9-fcm-sender-name assertions remain after correcting the direct-message gate.
 - [ ] Complete third full baseline run.
+
+### FIDUNIO 1.1.18 iPad notification click correction
+
+- [x] Record iPhone 1.1.17 exact-route pass twice and iPad Settings-resume failure twice.
+- [x] Preserve the accepted `openWindow(routed URL)` path.
+- [x] Send the same validated opaque route to the client returned by `openWindow()` and focus it.
+- [x] Keep `app.js` as the sole conversation/route owner.
+- [x] Leave backend, PIN, Settings, lifecycle/reconnect, Outbox, receipts, E2EE and projection code unchanged.
+- [x] Update the permanent N5 gate and visible version/cache revision.
+- [ ] Full Rebuild Baseline Security Gate passes on exact 1.1.18 candidate.
+- [ ] Exact GitHub Pages deployment passes.
+- [ ] iPhone and iPad warm/cold notification device acceptance passes repeatedly.

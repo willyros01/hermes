@@ -142,3 +142,7 @@ No transform is approved. Each future change must name one owner/resource/event/
 The existing FIDUNIO service worker is registered as a module and initializes a named Firebase Messaging-only worker app using the unchanged protected firebase-config.js. It initializes no Auth, Firestore, App Check, Functions or Storage service. Firebase Messaging onBackgroundMessage is the one background display owner; it validates the payload, suppresses display when a FIDUNIO window is visible, and attaches the opaque route to the notification. The existing notificationclick -> routed URL -> PIN -> app.js path remains unchanged. app.js remains route/message owner and Firestore + E2EE remain message authority.
 
 No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachment, disappearing-message or direct projection code changed. Version advances from 1.1.9 to 1.1.17 because 1.1.9.1 through 1.1.16 are rejected historical experiments. Full baseline, exact Pages verification, live N4 Function deployment and iPhone/iPad device acceptance remain required.
+
+## FIDUNIO 1.1.18 — no runtime transform expansion
+
+The iPad notification correction changes only the explicit `notificationclick` handler: preserve routed `openWindow()`, post the same bounded route to the returned client, and focus it. No source transform, timer, reconnect handler, subscription replacement, application render path, PIN flow, Settings host, Outbox, receipt, E2EE or projection code is added or changed.

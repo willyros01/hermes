@@ -400,3 +400,7 @@ Initial full gate run 34436219194 passed all notification stages and the first 7
 ### 1.1.17 second baseline rerun correction — 2026-09-10
 
 Full gate run 34436403470 passed stages 1–81, including all notification, lifecycle, Outbox, attachment, E2EE, PIN and deletion gates, then stopped at direct-message-basic-path.test.mjs because its installed-PWA assertion also retained the historical 1.1.9 shell revision. A scan of all 78 permanent test files confirmed this was the only remaining old-revision assertion. It is updated to require 1.1.17-data-only-sw-owner. No runtime behavior or invariant changed. A third complete run is required.
+
+## FIDUNIO 1.1.18 — iPad notification click dual delivery — 2026-09-10
+
+Live 1.1.17 backend deployment succeeded. iPhone then passed exact direct-message routing twice at approximately five seconds; iPad twice resumed Settings instead, with account-dependent Settings panels still reconnecting/loading. The bounded 1.1.18 candidate keeps `openWindow(routed URL)` and posts the same validated opaque route to its returned client before focusing it. `app.js` remains route owner. No backend or rogue lifecycle/projection code changes. Full gate, Pages and repeated warm/cold iPhone/iPad acceptance are required.

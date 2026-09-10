@@ -326,3 +326,7 @@ No cleanup is approved. Discovery does not establish this as the cause of FDA-NO
 The candidate replaces the competing FCM automatic-notification/FIDUNIO raw-push model with one data-only Firebase Messaging service-worker display owner. The existing routed URL -> PIN -> app.js path is retained. No PIN, Settings, lifecycle, subscription, Outbox or projection-latency repair is included.
 
 Exit criteria: full baseline green; exact Pages deployment; reviewed live notification Function deployment; iPhone and iPad each prove background notification -> tap -> PIN -> exact direct conversation; ordinary resume preserves the previous screen; exactly one notification; private and sender-name modes; no plaintext content; same-UID multi-installation behavior. Status remains OPEN pending those gates.
+
+### FDA-NOTIFY-002 — 1.1.18 iPad click-delivery correction
+
+1.1.17 live evidence: iPhone passed notification -> PIN -> exact direct conversation twice at about five seconds; iPad twice resumed Settings, and its account-dependent Settings panels were still loading on the first resume. The 1.1.18 candidate preserves the iPhone-proven routed `openWindow()` call and delivers the same validated opaque route to the returned client through the existing app listener. No Settings or startup-loading repair is included. Status remains OPEN until full gates and repeated warm/cold acceptance pass on both devices.

@@ -145,3 +145,12 @@ N5 is **not yet fully closed**. Cold-open acceptance is still required: fully cl
 - **Not changed:** rogue lifecycle paths, direct projection ordering, Settings, Outbox, receipts, E2EE, groups, attachments and disappearing content.
 - **Required acceptance:** exactly one notification; tap/PIN opens exact direct chat on both devices; ordinary resume stays on prior screen; private and sender-name modes; cold/warm paths; same-UID multiple installations.
 - **Status:** OPEN — repository, deployment and device proof pending.
+
+### 1.1.17 device result and 1.1.18 allocation — 2026-09-10
+
+- **iPhone:** PASS twice; notification -> PIN -> exact direct conversation, approximately five seconds.
+- **iPad:** FAIL twice; notification -> PIN -> Settings. On first resume, Profile and User Administration were still loading.
+- **Classification:** iPad resumed-window click-route loss; Settings loading is recorded as supporting lifecycle evidence, not independently classified as a Settings defect.
+- **1.1.18 scope:** retain routed `openWindow()` and post the identical validated opaque route to the returned client; focus that client.
+- **Retest:** iPhone and iPad from Settings and another screen; warm/background and terminated/cold start; two repetitions per path; exactly one notification; correct direct conversation after PIN; ordinary non-notification resume preserves its prior screen.
+- **Status:** OPEN pending repository gates, Pages and device proof.
