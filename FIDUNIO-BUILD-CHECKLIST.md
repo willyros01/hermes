@@ -793,5 +793,5 @@ No point earned; completion remains 96%.
 - [x] Require the exact notified row plus conversation-bound composer before consuming the pending record.
 - [x] Add permanent behavioral and integration gates and service-worker cache inclusion.
 - [x] Complete full local non-emulator and emulator-backed repository validation.
-- [ ] Commit and push the exact 1.1.24 tree to `main`; monitor all workflows and verify live Pages version.
+- [x] Push exact runtime tree `9a3bcea96c726958c58f788980792f051921dabe` to `main` as `17210008b89da26ee137cbbd529bb222c09fc164`; Rebuild Baseline `34529867052`, E2EE Rules `34529867135`, E2EE Recovery `34529866986`, Firebase Adapter `34529867158`, and Pages `34529864925` complete SUCCESS; live Pages serves version `1.1.24` and cache revision `1.1.24-notification-priority-semaphore`.
 - [ ] Complete the repeated iPhone/iPad matrix above.
