@@ -690,3 +690,7 @@ No point earned; completion remains 96%.
 - [x] Initial full gate 34436219194: notification N2/N3/N4/N5 and preceding security stages passed; stopped only at stale 1.1.9 shell-revision assertion.
 - [x] Update the permanent Outbox cache assertion to require exact 1.1.17-data-only-sw-owner revision without weakening behavior.
 - [ ] Complete full baseline rerun from the beginning.
+
+- [x] Full rerun 34436403470 passed stages 1–81; stopped only at the second stale 1.1.9 shell assertion in the direct-message basic-path gate.
+- [x] Scan all 78 permanent test files and confirm no additional 1.1.9-fcm-sender-name assertions remain after correcting the direct-message gate.
+- [ ] Complete third full baseline run.

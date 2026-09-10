@@ -395,3 +395,8 @@ No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachm
 ### 1.1.17 baseline rerun correction — 2026-09-10
 
 Initial full gate run 34436219194 passed all notification stages and the first 73 security stages, then stopped because outbox-reconciliation-boundary.test.mjs still required the historical 1.1.9 service-worker revision. The assertion is updated to require the exact 1.1.17-data-only-sw-owner revision. No runtime, Outbox or notification behavior changed and no invariant was weakened. A complete rerun is required.
+
+
+### 1.1.17 second baseline rerun correction — 2026-09-10
+
+Full gate run 34436403470 passed stages 1–81, including all notification, lifecycle, Outbox, attachment, E2EE, PIN and deletion gates, then stopped at direct-message-basic-path.test.mjs because its installed-PWA assertion also retained the historical 1.1.9 shell revision. A scan of all 78 permanent test files confirmed this was the only remaining old-revision assertion. It is updated to require 1.1.17-data-only-sw-owner. No runtime behavior or invariant changed. A third complete run is required.
