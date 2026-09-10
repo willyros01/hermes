@@ -765,6 +765,6 @@ No point earned; completion remains 96%.
 - [x] Add a permanent cold-route/projection/newest-entry gate and include it in the full baseline.
 - [x] Reconcile notification, runtime, defect, acceptance, release and cumulative documents.
 - [x] Focused notification, activation, direct-message, receipt, Outbox, LTE and iPhone UI gates pass locally.
-- [ ] Full Rebuild Baseline Security Gate passes on the exact 1.1.22 commit.
-- [ ] Push exact commit to `main` and verify GitHub Pages publication.
+- [x] Full Rebuild Baseline Security Gate `34494444866` passes on exact 1.1.22 runtime commit `c2e98d802c5ea2851885f4f5bb2a08ef67af7f4c`; Recovery `34494444546`, Firebase Adapter `34494444308`, and Rules Emulator `34494444767` also pass.
+- [x] Push the exact 1.1.22 runtime tree to `main`; GitHub Pages run `34494429455` succeeds and the live site serves version `1.1.22` with shell revision `1.1.22-notification-projection-owner`.
 - [ ] Complete the FIDUNIO 1.1.22 iPhone/iPad focused acceptance matrix.
