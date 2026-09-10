@@ -718,3 +718,10 @@ Commit `5e22a9484029d02f9f6691b82329a55d4695c848` passed full baseline `34139245
 ## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
+
+
+## 2026-09-10 documentation-only investigation checkpoint
+
+The restored release remains FIDUNIO 1.1.9 at commit `a3830afd8a01f88448e42703ac4b803058451ef8`. Backend and Firestore-rule restoration through `fcm.txt` was confirmed successful. Fresh testing shows notification tap routing fails on both iPhone and iPad: after PIN, the previous Settings screen remains selected. No runtime repair is included.
+
+Before any lifecycle/reconnect/subscription cleanup, read [ROGUE-CODE-RAMIFICATIONS.md](ROGUE-CODE-RAMIFICATIONS.md). It explicitly lists the affected screens, functionality, ownership paths and mandatory real-device retests. Notification routing, lifecycle cleanup and message-display latency are separate release boundaries.
