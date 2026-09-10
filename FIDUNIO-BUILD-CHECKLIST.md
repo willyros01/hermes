@@ -781,5 +781,5 @@ No point earned; completion remains 96%.
 - [x] Update release, defect, acceptance, notification, lifecycle, ownership, ramifications and cumulative records.
 - [x] Focused notification, activation, direct-message, receipt, Outbox, LTE and iPhone UI gates pass locally.
 - [x] Complete full local repository baseline and all emulator-backed security suites.
-- [ ] Push the exact validated 1.1.23 tree to `main` and verify every triggered workflow plus live Pages version/cache.
+- [x] Push exact runtime tree `49be379988f7498d74db43a916438341bad12ef8` to `main` as `9fa9bb62ade01c5b6a3bcf01fc9f7fd6ccb6e57c`; Rebuild Baseline `34501753123`, Firebase Adapter `34501753059`, and Pages `34501752319` complete SUCCESS, and live Pages serves version `1.1.23`.
 - [ ] Complete the repeated 1.1.23 iPhone/iPad acceptance matrix.
