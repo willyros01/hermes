@@ -362,3 +362,11 @@ The service worker persists the validated opaque route locally before notificati
 **Proven causes:** cold activation may reject and consume a route from stale local conversation metadata before cloud reconciliation; direct snapshots re-decrypt all history and await durability plus server Read recovery before visible projection; persistent composer state incorrectly retained viewport coordinates across navigation.
 
 **Candidate:** server-authoritative validation before cold-route rejection, target-DOM confirmation before consumption, reuse of already authenticated immutable rows, immediate composer-safe projection, and transient same-chat viewport preservation with newest-message intentional entry. Status remains OPEN pending full gate/Pages and device acceptance. No backend/rules/payload, PIN, E2EE, receipt, Outbox, attachment, group, disappearing-content or Settings owner changed.
+
+### FDA-NOTIFY-002 / FDA-DM-001 — 1.1.22 REJECTED; 1.1.23 correction
+
+**1.1.22 device result:** background iPhone/iPad usually route to the direct conversation, but new-row display alternates between immediate and materially delayed. Terminated iPhone opens Messages instead of the target; terminated iPad behaves like background. Both devices alternate between oldest and newest initial scroll positions. Repository gates passed, but product acceptance failed.
+
+**Additional proven causes:** the activation promise can observe an empty queue and then release after another readiness signal joins it, stranding that signal without a drain. Direct-listener re-entry launches a competing history `getDocs()` and snapshots form an unbounded FIFO behind active work. Unversioned scroll animation frames compete; a background render can replace a latest-entry request with the newly mounted pane's initial zero position.
+
+**1.1.23 candidate:** release-time activation handoff, one live listener with one latest pending snapshot, no re-entry history read, and generation-checked viewport intent retained until application. Status remains OPEN pending full repository/Pages proof and repeated device acceptance.

@@ -99,6 +99,7 @@ let appActivationPromise=null;
 const appActivationReasons=new Set();
 const composerStateByConversation=new Map();
 let pendingChatViewport=null;
+let chatRenderGeneration=0;
 let cloudConversationUnsub = null;
 let cloudConversationSyncPending = false;
 let peerDisplayNameUnsub = ()=>{};
@@ -582,10 +583,7 @@ function notificationRouteHasRendered(route){
   const box=document.querySelector("#messageBox[data-conversation-id]");
   return !!route&&state.route==="chat"&&String(state.selectedId)===String(route.conversationId)&&String(box?.dataset.conversationId||"")===String(route.conversationId);
 }
-function requestAppActivation(reason){
-  const activationReason=String(reason||"unspecified");
-  appActivationReasons.add(activationReason);
-  if(appActivationPromise)return appActivationPromise;
+function startAppActivationOwner(){
   appActivationPromise=(async()=>{
     // Coalesce simultaneous iOS lifecycle signals into one batch. A signal
     // raised while a batch is awaiting notification/auth work remains in the
@@ -602,8 +600,16 @@ function requestAppActivation(reason){
     }
   })().catch(error=>console.warn("FIDUNIO activation owner failed",error)).finally(()=>{
     appActivationPromise=null;
+    // A signal can be queued after the drain observes an empty set but before
+    // this promise releases. Hand it to a new serialized owner synchronously;
+    // never leave a cold-start Firebase/notification signal stranded.
+    if(appActivationReasons.size)startAppActivationOwner();
   });
   return appActivationPromise;
+}
+function requestAppActivation(reason){
+  appActivationReasons.add(String(reason||"unspecified"));
+  return appActivationPromise||startAppActivationOwner();
 }
 function mergeCloudGroup(remote){
   const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
@@ -1215,11 +1221,23 @@ function scrollChatToLatest(){
   else syncPhoneChatComposerInset({scrollBottom:true});
 }
 function restoreChatViewport(conversationId,snapshot){
+  if(snapshot?.latest===true)return scrollChatToLatest();
   if(!snapshot||String(snapshot.conversationId)!==String(conversationId))return scrollChatToLatest();
   const chat=document.querySelector("#chatArea");
   if(snapshot.wide&&isWideLayout()&&chat)chat.scrollTop=snapshot.chatNearBottom?chat.scrollHeight:snapshot.chatScrollTop;
   else if(!snapshot.wide&&!isWideLayout())snapshot.windowNearBottom?syncPhoneChatComposerInset({scrollBottom:true}):window.scrollTo(0,snapshot.windowScrollY);
   else scrollChatToLatest();
+}
+function latestChatViewport(conversationId){return{conversationId:String(conversationId),latest:true};}
+function scheduleChatViewportRestore(conversationId,viewport,generation){
+  requestAnimationFrame(()=>{
+    if(generation!==chatRenderGeneration)return;
+    const box=document.querySelector("#messageBox[data-conversation-id]");
+    if(String(box?.dataset.conversationId||"")!==String(conversationId))return;
+    restoreComposerState(conversationId);
+    restoreChatViewport(conversationId,viewport);
+    if(pendingChatViewport===viewport)pendingChatViewport=null;
+  });
 }
 function bindChatMessageProjectionActions(){
   bindPendingMessageActions();
@@ -1231,18 +1249,21 @@ function bindChatMessageProjectionActions(){
     render();
   });
 }
-function patchActiveChatProjection(){
+function patchActiveChatProjection(generation){
   if(!state.unlocked||state.route!=="chat")return false;
   const c=currentConversation(),chat=document.querySelector("#chatArea"),status=document.querySelector("#chatStatusRegion");
   const box=document.querySelector("#messageBox[data-conversation-id]");
   if(!c||!chat||!status||!box||String(box.dataset.conversationId)!==String(c.id))return false;
-  const snapshot=captureComposerStateFromDom(),viewport=captureChatViewportFromDom();
+  captureComposerStateFromDom();
+  const retained=String(pendingChatViewport?.conversationId||"")===String(c.id)?pendingChatViewport:null;
+  const viewport=retained||captureChatViewportFromDom()||latestChatViewport(c.id);
+  pendingChatViewport=viewport;
   chat.innerHTML=renderConversationMessages(state.messages[c.id]||[],c);
   status.innerHTML=chatStatusMarkup(c);
   const title=document.querySelector("#activeChatName");if(title)title.textContent=c.name;
   if(isWideLayout())drawTabletConversationList(document.querySelector("#tabletSearchBox")?.value||"");
   bindChatMessageProjectionActions();
-  requestAnimationFrame(()=>{restoreComposerState(c.id);restoreChatViewport(c.id,viewport);});
+  scheduleChatViewportRestore(c.id,viewport,generation);
   return true;
 }
 function render({background=false,entry=false}={}){
@@ -1250,10 +1271,16 @@ function render({background=false,entry=false}={}){
   // for a background projection, but cannot replace an active composer.
   // Live cloud callbacks may arrive while the local lock screen is open.
   // Keep the mounted PIN slots and their focus/value intact during those renders.
+  const generation=++chatRenderGeneration;
   const unlockPinAlreadyMounted=!state.unlocked&&!!document.querySelector("#localUnlockPin .pin-code");
   persistSoon();
-  if(background&&patchActiveChatProjection())return;
-  pendingChatViewport=!entry&&state.route==="chat"?captureChatViewportFromDom():null;
+  if(background&&patchActiveChatProjection(generation))return;
+  if(state.route==="chat"){
+    const captured=entry?null:captureChatViewportFromDom();
+    pendingChatViewport=captured&&String(captured.conversationId)===String(state.selectedId)
+      ?captured
+      :latestChatViewport(state.selectedId);
+  }else pendingChatViewport=null;
   captureComposerStateFromDom();
   document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
   applyAppearance();
@@ -1480,8 +1507,10 @@ function renderChat(){
   if(!c){state.selectedId=null;state.route="messages";return renderMessages();}
   const msgs=state.messages[state.selectedId]||[];
   const existingComposerState=composerStateByConversation.get(String(c.id));
-  const viewport=String(pendingChatViewport?.conversationId||"")===String(c.id)?pendingChatViewport:null;
-  pendingChatViewport=null;
+  const viewport=String(pendingChatViewport?.conversationId||"")===String(c.id)
+    ?pendingChatViewport
+    :latestChatViewport(c.id);
+  pendingChatViewport=viewport;
   const chatMarkup=`
       <header class="topbar">
         <button class="back-btn icon-2d" id="backBtn" aria-label="Back">${icon2d("back",23)}</button>
@@ -1550,7 +1579,7 @@ function renderChat(){
   };
   box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();document.querySelector("#sendBtn")?.click();}});
   bindChatMessageProjectionActions();
-  requestAnimationFrame(()=>{restoreComposerState(c.id);restoreChatViewport(c.id,viewport);});
+  scheduleChatViewportRestore(c.id,viewport,chatRenderGeneration);
 }
 
 function syncPhoneChatComposerInset({scrollBottom=false}={}){

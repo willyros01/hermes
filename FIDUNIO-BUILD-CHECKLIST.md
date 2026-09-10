@@ -767,4 +767,19 @@ No point earned; completion remains 96%.
 - [x] Focused notification, activation, direct-message, receipt, Outbox, LTE and iPhone UI gates pass locally.
 - [x] Full Rebuild Baseline Security Gate `34494444866` passes on exact 1.1.22 runtime commit `c2e98d802c5ea2851885f4f5bb2a08ef67af7f4c`; Recovery `34494444546`, Firebase Adapter `34494444308`, and Rules Emulator `34494444767` also pass.
 - [x] Push the exact 1.1.22 runtime tree to `main`; GitHub Pages run `34494429455` succeeds and the live site serves version `1.1.22` with shell revision `1.1.22-notification-projection-owner`.
-- [ ] Complete the FIDUNIO 1.1.22 iPhone/iPad focused acceptance matrix.
+- [x] Complete the FIDUNIO 1.1.22 iPhone/iPad focused acceptance matrix: **FAILED** — inconsistent row timing/scroll and terminated-iPhone fallback reject the candidate.
+
+### FIDUNIO 1.1.23 deterministic activation/snapshot/viewport correction
+
+- [x] Record 1.1.22 real-device rejection without treating intermittent successes as acceptance.
+- [x] Close the activation-promise release window with a synchronous serialized handoff.
+- [x] Preserve one live direct-message listener on re-entry; remove competing `getDocs()` history delivery.
+- [x] Replace FIFO snapshot backlog with one active plus one latest pending snapshot.
+- [x] Give central renders a generation and reject stale deferred viewport callbacks.
+- [x] Retain deliberate latest-entry intent across intervening background projections until applied.
+- [x] Preserve composer draft/focus/caret and scrolled-up versus near-bottom semantics.
+- [x] Update release, defect, acceptance, notification, lifecycle, ownership, ramifications and cumulative records.
+- [x] Focused notification, activation, direct-message, receipt, Outbox, LTE and iPhone UI gates pass locally.
+- [x] Complete full local repository baseline and all emulator-backed security suites.
+- [ ] Push the exact validated 1.1.23 tree to `main` and verify every triggered workflow plus live Pages version/cache.
+- [ ] Complete the repeated 1.1.23 iPhone/iPad acceptance matrix.

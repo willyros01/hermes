@@ -33,5 +33,19 @@ assert.doesNotMatch(app.slice(composerStart,composerEnd),/Scroll|NearBottom/,
   "per-conversation draft state must not persist viewport position across navigation");
 assert.match(app,/function restoreChatViewport[\s\S]*?return scrollChatToLatest\(\)/,
   "new chat entry must target the latest message");
+assert.match(app,/function scheduleChatViewportRestore[\s\S]*?generation!==chatRenderGeneration[\s\S]*?pendingChatViewport===viewport/,
+  "only the newest render generation may complete and clear viewport intent");
 
-console.log("Notification cold-route, immediate projection, and newest-message gates passed");
+const firebaseSubscriptionStart=firebase.indexOf("export function subscribeConversationMessages");
+const firebaseSubscriptionEnd=firebase.indexOf("export function subscribeUserDisplayNames",firebaseSubscriptionStart);
+const firebaseSubscription=firebase.slice(firebaseSubscriptionStart,firebaseSubscriptionEnd);
+const existingStart=firebaseSubscription.indexOf("if(stream){");
+const existingEnd=firebaseSubscription.indexOf("}else{",existingStart);
+assert.doesNotMatch(firebaseSubscription.slice(existingStart,existingEnd),/\.getDocs\(/,
+  "re-entry must transfer the live-listener callback without a competing full-history read");
+assert.match(firebase,/function queueLatestMessageSnapshot[\s\S]*?stream\.pending=\{rows,meta\}[\s\S]*?while\(messageStreams\.get\(key\)===stream&&stream\.pending\)/,
+  "the message-stream owner must coalesce pending snapshots to the newest value");
+assert.doesNotMatch(firebaseSubscription,/delivery\.then/,
+  "message snapshots must not form an unbounded FIFO projection backlog");
+
+console.log("Notification route, latest-only projection, and deterministic newest-message gates passed");

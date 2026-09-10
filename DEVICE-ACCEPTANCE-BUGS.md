@@ -201,3 +201,15 @@ FDA-COMPOSER-001 acceptance: type a distinctive unsent multi-line draft and leav
 7. Neighbor regression: ordinary resume with no new notification preserves the prior screen; multiple conversations still show the chooser; text plus one attachment send/receive; authentic Sent/Delivered/Read; offline queue/reconnect; iPad sidebar and Settings/Profile/User Administration loading.
 
 The build changes no Firebase backend/rules/config, notification privacy, PIN/auth, E2EE format/key, receipt writer, Outbox, attachment/group/disappearing authority or Settings host. These remain regression checks, not rewritten functionality.
+
+### FIDUNIO 1.1.23 focused acceptance matrix
+
+1. Confirm visible version 1.1.23 after two complete launches on each installed PWA.
+2. iPhone background: notification -> PIN -> exact direct chat -> newest row visible. Repeat at least five times and record each notification-to-visible-row interval; no run may fall to Messages/Settings or show the oldest row.
+3. iPhone terminated: fully close FIDUNIO and repeat notification -> PIN -> exact direct chat at least five times. This is the critical 1.1.22 regression boundary.
+4. iPad background and terminated: perform the same five-run checks, including portrait and landscape. Exact conversation, newest position and visible new row are independently required.
+5. Open the same and a different direct conversation from Messages repeatedly; every deliberate entry opens newest. Scroll upward and receive a background row/receipt; a scrolled-up view stays stable while a near-bottom view follows the newest row.
+6. Hold a distinctive multiline draft with focus/caret while notification, snapshot, receipt, foreground and connectivity signals occur. No text loss, cursor jump, duplicate send or whole-screen refresh is permitted.
+7. Regression boundary: ordinary no-notification resume, multiple-notification chooser, Sent/Delivered/Read, offline queue/reconnect, group chat, one attachment, iPad sidebar, and Settings/Profile/User Administration loading.
+
+The device matrix closes only with consistent repeated behavior. An occasional successful route, fast row, or correct scroll position does not pass.

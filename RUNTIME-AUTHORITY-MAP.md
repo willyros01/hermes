@@ -351,3 +351,10 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - The existing direct-message subscription remains the only direct projection owner. It reuses plaintext already authenticated for immutable message IDs and decrypts new/unavailable rows through the unchanged account-E2EE service. It updates `state.messages`, then requests central background projection before durability and receipt awaits.
 - `render()` remains the only DOM projection entry. `composerStateByConversation` owns draft, focus, caret and height only. Viewport state is captured only for the next render of the same currently mounted conversation and is never retained across Messages/Settings/other-conversation navigation. Intentional entry belongs to the render owner and scrolls to the newest row.
 - Firestore rules/backend, notification worker/payload/token, PIN/auth, E2EE keys/formats, receipt writer, Outbox, groups, attachments, disappearing content and Settings lifecycle retain their prior owners.
+
+## FIDUNIO 1.1.23 activation, stream and frame authority
+
+- `startAppActivationOwner()` owns draining and release. `requestAppActivation()` only records a reason and joins/starts that owner. Release checks queued reasons synchronously, so no lifecycle source can create a parallel route decision or an ownerless cold-start signal.
+- `firebase.js#subscribeConversationMessages()` owns exactly one live listener per conversation. Re-entry changes the current token/callback only. `queueLatestMessageSnapshot()` owns one active projection and one replaceable pending snapshot; it does not issue a competing history read or retain an unbounded FIFO.
+- `render()` owns `chatRenderGeneration` and the pending viewport intent. Only the current generation and exact mounted conversation may restore composer/viewport state. A latest-entry intent remains authoritative until applied; a background projection cannot reinterpret initial scroll zero as user intent.
+- Notification inbox, Firebase backend/rules/config, worker payload/display/click, PIN/auth, E2EE, receipts, Outbox, groups, attachments, disappearing content and Settings retain existing owners.
