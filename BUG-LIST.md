@@ -302,3 +302,27 @@ Queued/Sending/Failed outgoing messages lacked deletion. Candidate adds press-an
 - **Status:** REPAIR CANDIDATE — OPEN.
 
 Repository/deployment evidence: commit `5e22a9484029d02f9f6691b82329a55d4695c848`, complete baseline `34139245770` SUCCESS, Pages `34139244639` SUCCESS. FDA-UX-001 remains OPEN pending user-device acceptance.
+
+
+## FDA-NOTIFY-002 — restored 1.1.9 notification tap lacks route on both iPhone and iPad — OPEN
+
+**Observed 2026-09-10 after exact frontend/backend restoration:** both devices follow `notification -> tap -> PIN -> Settings`. iPhone notification arrival is approximately 1–2 seconds. The reported iPad delivery event is approximately 30 seconds or more.
+
+**Read-only boundary:** the backend sends an FCM common `notification` plus opaque `data`; FIDUNIO's service worker separately expects to own `push`, display and `notificationclick` route construction. Earlier diagnostics showed resume at `/hermes/` without route query parameters and no pending application route. `app.js` applies a valid route after PIN when supplied; no evidence supports changing PIN or Settings.
+
+**Restriction:** rejected 1.1.9.1–1.1.16 experiments remain rejected. Do not combine the fix with rogue lifecycle cleanup or message-projection latency.
+
+**Required next artifact:** one-owner notification design, explicit service-worker/Firebase ownership reconciliation, multi-installation behavior and bounded regression plan. No implementation approved.
+
+## FDA-RUNTIME-001 — timing-driven reconnect and duplicate lifecycle ownership — DOCUMENTED / OPEN
+
+The restored 1.1.9 runtime contains timer-driven reconnect recovery, forced direct-subscription replacement and duplicate foreground/init entry paths. These touch substantially more than notification routing. `ROGUE-CODE-RAMIFICATIONS.md` is the binding impact and retest authority, including every affected screen, Outbox/reconnect, direct/group receipts, E2EE, disappearing content, attachments, Settings permanent hosts, PIN/biometric and multi-device same-UID behavior.
+
+No cleanup is approved. Discovery does not establish this as the cause of FDA-NOTIFY-002 or the iPad latency observation.
+
+
+### FDA-NOTIFY-002 — 1.1.17 bounded repair candidate
+
+The candidate replaces the competing FCM automatic-notification/FIDUNIO raw-push model with one data-only Firebase Messaging service-worker display owner. The existing routed URL -> PIN -> app.js path is retained. No PIN, Settings, lifecycle, subscription, Outbox or projection-latency repair is included.
+
+Exit criteria: full baseline green; exact Pages deployment; reviewed live notification Function deployment; iPhone and iPad each prove background notification -> tap -> PIN -> exact direct conversation; ordinary resume preserves the previous screen; exactly one notification; private and sender-name modes; no plaintext content; same-UID multi-installation behavior. Status remains OPEN pending those gates.

@@ -814,3 +814,23 @@ Single-PIN/delete candidate `5e22a9484029d02f9f6691b82329a55d4695c848` passed co
 ## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
+
+
+FIDUNIO 1.1.9 DOCUMENTATION-ONLY AUDIT — 2026-09-10
+
+The exact frontend checkpoint remains commit a3830afd8a01f88448e42703ac4b803058451ef8, visible version 1.1.9. The user confirmed that fcm.txt completed successfully and printed the backend/rules restoration success result.
+
+Fresh device evidence after restoration: both iPhone and iPad now follow notification -> tap -> PIN -> Settings. The intended direct conversation is not selected. iPhone notification arrival was approximately 1–2 seconds. The reported iPad delivery event was approximately 30 seconds or more. This invalidates the assumption that the historical iPhone routing success remains reproducible today.
+
+Read-only investigation confirms that app.js correctly retains and applies a notification route when one is actually supplied. Current evidence shows no route reaches app.js. The backend uses an FCM notification-plus-data message, while service-worker.js expects its own push/notificationclick handling to construct the routed URL. Do not change PIN, Settings or conversation selection to compensate for absent routing input.
+
+ROGUE-CODE-RAMIFICATIONS.md is the durable authority for the complete rogue-code call graph, affected screens, affected functionality and mandatory retest matrix. It covers scheduleReconnectRecovery(), recoverForegroundCloudSession(), online/offline handlers, visibilitychange/pageshow, initializeFirebaseLayer(), applyPendingNotificationRoute(), firebase.js messageStreams ownership and delayed direct-message projection. Discovery is not proof of causation and no cleanup is approved.
+
+Mandatory separation: notification routing redesign, lifecycle cleanup, and iPad/direct projection latency optimization must be different proposals and different releases. No code, version, service-worker revision, Firebase backend, Firestore rule, Pages deployment or device-acceptance status changed in this documentation checkpoint.
+
+
+FIDUNIO 1.1.17 NOTIFICATION OWNER CANDIDATE — 2026-09-10
+
+Implemented the approved bounded redesign without touching rogue lifecycle or projection latency. The backend common notification-plus-data payload is replaced by data-only FCM containing type, conversationId, messageId and bounded notificationBody. The installed PWA service worker is now a module and owns Firebase Messaging background receipt/display through onBackgroundMessage. It uses the unchanged firebase-config.js only to initialize a named Messaging-only worker app; no Auth/Firestore/App Check/Functions/Storage service is initialized in the worker. The existing notificationclick routed URL, PIN gate and app.js route application are preserved.
+
+Version is 1.1.17; rejected 1.1.9.1–1.1.16 are not reused. No lifecycle cleanup, Outbox, receipt, E2EE, Settings, group, attachment or disappearing-content code changed. Repository gates, Pages, live Function deployment and real iPhone/iPad proof remain required before acceptance.

@@ -2343,7 +2343,7 @@ if("serviceWorker" in navigator){
     const route=normalizeNotificationRoute(event.data?.route);if(!route)return;
     pendingNotificationRoute=route;void applyPendingNotificationRoute();
   });
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js")
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js",{type:"module"})
     .catch(err=>console.warn("Service worker registration failed",err)));
 }
 initApp();

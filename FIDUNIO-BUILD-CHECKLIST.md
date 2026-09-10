@@ -669,3 +669,20 @@ No point earned; completion remains 96%.
 ## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
+
+
+### FIDUNIO 1.1.17 notification-owner repair
+
+- [x] Replace common FCM notification-plus-data send with bounded data-only payload.
+- [x] Keep server-side recipient derivation, installation fan-out and invalid-token pruning.
+- [x] Preserve private default and installation-scoped sender-name opt-in.
+- [x] Register the existing service worker as a module.
+- [x] Initialize only a named Firebase Messaging worker app from unchanged firebase-config.js.
+- [x] Use onBackgroundMessage as the sole background display owner.
+- [x] Attach only opaque route data to the displayed notification.
+- [x] Preserve existing notificationclick -> URL -> PIN -> app.js route/message authority.
+- [x] Add permanent data-only, privacy, module-registration and click-routing gates.
+- [ ] Full Rebuild Baseline Security Gate passes on exact candidate.
+- [ ] Exact GitHub Pages deployment passes.
+- [ ] Deploy reviewed notifyDirectMessageCreatedV1 backend candidate.
+- [ ] iPhone and iPad device acceptance passes.

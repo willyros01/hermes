@@ -115,3 +115,30 @@ The remaining direct-message service-worker transforms have been retired. Raw ap
 Runtime 0.9.8.5 completes the invitation/join/install phase. `invitation-owner.js` is the sole serialized invitation mutation coordinator while `firebase.js` remains the sole Firebase repository/SDK owner. Pure `invitation-policy.js` enforces single-use lifecycle, issuer roles and target roles. Auth and Settings request invitation work through that owner. Firestore emulator coverage proves anonymous validation of a known token, unauthorized issuance/revocation denial, owner issuance/revocation, atomic accepted-invitation + active-profile enrollment, and second-redemption denial. Joined active profiles flow into existing direct/group discovery without device binding.
 
 `install-guidance.js` owns only an optional predefined Settings Install panel. It never mutates invitation, account, messaging or service-worker state and never uses automatic install prompting. iOS uses Safari Share -> Add to Home Screen; Android/Fire and desktop use browser-provided install/add/shortcut commands when available. The rejected 0.9.4.12–0.9.4.15 invite/install logic was not restored or adapted. Protected iPhone Back/wrap, Settings deterministic ownership and two-pane architecture remain gated. Full Rebuild Baseline Security Gate `34065528714` SUCCESS. No live Firebase or htest deployment occurred. Next allocated build: 0.9.9.0 Group Info completion.
+
+
+## 2026-09-10 restored-runtime audit — documentation authority
+
+The restored 1.1.9 runtime audit found timing and forced-rebind behavior spanning the app controller and `firebase.js` message-stream owner. The exhaustive call graph, resource ramifications, screen matrix and device retest requirements are maintained in `ROGUE-CODE-RAMIFICATIONS.md`.
+
+Recorded transform/call paths:
+
+- `scheduleReconnectRecovery()` -> immediate plus 1.5s plus 4s authoritative Outbox reconciliation;
+- `recoverForegroundCloudSession()` -> pending route attempt + forced active direct subscription + reconnect schedule + global render;
+- online/offline -> connectivity state, forced subscription or timer cancellation, persistence/render and reconnect work;
+- visibilitychange/pageshow -> potentially duplicate foreground recovery entry;
+- `initializeFirebaseLayer()` -> repeated forced subscription, route application and reconnect scheduling across auth callback and post-await continuation;
+- `applyPendingNotificationRoute()` -> shared forced subscription path;
+- `firebase.js subscribeConversationMessages()` -> messageStreams callback-token replacement, catch-up read, serialized delivery and 250ms delayed close;
+- direct callback -> projection/decrypt followed by awaited cache, persistence and possible Read receipt before render.
+
+No transform is approved. Each future change must name one owner/resource/event/serialization path and inherit the full retest matrix.
+
+
+## FIDUNIO 1.1.17 — data-only service-worker notification owner — 2026-09-10
+
+**Status: IMPLEMENTED REPOSITORY CANDIDATE; LIVE FUNCTION DEPLOYMENT AND DEVICE ACCEPTANCE REQUIRED.** The server notification core now sends one opaque data-only FCM payload per eligible installation. The payload contains only type, conversationId, messageId and the bounded OS-visible notification body (private “New message” or the installation-opted authoritative sender display name). It has no common FCM notification object, message text, attachment information, ciphertext, keys, PIN or recovery material.
+
+The existing FIDUNIO service worker is registered as a module and initializes a named Firebase Messaging-only worker app using the unchanged protected firebase-config.js. It initializes no Auth, Firestore, App Check, Functions or Storage service. Firebase Messaging onBackgroundMessage is the one background display owner; it validates the payload, suppresses display when a FIDUNIO window is visible, and attaches the opaque route to the notification. The existing notificationclick -> routed URL -> PIN -> app.js path remains unchanged. app.js remains route/message owner and Firestore + E2EE remain message authority.
+
+No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachment, disappearing-message or direct projection code changed. Version advances from 1.1.9 to 1.1.17 because 1.1.9.1 through 1.1.16 are rejected historical experiments. Full baseline, exact Pages verification, live N4 Function deployment and iPhone/iPad device acceptance remain required.

@@ -497,3 +497,10 @@ Do not implement:
 ## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
+
+
+## FIDUNIO 1.1.17 — explicit worker-environment Messaging exception
+
+The web page and service worker are separate JavaScript execution environments. firebase.js remains the sole Firebase owner in the page. For data-only FCM background handling, service-worker.js may initialize exactly one named Firebase app, “fidunio-notification-worker”, using the unchanged firebase-config.js and may acquire Firebase Messaging only. It must not acquire Auth, Firestore, App Check, Functions or Storage and must not read/write messages, receipts, Outbox, E2EE, keys or application state.
+
+The server sends no common notification object. The bounded data payload is limited to type, conversationId, messageId and notificationBody. notificationBody is either “New message” or “New message from <authoritative display name>” for an installation that explicitly enabled sender names. The worker validates this value before display. onBackgroundMessage is the sole background notification display owner. app.js remains the route/message owner after notificationclick and PIN.

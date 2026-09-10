@@ -1,7 +1,7 @@
 /* FIDUNIO deterministic bootstrap. Account/auth owners run before app.js. */
 export async function ensureFidunioServiceWorker(){
   if(!("serviceWorker" in navigator))throw new Error("Service workers are not supported on this device/browser.");
-  const registration=await navigator.serviceWorker.register("./service-worker.js",{scope:"./"});
+  const registration=await navigator.serviceWorker.register("./service-worker.js",{scope:"./",type:"module"});
   await registration.update().catch(()=>{});
   return registration;
 }

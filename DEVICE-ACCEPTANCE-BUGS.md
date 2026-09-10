@@ -135,3 +135,13 @@ N5 is **not yet fully closed**. Cold-open acceptance is still required: fully cl
 ## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
+
+
+## FDA-NOTIFY-002 — notification tap returns to Settings on iPhone and iPad
+
+- **Observed:** restored 1.1.9 backend/frontend; both devices follow notification -> tap -> PIN -> Settings.
+- **Latency evidence:** iPhone notification approximately 1–2 seconds; reported iPad delivery event approximately 30+ seconds and remains separately unclassified.
+- **1.1.17 candidate:** data-only backend payload; one Firebase Messaging service-worker display owner; existing click URL/PIN/app route retained.
+- **Not changed:** rogue lifecycle paths, direct projection ordering, Settings, Outbox, receipts, E2EE, groups, attachments and disappearing content.
+- **Required acceptance:** exactly one notification; tap/PIN opens exact direct chat on both devices; ordinary resume stays on prior screen; private and sender-name modes; cold/warm paths; same-UID multiple installations.
+- **Status:** OPEN — repository, deployment and device proof pending.

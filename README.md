@@ -718,3 +718,19 @@ Commit `5e22a9484029d02f9f6691b82329a55d4695c848` passed full baseline `34139245
 ## FIDUNIO 1.1.9 — optional sender display-name notifications — 2026-09-09
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
+
+
+## 2026-09-10 documentation-only investigation checkpoint
+
+The restored release remains FIDUNIO 1.1.9 at commit `a3830afd8a01f88448e42703ac4b803058451ef8`. Backend and Firestore-rule restoration through `fcm.txt` was confirmed successful. Fresh testing shows notification tap routing fails on both iPhone and iPad: after PIN, the previous Settings screen remains selected. No runtime repair is included.
+
+Before any lifecycle/reconnect/subscription cleanup, read [ROGUE-CODE-RAMIFICATIONS.md](ROGUE-CODE-RAMIFICATIONS.md). It explicitly lists the affected screens, functionality, ownership paths and mandatory real-device retests. Notification routing, lifecycle cleanup and message-display latency are separate release boundaries.
+
+
+## FIDUNIO 1.1.17 — data-only service-worker notification owner — 2026-09-10
+
+**Status: IMPLEMENTED REPOSITORY CANDIDATE; LIVE FUNCTION DEPLOYMENT AND DEVICE ACCEPTANCE REQUIRED.** The server notification core now sends one opaque data-only FCM payload per eligible installation. The payload contains only type, conversationId, messageId and the bounded OS-visible notification body (private “New message” or the installation-opted authoritative sender display name). It has no common FCM notification object, message text, attachment information, ciphertext, keys, PIN or recovery material.
+
+The existing FIDUNIO service worker is registered as a module and initializes a named Firebase Messaging-only worker app using the unchanged protected firebase-config.js. It initializes no Auth, Firestore, App Check, Functions or Storage service. Firebase Messaging onBackgroundMessage is the one background display owner; it validates the payload, suppresses display when a FIDUNIO window is visible, and attaches the opaque route to the notification. The existing notificationclick -> routed URL -> PIN -> app.js path remains unchanged. app.js remains route/message owner and Firestore + E2EE remain message authority.
+
+No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachment, disappearing-message or direct projection code changed. Version advances from 1.1.9 to 1.1.17 because 1.1.9.1 through 1.1.16 are rejected historical experiments. Full baseline, exact Pages verification, live N4 Function deployment and iPhone/iPad device acceptance remain required.
