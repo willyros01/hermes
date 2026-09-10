@@ -834,3 +834,8 @@ FIDUNIO 1.1.17 NOTIFICATION OWNER CANDIDATE — 2026-09-10
 Implemented the approved bounded redesign without touching rogue lifecycle or projection latency. The backend common notification-plus-data payload is replaced by data-only FCM containing type, conversationId, messageId and bounded notificationBody. The installed PWA service worker is now a module and owns Firebase Messaging background receipt/display through onBackgroundMessage. It uses the unchanged firebase-config.js only to initialize a named Messaging-only worker app; no Auth/Firestore/App Check/Functions/Storage service is initialized in the worker. The existing notificationclick routed URL, PIN gate and app.js route application are preserved.
 
 Version is 1.1.17; rejected 1.1.9.1–1.1.16 are not reused. No lifecycle cleanup, Outbox, receipt, E2EE, Settings, group, attachment or disappearing-content code changed. Repository gates, Pages, live Function deployment and real iPhone/iPad proof remain required before acceptance.
+
+
+### 1.1.17 baseline rerun correction — 2026-09-10
+
+Initial full gate run 34436219194 passed all notification stages and the first 73 security stages, then stopped because outbox-reconciliation-boundary.test.mjs still required the historical 1.1.9 service-worker revision. The assertion is updated to require the exact 1.1.17-data-only-sw-owner revision. No runtime, Outbox or notification behavior changed and no invariant was weakened. A complete rerun is required.

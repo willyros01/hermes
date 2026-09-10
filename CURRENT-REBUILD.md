@@ -390,3 +390,8 @@ Read-only source and official-contract investigation places the routing break be
 The existing FIDUNIO service worker is registered as a module and initializes a named Firebase Messaging-only worker app using the unchanged protected firebase-config.js. It initializes no Auth, Firestore, App Check, Functions or Storage service. Firebase Messaging onBackgroundMessage is the one background display owner; it validates the payload, suppresses display when a FIDUNIO window is visible, and attaches the opaque route to the notification. The existing notificationclick -> routed URL -> PIN -> app.js path remains unchanged. app.js remains route/message owner and Firestore + E2EE remain message authority.
 
 No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachment, disappearing-message or direct projection code changed. Version advances from 1.1.9 to 1.1.17 because 1.1.9.1 through 1.1.16 are rejected historical experiments. Full baseline, exact Pages verification, live N4 Function deployment and iPhone/iPad device acceptance remain required.
+
+
+### 1.1.17 baseline rerun correction — 2026-09-10
+
+Initial full gate run 34436219194 passed all notification stages and the first 73 security stages, then stopped because outbox-reconciliation-boundary.test.mjs still required the historical 1.1.9 service-worker revision. The assertion is updated to require the exact 1.1.17-data-only-sw-owner revision. No runtime, Outbox or notification behavior changed and no invariant was weakened. A complete rerun is required.

@@ -686,3 +686,7 @@ No point earned; completion remains 96%.
 - [ ] Exact GitHub Pages deployment passes.
 - [ ] Deploy reviewed notifyDirectMessageCreatedV1 backend candidate.
 - [ ] iPhone and iPad device acceptance passes.
+
+- [x] Initial full gate 34436219194: notification N2/N3/N4/N5 and preceding security stages passed; stopped only at stale 1.1.9 shell-revision assertion.
+- [x] Update the permanent Outbox cache assertion to require exact 1.1.17-data-only-sw-owner revision without weakening behavior.
+- [ ] Complete full baseline rerun from the beginning.
