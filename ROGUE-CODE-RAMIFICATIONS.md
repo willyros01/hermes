@@ -378,6 +378,6 @@ The existing FIDUNIO service worker is registered as a module and initializes a 
 
 No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachment, disappearing-message or direct projection code changed. Version advances from 1.1.9 to 1.1.17 because 1.1.9.1 through 1.1.16 are rejected historical experiments. Full baseline, exact Pages verification, live N4 Function deployment and iPhone/iPad device acceptance remain required.
 
-## FIDUNIO 1.1.18 notification click boundary — 2026-09-10
+## FIDUNIO 1.1.18 rejected; projection evidence remains separate — 2026-09-10
 
-The iPad correction is confined to service-worker notificationclick delivery: retain routed `openWindow()`, post the same opaque route to the returned client, and focus it. None of the documented rogue timers, foreground/reconnect handlers, subscription replacement, projection latency, Settings mount lifecycle, PIN, receipts, Outbox, E2EE, group, attachment or disappearing-message paths are modified. Their broader retest matrix is therefore not promoted into this bounded fix; the notification-specific warm/cold iPhone/iPad matrix remains mandatory.
+The returned-client notification message/focus experiment is removed after no iPad improvement and reduced perceived iPhone stability/performance. The exact 1.1.17 frontend click path is restored. Separately, iPad showed a delivered message only after leaving/re-entering its conversation and another after about five seconds. That evidence remains within the documented projection/lifecycle scope. No rogue timer, foreground/reconnect handler, subscription replacement, Settings mount, PIN, receipt, Outbox, E2EE, group, attachment or disappearing-message code is changed by the restoration.

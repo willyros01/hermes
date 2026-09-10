@@ -695,14 +695,14 @@ No point earned; completion remains 96%.
 - [x] Scan all 78 permanent test files and confirm no additional 1.1.9-fcm-sender-name assertions remain after correcting the direct-message gate.
 - [ ] Complete third full baseline run.
 
-### FIDUNIO 1.1.18 iPad notification click correction
+### FIDUNIO 1.1.18 iPad notification click correction — REJECTED
 
 - [x] Record iPhone 1.1.17 exact-route pass twice and iPad Settings-resume failure twice.
-- [x] Preserve the accepted `openWindow(routed URL)` path.
-- [x] Send the same validated opaque route to the client returned by `openWindow()` and focus it.
-- [x] Keep `app.js` as the sole conversation/route owner.
-- [x] Leave backend, PIN, Settings, lifecycle/reconnect, Outbox, receipts, E2EE and projection code unchanged.
-- [x] Update the permanent N5 gate and visible version/cache revision.
-- [ ] Full Rebuild Baseline Security Gate passes on exact 1.1.18 candidate.
-- [ ] Exact GitHub Pages deployment passes.
-- [ ] iPhone and iPad warm/cold notification device acceptance passes repeatedly.
+- [x] Device rejected: iPad still returned to Settings twice.
+- [x] Device rejected: user found iPhone 1.1.17 more stable and better performing.
+- [x] Remove the returned-client postMessage/focus experiment completely.
+- [x] Restore the exact 1.1.17 frontend version, cache revision and permanent expectations.
+- [x] Keep the successful live 1.1.17 backend unchanged.
+- [x] Keep delayed iPad message projection separate under the rogue-code investigation.
+- [ ] Full Rebuild Baseline Security Gate passes on exact restored 1.1.17 frontend.
+- [ ] Exact GitHub Pages restoration passes.

@@ -327,6 +327,10 @@ The candidate replaces the competing FCM automatic-notification/FIDUNIO raw-push
 
 Exit criteria: full baseline green; exact Pages deployment; reviewed live notification Function deployment; iPhone and iPad each prove background notification -> tap -> PIN -> exact direct conversation; ordinary resume preserves the previous screen; exactly one notification; private and sender-name modes; no plaintext content; same-UID multi-installation behavior. Status remains OPEN pending those gates.
 
-### FDA-NOTIFY-002 — 1.1.18 iPad click-delivery correction
+### FDA-NOTIFY-002 — 1.1.18 rejected; restored 1.1.17 investigation baseline
 
-1.1.17 live evidence: iPhone passed notification -> PIN -> exact direct conversation twice at about five seconds; iPad twice resumed Settings, and its account-dependent Settings panels were still loading on the first resume. The 1.1.18 candidate preserves the iPhone-proven routed `openWindow()` call and delivers the same validated opaque route to the returned client through the existing app listener. No Settings or startup-loading repair is included. Status remains OPEN until full gates and repeated warm/cold acceptance pass on both devices.
+1.1.18 did not improve iPad: notification -> PIN -> Settings failed twice. The user found iPhone 1.1.17 more stable and better performing, so the returned-client message/focus experiment is removed completely and the frontend is restored exactly to 1.1.17. The live 1.1.17 backend remains unchanged. FDA-NOTIFY-002 stays OPEN for clean-baseline iPad investigation; no Settings/PIN compensation is permitted.
+
+### FDA-DM-001 — additional iPad projection evidence
+
+During 1.1.18 testing, one message had arrived but became visible only after leaving and returning to the conversation; a second appeared after about five seconds. This is recorded as delayed direct-message projection/lifecycle evidence, not notification routing. It remains governed by `ROGUE-CODE-RAMIFICATIONS.md` and must not be combined with the next click-routing candidate.

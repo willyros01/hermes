@@ -143,6 +143,6 @@ The existing FIDUNIO service worker is registered as a module and initializes a 
 
 No rogue lifecycle, Outbox, receipt, subscription, Settings host, group, attachment, disappearing-message or direct projection code changed. Version advances from 1.1.9 to 1.1.17 because 1.1.9.1 through 1.1.16 are rejected historical experiments. Full baseline, exact Pages verification, live N4 Function deployment and iPhone/iPad device acceptance remain required.
 
-## FIDUNIO 1.1.18 — no runtime transform expansion
+## FIDUNIO 1.1.18 — rejected and removed
 
-The iPad notification correction changes only the explicit `notificationclick` handler: preserve routed `openWindow()`, post the same bounded route to the returned client, and focus it. No source transform, timer, reconnect handler, subscription replacement, application render path, PIN flow, Settings host, Outbox, receipt, E2EE or projection code is added or changed.
+The returned-client notification message/focus experiment is removed after device rejection. The exact 1.1.17 `notificationclick -> routed openWindow` runtime is restored. No source transform, timer, reconnect handler, subscription replacement, application render path, PIN flow, Settings host, Outbox, receipt, E2EE or projection code is added or changed.

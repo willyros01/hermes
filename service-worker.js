@@ -8,10 +8,9 @@ import {
   notificationEnvelopeFromFcmPayload,
   notificationOptionsForEnvelope
 } from "./notification-background-policy.js";
-import {FIDUNIO_NOTIFICATION_ROUTE_MESSAGE} from "./notification-routing.js";
 
 const SW_VERSION=globalThis.FIDUNIO_RELEASE?.version||"unknown";
-const SHELL_REVISION="1.1.18-dual-click-route";
+const SHELL_REVISION="1.1.17-data-only-sw-owner";
 const CACHE=`fidunio-shell-${SW_VERSION}-${SHELL_REVISION}`;
 const SHELL=["./","./index.html","./version.js","./styles.css","./styles-0.9.0.css","./bootstrap.js","./auth-ui-clean.js","./app.js","./firebase.js","./firebase-config.js","./notification-policy.js","./notification-registration.js","./notification-config.js","./notification-routing.js","./notification-background-policy.js","./settings-lifecycle.js","./new-message-owner.js","./pin-input.js","./local-security.js","./account-storage.js","./disappearing-content-policy.js","./disappearing-compose-policy.js","./disappearing-local-storage-plan.js","./disappearing-authoritative-projection.js","./disappearing-reconnect-recovery.js","./outbox-reconciliation-boundary.js","./attachment-send-service.js","./attachment-receive-service.js","./e2ee-account-attachment-crypto.js","./e2ee-account-runtime.js","./e2ee-account-lifecycle.js","./e2ee-account-identity-manager.js","./e2ee-account-firebase-adapter.js","./e2ee-account-firestore-adapter.js","./e2ee-account-crypto.js","./e2ee-account-recovery-client.js","./e2ee-account-message-runtime.js","./e2ee-account-message-service.js","./e2ee-account-message-crypto.js","./manifest.json","./favicon.png","./fidunio-logo.png","./icon-180.png","./icon-192.png","./icon-512.png"];
 const FIREBASE_SDK=["https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-functions.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-sw.js"];
@@ -79,10 +78,7 @@ self.addEventListener("notificationclick",event=>{
   if(!route)return;
   event.waitUntil((async()=>{
     const target=notificationRouteUrl(new URL("./",self.registration.scope).href,route);
-    const client=await self.clients.openWindow(target);
-    if(!client)return;
-    client.postMessage({type:FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,route});
-    await client.focus?.();
+    await self.clients.openWindow(target);
   })());
 });
 

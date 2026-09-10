@@ -327,6 +327,6 @@ The Settings Security host coordinates first setup through existing public opera
 
 **Status: REPOSITORY CANDIDATE; live Firestore rules + N4 Function deployment and device acceptance required.** Private notifications remain the default. Each notification installation may explicitly opt in with `showSenderName: true`. The server resolves the sender only from authoritative `users/{senderUid}.displayName`, never from message `senderName`, and sends `FIDUNIO — New message from <display name>` only to opted-in installations. Non-opted installations remain `FIDUNIO — New message`. Message text, attachment names, email, UID, phone, ciphertext and decrypted content remain excluded. This changes no Firestore/E2EE/message/receipt authority.
 
-## FIDUNIO 1.1.18 notification-click delivery ownership
+## FIDUNIO 1.1.18 notification-click experiment — REJECTED
 
-`service-worker.js` remains the sole notification-click transport owner. It opens the validated routed URL and may send that identical opaque route to the returned window client before focusing it. `app.js` remains the sole pending-route, conversation-selection, Firestore-subscription and render owner. The dual transport does not create a second message, receipt, PIN, Settings or navigation authority.
+The returned-client message/focus addition is removed. The restored 1.1.17 authority remains: `service-worker.js` opens the validated routed URL; `app.js` alone owns pending-route retention, conversation selection, Firestore subscription and rendering. No message, receipt, PIN, Settings or navigation authority changed.
