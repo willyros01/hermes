@@ -219,3 +219,7 @@ Commit `34c8d237eb8f08b8228f670b8ca958038b553aef` registers `storage.rules` in `
 - Every device defect requires a stable ID, build/device context, severity, expected and observed behavior, evidence, architecture constraints, repair allocation, status, validation evidence and exit criteria.
 - `BUG-LIST.md`, `FIDUNIO-BUILD-CHECKLIST.md`, `CURRENT-REBUILD.md`, `README.md` and `hermes-memory.txt` must remain reconciled with its release-blocking state.
 - Repository simulation cannot close a device defect. Closure requires the applicable green gate plus repeated user-device acceptance.
+
+## Installation-local notification handoff rule — 2026-09-10
+
+When the platform does not dispatch observable notification-click intent, a pending route may be stored only in a dedicated installation-local owner before display. It must contain validated opaque identifiers only, be consumed behind normal auth/app-ready gates, collapse one conversation deterministically, and require user choice for multiple conversations. Never replace it with a UID-global consumable route, timeout inference, message-content cache, second subscription owner, or worker-side message/receipt/E2EE operation.

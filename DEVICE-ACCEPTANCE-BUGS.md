@@ -164,3 +164,22 @@ N5 is **not yet fully closed**. Cold-open acceptance is still required: fully cl
 - Reopen Notification Diagnostics, Refresh, Copy Full Report and return the complete report.
 - Run iPad first, then repeat once on iPhone as control; do not clear either ledger until its report is copied.
 - Record notification delay, any flicker/overlay, final screen and whether the message was already visible or required leave/re-entry.
+
+### 1.1.19 one-shot iPad result — CONCLUSIVE
+
+- FCM background callback: PASS; correct direct-message conversation/message identifiers received.
+- Worker notification display: PASS, 86 ms after callback.
+- FIDUNIO `notificationclick`: ABSENT.
+- Worker client enumeration/`openWindow()`: NOT EXECUTED.
+- Resumed URL: plain `/hermes/`, without notification route.
+- App pending route through PIN/Firebase readiness: `null`.
+- Direct conversation after PIN: restored matching `selectedId`; not notification-route success.
+- Firestore/E2EE message presence: PASS; new message included in authoritative 48-row snapshot.
+- Projection timing: approximately 3.7–4.0 seconds, with repeated subscription/projection passes; track separately from FDA-NOTIFY-002.
+- FDA-NOTIFY-002 status: OPEN, root boundary proven upstream of application routing.
+- Diagnostic allocation: CLOSED; no further diagnostic release.
+- Next acceptance design: installation-local pending inbox; sole pending route opens, multiple pending routes show chooser; test manual-open tradeoff explicitly.
+
+### FIDUNIO 1.1.20 mandatory notification acceptance
+
+After confirming 1.1.20 and completing two installed-PWA launches on each device: (1) leave Settings selected, background, receive one notification, tap, enter PIN and confirm the exact direct conversation on iPad and iPhone; (2) repeat from Messages and from another direct conversation; (3) confirm an ordinary resume with no newly displayed notification preserves the prior screen; (4) send two notifications for one conversation and confirm one direct destination; (5) send notifications from two conversations and confirm the New messages chooser selects the requested conversation; (6) explicitly document that manual launch after a notification may consume the sole pending route on iPad; (7) confirm the new message appears, is readable and produces authentic Delivered/Read behavior; (8) send/receive text and one existing attachment to prove the message pipeline is untouched. No further diagnostic build is permitted.

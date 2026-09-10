@@ -720,3 +720,18 @@ No point earned; completion remains 96%.
 - [ ] Exact GitHub Pages deployment passes.
 - [ ] One iPad report and one iPhone control report captured.
 - [ ] Diagnostic code removed after evidence-based repair allocation.
+
+### FIDUNIO 1.1.20 installation-local notification inbox
+
+- [x] Allocate version 1.1.20 and deterministic cache revision.
+- [x] Persist only validated opaque direct-message route before notification display.
+- [x] Read only after hydration, unlock and authenticated Firebase readiness.
+- [x] Collapse same-conversation records; require chooser for multiple conversations.
+- [x] Consume selected/rejected route records without UID-global state or timers.
+- [x] Preserve existing click URL, backend, Firebase rules/config, E2EE, Outbox and receipts.
+- [x] Remove all 1.1.19 diagnostic runtime, page, Settings link and gate.
+- [x] Add permanent installation-local inbox regression gate.
+- [x] Reconcile notification, runtime, defect, acceptance and cumulative documents.
+- [ ] Full Rebuild Baseline Security Gate passes on exact commit.
+- [ ] Push exact commit to `main` and verify GitHub Pages deployment.
+- [ ] Complete mandatory iPhone/iPad 1.1.20 device matrix.

@@ -25,7 +25,6 @@ import {
   recoverQuarantinedE2EEIdentity,
   activateAccountStorage
 } from "./account-storage.js";
-import {recordNotificationDiagnostic} from "./notification-diagnostics.js";
 
 const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
 let appStarted=false;
@@ -71,7 +70,6 @@ async function recoverVerifiedQuarantinedIdentity(userUid){
 }
 
 async function startApp(){
-  await recordNotificationDiagnostic("auth","start-app-enter",{href:location.href,uid:getFirebaseUser()?.uid||null});
   if(appStarted)return;
   const user=getFirebaseUser();
   if(!user)throw new Error("Authenticated account is required before FIDUNIO can start.");
@@ -86,7 +84,6 @@ async function startApp(){
   appStarted=true;
   clearInviteFromUrl();
   await import("./app.js");
-  await recordNotificationDiagnostic("auth","start-app-complete",{href:location.href,uid:user.uid});
 }
 
 async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
@@ -120,16 +117,13 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   document.querySelector("#sessionUnlockBtn").onclick=async()=>{
     const btn=document.querySelector("#sessionUnlockBtn"),note=document.querySelector("#sessionNote");
     btn.disabled=true;btn.textContent="Unlocking…";pinInput.setDisabled(true);
-    await recordNotificationDiagnostic("auth","pin-submit",{href:location.href,uid:user.uid,hasSavedIdentity:!!saved,pinLength:pinInput.value().length});
     try{
       if(saved){
         if(!await verifyLocalPin(pinInput.value()))throw new Error("Incorrect PIN.");
         restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();
       }else await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pinInput.value(),{hasIdentity});
       await startApp();
-      await recordNotificationDiagnostic("auth","pin-success",{href:location.href,uid:user.uid});
     }catch(err){
-      await recordNotificationDiagnostic("auth","pin-error",{href:location.href,uid:user.uid,error:err});
       note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
       btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();
     }

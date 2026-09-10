@@ -8,17 +8,17 @@ import {
   notificationEnvelopeFromFcmPayload,
   notificationOptionsForEnvelope
 } from "./notification-background-policy.js";
-import {recordNotificationDiagnostic} from "./notification-diagnostics.js";
+import {storePendingNotificationRoute} from "./notification-pending-inbox.js";
 
 const SW_VERSION=globalThis.FIDUNIO_RELEASE?.version||"unknown";
-const SHELL_REVISION="1.1.19-one-shot-notification-diagnostics";
+const SHELL_REVISION="1.1.20-installation-notification-inbox";
 const CACHE=`fidunio-shell-${SW_VERSION}-${SHELL_REVISION}`;
-const SHELL=["./","./index.html","./version.js","./styles.css","./styles-0.9.0.css","./bootstrap.js","./auth-ui-clean.js","./app.js","./firebase.js","./firebase-config.js","./notification-policy.js","./notification-registration.js","./notification-config.js","./notification-routing.js","./notification-background-policy.js","./notification-diagnostics.js","./notification-diagnostics.html","./notification-diagnostics-page.js","./settings-lifecycle.js","./new-message-owner.js","./pin-input.js","./local-security.js","./account-storage.js","./disappearing-content-policy.js","./disappearing-compose-policy.js","./disappearing-local-storage-plan.js","./disappearing-authoritative-projection.js","./disappearing-reconnect-recovery.js","./outbox-reconciliation-boundary.js","./attachment-send-service.js","./attachment-receive-service.js","./e2ee-account-attachment-crypto.js","./e2ee-account-runtime.js","./e2ee-account-lifecycle.js","./e2ee-account-identity-manager.js","./e2ee-account-firebase-adapter.js","./e2ee-account-firestore-adapter.js","./e2ee-account-crypto.js","./e2ee-account-recovery-client.js","./e2ee-account-message-runtime.js","./e2ee-account-message-service.js","./e2ee-account-message-crypto.js","./manifest.json","./favicon.png","./fidunio-logo.png","./icon-180.png","./icon-192.png","./icon-512.png"];
+const SHELL=["./","./index.html","./version.js","./styles.css","./styles-0.9.0.css","./bootstrap.js","./auth-ui-clean.js","./app.js","./firebase.js","./firebase-config.js","./notification-policy.js","./notification-registration.js","./notification-config.js","./notification-routing.js","./notification-background-policy.js","./notification-pending-inbox.js","./settings-lifecycle.js","./new-message-owner.js","./pin-input.js","./local-security.js","./account-storage.js","./disappearing-content-policy.js","./disappearing-compose-policy.js","./disappearing-local-storage-plan.js","./disappearing-authoritative-projection.js","./disappearing-reconnect-recovery.js","./outbox-reconciliation-boundary.js","./attachment-send-service.js","./attachment-receive-service.js","./e2ee-account-attachment-crypto.js","./e2ee-account-runtime.js","./e2ee-account-lifecycle.js","./e2ee-account-identity-manager.js","./e2ee-account-firebase-adapter.js","./e2ee-account-firestore-adapter.js","./e2ee-account-crypto.js","./e2ee-account-recovery-client.js","./e2ee-account-message-runtime.js","./e2ee-account-message-service.js","./e2ee-account-message-crypto.js","./manifest.json","./favicon.png","./fidunio-logo.png","./icon-180.png","./icon-192.png","./icon-512.png"];
 const FIREBASE_SDK=["https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-functions.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-sw.js"];
 const NETWORK_TIMEOUT=4000;
 
-self.addEventListener("install",event=>event.waitUntil((async()=>{await recordNotificationDiagnostic("service-worker","install",{SW_VERSION,SHELL_REVISION,CACHE});await caches.open(CACHE).then(cache=>Promise.allSettled([...SHELL,...FIREBASE_SDK].map(url=>cache.add(url))));await self.skipWaiting();})()));
-self.addEventListener("activate",event=>event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim();await recordNotificationDiagnostic("service-worker","activate",{SW_VERSION,SHELL_REVISION,CACHE,deletedCaches:keys.filter(k=>k!==CACHE)});})()));
+self.addEventListener("install",event=>event.waitUntil((async()=>{await caches.open(CACHE).then(cache=>Promise.allSettled([...SHELL,...FIREBASE_SDK].map(url=>cache.add(url))));await self.skipWaiting();})()));
+self.addEventListener("activate",event=>event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim();})()));
 
 async function networkFirst(request){
   const cache=await caches.open(CACHE);
@@ -77,16 +77,9 @@ self.addEventListener("notificationclick",event=>{
   event.notification.close();
   const route=notificationClickRoute(event.notification.data);
   event.waitUntil((async()=>{
-    const before=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-    await recordNotificationDiagnostic("service-worker","notification-click",{notification:{title:event.notification.title,body:event.notification.body,tag:event.notification.tag,data:event.notification.data},route,clientsBefore:before.map(c=>({id:c.id,url:c.url,visibilityState:c.visibilityState,focused:c.focused,frameType:c.frameType}))});
-    if(!route){await recordNotificationDiagnostic("service-worker","notification-click-rejected",{reason:"invalid-route"});return;}
+    if(!route)return;
     const target=notificationRouteUrl(new URL("./",self.registration.scope).href,route);
-    await recordNotificationDiagnostic("service-worker","open-window-request",{target,route});
-    try{
-      const opened=await self.clients.openWindow(target);
-      const after=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-      await recordNotificationDiagnostic("service-worker","open-window-result",{target,opened:opened?{id:opened.id,url:opened.url,visibilityState:opened.visibilityState,focused:opened.focused,frameType:opened.frameType}:null,clientsAfter:after.map(c=>({id:c.id,url:c.url,visibilityState:c.visibilityState,focused:c.focused,frameType:c.frameType}))});
-    }catch(error){await recordNotificationDiagnostic("service-worker","open-window-error",{target,error});throw error;}
+    await self.clients.openWindow(target);
   })());
 });
 
@@ -95,9 +88,8 @@ const notificationMessaging=getMessaging(notificationWorkerApp);
 onBackgroundMessage(notificationMessaging,async payload=>{
   const envelope=notificationEnvelopeFromFcmPayload(payload);
   const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-  await recordNotificationDiagnostic("service-worker","background-message",{payload,envelope,clients:windows.map(c=>({id:c.id,url:c.url,visibilityState:c.visibilityState,focused:c.focused,frameType:c.frameType}))});
-  if(!envelope){await recordNotificationDiagnostic("service-worker","background-message-rejected",{reason:"invalid-envelope"});return;}
-  if(windows.some(client=>client.visibilityState==="visible")){await recordNotificationDiagnostic("service-worker","background-display-suppressed",{reason:"visible-client"});return;}
+  if(!envelope)return;
+  if(windows.some(client=>client.visibilityState==="visible"))return;
+  await storePendingNotificationRoute(envelope.route);
   await self.registration.showNotification(FIDUNIO_BACKGROUND_NOTIFICATION_TITLE,notificationOptionsForEnvelope(envelope));
-  await recordNotificationDiagnostic("service-worker","background-notification-displayed",{envelope,options:notificationOptionsForEnvelope(envelope)});
 });

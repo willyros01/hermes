@@ -1,11 +1,8 @@
 /* FIDUNIO deterministic bootstrap. Account/auth owners run before app.js. */
-import {recordNotificationDiagnostic} from "./notification-diagnostics.js";
-await recordNotificationDiagnostic("bootstrap","module-start",{href:location.href,referrer:document.referrer,navigation:performance.getEntriesByType?.("navigation")?.map(entry=>({type:entry.type,startTime:entry.startTime,duration:entry.duration}))||[],controller:navigator.serviceWorker?.controller?.scriptURL||null});
 export async function ensureFidunioServiceWorker(){
   if(!("serviceWorker" in navigator))throw new Error("Service workers are not supported on this device/browser.");
   const registration=await navigator.serviceWorker.register("./service-worker.js",{scope:"./",type:"module"});
   await registration.update().catch(()=>{});
-  await recordNotificationDiagnostic("bootstrap","service-worker-registration",{scope:registration.scope,active:registration.active&&{scriptURL:registration.active.scriptURL,state:registration.active.state},waiting:registration.waiting&&{scriptURL:registration.waiting.scriptURL,state:registration.waiting.state},installing:registration.installing&&{scriptURL:registration.installing.scriptURL,state:registration.installing.state},controller:navigator.serviceWorker.controller?.scriptURL||null});
   return registration;
 }
 
@@ -38,6 +35,4 @@ document.addEventListener("click",event=>{
 const {startAccountGuard}=await import("./account-guard.js");
 await startAccountGuard();
 const {runAuthGate}=await import("./auth-ui-clean.js");
-await recordNotificationDiagnostic("bootstrap","before-auth-gate",{href:location.href});
 await runAuthGate();
-await recordNotificationDiagnostic("bootstrap","after-auth-gate",{href:location.href});

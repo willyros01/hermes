@@ -150,3 +150,7 @@ The returned-client notification message/focus experiment is removed after devic
 ## FIDUNIO 1.1.19 — diagnostic observation only
 
 No runtime transform or route decision changes. Instrumentation records entry/exit state around the existing worker click, bootstrap/auth, pending-route, lifecycle and message-projection functions into a separate ledger. `void recordNotificationDiagnostic(...)` submissions enqueue through the diagnostic module's sole `writeTail`; they do not gate or mutate app behavior. Direct-message callback ordering remains projection -> cache -> persist -> optional Read -> render.
+
+## FIDUNIO 1.1.20 — bounded route handoff, no lifecycle transform
+
+The temporary diagnostic calls are removed. The only new path is worker validated route -> installation-local inbox write -> normal app-ready gate -> existing `applyPendingNotificationRoute()`. Same-conversation records collapse; multiple conversations display a chooser. No timer, reconnect/foreground transform, subscription replacement, projection reorder, Settings remount, message mutation, Outbox replay, receipt or E2EE transform is introduced.

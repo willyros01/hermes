@@ -486,6 +486,16 @@ Do not implement:
 
 **FCM tells the user that FIDUNIO has something new. Firestore + the existing E2EE messaging system remain the only authority for what that message actually is.**
 
+## 24. FIDUNIO 1.1.19 binding iPad result and next notification owner — 2026-09-10
+
+The worker received the correct data-only envelope and displayed the notification, but the complete correlated ledger recorded no `notificationclick`, client enumeration or `openWindow()` attempt. iPad resumed plain `/hermes/` and the page had no pending route. Exact notification-tap routing therefore cannot depend exclusively on iPad dispatching `notificationclick`.
+
+The next bounded design persists each validated opaque route in an installation-local service-worker notification inbox before `showNotification()`. After the normal PIN/auth gates, the page consumes a sole applicable unread route; multiple routes must produce a chooser. This owner may store only notification type, conversation ID, message ID and lifecycle metadata. It must not store message content, keys, tokens or receipts, and must never become Firestore/message authority. A manual launch following notification display is observationally indistinguishable from a tap on the affected iPad and may consume the pending route; that is an explicit platform tradeoff, not a hidden heuristic. UID-global consumable routing remains prohibited.
+
+## 25. FIDUNIO 1.1.20 implementation ownership
+
+`notification-pending-inbox.js` is the sole installation-local route-record owner. Its dedicated IndexedDB contains at most 50 validated records keyed by opaque message ID. The worker writes before display. The page reads only after hydration, unlock and Firebase user readiness, collapses records by conversation, and deletes only the selected conversation's message IDs after route selection succeeds or the authoritative conversation is rejected. It uses no timeout, UID-global document, message content, Firestore write, receipt write or E2EE operation. Multiple conversations are user-selected. The 1.1.19 diagnostic owner and Settings report are removed.
+
 ## FIDUNIO 1.1.6 notification routing checkpoint — 2026-09-09
 
 - N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.

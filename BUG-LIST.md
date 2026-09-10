@@ -338,3 +338,11 @@ During 1.1.18 testing, one message had arrived but became visible only after lea
 ### FDA-NOTIFY-002 — 1.1.19 one-shot diagnostic allocation
 
 Previous diagnostics proved no iPad query route/pending route and no recorded FIDUNIO click/push in their respective experimental delivery models, but lacked one correlated cross-context timeline. 1.1.19 is diagnostic only and preserves 1.1.17 routing. Exit evidence is one cleared-ledger iPad notification -> PIN -> final-screen run plus copied full report, followed by the equivalent iPhone control report. No further diagnostic build is permitted; the reports must support a specific repair or a documented platform boundary.
+
+### FDA-NOTIFY-002 — 1.1.19 iPad boundary proven
+
+The one-shot report recorded correct data-only FCM receipt and worker display, followed by no FIDUNIO `notificationclick`, client enumeration or `openWindow()` call. The installed PWA resumed at plain `/hermes/`; `pendingNotificationRoute` remained `null` through PIN, hydration and Firebase readiness. The matching direct conversation opened only from persisted `selectedId`, not from notification routing. Firestore/E2EE delivered the message correctly. FDA-NOTIFY-002 remains OPEN, with the failure boundary now proven upstream of application route handling. The next bounded repair is an installation-local pending-notification inbox; a sole route may open directly and multiple routes require a chooser. No additional diagnostic release is allowed.
+
+### FDA-NOTIFY-002 — 1.1.20 repair candidate
+
+The service worker persists the validated opaque route locally before notification display. `app.js` consumes it only after normal application-ready gates; one conversation opens and multiple conversations require a chooser. Temporary diagnostics are removed. The manual-launch-after-notification tradeoff is explicit. Status remains OPEN pending full baseline/Pages and real iPhone/iPad proof. Do not combine acceptance or repair with FDA-RUNTIME-001 or projection-latency cleanup.

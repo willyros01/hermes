@@ -334,3 +334,7 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 ## FIDUNIO 1.1.19 diagnostic ledger authority
 
 `notification-diagnostics.js` solely owns the isolated append-only diagnostic database. Worker and page owners may submit observations but cannot use the ledger as routing/message authority. `service-worker.js`, bootstrap/auth, `app.js`, Settings, Firebase, Outbox, receipts and E2EE retain their existing decisions and storage owners.
+
+## FIDUNIO 1.1.20 pending-notification authority
+
+`notification-pending-inbox.js` solely owns the installation-local opaque route database. `service-worker.js` validates and writes before display. `app.js` may list/group/consume only after its existing hydration + unlock + Firebase-user gate; it remains the sole conversation-selection/subscription/render owner. No worker or inbox code may read messages, decrypt, write receipts, mutate Outbox, use UID-global routing or invoke lifecycle recovery. The 1.1.19 diagnostic owner is removed from runtime.

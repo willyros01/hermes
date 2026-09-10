@@ -52,7 +52,7 @@ import { createAttachmentReceiveService } from "./attachment-receive-service.js"
 import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-transport-policy.js";
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
-import {recordNotificationDiagnostic} from "./notification-diagnostics.js";
+import {listPendingNotificationRoutes,consumePendingNotificationRoutes,groupPendingNotificationRoutes} from "./notification-pending-inbox.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -92,7 +92,9 @@ let firebaseError = "";
 let firebaseUser = null;
 let pendingNotificationRoute=notificationRouteFromUrl(globalThis.location?.href||"");
 let notificationRouteRunning=false;
-void recordNotificationDiagnostic("app","module-start",{href:location.href,pendingNotificationRoute});
+let pendingNotificationInboxMessageIds=[];
+let notificationInboxLoaded=false;
+let notificationInboxLoadPromise=null;
 let cloudConversationUnsub = null;
 let cloudConversationSyncPending = false;
 let peerDisplayNameUnsub = ()=>{};
@@ -149,7 +151,6 @@ function setLocalSecurityMessage(message,isError=false){
   localSecurityMessageIsError=!!isError;
 }
 function lockLocalApp(reason="manual"){
-  void recordNotificationDiagnostic("app","lock",{reason,route:state.route,selectedId:state.selectedId,unlocked:state.unlocked});
   if(!state.unlocked)return;
   state.unlocked=false;
   state.toolsOpen=false;
@@ -158,13 +159,11 @@ function lockLocalApp(reason="manual"){
   render();
 }
 function unlockLocalApp(){
-  void recordNotificationDiagnostic("app","unlock-start",{route:state.route,selectedId:state.selectedId,pendingNotificationRoute,hydrated,firebaseReady,hasFirebaseUser:!!firebaseUser});
   state.unlocked=true;
   unlockError="";
   noteLocalUnlock();
   render();
   void applyPendingNotificationRoute();
-  void recordNotificationDiagnostic("app","unlock-complete",{route:state.route,selectedId:state.selectedId,pendingNotificationRoute,hydrated,firebaseReady,hasFirebaseUser:!!firebaseUser});
 }
 
 function openDb(){
@@ -522,27 +521,38 @@ function mergeCloudConversation(remote){
   return existing || item;
 }
 
+async function loadPendingNotificationInbox(){
+  if(notificationInboxLoaded)return;
+  if(notificationInboxLoadPromise)return notificationInboxLoadPromise;
+  notificationInboxLoadPromise=(async()=>{
+    const groups=groupPendingNotificationRoutes(await listPendingNotificationRoutes());
+    notificationInboxLoaded=true;
+    if(!groups.length)return;
+    if(groups.length===1){pendingNotificationRoute=groups[0].route;pendingNotificationInboxMessageIds=groups[0].messageIds;return;}
+    state.modal={type:"notificationInbox",options:groups.map(group=>({
+      ...group,
+      name:state.conversations.find(c=>String(c.id)===String(group.route.conversationId))?.name||"New message"
+    }))};
+    render();
+  })().catch(error=>console.warn("Pending notification inbox could not be read",error)).finally(()=>{notificationInboxLoadPromise=null;});
+  return notificationInboxLoadPromise;
+}
 async function applyPendingNotificationRoute(){
-  await recordNotificationDiagnostic("app","route-apply-enter",{notificationRouteRunning,pendingNotificationRoute,hydrated,unlocked:state.unlocked,firebaseReady,hasFirebaseUser:!!firebaseUser,currentRoute:state.route,selectedId:state.selectedId});
-  if(notificationRouteRunning||!pendingNotificationRoute||!hydrated||!state.unlocked||!firebaseUser){await recordNotificationDiagnostic("app","route-apply-blocked",{notificationRouteRunning,hasPendingRoute:!!pendingNotificationRoute,hydrated,unlocked:state.unlocked,firebaseReady,hasFirebaseUser:!!firebaseUser,currentRoute:state.route,selectedId:state.selectedId});return false;}
+  if(notificationRouteRunning||!hydrated||!state.unlocked||!firebaseUser)return false;
+  if(!pendingNotificationRoute)await loadPendingNotificationInbox();
+  if(!pendingNotificationRoute)return false;
   const route=pendingNotificationRoute;
   notificationRouteRunning=true;
   try{
     let c=state.conversations.find(x=>String(x.id)===String(route.conversationId));
-    await recordNotificationDiagnostic("app","route-conversation-local-lookup",{route,found:!!c,conversation:c&&{id:c.id,type:c.type,cloud:c.cloud,cloudGroup:c.cloudGroup}});
-    if(!c){
-      const remote=await getCloudConversation(route.conversationId,firebaseUser.uid);
-      await recordNotificationDiagnostic("app","route-conversation-remote-lookup",{route,uid:firebaseUser.uid,found:!!remote,conversation:remote});
-      if(!remote){pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
-      c=mergeCloudConversation(remote);
-    }
-    if(!c?.cloud||c?.cloudGroup||c?.type==="group"){pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
+    if(!c){const remote=await getCloudConversation(route.conversationId,firebaseUser.uid);if(!remote){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}c=mergeCloudConversation(remote);}
+    if(!c?.cloud||c?.cloudGroup||c?.type==="group"){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
     state.selectedId=c.id;state.route="chat";state.modal=null;state.toolsOpen=false;c.unread=0;
-    await recordNotificationDiagnostic("app","route-state-selected",{route,currentRoute:state.route,selectedId:state.selectedId});
     closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
-    pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));
-    await persistState();render();await recordNotificationDiagnostic("app","route-apply-success",{route,currentRoute:state.route,selectedId:state.selectedId,href:location.href});return true;
-  }catch(err){console.warn("Notification route could not be applied yet",err);await recordNotificationDiagnostic("app","route-apply-error",{route,error:err,currentRoute:state.route,selectedId:state.selectedId});return false;}
+    await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);
+    pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));
+    await persistState();render();return true;
+  }catch(err){console.warn("Notification route could not be applied yet",err);return false;}
   finally{notificationRouteRunning=false;}
 }
 function mergeCloudGroup(remote){
@@ -839,7 +849,6 @@ async function publishMyE2EEKey(){
 }
 
 function beginCloudMessageSubscription(conversationId,{force=false}={}){
-  void recordNotificationDiagnostic("app","message-subscription-request",{conversationId,force,currentRoute:state.route,selectedId:state.selectedId,hasExisting:!!cloudMessageUnsub,existingConversationId:cloudMessageConversationId});
   const wanted=String(conversationId);
   if(
     !force &&
@@ -856,7 +865,6 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
     conversationId,
     firebaseUser.uid,
     async (rows,meta={})=>{
-      void recordNotificationDiagnostic("app","message-snapshot-start",{conversationId,rowCount:rows?.length??null,meta,rows:(rows||[]).map(row=>({id:row.id,senderUid:row.senderUid,state:row.state,e2ee:row.e2ee,createdAt:row.createdAt?.toMillis?.()??row.createdAt??null,timeLabel:row.timeLabel,fieldNames:Object.keys(row),textLength:String(row.text||"").length,ciphertextLength:String(row.ciphertext||row.cipher||"").length})),currentRoute:state.route,selectedId:state.selectedId});
       rows=(rows||[]).filter(m=>!isMessageHidden(conversationId,m.id));
       const existing=(state.messages[conversationId]||[]).filter(m=>!isMessageHidden(conversationId,m.id));
       // Plain direct messages must reach display/receipt processing without
@@ -881,7 +889,6 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
 
       const outboxIds=(await getOutboxRecords()).map(x=>x.id);
       const projection=planAuthoritativeMessageProjection({existingRows:existing,remoteRows:remote,snapshotMeta:meta,outboxMessageIds:outboxIds});
-      void recordNotificationDiagnostic("app","message-projection-planned",{conversationId,outboxIds,remoteIds:remote.map(row=>row.id),existingIds:existing.map(row=>row.id),projectedIds:projection.rows.map(row=>row.id),authoritative:projection.authoritative,purgeMessageIds:projection.purgeMessageIds,currentRoute:state.route,selectedId:state.selectedId});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
       const merged=[...projection.rows];
       state.messages[conversationId]=merged;
@@ -898,9 +905,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
        * A network/cache callback must never make local history less durable.
        */
       await cacheCloudHistory(conversationId,merged);
-      void recordNotificationDiagnostic("app","message-history-cached",{conversationId,mergedCount:merged.length,currentRoute:state.route,selectedId:state.selectedId});
       await persistState();
-      void recordNotificationDiagnostic("app","message-state-persisted",{conversationId,currentRoute:state.route,selectedId:state.selectedId});
 
       const unreadIncoming=merged.filter(m=>!m.mine && m.state!=="read");
       if(
@@ -908,14 +913,11 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         String(state.selectedId)===String(conversationId) &&
         unreadIncoming.length
       ){
-        void recordNotificationDiagnostic("app","read-receipt-start",{conversationId,messageIds:unreadIncoming.map(row=>row.id),currentRoute:state.route,selectedId:state.selectedId});
         try{await markCloudConversationRead(conversationId);}
         catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
-        void recordNotificationDiagnostic("app","read-receipt-complete",{conversationId,messageIds:unreadIncoming.map(row=>row.id),firebaseError,currentRoute:state.route,selectedId:state.selectedId});
       }
 
       if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
-      void recordNotificationDiagnostic("app","message-snapshot-complete",{conversationId,currentRoute:state.route,selectedId:state.selectedId,rendered:state.route==="chat"&&String(state.selectedId)===String(conversationId)});
     },
     err=>{
       firebaseError=err?.message || String(err);
@@ -924,13 +926,11 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
   );
 }
 async function initializeFirebaseLayer(){
-  void recordNotificationDiagnostic("app","firebase-initialize-enter",{configured:isFirebaseConfigured(),currentRoute:state.route,pendingNotificationRoute});
   if(!isFirebaseConfigured()) return;
   try{
     await initFirebase(user=>{
       firebaseUser=user;
       firebaseReady=true;
-      void recordNotificationDiagnostic("app","firebase-auth-callback",{uid:user?.uid||null,currentRoute:state.route,selectedId:state.selectedId,pendingNotificationRoute});
       if(user){
         if(getAccountE2EELifecycleState().manager.state!=="READY")bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
@@ -955,7 +955,6 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
-    void recordNotificationDiagnostic("app","firebase-initialize-complete",{uid:firebaseUser?.uid||null,currentRoute:state.route,selectedId:state.selectedId,pendingNotificationRoute});
     if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
     ensureActiveCloudMessageSubscription(true);
     void applyPendingNotificationRoute();
@@ -966,7 +965,6 @@ async function initializeFirebaseLayer(){
 }
 
 async function initApp(){
-  await recordNotificationDiagnostic("app","init-enter",{href:location.href,pendingNotificationRoute});
   /*
    * Local-first boot:
    * 1) restore durable app state
@@ -988,7 +986,6 @@ async function initApp(){
   installInactivityMonitor({isUnlocked:()=>state.unlocked&&!attachmentPickerActive,onLock:reason=>lockLocalApp(reason)});
   if(state.unlocked) noteLocalUnlock();
   render();
-  await recordNotificationDiagnostic("app","init-rendered",{route:state.route,selectedId:state.selectedId,unlocked:state.unlocked,hydrated,pendingNotificationRoute});
 
   initializeFirebaseLayer();
 }
@@ -1118,7 +1115,6 @@ function drawTabletConversationList(term=""){
 }
 
 function render(){
-  void recordNotificationDiagnostic("app","render",{route:state.route,selectedId:state.selectedId,unlocked:state.unlocked,hydrated,firebaseReady,hasFirebaseUser:!!firebaseUser,pendingNotificationRoute,modalType:state.modal?.type||null});
   // Live cloud callbacks may arrive while the local lock screen is open.
   // Keep the mounted PIN slots and their focus/value intact during those renders.
   const unlockPinAlreadyMounted=!state.unlocked&&!!document.querySelector("#localUnlockPin .pin-code");
@@ -1827,14 +1823,12 @@ function recoverForegroundCloudSession(){
   render();
 }
 window.addEventListener("online",()=>{
-  void recordNotificationDiagnostic("app","online",{route:state.route,selectedId:state.selectedId,pendingNotificationRoute});
   state.online=true;
   ensureActiveCloudMessageSubscription(true);
   render();
   scheduleReconnectRecovery();
 });
 window.addEventListener("offline",()=>{
-  void recordNotificationDiagnostic("app","offline",{route:state.route,selectedId:state.selectedId,pendingNotificationRoute});
   state.online=false;
   if(reconnectRecoveryTimer1) clearTimeout(reconnectRecoveryTimer1);
   if(reconnectRecoveryTimer2) clearTimeout(reconnectRecoveryTimer2);
@@ -1842,7 +1836,6 @@ window.addEventListener("offline",()=>{
   render();
 });
 document.addEventListener("visibilitychange",()=>{
-  void recordNotificationDiagnostic("app","visibilitychange",{visibilityState:document.visibilityState,route:state.route,selectedId:state.selectedId,pendingNotificationRoute});
   if(document.visibilityState==="visible") recoverForegroundCloudSession();
 });
 
@@ -1855,7 +1848,7 @@ window.addEventListener("resize",()=>{
   }
 });
 
-window.addEventListener("pageshow",event=>{void recordNotificationDiagnostic("app","pageshow",{persisted:event.persisted,route:state.route,selectedId:state.selectedId,pendingNotificationRoute});recoverForegroundCloudSession();});
+window.addEventListener("pageshow",()=>recoverForegroundCloudSession());
 
 function renderGroupInfo(){
   const c=currentConversation();
@@ -1912,7 +1905,23 @@ function renderModal(){
   const modal=state.modal;
   const host=document.createElement("div");
   host.className="modal-backdrop";
-  if(modal.type==="photoSource"){
+  if(modal.type==="notificationInbox"){
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notificationInboxTitle">
+        <h2 id="notificationInboxTitle">New messages</h2>
+        <p>Choose the conversation you want to open.</p>
+        <div class="modal-actions" style="display:grid;gap:10px">
+          ${modal.options.map((option,index)=>`<button class="modal-confirm notification-route-choice" data-index="${index}">${esc(option.name)}</button>`).join("")}
+          <button class="modal-cancel" id="modalCancel">Not now</button>
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelectorAll(".notification-route-choice").forEach(button=>button.onclick=()=>{
+      const option=modal.options[Number(button.dataset.index)];if(!option)return;
+      state.modal=null;host.remove();pendingNotificationRoute=option.route;pendingNotificationInboxMessageIds=option.messageIds;void applyPendingNotificationRoute();
+    });
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+  } else if(modal.type==="photoSource"){
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="photoSourceTitle">
         <h2 id="photoSourceTitle">Send a Picture</h2>
@@ -2365,7 +2374,6 @@ if(appearanceMedia){
 }
 if("serviceWorker" in navigator){
   navigator.serviceWorker.addEventListener("message",event=>{
-    void recordNotificationDiagnostic("app","service-worker-message",{data:event.data,currentRoute:state.route,selectedId:state.selectedId,pendingNotificationRoute});
     if(event.data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
     const route=normalizeNotificationRoute(event.data?.route);if(!route)return;
     pendingNotificationRoute=route;void applyPendingNotificationRoute();
