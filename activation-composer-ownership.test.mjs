@@ -14,8 +14,8 @@ for(const reason of ["unlock","firebase-auth-ready","firebase-auth-signed-out","
 assert.doesNotMatch(app,/notificationInboxLoaded/,"the installation inbox must be re-read on each eligible activation");
 assert.doesNotMatch(app,/if\(state\.route==="settings"\)\s*renderSettings\(\)/,"async Firebase callbacks must project through the render owner");
 assert.equal((app.match(/renderSettings\(\)/g)||[]).length,1,"Settings projection must only be entered by the central render dispatcher");
-assert.match(app,/render\(\{background:!routed\}\)/,"activation owner must render only after routing decision");
-assert.match(app,/if\(routed\)await finalizePendingNotificationRoute\(routed\)/,"notification record must be consumed only after routed render");
+assert.match(app,/render\(\{background:!routed,entry:!!routed\}\)/,"activation owner must render only after routing decision and mark notification entry");
+assert.match(app,/if\(routed&&notificationRouteHasRendered\(routed\.route\)\)await finalizePendingNotificationRoute\(routed\)/,"notification record must be consumed only after the exact target chat is mounted");
 
 assert.match(app,/const composerStateByConversation=new Map\(\)/,"composer drafts must have one per-conversation state owner");
 assert.match(app,/data-conversation-id=/,"composer ownership must be bound to the exact conversation");
@@ -27,8 +27,13 @@ assert.match(app,/draft:box\.value/);
 assert.match(app,/selectionStart/);
 assert.match(app,/selectionEnd/);
 assert.match(app,/box\.focus\(\{preventScroll:true\}\)/);
-assert.match(app,/windowScrollY/);
-assert.match(app,/chatScrollTop/);
+const composerCapture=app.slice(app.indexOf("function captureComposerStateFromDom"),app.indexOf("function restoreComposerState"));
+assert.doesNotMatch(composerCapture,/windowScrollY|chatScrollTop|NearBottom/,"persistent draft state must not own navigation scroll");
+assert.match(app,/function captureChatViewportFromDom\(\)/,"same-chat background projection needs one transient viewport owner");
+assert.match(app,/function restoreChatViewport\(conversationId,snapshot\)/);
+assert.match(app,/if\(!snapshot\|\|String\(snapshot\.conversationId\)!==String\(conversationId\)\)return scrollChatToLatest\(\)/,"intentional chat entry must open at the latest message");
+assert.match(app,/pendingChatViewport=!entry&&state\.route==="chat"\?captureChatViewportFromDom\(\):null/,
+  "notification entry must not inherit a previously mounted chat viewport");
 assert.ok((app.match(/render\(\{background:true\}\)/g)||[]).length>=10,"cloud, attachment and Outbox callbacks must request composer-safe projection");
 
 console.log("Activation and composer single-owner gate passed");

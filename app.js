@@ -14,6 +14,7 @@ import {
   markCloudConversationRead,
   getCloudUserProfile,
   getCloudConversation,
+  getCloudConversationFromServer,
   publishCloudE2EEPublicKey,
   publishCloudE2EEDevice,
   getCloudUserDevices,
@@ -97,6 +98,7 @@ let notificationInboxLoadPromise=null;
 let appActivationPromise=null;
 const appActivationReasons=new Set();
 const composerStateByConversation=new Map();
+let pendingChatViewport=null;
 let cloudConversationUnsub = null;
 let cloudConversationSyncPending = false;
 let peerDisplayNameUnsub = ()=>{};
@@ -544,8 +546,18 @@ async function applyPendingNotificationRoute(){
   notificationRouteRunning=true;
   try{
     let c=state.conversations.find(x=>String(x.id)===String(route.conversationId));
-    if(!c){const remote=await getCloudConversation(route.conversationId,firebaseUser.uid);if(!remote){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}c=mergeCloudConversation(remote);}
-    if(!c?.cloud||c?.cloudGroup||c?.type==="group"){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
+    // A cold iPhone launch can restore an older local conversation record before
+    // the cloud-conversation subscription upgrades it. Never reject/consume the
+    // route from that cache race: resolve questionable local metadata against
+    // Firestore server authority first. A transient server failure is caught
+    // below and leaves the installation-local route available for the next
+    // serialized activation.
+    if(!c?.cloud||c?.cloudGroup||c?.type==="group"){
+      const remote=await getCloudConversationFromServer(route.conversationId,firebaseUser.uid);
+      if(!remote){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
+      c=mergeCloudConversation(remote);
+    }
+    if(!c?.cloud||c?.cloudGroup||c?.type==="group")return false;
     state.selectedId=c.id;state.route="chat";state.modal=null;state.toolsOpen=false;c.unread=0;
     closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
     await persistState();
@@ -566,6 +578,10 @@ async function finalizePendingNotificationRoute(result){
     history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));
   }
 }
+function notificationRouteHasRendered(route){
+  const box=document.querySelector("#messageBox[data-conversation-id]");
+  return !!route&&state.route==="chat"&&String(state.selectedId)===String(route.conversationId)&&String(box?.dataset.conversationId||"")===String(route.conversationId);
+}
 function requestAppActivation(reason){
   const activationReason=String(reason||"unspecified");
   appActivationReasons.add(activationReason);
@@ -581,8 +597,8 @@ function requestAppActivation(reason){
       const routed=await applyPendingNotificationRoute();
       ensureActiveCloudMessageSubscription(false);
       if(state.online&&firebaseUser)scheduleReconnectRecovery();
-      render({background:!routed});
-      if(routed)await finalizePendingNotificationRoute(routed);
+      render({background:!routed,entry:!!routed});
+      if(routed&&notificationRouteHasRendered(routed.route))await finalizePendingNotificationRoute(routed);
     }
   })().catch(error=>console.warn("FIDUNIO activation owner failed",error)).finally(()=>{
     appActivationPromise=null;
@@ -901,6 +917,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
     async (rows,meta={})=>{
       rows=(rows||[]).filter(m=>!isMessageHidden(conversationId,m.id));
       const existing=(state.messages[conversationId]||[]).filter(m=>!isMessageHidden(conversationId,m.id));
+      const existingById=new Map(existing.map(message=>[String(message.id),message]));
       // Plain direct messages must reach display/receipt processing without
       // waiting for obsolete compatibility-key lookup. Load that key only if
       // this snapshot actually contains a legacy encrypted row.
@@ -912,7 +929,13 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       for(const m of rows){
         let text=m.text||"";
         if(m.e2ee===3){
-          try{text=await decryptAccountDirectMessage({uid:firebaseUser.uid,peerUid:c.peerUid,conversationId,messageId:m.id,row:m});}
+          const prior=existingById.get(String(m.id));
+          // Direct-message ciphertext is immutable after create; Firestore rules
+          // permit only recipient receipt fields to change. Reuse the already
+          // authenticated plaintext for known IDs and decrypt only newly arrived
+          // (or previously unavailable) rows.
+          if(prior?.cloud&&prior.text&&!prior.text.startsWith("[Encrypted message"))text=prior.text;
+          else try{text=await decryptAccountDirectMessage({uid:firebaseUser.uid,peerUid:c.peerUid,conversationId,messageId:m.id,row:m});}
           catch{text="[Encrypted message — account encryption unavailable]";}
         }else if(m.e2ee){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
@@ -932,6 +955,11 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         c.preview=messagePreview(last.text);
         c.time=last.time;
       }
+
+      // Visible projection is not subordinate to IndexedDB durability or the
+      // server-backed Read-receipt recovery. The central render owner patches
+      // the mounted chat while preserving its composer and transient viewport.
+      if(state.route==="chat" && String(state.selectedId)===String(conversationId))render({background:true});
 
       /*
        * Local-first durability:
@@ -1149,7 +1177,6 @@ function captureComposerStateFromDom(){
   if(!box)return null;
   const conversationId=String(box.dataset.conversationId||"");
   if(!conversationId)return null;
-  const chat=document.querySelector("#chatArea");
   const prior=composerStateByConversation.get(conversationId)||{};
   const snapshot={
     ...prior,
@@ -1157,19 +1184,14 @@ function captureComposerStateFromDom(){
     focused:document.activeElement===box,
     selectionStart:Number.isInteger(box.selectionStart)?box.selectionStart:box.value.length,
     selectionEnd:Number.isInteger(box.selectionEnd)?box.selectionEnd:box.value.length,
-    height:box.style.height||"",
-    chatScrollTop:chat?.scrollTop||0,
-    chatNearBottom:chat?chat.scrollHeight-chat.clientHeight-chat.scrollTop<64:true,
-    windowScrollY:window.scrollY||0,
-    windowNearBottom:document.documentElement.scrollHeight-window.innerHeight-(window.scrollY||0)<64
+    height:box.style.height||""
   };
   composerStateByConversation.set(conversationId,snapshot);
   return snapshot;
 }
-function restoreComposerState(conversationId,{initial=false}={}){
+function restoreComposerState(conversationId){
   const key=String(conversationId),snapshot=composerStateByConversation.get(key);
   const box=document.querySelector("#messageBox[data-conversation-id]");
-  const chat=document.querySelector("#chatArea");
   if(!box||String(box.dataset.conversationId)!==key)return;
   if(snapshot){
     box.value=snapshot.draft||"";
@@ -1179,13 +1201,25 @@ function restoreComposerState(conversationId,{initial=false}={}){
       box.focus({preventScroll:true});
       try{box.setSelectionRange(snapshot.selectionStart,snapshot.selectionEnd);}catch{}
     }
-    if(isWideLayout()&&chat)chat.scrollTop=snapshot.focused||!snapshot.chatNearBottom?snapshot.chatScrollTop:chat.scrollHeight;
-    else if(snapshot.focused||!snapshot.windowNearBottom)window.scrollTo(0,snapshot.windowScrollY);
-    else syncPhoneChatComposerInset({scrollBottom:true});
-  }else if(initial){
-    if(isWideLayout()&&chat)chat.scrollTop=chat.scrollHeight;
-    else syncPhoneChatComposerInset({scrollBottom:true});
   }
+}
+function captureChatViewportFromDom(){
+  const box=document.querySelector("#messageBox[data-conversation-id]"),chat=document.querySelector("#chatArea");
+  const conversationId=String(box?.dataset.conversationId||"");
+  if(!conversationId||!chat)return null;
+  return{conversationId,wide:isWideLayout(),chatScrollTop:chat.scrollTop,chatNearBottom:chat.scrollHeight-chat.clientHeight-chat.scrollTop<64,windowScrollY:window.scrollY||0,windowNearBottom:document.documentElement.scrollHeight-window.innerHeight-(window.scrollY||0)<64};
+}
+function scrollChatToLatest(){
+  const chat=document.querySelector("#chatArea");
+  if(isWideLayout()&&chat)chat.scrollTop=chat.scrollHeight;
+  else syncPhoneChatComposerInset({scrollBottom:true});
+}
+function restoreChatViewport(conversationId,snapshot){
+  if(!snapshot||String(snapshot.conversationId)!==String(conversationId))return scrollChatToLatest();
+  const chat=document.querySelector("#chatArea");
+  if(snapshot.wide&&isWideLayout()&&chat)chat.scrollTop=snapshot.chatNearBottom?chat.scrollHeight:snapshot.chatScrollTop;
+  else if(!snapshot.wide&&!isWideLayout())snapshot.windowNearBottom?syncPhoneChatComposerInset({scrollBottom:true}):window.scrollTo(0,snapshot.windowScrollY);
+  else scrollChatToLatest();
 }
 function bindChatMessageProjectionActions(){
   bindPendingMessageActions();
@@ -1202,16 +1236,16 @@ function patchActiveChatProjection(){
   const c=currentConversation(),chat=document.querySelector("#chatArea"),status=document.querySelector("#chatStatusRegion");
   const box=document.querySelector("#messageBox[data-conversation-id]");
   if(!c||!chat||!status||!box||String(box.dataset.conversationId)!==String(c.id))return false;
-  const snapshot=captureComposerStateFromDom();
+  const snapshot=captureComposerStateFromDom(),viewport=captureChatViewportFromDom();
   chat.innerHTML=renderConversationMessages(state.messages[c.id]||[],c);
   status.innerHTML=chatStatusMarkup(c);
   const title=document.querySelector("#activeChatName");if(title)title.textContent=c.name;
   if(isWideLayout())drawTabletConversationList(document.querySelector("#tabletSearchBox")?.value||"");
   bindChatMessageProjectionActions();
-  requestAnimationFrame(()=>restoreComposerState(c.id,{initial:!snapshot}));
+  requestAnimationFrame(()=>{restoreComposerState(c.id);restoreChatViewport(c.id,viewport);});
   return true;
 }
-function render({background=false}={}){
+function render({background=false,entry=false}={}){
   // This function is the sole UI projection owner. Async subsystems may ask
   // for a background projection, but cannot replace an active composer.
   // Live cloud callbacks may arrive while the local lock screen is open.
@@ -1219,6 +1253,7 @@ function render({background=false}={}){
   const unlockPinAlreadyMounted=!state.unlocked&&!!document.querySelector("#localUnlockPin .pin-code");
   persistSoon();
   if(background&&patchActiveChatProjection())return;
+  pendingChatViewport=!entry&&state.route==="chat"?captureChatViewportFromDom():null;
   captureComposerStateFromDom();
   document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
   applyAppearance();
@@ -1445,6 +1480,8 @@ function renderChat(){
   if(!c){state.selectedId=null;state.route="messages";return renderMessages();}
   const msgs=state.messages[state.selectedId]||[];
   const existingComposerState=composerStateByConversation.get(String(c.id));
+  const viewport=String(pendingChatViewport?.conversationId||"")===String(c.id)?pendingChatViewport:null;
+  pendingChatViewport=null;
   const chatMarkup=`
       <header class="topbar">
         <button class="back-btn icon-2d" id="backBtn" aria-label="Back">${icon2d("back",23)}</button>
@@ -1513,7 +1550,7 @@ function renderChat(){
   };
   box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();document.querySelector("#sendBtn")?.click();}});
   bindChatMessageProjectionActions();
-  requestAnimationFrame(()=>restoreComposerState(c.id,{initial:!existingComposerState}));
+  requestAnimationFrame(()=>{restoreComposerState(c.id);restoreChatViewport(c.id,viewport);});
 }
 
 function syncPhoneChatComposerInset({scrollBottom=false}={}){

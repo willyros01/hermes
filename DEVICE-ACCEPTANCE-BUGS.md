@@ -189,3 +189,15 @@ After confirming 1.1.20 and completing two installed-PWA launches on each device
 1.1.20 is rejected by device evidence: iPad routed twice and then stopped; iPhone did not route. For 1.1.21, activate the new worker with two complete launches per device. On both iPhone and iPad, repeat at least three times from Settings: background/lock, receive, tap, PIN, exact direct conversation. Repeat once from Messages and once from another conversation. Verify ordinary resume without a newly displayed notification preserves the prior screen and verify the multiple-conversation chooser.
 
 FDA-COMPOSER-001 acceptance: type a distinctive unsent multi-line draft and leave the keyboard active while (1) an incoming message arrives, (2) its receipt/status changes, (3) connectivity changes, and (4) the app backgrounds/resumes through PIN. At each step verify identical draft text, keyboard/focus, caret position and stable scroll. Then send once and confirm exactly one bubble plus authentic Sent/Delivered/Read. Repeat on iPhone, iPad portrait and iPad landscape. Repeat with one attachment completing in the open conversation. No diagnostic release is authorized.
+
+### FIDUNIO 1.1.22 focused acceptance matrix
+
+1. Confirm visible version 1.1.22 after two complete launches on each installed PWA.
+2. iPhone background: leave Settings selected, background/lock, receive one direct notification, tap, enter PIN and confirm the exact sender conversation opens at its newest message. Repeat five times and record notification-to-visible-row time; target is immediate after chat data becomes available, with no persistence/Read-receipt wait.
+3. iPhone terminated: fully close FIDUNIO, receive/tap one notification, enter PIN and confirm the exact direct conversation—not Messages or Settings—opens at its newest row. Repeat three times.
+4. iPad background and terminated: repeat the same exact-route/latest-row checks at least five and three times respectively, in both portrait and landscape during the matrix.
+5. Ordinary navigation: enter the target from the Messages list on both devices and confirm the newest message is visible, not the oldest. Scroll upward, allow a background receipt/new-message projection, and confirm that active viewport is preserved unless it was already near bottom.
+6. Active composition: keep a distinctive multi-line draft, focus and caret while an incoming row and receipt update arrive. Confirm no jump or lost text, then send once and confirm one bubble.
+7. Neighbor regression: ordinary resume with no new notification preserves the prior screen; multiple conversations still show the chooser; text plus one attachment send/receive; authentic Sent/Delivered/Read; offline queue/reconnect; iPad sidebar and Settings/Profile/User Administration loading.
+
+The build changes no Firebase backend/rules/config, notification privacy, PIN/auth, E2EE format/key, receipt writer, Outbox, attachment/group/disappearing authority or Settings host. These remain regression checks, not rewritten functionality.

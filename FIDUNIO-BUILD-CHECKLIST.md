@@ -751,3 +751,20 @@ No point earned; completion remains 96%.
 - [ ] Full Rebuild Baseline Security Gate passes on the exact 1.1.21 commit.
 - [ ] Promote the exact validated tree to `main` and verify Pages.
 - [ ] Complete repeated iPhone/iPad notification and active-composer acceptance.
+
+### FIDUNIO 1.1.22 cold-route/immediate-projection/newest-entry repair
+
+- [x] Record 1.1.21 device failures separately: iPhone cold-route fallback, 10+ second new-row display, and oldest-message entry.
+- [x] Preserve `requestAppActivation()` and `render()` as the sole activation and UI owners.
+- [x] Resolve stale/questionable cold-route conversation metadata through one server-authoritative `firebase.js` read before rejection.
+- [x] Retain the pending route on transient failure and until the exact target composer is mounted.
+- [x] Reuse already authenticated immutable e2ee:3 plaintext and decrypt only new/unavailable rows.
+- [x] Project merged message state before IndexedDB durability and server Read-receipt recovery.
+- [x] Remove navigation scroll from persistent per-conversation composer state.
+- [x] Preserve only a one-render same-chat viewport; open intentional conversation/notification entry at latest message.
+- [x] Add a permanent cold-route/projection/newest-entry gate and include it in the full baseline.
+- [x] Reconcile notification, runtime, defect, acceptance, release and cumulative documents.
+- [x] Focused notification, activation, direct-message, receipt, Outbox, LTE and iPhone UI gates pass locally.
+- [ ] Full Rebuild Baseline Security Gate passes on the exact 1.1.22 commit.
+- [ ] Push exact commit to `main` and verify GitHub Pages publication.
+- [ ] Complete the FIDUNIO 1.1.22 iPhone/iPad focused acceptance matrix.

@@ -88,6 +88,7 @@ jobs:
       - {name: FCM N5 notification tap routing, run: npm run test:notification-n5}
       - {name: Installation-local pending notification inbox, run: node notification-pending-inbox.test.mjs}
       - {name: Activation and composer single-owner lifecycle, run: node activation-composer-ownership.test.mjs}
+      - {name: Notification route and immediate message projection, run: npm run test:notification-route-projection}
       - {name: Cloud Functions recovery scaffold, run: npm run test:functions-scaffold}
       - {name: Runtime transform anchor gate, run: npm run test:runtime-transform-anchors}
       - {name: Runtime authority gate, run: npm run test:runtime-authority}

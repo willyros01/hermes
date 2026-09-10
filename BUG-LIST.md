@@ -354,3 +354,11 @@ The service worker persists the validated opaque route locally before notificati
 ### FDA-COMPOSER-001 — asynchronous render erases active draft
 
 **Severity:** Critical usability / duplicate-message risk. **Evidence:** user observed screen jumping and entered message text disappearing. Source inspection proved background Firebase/message/receipt/attachment/Outbox/lifecycle callbacks could globally replace the chat DOM; draft text existed only in the textarea and the replacement path forced bottom scrolling. **Candidate:** 1.1.21 gives drafts one per-conversation in-memory owner and makes background updates patch owned chat regions without replacing the composer. Structural renders restore draft, focus, caret and scroll. Status: OPEN pending active-typing tests on iPhone and iPad under incoming, receipt, connectivity and resume events.
+
+### FDA-NOTIFY-002 / FDA-DM-001 / FDA-COMPOSER-001 — 1.1.22 bounded correction
+
+**Device evidence:** warm/background iPhone and iPad consistently route to the direct conversation but require at least ten seconds to display the new row. A terminated iPhone can open Messages instead. A terminated iPad behaves like its background case. Direct conversations open at the oldest message on both devices, including ordinary conversation-list entry.
+
+**Proven causes:** cold activation may reject and consume a route from stale local conversation metadata before cloud reconciliation; direct snapshots re-decrypt all history and await durability plus server Read recovery before visible projection; persistent composer state incorrectly retained viewport coordinates across navigation.
+
+**Candidate:** server-authoritative validation before cold-route rejection, target-DOM confirmation before consumption, reuse of already authenticated immutable rows, immediate composer-safe projection, and transient same-chat viewport preservation with newest-message intentional entry. Status remains OPEN pending full gate/Pages and device acceptance. No backend/rules/payload, PIN, E2EE, receipt, Outbox, attachment, group, disappearing-content or Settings owner changed.
