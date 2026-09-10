@@ -12,6 +12,10 @@ assert.match(routeOwner,/if\(!c\?\.cloud\|\|c\?\.cloudGroup\|\|c\?\.type==="grou
   "stale local conversation metadata must be resolved by server authority before rejection");
 assert.match(app,/notificationRouteHasRendered\(routed\.route\)[\s\S]*?finalizePendingNotificationRoute/,
   "the inbox route must survive until the exact target chat is mounted");
+assert.match(routeOwner,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)[\s\S]*?awaitBoundedNotificationMessage\(prioritizeConversationMessage\(c\.id,firebaseUser\.uid,route\.messageId\)\)[\s\S]*?state\.route="chat"/,
+  "notification activation must make the exact keyed message ready through the existing owner before revealing chat");
+assert.match(app,/messageReady&&notificationRouteHasRendered\(routed\.route\)/,
+  "the pending semaphore must not be consumed until the exact message is ready and mounted");
 assert.match(app,/render\(\{background:!routed,entry:!!routed\}\)/,
   "notification activation must identify an intentional latest-message entry to the render owner");
 
@@ -43,8 +47,12 @@ const existingStart=firebaseSubscription.indexOf("if(stream){");
 const existingEnd=firebaseSubscription.indexOf("}else{",existingStart);
 assert.doesNotMatch(firebaseSubscription.slice(existingStart,existingEnd),/\.getDocs\(/,
   "re-entry must transfer the live-listener callback without a competing full-history read");
-assert.match(firebase,/function queueLatestMessageSnapshot[\s\S]*?stream\.pending=\{rows,meta\}[\s\S]*?while\(messageStreams\.get\(key\)===stream&&stream\.pending\)/,
-  "the message-stream owner must coalesce pending snapshots to the newest value");
+assert.match(firebase,/createDirectMessageDeliveryOwner\(\{deliver:onRows,onError\}\)/,
+  "every direct conversation must have one serialized delivery owner");
+assert.match(firebaseSubscription,/stream\.owner\.offerSnapshot\(rows,/,
+  "the sole Firestore listener must submit snapshots to that owner");
+assert.match(firebase,/export async function prioritizeConversationMessage[\s\S]*?getDocFromServer[\s\S]*?stream\.owner\.offerPriority/,
+  "notification recovery must use one exact server read and the same delivery owner");
 assert.doesNotMatch(firebaseSubscription,/delivery\.then/,
   "message snapshots must not form an unbounded FIFO projection backlog");
 

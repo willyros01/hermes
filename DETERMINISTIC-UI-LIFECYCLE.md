@@ -281,3 +281,7 @@ The direct snapshot owner updates application message state and immediately requ
 ## FIDUNIO 1.1.23 deterministic release and frame rules
 
 The activation mutex owns its release: queued reasons found after the current drain completes synchronously create the next serialized owner. The direct Firestore stream owns one live listener and a single replaceable pending snapshot; it never creates an additional history read on callback transfer and never accumulates FIFO projection work. The render owner increments one generation for structural and background projections. Deferred composer/viewport restoration must match that generation and mounted conversation. A deliberate latest-entry intent remains pending across intervening projections until the winning animation frame applies it; only that frame may clear it.
+
+## FIDUNIO 1.1.24 notification priority protocol
+
+The notification route is a keyed semaphore, not permission for a parallel startup path. PIN validates only local unlock. The activation owner then owns route claim and waits for the message owner. The per-conversation delivery owner serializes listener snapshots, exact-message priority, and maintenance; it checks priority at every safe boundary. The render owner alone exposes chat. Completion requires state projection, the exact `[data-message-id]`, selected conversation, and conversation-bound composer to agree. Any failed condition leaves the semaphore pending for the next activation/listener signal.

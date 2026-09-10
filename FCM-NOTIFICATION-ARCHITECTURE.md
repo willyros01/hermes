@@ -540,3 +540,9 @@ Scroll is not durable notification or composer state. The composer owner retains
 ## FIDUNIO 1.1.23 — notification activation handoff
 
 The installation-local inbox and server-authoritative route validation remain unchanged. The activation promise is still the single route owner, but its release is now an explicit ownership boundary: after clearing the active promise it synchronously starts another serialized drain when any hydration, unlock, Firebase-auth, foreground, connectivity or worker reason is queued. A readiness reason can therefore neither run concurrently nor remain stranded at cold launch. This changes no FCM payload, worker display/click behavior, inbox format, privacy field, backend Function or notification registration.
+
+## FIDUNIO 1.1.24 — exact-message priority inside the existing owner
+
+The pending inbox record is the durable semaphore and its key is `(conversationId, messageId)`. After unlock/auth/hydration are ready, the activation owner keeps the PIN transition mounted and starts the existing conversation subscription. If the keyed row is absent, `prioritizeConversationMessage` performs one `getDocFromServer` for that exact document and submits it to the same delivery owner as listener snapshots. Priority is processed after any currently executing projection but before a queued snapshot or maintenance step. Duplicate priority requests share the keyed operation; later full snapshots merge by ID.
+
+The priority row is non-authoritative: it cannot purge history or Outbox data. Projection/decryption and rendering happen before cache, state persistence, or receipt recovery. Only the activation owner reveals chat, and only after the exact row is projected; only the render/activation owners consume the record after the row and exact conversation composer are mounted. Timeout, offline, missing document, decryption failure, or render mismatch leaves the record pending. No-notification activation bypasses the path.

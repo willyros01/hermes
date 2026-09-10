@@ -358,3 +358,11 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - `firebase.js#subscribeConversationMessages()` owns exactly one live listener per conversation. Re-entry changes the current token/callback only. `queueLatestMessageSnapshot()` owns one active projection and one replaceable pending snapshot; it does not issue a competing history read or retain an unbounded FIFO.
 - `render()` owns `chatRenderGeneration` and the pending viewport intent. Only the current generation and exact mounted conversation may restore composer/viewport state. A latest-entry intent remains authoritative until applied; a background projection cannot reinterpret initial scroll zero as user intent.
 - Notification inbox, Firebase backend/rules/config, worker payload/display/click, PIN/auth, E2EE, receipts, Outbox, groups, attachments, disappearing content and Settings retain existing owners.
+
+## FIDUNIO 1.1.24 notification-priority authority
+
+- `startAppActivationOwner()` is the only notification route/transition owner. It keeps the unlock screen mounted, requests exact-message readiness, selects chat, renders, and conditionally consumes the route.
+- `createDirectMessageDeliveryOwner()` is the only direct-message work scheduler per conversation. Listener snapshots coalesce; keyed priorities deduplicate; cache, persistence, receipt, and final refresh are serialized maintenance checked between priority boundaries.
+- `prioritizeConversationMessage()` performs one exact server read and must rejoin the unchanged existing owner. It cannot create a listener or project state itself.
+- `beginCloudMessageSubscription()` remains the sole decrypt/merge callback. Partial priority rows merge by ID without authoritative purge and paint before maintenance.
+- `render()` remains the sole DOM owner. A notification is complete only when the exact message row and conversation-bound composer are mounted.

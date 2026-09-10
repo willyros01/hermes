@@ -783,3 +783,15 @@ No point earned; completion remains 96%.
 - [x] Complete full local repository baseline and all emulator-backed security suites.
 - [x] Push exact runtime tree `49be379988f7498d74db43a916438341bad12ef8` to `main` as `9fa9bb62ade01c5b6a3bcf01fc9f7fd6ccb6e57c`; Rebuild Baseline `34501753123`, Firebase Adapter `34501753059`, and Pages `34501752319` complete SUCCESS, and live Pages serves version `1.1.23`.
 - [ ] Complete the repeated 1.1.23 iPhone/iPad acceptance matrix.
+
+### FIDUNIO 1.1.24 keyed notification-priority build
+
+- [x] Record the 1.1.23 device evidence and isolate background/warm iPad latency.
+- [x] Keep one activation owner, one live Firestore listener/delivery owner, and one render owner.
+- [x] Add keyed exact-message server read, ID deduplication, non-authoritative merge, and priority-before-maintenance scheduling.
+- [x] Keep PIN transition mounted with “Opening message…”; retain pending route on bounded miss and show “Loading new message…”.
+- [x] Require the exact notified row plus conversation-bound composer before consuming the pending record.
+- [x] Add permanent behavioral and integration gates and service-worker cache inclusion.
+- [x] Complete full local non-emulator and emulator-backed repository validation.
+- [ ] Commit and push the exact 1.1.24 tree to `main`; monitor all workflows and verify live Pages version.
+- [ ] Complete the repeated iPhone/iPad matrix above.

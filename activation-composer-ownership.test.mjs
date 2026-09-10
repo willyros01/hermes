@@ -18,7 +18,7 @@ assert.doesNotMatch(app,/notificationInboxLoaded/,"the installation inbox must b
 assert.doesNotMatch(app,/if\(state\.route==="settings"\)\s*renderSettings\(\)/,"async Firebase callbacks must project through the render owner");
 assert.equal((app.match(/renderSettings\(\)/g)||[]).length,1,"Settings projection must only be entered by the central render dispatcher");
 assert.match(app,/render\(\{background:!routed,entry:!!routed\}\)/,"activation owner must render only after routing decision and mark notification entry");
-assert.match(app,/if\(routed&&notificationRouteHasRendered\(routed\.route\)\)await finalizePendingNotificationRoute\(routed\)/,"notification record must be consumed only after the exact target chat is mounted");
+assert.match(app,/if\(routed\?\.messageReady&&notificationRouteHasRendered\(routed\.route\)\)await finalizePendingNotificationRoute\(routed\)/,"notification record must be consumed only after the exact target message is ready and mounted");
 
 assert.match(app,/const composerStateByConversation=new Map\(\)/,"composer drafts must have one per-conversation state owner");
 assert.match(app,/data-conversation-id=/,"composer ownership must be bound to the exact conversation");

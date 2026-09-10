@@ -10,6 +10,7 @@ import {
   subscribeMyConversations,
   subscribeUserDisplayNames,
   subscribeConversationMessages,
+  prioritizeConversationMessage,
   sendCloudMessage,
   markCloudConversationRead,
   getCloudUserProfile,
@@ -168,6 +169,10 @@ function unlockLocalApp(){
   unlockError="";
   noteLocalUnlock();
   void requestAppActivation("unlock");
+}
+function setUnlockTransitionStatus(message){
+  const button=document.querySelector("#localPinUnlockBtn")||document.querySelector("#deviceUnlockBtn");
+  if(button)button.textContent=String(message||"Opening FIDUNIO…");
 }
 
 function openDb(){
@@ -544,6 +549,7 @@ async function applyPendingNotificationRoute(){
   if(!pendingNotificationRoute)await loadPendingNotificationInbox();
   if(!pendingNotificationRoute)return false;
   const route=pendingNotificationRoute;
+  setUnlockTransitionStatus("Opening message…");
   notificationRouteRunning=true;
   try{
     let c=state.conversations.find(x=>String(x.id)===String(route.conversationId));
@@ -559,12 +565,31 @@ async function applyPendingNotificationRoute(){
       c=mergeCloudConversation(remote);
     }
     if(!c?.cloud||c?.cloudGroup||c?.type==="group")return false;
-    state.selectedId=c.id;state.route="chat";state.modal=null;state.toolsOpen=false;c.unread=0;
     closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
+    let messageReady=notificationMessageHasProjected(route);
+    if(!messageReady){
+      try{
+        await awaitBoundedNotificationMessage(prioritizeConversationMessage(c.id,firebaseUser.uid,route.messageId));
+      }catch(err){
+        console.warn("Notified message priority check did not complete before chat entry",err);
+      }
+      messageReady=notificationMessageHasProjected(route);
+    }
+    state.selectedId=c.id;state.route="chat";state.modal=null;state.toolsOpen=false;c.unread=0;
     await persistState();
-    return{route,messageIds:[...pendingNotificationInboxMessageIds,route.messageId]};
+    return{route,messageIds:[...pendingNotificationInboxMessageIds,route.messageId],messageReady};
   }catch(err){console.warn("Notification route could not be applied yet",err);return false;}
   finally{notificationRouteRunning=false;}
+}
+function awaitBoundedNotificationMessage(promise,timeoutMs=8000){
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Notification message check timed out.")),timeoutMs);})
+  ]).finally(()=>clearTimeout(timer));
+}
+function notificationMessageHasProjected(route){
+  return !!route&&(state.messages[route.conversationId]||[]).some(message=>String(message.id)===String(route.messageId));
 }
 async function finalizePendingNotificationRoute(result){
   if(!result?.route)return;
@@ -581,7 +606,8 @@ async function finalizePendingNotificationRoute(result){
 }
 function notificationRouteHasRendered(route){
   const box=document.querySelector("#messageBox[data-conversation-id]");
-  return !!route&&state.route==="chat"&&String(state.selectedId)===String(route.conversationId)&&String(box?.dataset.conversationId||"")===String(route.conversationId);
+  const messageMounted=[...document.querySelectorAll("#chatArea [data-message-id]")].some(row=>String(row.dataset.messageId)===String(route?.messageId));
+  return !!route&&notificationMessageHasProjected(route)&&messageMounted&&state.route==="chat"&&String(state.selectedId)===String(route.conversationId)&&String(box?.dataset.conversationId||"")===String(route.conversationId);
 }
 function startAppActivationOwner(){
   appActivationPromise=(async()=>{
@@ -596,7 +622,7 @@ function startAppActivationOwner(){
       ensureActiveCloudMessageSubscription(false);
       if(state.online&&firebaseUser)scheduleReconnectRecovery();
       render({background:!routed,entry:!!routed});
-      if(routed&&notificationRouteHasRendered(routed.route))await finalizePendingNotificationRoute(routed);
+      if(routed?.messageReady&&notificationRouteHasRendered(routed.route))await finalizePendingNotificationRoute(routed);
     }
   })().catch(error=>console.warn("FIDUNIO activation owner failed",error)).finally(()=>{
     appActivationPromise=null;
@@ -950,8 +976,12 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",createdAt:m.createdAt?.toDate?.()||m.createdAt||null,state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null,disappearingPurgeVersion:m.disappearingPurgeVersion??null});
       }
 
-      const outboxIds=(await getOutboxRecords()).map(x=>x.id);
-      const projection=planAuthoritativeMessageProjection({existingRows:existing,remoteRows:remote,snapshotMeta:meta,outboxMessageIds:outboxIds});
+      // A keyed notification row is a non-authoritative merge and cannot
+      // purge Outbox state, so it must not wait on IndexedDB before display.
+      const outboxIds=meta.partial===true?[]:(await getOutboxRecords()).map(x=>x.id);
+      const projection=meta.partial===true
+        ?planPartialDirectMessageProjection(existing,remote)
+        :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:remote,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
       const merged=[...projection.rows];
       state.messages[conversationId]=merged;
@@ -966,32 +996,41 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       // server-backed Read-receipt recovery. The central render owner patches
       // the mounted chat while preserving its composer and transient viewport.
       if(state.route==="chat" && String(state.selectedId)===String(conversationId))render({background:true});
+      if(pendingNotificationRoute&&notificationMessageHasProjected(pendingNotificationRoute))void requestAppActivation("notification-message-projected");
 
-      /*
-       * Local-first durability:
-       * persist the merged result before any read-receipt network work.
-       * A network/cache callback must never make local history less durable.
-       */
-      await cacheCloudHistory(conversationId,merged);
-      await persistState();
-
-      const unreadIncoming=merged.filter(m=>!m.mine && m.state!=="read");
-      if(
-        state.route==="chat" &&
-        String(state.selectedId)===String(conversationId) &&
-        unreadIncoming.length
-      ){
-        try{await markCloudConversationRead(conversationId);}
-        catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
-      }
-
-      if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render({background:true});
+      // The Firebase stream owner runs these maintenance steps only after
+      // checking for notification priority and newer snapshots. They remain
+      // serialized, but cannot be placed ahead of a newly notified message.
+      return{
+        value:{projectedMessageIds:merged.map(message=>String(message.id))},
+        maintenance:[
+          async()=>{await cacheCloudHistory(conversationId,merged);},
+          async()=>{await persistState();},
+          async()=>{
+            const unreadIncoming=(state.messages[conversationId]||[]).filter(m=>!m.mine&&m.state!=="read");
+            if(state.route==="chat"&&String(state.selectedId)===String(conversationId)&&unreadIncoming.length){
+              try{await markCloudConversationRead(conversationId);}
+              catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
+            }
+          },
+          async()=>{if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render({background:true});}
+        ]
+      };
     },
     err=>{
       firebaseError=err?.message || String(err);
       if(state.route==="settings") render({background:true});
     }
   );
+}
+function planPartialDirectMessageProjection(existingRows,priorityRows){
+  const byId=new Map((existingRows||[]).map(message=>[String(message.id),message]));
+  for(const message of priorityRows||[]){
+    const id=String(message.id||"");if(!id)continue;
+    const prior=byId.get(id);
+    byId.set(id,prior?{...prior,...message,serverBacked:true}:{...message,serverBacked:true});
+  }
+  return{rows:[...byId.values()],purgeMessageIds:[],purgeOutboxMessageIds:[],authoritative:false};
 }
 async function initializeFirebaseLayer(){
   if(!isFirebaseConfigured()) return;
@@ -1500,7 +1539,8 @@ function renderGroupName(){
 }
 
 function chatStatusMarkup(c){
-  return `${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
+  const waitingForNotifiedMessage=pendingNotificationRoute&&String(pendingNotificationRoute.conversationId)===String(c?.id)&&!notificationMessageHasProjected(pendingNotificationRoute);
+  return `${waitingForNotifiedMessage?'<div class="status-banner" role="status">Loading new message…</div>':""}${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
 }
 function renderChat(){
   const c=currentConversation();

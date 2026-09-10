@@ -370,3 +370,9 @@ The service worker persists the validated opaque route locally before notificati
 **Additional proven causes:** the activation promise can observe an empty queue and then release after another readiness signal joins it, stranding that signal without a drain. Direct-listener re-entry launches a competing history `getDocs()` and snapshots form an unbounded FIFO behind active work. Unversioned scroll animation frames compete; a background render can replace a latest-entry request with the newly mounted pane's initial zero position.
 
 **1.1.23 candidate:** release-time activation handoff, one live listener with one latest pending snapshot, no re-entry history read, and generation-checked viewport intent retained until application. Status remains OPEN pending full repository/Pages proof and repeated device acceptance.
+
+### FDA-NOTIFY-002 / FDA-DM-001 — 1.1.23 device result and 1.1.24 correction
+
+**Evidence:** terminated iPhone and iPad became consistently instant in repeated 1.1.23 trials, while background iPad remained mostly slow. This disproves a general FCM, cold-start, route-ID, or renderer failure and identifies the retained warm stream’s work boundary as the remaining latency source. One iPhone trial also entered at the oldest row, so newest-position acceptance remains open.
+
+**1.1.24 correction:** treat the pending notification as a durable keyed semaphore. The existing direct stream owner accepts a listener snapshot or one exact server read, prioritizes the notified row at its next safe boundary, and defers cache/persistence/receipt maintenance. Chat is not revealed until the attempt completes. Consumption requires the exact row and composer in the DOM; timeout/failure retains the record. Status: OPEN until deployed device acceptance passes.

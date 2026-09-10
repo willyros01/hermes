@@ -1,6 +1,7 @@
 import { firebaseConfig } from "./firebase-config.js";
 import { normalizeDisappearSelection } from "./disappearing-content-policy.js";
 import {assertInvitationUsable,normalizeInvitationRole,canIssueInvitation} from "./invitation-policy.js";
+import {createDirectMessageDeliveryOwner} from "./direct-message-delivery-owner.js";
 
 const SDK_VERSION="12.18.0";
 // Public reCAPTCHA Enterprise site key registered for FIDUNIO Web / willyros01.github.io.
@@ -81,23 +82,6 @@ export async function sendCloudMessage(conversationId,message){const s=await ens
 export async function updateCloudMessageState(conversationId,messageId,state){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");if(!["delivered","read"].includes(state))throw new Error("Invalid direct receipt state.");const ref=s.fsSdk.doc(s.db,"conversations",conversationId,"messages",messageId);return s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const current=snap.data();if(current.senderUid===authUser.uid)throw new Error("Sender cannot write recipient receipt authority.");if(current.state==="read")return{state:"read",readAt:current.readAt||null};if(state==="delivered"){if(current.state==="delivered")return{state:"delivered"};if(current.state!=="sent")throw new Error("Direct receipt cannot regress.");tx.update(ref,{state:"delivered"});return{state:"delivered"};}if(!["sent","delivered"].includes(current.state))throw new Error("Direct receipt cannot advance from current state.");tx.update(ref,{state:"read",readAt:s.fsSdk.serverTimestamp()});return{state:"read"};});}
 export async function markCloudConversationRead(conversationId){const s=await ensureServices();if(!authUser)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations",conversationId,"messages"),s.fsSdk.orderBy("createdAt","asc"));const snap=await s.fsSdk.getDocsFromServer(q);const pending=snap.docs.filter(d=>{const x=d.data();return x.senderUid!==authUser.uid&&(x.state||"sent")!=="read";});await Promise.all(pending.map(d=>updateCloudMessageState(conversationId,d.id,"read")));}
 export function subscribeMyConversations(uid,onRows,onError){let active=true,unsub=()=>{};ensureServices().then(s=>{if(!active)return;const q=s.fsSdk.query(s.fsSdk.collection(s.db,"conversations"),s.fsSdk.where("members","array-contains",uid));unsub=s.fsSdk.onSnapshot(q,snap=>onRows(snap.docs.map(d=>{const x=d.data(),other=(x.members||[]).find(m=>m!==uid);return{id:d.id,cloud:true,type:"direct",peerUid:other,name:x.memberNames?.[other]||"FIDUNIO contact",preview:"Cloud conversation",time:""};})),onError);}).catch(onError);return()=>{active=false;unsub();};}
-function queueLatestMessageSnapshot(key,stream,rows,meta){
-  stream.pending={rows,meta};
-  if(stream.delivery)return stream.delivery;
-  stream.delivery=(async()=>{
-    while(messageStreams.get(key)===stream&&stream.pending){
-      const next=stream.pending;
-      stream.pending=null;
-      await stream.onRows(next.rows,next.meta);
-    }
-  })().catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);}).finally(()=>{
-    stream.delivery=null;
-    // The final await can race a listener callback. Restart synchronously if a
-    // newer snapshot arrived during release; only this owner drains snapshots.
-    if(messageStreams.get(key)===stream&&stream.pending)queueLatestMessageSnapshot(key,stream,stream.pending.rows,stream.pending.meta);
-  });
-  return stream.delivery;
-}
 export function subscribeConversationMessages(conversationId,myUid,onRows,onError){
   const key=String(conversationId),token=Symbol(key);
   let stream=messageStreams.get(key);
@@ -105,9 +89,9 @@ export function subscribeConversationMessages(conversationId,myUid,onRows,onErro
     if(stream.closeTimer){clearTimeout(stream.closeTimer);stream.closeTimer=null;}
     // Re-entry only transfers callback ownership. The existing live listener is
     // already authoritative and must not be raced by a duplicate getDocs read.
-    stream.token=token;stream.onRows=onRows;stream.onError=onError;
+    stream.token=token;stream.onRows=onRows;stream.onError=onError;stream.owner.setCallbacks(onRows,onError);
   }else{
-    stream={token,onRows,onError,pending:null,delivery:null,unsub:()=>{},closeTimer:null};
+    stream={token,onRows,onError,owner:createDirectMessageDeliveryOwner({deliver:onRows,onError}),unsub:()=>{},closeTimer:null};
     messageStreams.set(key,stream);
     ensureServices().then(s=>{
       if(messageStreams.get(key)!==stream)return;
@@ -115,11 +99,24 @@ export function subscribeConversationMessages(conversationId,myUid,onRows,onErro
       stream.unsub=s.fsSdk.onSnapshot(q,{includeMetadataChanges:true},snap=>{
         if(messageStreams.get(key)!==stream)return;
         const rows=snap.docs.map(d=>({id:d.id,...d.data()}));
-        queueLatestMessageSnapshot(key,stream,rows,{fromCache:!!snap.metadata?.fromCache,hasPendingWrites:!!snap.metadata?.hasPendingWrites});
+        stream.owner.offerSnapshot(rows,{fromCache:!!snap.metadata?.fromCache,hasPendingWrites:!!snap.metadata?.hasPendingWrites});
       },err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});
     }).catch(err=>{if(messageStreams.get(key)===stream)stream.onError?.(err);});
   }
-  return()=>{const current=messageStreams.get(key);if(current!==stream||current.token!==token)return;current.closeTimer=setTimeout(()=>{const latest=messageStreams.get(key);if(latest!==stream||latest.token!==token)return;latest.unsub();messageStreams.delete(key);},250);};
+  return()=>{const current=messageStreams.get(key);if(current!==stream||current.token!==token)return;current.closeTimer=setTimeout(()=>{const latest=messageStreams.get(key);if(latest!==stream||latest.token!==token)return;latest.unsub();latest.owner.close();messageStreams.delete(key);},250);};
+}
+export async function prioritizeConversationMessage(conversationId,myUid,messageId){
+  const s=await ensureServices();
+  if(!authUser||authUser.uid!==myUid)throw new Error("Sign in first.");
+  const key=String(conversationId||""),id=String(messageId||"");
+  if(!key||!id)throw new Error("Notification message identity is incomplete.");
+  const stream=messageStreams.get(key);
+  if(!stream)throw new Error("Direct-message delivery owner is not active.");
+  const snap=await s.fsSdk.getDocFromServer(s.fsSdk.doc(s.db,"conversations",key,"messages",id));
+  if(!snap.exists())throw new Error("Notified message is not available yet.");
+  const current=messageStreams.get(key);
+  if(current!==stream)throw new Error("Direct-message delivery owner changed during notification recovery.");
+  return stream.owner.offerPriority(id,[{id:snap.id,...snap.data()}],{fromCache:false,hasPendingWrites:false,partial:true,priorityMessageId:id});
 }
 export function subscribeUserDisplayNames(uids,onNames,onError){let active=true;const stops=[];const names=new Map();const wanted=[...new Set((uids||[]).map(x=>String(x||"").trim()).filter(Boolean))];const emit=()=>{if(active)onNames?.(Object.fromEntries(names));};ensureServices().then(s=>{if(!active)return;if(!authUser)throw new Error("Sign in first.");if(!wanted.length){emit();return;}for(const uid of wanted){const stop=s.fsSdk.onSnapshot(s.fsSdk.doc(s.db,"users",uid),snap=>{if(!active)return;if(snap.exists()){const name=String(snap.data()?.displayName||snap.data()?.email||"").trim();if(name)names.set(uid,name);else names.delete(uid);}else names.delete(uid);emit();},err=>{if(active)onError?.(err);});stops.push(stop);}}).catch(err=>{if(active)onError?.(err);});return()=>{active=false;for(const stop of stops.splice(0))try{stop();}catch{}names.clear();};}
 

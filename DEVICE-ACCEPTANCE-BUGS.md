@@ -213,3 +213,14 @@ The build changes no Firebase backend/rules/config, notification privacy, PIN/au
 7. Regression boundary: ordinary no-notification resume, multiple-notification chooser, Sent/Delivered/Read, offline queue/reconnect, group chat, one attachment, iPad sidebar, and Settings/Profile/User Administration loading.
 
 The device matrix closes only with consistent repeated behavior. An occasional successful route, fast row, or correct scroll position does not pass.
+
+### FIDUNIO 1.1.24 priority-semaphore acceptance matrix
+
+1. Confirm visible version 1.1.24 after two complete launches on each installed PWA.
+2. On iPhone and iPad, run at least eight notification taps from background and eight after forced termination: notification → PIN → exact direct conversation; the notified row must already be visible at the newest position when chat appears.
+3. During PIN completion, verify the transition says “Opening message…” and no Settings, Messages-list, stale chat, overlay flicker, or oldest-position frame becomes visible.
+4. Exercise delayed/offline delivery: the exact chat may show “Loading new message…”, the pending route must remain retryable, and later listener delivery must render and consume it exactly once.
+5. Send rapid notifications for the same message, two messages in one conversation, and two conversations. Verify keyed deduplication, correct final target, no duplicate row, and no second listener/render owner.
+6. With no notification, unlock/resume normally and verify no targeted message read or forced chat navigation occurs.
+7. While typing during incoming messages, verify text, focus, caret, input height, and viewport do not jump or clear. Enter via the conversation list and verify newest positioning.
+8. Regress Sent/Delivered/Read, offline Outbox/reconnect, message deletion, disappearing text, group chat, one attachment, iPad sidebar, notification chooser, and Settings/Profile/User Administration loading.
