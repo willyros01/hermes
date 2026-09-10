@@ -10,5 +10,6 @@ assert.match(app,/modal\.type==="videoSource"/);
 assert.match(app,/id="videoLibraryBtn">Photo Library<\/button>/);
 assert.match(app,/id="videoCameraBtn">Camera<\/button>/);
 assert.match(app,/chooseAndSendAttachment\("video","video\/\*",capture\)/);
-assert.match(app,/if\(isWideLayout\(\)\)\{const a=document\.querySelector\("#chatArea"\);a\.scrollTop=a\.scrollHeight;window\.scrollTo\(0,document\.body\.scrollHeight\);return;\}syncPhoneChatComposerInset/);
+assert.match(app,/requestAnimationFrame\(\(\)=>restoreComposerState\(c\.id,\{initial:!existingComposerState\}\)\)/);
+assert.match(app,/else syncPhoneChatComposerInset\(\{scrollBottom:true\}\)/);
 console.log("Issue 3 iPhone composer and video-source gate passed");

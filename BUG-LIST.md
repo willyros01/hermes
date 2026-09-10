@@ -346,3 +346,11 @@ The one-shot report recorded correct data-only FCM receipt and worker display, f
 ### FDA-NOTIFY-002 — 1.1.20 repair candidate
 
 The service worker persists the validated opaque route locally before notification display. `app.js` consumes it only after normal application-ready gates; one conversation opens and multiple conversations require a chooser. Temporary diagnostics are removed. The manual-launch-after-notification tradeoff is explicit. Status remains OPEN pending full baseline/Pages and real iPhone/iPad proof. Do not combine acceptance or repair with FDA-RUNTIME-001 or projection-latency cleanup.
+
+### FDA-NOTIFY-002 — 1.1.21 correction candidate
+
+1.1.20 worked twice on iPad then stopped and failed on iPhone. Root cause: `notificationInboxLoaded` permanently suppressed later inbox reads in a surviving PWA process. 1.1.21 removes that cache and routes every eligible activation through one coalescing owner. The exact conversation is persisted/rendered before local notification consumption. Status: OPEN pending full gate, Pages and repeated iPhone/iPad acceptance.
+
+### FDA-COMPOSER-001 — asynchronous render erases active draft
+
+**Severity:** Critical usability / duplicate-message risk. **Evidence:** user observed screen jumping and entered message text disappearing. Source inspection proved background Firebase/message/receipt/attachment/Outbox/lifecycle callbacks could globally replace the chat DOM; draft text existed only in the textarea and the replacement path forced bottom scrolling. **Candidate:** 1.1.21 gives drafts one per-conversation in-memory owner and makes background updates patch owned chat regions without replacing the composer. Structural renders restore draft, focus, caret and scroll. Status: OPEN pending active-typing tests on iPhone and iPad under incoming, receipt, connectivity and resume events.

@@ -735,3 +735,19 @@ No point earned; completion remains 96%.
 - [ ] Full Rebuild Baseline Security Gate passes on exact commit.
 - [ ] Push exact commit to `main` and verify GitHub Pages deployment.
 - [ ] Complete mandatory iPhone/iPad 1.1.20 device matrix.
+
+### FIDUNIO 1.1.21 activation/composer ownership repair
+
+- [x] Read mandatory coding, deterministic UI, notification and rogue-code authorities before implementation.
+- [x] Remove process-lifetime notification-inbox read caching.
+- [x] Route hydration, unlock, auth, foreground, connectivity and worker signals through one activation promise owner.
+- [x] Stop lifecycle activation from force-replacing an already-owned direct-message subscription.
+- [x] Persist/render the exact direct-chat selection before consuming its pending route.
+- [x] Add per-conversation in-memory draft/focus/caret/scroll ownership; clear it on sign-out.
+- [x] Make cloud, receipt, group, peer-name, attachment and Outbox callbacks request composer-safe background projection.
+- [x] Add permanent activation/composer ownership gate to the normal baseline.
+- [x] Reconcile affected architecture, defect, acceptance and release documents.
+- [x] All locally runnable non-emulator baseline tests pass, including notification, direct-message, receipt, attachment, Outbox, startup/PIN and iPhone/iPad UI gates.
+- [ ] Full Rebuild Baseline Security Gate passes on the exact 1.1.21 commit.
+- [ ] Promote the exact validated tree to `main` and verify Pages.
+- [ ] Complete repeated iPhone/iPad notification and active-composer acceptance.

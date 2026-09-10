@@ -338,3 +338,9 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 ## FIDUNIO 1.1.20 pending-notification authority
 
 `notification-pending-inbox.js` solely owns the installation-local opaque route database. `service-worker.js` validates and writes before display. `app.js` may list/group/consume only after its existing hydration + unlock + Firebase-user gate; it remains the sole conversation-selection/subscription/render owner. No worker or inbox code may read messages, decrypt, write receipts, mutate Outbox, use UID-global routing or invoke lifecycle recovery. The 1.1.19 diagnostic owner is removed from runtime.
+
+## FIDUNIO 1.1.21 activation and active-composer authority
+
+`requestAppActivation()` in `app.js` is the sole serialized/coalescing owner of app activation decisions. Hydration, PIN/biometric unlock, Firebase-auth readiness, `visibilitychange`, `pageshow`, online/offline and worker route delivery submit signals only. Its promise mutex drains an explicit reason queue, including signals received during awaited work; there is no busy/follow-up flag. The owner rereads the installation-local inbox, applies notification priority, establishes the already-defined active message subscription without forced replacement, requests the UI projection and finalizes inbox consumption.
+
+`render()` remains the sole UI projection entry. `composerStateByConversation` owns ephemeral per-conversation draft, focus, selection and scroll state. Background data callbacks request `{background:true}`; the render owner updates only `#chatArea`, `#chatStatusRegion`, the active name and tablet list while leaving `#messageBox` mounted. Draft state is memory-only and is cleared on sign-out. No Firebase, E2EE, receipt, Outbox or durable-message ownership moves.

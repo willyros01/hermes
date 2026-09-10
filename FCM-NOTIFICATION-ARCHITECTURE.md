@@ -522,3 +522,9 @@ The attempt to keep `openWindow(routed URL)` while also messaging its returned c
 ## FIDUNIO 1.1.19 — temporary diagnostic ownership exception
 
 One diagnostic ledger may receive append-only event records from the worker and page because those are separate execution environments. The dedicated module owns only its isolated IndexedDB database and serializes writes per context; it never reads or writes app, message, Outbox, receipt, Settings or E2EE storage. Instrumentation observes the existing click/route/projection owners without changing their decisions. The ledger must be removed after diagnosis. Security-secret values are excluded even from diagnostics.
+
+## FIDUNIO 1.1.21 — repeated inbox read and single activation owner
+
+The 1.1.20 page incorrectly treated the installation-local inbox as loaded for the entire JavaScript process. A first empty or consumed read prevented later background notifications from being observed until process restart. The process-lifetime cache is prohibited.
+
+Every eligible activation after hydration, unlock and authenticated Firebase readiness rereads the installation-local inbox through its existing single read promise. Initial hydration, unlock, auth settlement, foreground lifecycle, connectivity and worker messages only signal `requestAppActivation()`; none independently applies a route or renders. A valid sole direct-message route outranks restored Settings/messages state, is persisted and rendered, then consumed. Multiple conversations retain the neutral chooser. Because affected iPadOS supplies no click signal, manual launch after display retains the documented next-activation tradeoff.

@@ -93,8 +93,10 @@ let firebaseUser = null;
 let pendingNotificationRoute=notificationRouteFromUrl(globalThis.location?.href||"");
 let notificationRouteRunning=false;
 let pendingNotificationInboxMessageIds=[];
-let notificationInboxLoaded=false;
 let notificationInboxLoadPromise=null;
+let appActivationPromise=null;
+const appActivationReasons=new Set();
+const composerStateByConversation=new Map();
 let cloudConversationUnsub = null;
 let cloudConversationSyncPending = false;
 let peerDisplayNameUnsub = ()=>{};
@@ -139,10 +141,10 @@ function loadAttachment(conversationId,message,descriptor,{retry=false}={}){
   attachmentRuntime.set(key,{status:"loading",descriptor});
   attachmentReceiveService.receive(descriptor).then(result=>{
     attachmentRuntime.set(key,{status:"ready",descriptor,result});
-    if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
+    if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render({background:true});
   }).catch(error=>{
     attachmentRuntime.set(key,{status:"error",descriptor,error});
-    if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render();
+    if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render({background:true});
   });
 }
 
@@ -162,8 +164,7 @@ function unlockLocalApp(){
   state.unlocked=true;
   unlockError="";
   noteLocalUnlock();
-  render();
-  void applyPendingNotificationRoute();
+  void requestAppActivation("unlock");
 }
 
 function openDb(){
@@ -522,18 +523,16 @@ function mergeCloudConversation(remote){
 }
 
 async function loadPendingNotificationInbox(){
-  if(notificationInboxLoaded)return;
   if(notificationInboxLoadPromise)return notificationInboxLoadPromise;
   notificationInboxLoadPromise=(async()=>{
     const groups=groupPendingNotificationRoutes(await listPendingNotificationRoutes());
-    notificationInboxLoaded=true;
-    if(!groups.length)return;
+    if(!groups.length)return false;
     if(groups.length===1){pendingNotificationRoute=groups[0].route;pendingNotificationInboxMessageIds=groups[0].messageIds;return;}
     state.modal={type:"notificationInbox",options:groups.map(group=>({
       ...group,
       name:state.conversations.find(c=>String(c.id)===String(group.route.conversationId))?.name||"New message"
     }))};
-    render();
+    return true;
   })().catch(error=>console.warn("Pending notification inbox could not be read",error)).finally(()=>{notificationInboxLoadPromise=null;});
   return notificationInboxLoadPromise;
 }
@@ -549,11 +548,46 @@ async function applyPendingNotificationRoute(){
     if(!c?.cloud||c?.cloudGroup||c?.type==="group"){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
     state.selectedId=c.id;state.route="chat";state.modal=null;state.toolsOpen=false;c.unread=0;
     closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
-    await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);
-    pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));
-    await persistState();render();return true;
+    await persistState();
+    return{route,messageIds:[...pendingNotificationInboxMessageIds,route.messageId]};
   }catch(err){console.warn("Notification route could not be applied yet",err);return false;}
   finally{notificationRouteRunning=false;}
+}
+async function finalizePendingNotificationRoute(result){
+  if(!result?.route)return;
+  await consumePendingNotificationRoutes(result.messageIds);
+  if(
+    pendingNotificationRoute &&
+    String(pendingNotificationRoute.conversationId)===String(result.route.conversationId) &&
+    String(pendingNotificationRoute.messageId)===String(result.route.messageId)
+  ){
+    pendingNotificationInboxMessageIds=[];
+    pendingNotificationRoute=null;
+    history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));
+  }
+}
+function requestAppActivation(reason){
+  const activationReason=String(reason||"unspecified");
+  appActivationReasons.add(activationReason);
+  if(appActivationPromise)return appActivationPromise;
+  appActivationPromise=(async()=>{
+    // Coalesce simultaneous iOS lifecycle signals into one batch. A signal
+    // raised while a batch is awaiting notification/auth work remains in the
+    // queue and is drained by this same owner before it releases the mutex.
+    await Promise.resolve();
+    while(appActivationReasons.size){
+      appActivationReasons.clear();
+      state.online=navigator.onLine;
+      const routed=await applyPendingNotificationRoute();
+      ensureActiveCloudMessageSubscription(false);
+      if(state.online&&firebaseUser)scheduleReconnectRecovery();
+      render({background:!routed});
+      if(routed)await finalizePendingNotificationRoute(routed);
+    }
+  })().catch(error=>console.warn("FIDUNIO activation owner failed",error)).finally(()=>{
+    appActivationPromise=null;
+  });
+  return appActivationPromise;
 }
 function mergeCloudGroup(remote){
   const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
@@ -566,7 +600,7 @@ function beginCloudGroupSubscription(){
   if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
   if(!firebaseUser)return;
   cloudGroupSyncPending=true;
-  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{cloudGroupSyncPending=false;rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render();});
+  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{cloudGroupSyncPending=false;rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});});
 }
 function stopPeerDisplayNameSubscription(){
   try{peerDisplayNameUnsub();}catch{}
@@ -588,7 +622,7 @@ function syncPeerDisplayNameSubscription(rows){
       const name=c?.peerUid?peerDisplayNames[c.peerUid]:null;
       if(name&&c.name!==name){c.name=name;changed=true;}
     }
-    if(changed){persistSoon();if(state.route==="messages"||state.route==="chat")render();}
+    if(changed){persistSoon();if(state.route==="messages"||state.route==="chat")render({background:true});}
   },err=>console.warn("FIDUNIO peer display-name sync unavailable",err));
 }
 function stopCloudMessageSubscription(){
@@ -607,12 +641,12 @@ function beginCloudConversationSubscription(){
     // local record. Reattach the active chat listener after reconciliation.
     ensureActiveCloudMessageSubscription();
     persistSoon();
-    if(state.route==="messages" || state.route==="chat") render();
+    if(state.route==="messages" || state.route==="chat") render({background:true});
   }, err=>{
     cloudConversationSyncPending=false;
     firebaseError=err?.message || String(err);
-    if(state.route==="settings") renderSettings();
-    else if(state.route==="messages"||state.route==="chat")render();
+    if(state.route==="settings") render({background:true});
+    else if(state.route==="messages"||state.route==="chat")render({background:true});
   });
 }
 function ensureActiveCloudMessageSubscription(force=false){
@@ -635,7 +669,7 @@ function beginCloudGroupMessageSubscription(groupId){
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
       if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
       await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
-      if(state.route==="chat"&&String(state.selectedId)===String(groupId))render();
+      if(state.route==="chat"&&String(state.selectedId)===String(groupId))render({background:true});
     },
     onError:err=>{firebaseError=err?.message||String(err);}
   });
@@ -843,7 +877,7 @@ async function publishMyE2EEKey(){
       deviceRegistryStatus=err?.message||String(err);
       console.warn("Device registry publication failed",err);
     }
-    if(state.route==="settings")renderSettings();
+    if(state.route==="settings")render({background:true});
   })().finally(()=>{e2eePublishPromise=null;});
   return e2eePublishPromise;
 }
@@ -917,11 +951,11 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
       }
 
-      if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render();
+      if(state.route==="chat" && String(state.selectedId)===String(conversationId)) render({background:true});
     },
     err=>{
       firebaseError=err?.message || String(err);
-      if(state.route==="settings") renderSettings();
+      if(state.route==="settings") render({background:true});
     }
   );
 }
@@ -936,10 +970,8 @@ async function initializeFirebaseLayer(){
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
         beginCloudGroupSubscription();
-        ensureActiveCloudMessageSubscription(true);
-        void applyPendingNotificationRoute();
-        if(state.online) scheduleReconnectRecovery();
       }else{
+        composerStateByConversation.clear();
         attachmentReceiveService.releaseAll();
         for(const url of localAttachmentPreviewUrls)URL.revokeObjectURL(url);
         localAttachmentPreviewUrls.clear();
@@ -951,14 +983,12 @@ async function initializeFirebaseLayer(){
         if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
         stopCloudMessageSubscription();
       }
-      if(state.route==="settings" || state.route==="messages") render();
+      void requestAppActivation(user?"firebase-auth-ready":"firebase-auth-signed-out");
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
     if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
-    ensureActiveCloudMessageSubscription(true);
-    void applyPendingNotificationRoute();
-    if(firebaseUser && state.online) scheduleReconnectRecovery();
+    void requestAppActivation("firebase-initialize-complete");
   }catch(err){
     firebaseError=err?.message || String(err);
   }
@@ -985,7 +1015,7 @@ async function initApp(){
   if(consumeSuccessfulAuthBypass()) state.unlocked=true;
   installInactivityMonitor({isUnlocked:()=>state.unlocked&&!attachmentPickerActive,onLock:reason=>lockLocalApp(reason)});
   if(state.unlocked) noteLocalUnlock();
-  render();
+  void requestAppActivation("initial-hydration");
 
   initializeFirebaseLayer();
 }
@@ -1114,11 +1144,82 @@ function drawTabletConversationList(term=""){
   });
 }
 
-function render(){
+function captureComposerStateFromDom(){
+  const box=document.querySelector("#messageBox[data-conversation-id]");
+  if(!box)return null;
+  const conversationId=String(box.dataset.conversationId||"");
+  if(!conversationId)return null;
+  const chat=document.querySelector("#chatArea");
+  const prior=composerStateByConversation.get(conversationId)||{};
+  const snapshot={
+    ...prior,
+    draft:box.value,
+    focused:document.activeElement===box,
+    selectionStart:Number.isInteger(box.selectionStart)?box.selectionStart:box.value.length,
+    selectionEnd:Number.isInteger(box.selectionEnd)?box.selectionEnd:box.value.length,
+    height:box.style.height||"",
+    chatScrollTop:chat?.scrollTop||0,
+    chatNearBottom:chat?chat.scrollHeight-chat.clientHeight-chat.scrollTop<64:true,
+    windowScrollY:window.scrollY||0,
+    windowNearBottom:document.documentElement.scrollHeight-window.innerHeight-(window.scrollY||0)<64
+  };
+  composerStateByConversation.set(conversationId,snapshot);
+  return snapshot;
+}
+function restoreComposerState(conversationId,{initial=false}={}){
+  const key=String(conversationId),snapshot=composerStateByConversation.get(key);
+  const box=document.querySelector("#messageBox[data-conversation-id]");
+  const chat=document.querySelector("#chatArea");
+  if(!box||String(box.dataset.conversationId)!==key)return;
+  if(snapshot){
+    box.value=snapshot.draft||"";
+    box.style.height="46px";
+    box.style.height=Math.min(box.scrollHeight,120)+"px";
+    if(snapshot.focused){
+      box.focus({preventScroll:true});
+      try{box.setSelectionRange(snapshot.selectionStart,snapshot.selectionEnd);}catch{}
+    }
+    if(isWideLayout()&&chat)chat.scrollTop=snapshot.focused||!snapshot.chatNearBottom?snapshot.chatScrollTop:chat.scrollHeight;
+    else if(snapshot.focused||!snapshot.windowNearBottom)window.scrollTo(0,snapshot.windowScrollY);
+    else syncPhoneChatComposerInset({scrollBottom:true});
+  }else if(initial){
+    if(isWideLayout()&&chat)chat.scrollTop=chat.scrollHeight;
+    else syncPhoneChatComposerInset({scrollBottom:true});
+  }
+}
+function bindChatMessageProjectionActions(){
+  bindPendingMessageActions();
+  document.querySelectorAll(".attachment-retry").forEach(btn=>btn.onclick=event=>{
+    event.preventDefault();event.stopPropagation();
+    const message=(state.messages[btn.dataset.conversationId]||[]).find(row=>String(row.id)===String(btn.dataset.messageId));
+    const descriptor=parseAttachmentDescriptor(message?.text);
+    if(message&&descriptor)loadAttachment(btn.dataset.conversationId,message,descriptor,{retry:true});
+    render();
+  });
+}
+function patchActiveChatProjection(){
+  if(!state.unlocked||state.route!=="chat")return false;
+  const c=currentConversation(),chat=document.querySelector("#chatArea"),status=document.querySelector("#chatStatusRegion");
+  const box=document.querySelector("#messageBox[data-conversation-id]");
+  if(!c||!chat||!status||!box||String(box.dataset.conversationId)!==String(c.id))return false;
+  const snapshot=captureComposerStateFromDom();
+  chat.innerHTML=renderConversationMessages(state.messages[c.id]||[],c);
+  status.innerHTML=chatStatusMarkup(c);
+  const title=document.querySelector("#activeChatName");if(title)title.textContent=c.name;
+  if(isWideLayout())drawTabletConversationList(document.querySelector("#tabletSearchBox")?.value||"");
+  bindChatMessageProjectionActions();
+  requestAnimationFrame(()=>restoreComposerState(c.id,{initial:!snapshot}));
+  return true;
+}
+function render({background=false}={}){
+  // This function is the sole UI projection owner. Async subsystems may ask
+  // for a background projection, but cannot replace an active composer.
   // Live cloud callbacks may arrive while the local lock screen is open.
   // Keep the mounted PIN slots and their focus/value intact during those renders.
   const unlockPinAlreadyMounted=!state.unlocked&&!!document.querySelector("#localUnlockPin .pin-code");
   persistSoon();
+  if(background&&patchActiveChatProjection())return;
+  captureComposerStateFromDom();
   document.querySelectorAll(".modal-backdrop").forEach(el=>el.remove());
   applyAppearance();
   document.body.dataset.route=state.unlocked ? (state.route||"") : "unlock";
@@ -1184,7 +1285,7 @@ function renderUnlock(){
     pinButton.textContent="Checking…";
     if(await verifyLocalPin(pinInput.value())){unlockLocalApp();return;}
     unlockError="Incorrect PIN.";
-    renderUnlock();
+    render();
   };
   pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
   pinButton.onclick=tryPin;
@@ -1194,7 +1295,7 @@ function renderUnlock(){
     deviceButton.textContent="Waiting for device…";
     if(await verifyBiometric()){unlockLocalApp();return;}
     unlockError="Device unlock was cancelled or unavailable. Use your PIN instead.";
-    renderUnlock();
+    render();
   };
   setTimeout(()=>pinInput.focus(),0);
 }
@@ -1336,30 +1437,32 @@ function renderGroupName(){
   document.querySelector("#backBtn").onclick=()=>{state.route="newGroup";render()};const input=document.querySelector("#groupNameInput"),btn=document.querySelector("#createGroupBtn");const validate=()=>{state.newGroupName=input.value;btn.disabled=!input.value.trim()||state.newGroupMembers.length<2;};input.oninput=validate;validate();btn.onclick=async()=>{btn.disabled=true;btn.textContent="Creating…";try{const group=await createCloudGroup(state.newGroupName.trim(),state.newGroupMembers);mergeCloudGroup(group);state.selectedId=group.id;state.newGroupMembers=[];state.newGroupName="";state.route="chat";await persistState();beginCloudGroupMessageSubscription(group.id);render();}catch(err){alert("Could not create group: "+(err?.message||err));btn.disabled=false;btn.textContent="Create Group";}};
 }
 
+function chatStatusMarkup(c){
+  return `${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
+}
 function renderChat(){
   const c=currentConversation();
   if(!c){state.selectedId=null;state.route="messages";return renderMessages();}
   const msgs=state.messages[state.selectedId]||[];
+  const existingComposerState=composerStateByConversation.get(String(c.id));
   const chatMarkup=`
       <header class="topbar">
         <button class="back-btn icon-2d" id="backBtn" aria-label="Back">${icon2d("back",23)}</button>
         <div class="chat-header-title">
-          <strong>${esc(c.name)}</strong>
+          <strong id="activeChatName">${esc(c.name)}</strong>
           <span class="secure">● ${c.cloud?"Cloud":isGroup(c)?`${c.members.length} members • Secure`:"Secure"}</span>
         </div>
         ${(isGroup(c)||c?.cloud)?`<button class="icon-btn icon-2d" id="infoBtn" aria-label="Info">${icon2d("info",23)}</button>`:`<span class="topbar-spacer"></span>`}
         ${isWideLayout()?"":mainSignOutMarkup()}
       </header>
-      ${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}
-      ${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}
-      ${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}
+      <div id="chatStatusRegion">${chatStatusMarkup(c)}</div>
       <section class="chat" id="chatArea">${renderConversationMessages(msgs,c)}</section>
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
         <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
         <div class="compose-line">
           <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
-          <textarea id="messageBox" rows="1" placeholder="Type a message…"></textarea>
+          <textarea id="messageBox" data-conversation-id="${esc(c.id)}" rows="1" placeholder="Type a message…">${esc(existingComposerState?.draft||"")}</textarea>
           <button class="send-btn icon-2d" id="sendBtn" aria-label="Send">${icon2d("send",24)}</button>
         </div>
         <div class="tool-panel ${state.toolsOpen?"open":""}" id="toolPanel">
@@ -1396,21 +1499,21 @@ function renderChat(){
   });
   document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"||label==="Video"||label==="Audio"){state.modal={type:label==="Photo"?"photoSource":label==="Video"?"videoSource":"audioSource"};return render();}const map={File:["file","*/*",false]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
   const box=document.querySelector("#messageBox");
-  box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px";if(!isWideLayout())syncPhoneChatComposerInset({scrollBottom:true});});
+  const saveComposerState=()=>{
+    const prior=composerStateByConversation.get(String(c.id))||{};
+    composerStateByConversation.set(String(c.id),{...prior,draft:box.value,focused:document.activeElement===box,selectionStart:box.selectionStart,selectionEnd:box.selectionEnd,height:box.style.height||""});
+  };
+  box.addEventListener("input",()=>{box.style.height="46px";box.style.height=Math.min(box.scrollHeight,120)+"px";saveComposerState();if(!isWideLayout())syncPhoneChatComposerInset({scrollBottom:true});});
+  box.addEventListener("focus",saveComposerState);
+  box.addEventListener("blur",saveComposerState);
+  box.addEventListener("select",saveComposerState);
   document.querySelector("#sendBtn").onclick=async event=>{
     const button=event.currentTarget;button.disabled=true;
     try{await sendCurrent();}catch(err){alert(err?.message||String(err));}finally{if(button.isConnected)button.disabled=false;}
   };
   box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();document.querySelector("#sendBtn")?.click();}});
-  bindPendingMessageActions();
-  document.querySelectorAll(".attachment-retry").forEach(btn=>btn.onclick=event=>{
-    event.preventDefault();event.stopPropagation();
-    const message=(state.messages[btn.dataset.conversationId]||[]).find(row=>String(row.id)===String(btn.dataset.messageId));
-    const descriptor=parseAttachmentDescriptor(message?.text);
-    if(message&&descriptor)loadAttachment(btn.dataset.conversationId,message,descriptor,{retry:true});
-    render();
-  });
-  requestAnimationFrame(()=>{if(isWideLayout()){const a=document.querySelector("#chatArea");a.scrollTop=a.scrollHeight;window.scrollTo(0,document.body.scrollHeight);return;}syncPhoneChatComposerInset({scrollBottom:true});});
+  bindChatMessageProjectionActions();
+  requestAnimationFrame(()=>restoreComposerState(c.id,{initial:!existingComposerState}));
 }
 
 function syncPhoneChatComposerInset({scrollBottom=false}={}){
@@ -1519,9 +1622,9 @@ async function sendSelectedAttachmentFile(kind,file){
   try{
     const bytes=new Uint8Array(await file.arrayBuffer());
     const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};
-    const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render();},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});
+    const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render({background:true});},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});
     await svc.send(descriptor);
-  }catch(err){stagedMessage.state="failed";await persistState();render();alert("Attachment could not be sent: "+(err?.message||err));}
+  }catch(err){stagedMessage.state="failed";await persistState();render({background:true});alert("Attachment could not be sent: "+(err?.message||err));}
 }
 
 async function chooseAndSendAttachment(kind,accept,capture){
@@ -1573,7 +1676,7 @@ async function sendCurrent(){
     await queueGroupTextForApp({groupId:conversationId,messageId:m.id,text,time:m.time,disappearAfterSeconds:m.disappearAfterSeconds??null,persistEncryptedOutbox:persistGroupOutboxPayload});
   }else await queueOutboxMessage(conversationId,m);
   await persistState();
-  render();
+  render({background:true});
 
     if(state.online){
       if(cloud || cloudGroup){
@@ -1581,14 +1684,14 @@ async function sendCurrent(){
       }else{
         m.state="failed";
         await persistState();
-        render();
+        render({background:true});
       }
     }
   }catch(err){
     if(stagedMessage){
       stagedMessage.state="failed";
       persistSoon();
-      render();
+      render({background:true});
     }else{
       const currentBox=document.querySelector("#messageBox");
       if(currentBox&&!currentBox.value)currentBox.value=text;
@@ -1676,7 +1779,7 @@ async function requeueUnattemptedSendingOutboxMessages(){
     }
   }
   await persistState();
-  render();
+  render({background:true});
 }
 async function flushQueuedAfterAuthoritativeReconcile({notifyUser=false}={}){
   if(!state.online||!firebaseUser)return;
@@ -1701,7 +1804,7 @@ async function flushQueuedAfterAuthoritativeReconcile({notifyUser=false}={}){
           await requeueUnattemptedSendingOutboxMessages();
           if(cycleNotify)alert(firebaseError);
         }else if(cycleNotify){
-          render();
+          render({background:true});
           alert(firebaseError);
         }
       }
@@ -1750,7 +1853,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         await flushGroupOutboxForApp(payload,{removeEncryptedOutbox:removeOutboxMessage});
         m.state="sent";await persistState();
       }catch(err){m.state="failed";firebaseError=err?.message||String(err);await persistState();}
-      if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId))render();
+      if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId))render({background:true});
       continue;
     }
     if(isCloud){
@@ -1763,7 +1866,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
       try{
         m.state="sending";
         await persistState();
-        if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render();
+        if(state.route==="chat"&&String(state.selectedId)===String(payload.conversationId)) render({background:true});
 
         if(outboxCancellationRequests.has(String(payload.messageId))){m.state="queued";await persistState();continue;}
         await markOutboxSendAttempted(payload.messageId);
@@ -1793,7 +1896,7 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
     }
   }
 
-  render();
+  render({background:true});
 }
 let reconnectRecoveryTimer1=null;
 let reconnectRecoveryTimer2=null;
@@ -1813,27 +1916,16 @@ function scheduleReconnectRecovery(){
     if(state.online && firebaseUser) flushQueuedAfterAuthoritativeReconcile();
   },4000);
 }
-function recoverForegroundCloudSession(){
-  state.online=navigator.onLine;
-  void applyPendingNotificationRoute();
-  // Lifecycle recovery is one of the few times we deliberately replace the
-  // listener. Normal conversation metadata snapshots no longer restart it.
-  ensureActiveCloudMessageSubscription(true);
-  if(state.online) scheduleReconnectRecovery();
-  render();
-}
+function recoverForegroundCloudSession(){void requestAppActivation("foreground");}
 window.addEventListener("online",()=>{
-  state.online=true;
-  ensureActiveCloudMessageSubscription(true);
-  render();
-  scheduleReconnectRecovery();
+  void requestAppActivation("online");
 });
 window.addEventListener("offline",()=>{
   state.online=false;
   if(reconnectRecoveryTimer1) clearTimeout(reconnectRecoveryTimer1);
   if(reconnectRecoveryTimer2) clearTimeout(reconnectRecoveryTimer2);
   persistSoon();
-  render();
+  void requestAppActivation("offline");
 });
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible") recoverForegroundCloudSession();
@@ -1918,7 +2010,7 @@ function renderModal(){
     document.body.appendChild(host);
     host.querySelectorAll(".notification-route-choice").forEach(button=>button.onclick=()=>{
       const option=modal.options[Number(button.dataset.index)];if(!option)return;
-      state.modal=null;host.remove();pendingNotificationRoute=option.route;pendingNotificationInboxMessageIds=option.messageIds;void applyPendingNotificationRoute();
+      state.modal=null;host.remove();pendingNotificationRoute=option.route;pendingNotificationInboxMessageIds=option.messageIds;void requestAppActivation("notification-choice");
     });
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
   } else if(modal.type==="photoSource"){
@@ -2277,7 +2369,7 @@ function renderSettings(){
     </main>`;
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
   document.querySelectorAll(".toggle").forEach(btn=>btn.onclick=()=>{
-    const key=btn.dataset.key;state.settings[key]=!state.settings[key];persistSoon();renderSettings();
+    const key=btn.dataset.key;state.settings[key]=!state.settings[key];persistSoon();render();
   });
   document.querySelectorAll(".appearance-btn").forEach(btn=>btn.onclick=()=>{
     state.settings.appearance=btn.dataset.appearance;
@@ -2291,42 +2383,42 @@ function renderSettings(){
   const timeoutSelect=document.querySelector("#lockTimeoutSelect");
   if(timeoutSelect)timeoutSelect.onchange=async()=>{
     timeoutSelect.disabled=true;
-    try{await setLockTimeoutMs(Number(timeoutSelect.value));setLocalSecurityMessage("Inactivity lock updated.");renderSettings();}
-    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+    try{await setLockTimeoutMs(Number(timeoutSelect.value));setLocalSecurityMessage("Inactivity lock updated.");render();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const setPinBtn=document.querySelector("#setLocalPinBtn");
   if(setPinBtn)setPinBtn.onclick=async()=>{
     const pin=document.querySelector("#newLocalPin").value,confirm=document.querySelector("#confirmLocalPin").value;
-    if(pin!==confirm){setLocalSecurityMessage("PIN entries do not match.",true);renderSettings();return;}
+    if(pin!==confirm){setLocalSecurityMessage("PIN entries do not match.",true);render();return;}
     setPinBtn.disabled=true;setPinBtn.textContent="Setting…";
-    try{await setLocalPin(pin);setLocalSecurityMessage("Local PIN is set on this installation.");renderSettings();}
-    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+    try{await setLocalPin(pin);setLocalSecurityMessage("Local PIN is set on this installation.");render();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const changePinBtn=document.querySelector("#changeLocalPinBtn");
   if(changePinBtn)changePinBtn.onclick=async()=>{
     const current=document.querySelector("#currentLocalPin").value,next=document.querySelector("#replacementLocalPin").value,confirm=document.querySelector("#replacementLocalPin2").value;
-    if(next!==confirm){setLocalSecurityMessage("New PIN entries do not match.",true);renderSettings();return;}
+    if(next!==confirm){setLocalSecurityMessage("New PIN entries do not match.",true);render();return;}
     changePinBtn.disabled=true;changePinBtn.textContent="Changing…";
-    try{await changeLocalPin(current,next);setLocalSecurityMessage("Local PIN changed.");renderSettings();}
-    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+    try{await changeLocalPin(current,next);setLocalSecurityMessage("Local PIN changed.");render();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const removePinBtn=document.querySelector("#removeLocalPinBtn");
   if(removePinBtn)removePinBtn.onclick=async()=>{
     const current=document.querySelector("#currentLocalPin").value;
-    try{await removeLocalPin(current);setLocalSecurityMessage("Local PIN and device unlock removed.");renderSettings();}
-    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+    try{await removeLocalPin(current);setLocalSecurityMessage("Local PIN and device unlock removed.");render();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const enableBiometricBtn=document.querySelector("#enableBiometricBtn");
   if(enableBiometricBtn)enableBiometricBtn.onclick=async()=>{
     enableBiometricBtn.disabled=true;enableBiometricBtn.textContent="Waiting for device…";
-    try{await enrollBiometric();setLocalSecurityMessage("Device unlock enabled.");renderSettings();}
-    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+    try{await enrollBiometric();setLocalSecurityMessage("Device unlock enabled.");render();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const disableBiometricBtn=document.querySelector("#disableBiometricBtn");
   if(disableBiometricBtn)disableBiometricBtn.onclick=async()=>{
     disableBiometricBtn.disabled=true;
-    try{await disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");renderSettings();}
-    catch(err){setLocalSecurityMessage(err?.message||String(err),true);renderSettings();}
+    try{await disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");render();}
+    catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const lockNowBtn=document.querySelector("#lockNowBtn");
   if(lockNowBtn)lockNowBtn.onclick=()=>lockLocalApp("manual");
@@ -2338,7 +2430,7 @@ function renderSettings(){
     firebaseError="";
     signInBtn.disabled=true;signInBtn.textContent="Signing in…";
     try{ await signInFidunio(email,password); }
-    catch(err){firebaseError=err?.message||String(err);renderSettings();}
+    catch(err){firebaseError=err?.message||String(err);render();}
   };
   const createBtn=document.querySelector("#firebaseCreateBtn");
   if(createBtn) createBtn.onclick=async()=>{
@@ -2349,10 +2441,10 @@ function renderSettings(){
     firebaseError="";
     createBtn.disabled=true;createBtn.textContent="Creating…";
     try{ await createFidunioAccount(email,password,displayName); }
-    catch(err){firebaseError=err?.message||String(err);renderSettings();}
+    catch(err){firebaseError=err?.message||String(err);render();}
   };
   const signOutBtn=document.querySelector("#firebaseSignOutBtn");
-  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutFidunio();firebaseError="";renderSettings();};
+  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutFidunio();firebaseError="";render();};
   const copyBtn=document.querySelector("#copyUidBtn");
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
@@ -2376,7 +2468,7 @@ if("serviceWorker" in navigator){
   navigator.serviceWorker.addEventListener("message",event=>{
     if(event.data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
     const route=normalizeNotificationRoute(event.data?.route);if(!route)return;
-    pendingNotificationRoute=route;void applyPendingNotificationRoute();
+    pendingNotificationRoute=route;void requestAppActivation("service-worker-message");
   });
   window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js",{type:"module"})
     .catch(err=>console.warn("Service worker registration failed",err)));

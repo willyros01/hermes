@@ -223,3 +223,9 @@ Commit `34c8d237eb8f08b8228f670b8ca958038b553aef` registers `storage.rules` in `
 ## Installation-local notification handoff rule — 2026-09-10
 
 When the platform does not dispatch observable notification-click intent, a pending route may be stored only in a dedicated installation-local owner before display. It must contain validated opaque identifiers only, be consumed behind normal auth/app-ready gates, collapse one conversation deterministically, and require user choice for multiple conversations. Never replace it with a UID-global consumable route, timeout inference, message-content cache, second subscription owner, or worker-side message/receipt/E2EE operation.
+
+## Activation and composer projection rule — 2026-09-10
+
+Cold hydration, unlock completion, Firebase-auth readiness, foreground `visibilitychange`/`pageshow`, online/offline and service-worker route delivery may only signal the one application activation owner. They must not independently apply routes, force-replace active subscriptions or globally render. Duplicate signals join the active operation; signals raised while it awaits work remain in its explicit reason queue and are drained before the promise mutex is released. A global busy/follow-up flag is not an acceptable substitute.
+
+Async message, receipt, conversation, group, peer-name, attachment and Outbox callbacks may update their authoritative state and request projection, but must not replace an active composer. The composer draft/focus/caret/scroll resource has one per-conversation UI owner. Background projections update only owned message/status/sidebar regions. Any future direct global-render call from an async callback requires explicit architecture review and a permanent draft-preservation test.

@@ -14,6 +14,6 @@ assert.ok(stage>=0&&optimistic>stage,"outgoing row must be staged before optimis
 assert.ok(directQueue>optimistic,"direct Outbox persistence must begin only after the local bubble renders");
 assert.ok(groupQueue>optimistic,"group Outbox persistence must begin only after the local bubble renders");
 assert.match(send,/let stagedMessage=null;[\s\S]*const m=stagedMessage=stampOutgoingDisappearSelection/);
-assert.match(send,/catch\(err\)\{[\s\S]*if\(stagedMessage\)\{[\s\S]*stagedMessage\.state="failed";[\s\S]*persistSoon\(\);[\s\S]*render\(\);/);
+assert.match(send,/catch\(err\)\{[\s\S]*if\(stagedMessage\)\{[\s\S]*stagedMessage\.state="failed";[\s\S]*persistSoon\(\);[\s\S]*render\(\{background:true\}\);/);
 assert.doesNotMatch(send,/if\(stagedMessage\)[\s\S]{0,160}currentBox\.value=text/,"an already-visible failed attempt must not silently repopulate the composer");
 console.log("LTE optimistic outgoing-message gate passed");

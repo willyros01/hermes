@@ -265,3 +265,9 @@ Second-launch iPad evidence shows both preserved rows Queued, confirming determi
 FDA-DM-001 lifecycle correction: verification, foreground and online recovery share the established serialized authoritative Outbox entry point. Verification cannot start a lower-level flush. Before reconciliation, that entry point requests a bounded Auth token refresh from `firebase.js`; timeout produces an explicit stage message and a deterministic Queued/Failed state rather than indefinite Sending.
 
 Follow-up device evidence proved bounded requests could still accumulate as a serialized backlog. The owner now coalesces triggers into one running cycle and only a required follow-up, using normal Firebase cached-token validity rather than forcing network refresh. `index.html` provides an immediate accessible startup status while bootstrap is pending. PIN storage unavailability renders a locked diagnostic state, never a false no-PIN continuation.
+
+## FIDUNIO 1.1.21 activation and composer projection boundary
+
+`requestAppActivation()` is the one application activation owner. Hydration, unlock, authenticated readiness, foreground/pageshow/visibility, connectivity and worker-route events submit signals. They do not independently route, force-replace a direct listener or render. Duplicate iOS lifecycle signals join one promise; only a materially later notification/auth/unlock signal may schedule one follow-up.
+
+`render()` is the sole UI projection entry. The active composer is an owned resource, not disposable DOM: per-conversation draft, focus, selection and scroll live in one ephemeral state map and are cleared at sign-out. Async data owners request background projection, which replaces only message/status/name/sidebar regions and leaves the textarea mounted. Required structural renders capture and restore the composer state. This is a bounded correction for notification and composition races, not general Outbox/Firebase/E2EE/receipt refactoring.
