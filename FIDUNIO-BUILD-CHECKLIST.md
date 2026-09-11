@@ -910,6 +910,6 @@ No point earned; completion remains 96%.
 - [x] Add permanent callable-core and UI/ownership gates to the full baseline workflow.
 - [x] Complete all 72 non-emulator test groups, all five Firestore emulator security suites, Functions import, syntax, protected-config and diff checks locally.
 - [ ] Push the complete 1.1.31 + 1.1.32 runtime and pending todo documentation to `main`; verify security workflows and Pages.
-- [x] Prepare short root script `m.txt`, pinned to implementation commit `a52b65f85141b18217d8951525cd7b568682010e`, to deploy and verify only `deleteMyMessagesForEveryoneV1`.
+- [x] Prepare short root script `m.txt`, pinned to published implementation commit `d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d`, to deploy and verify only `deleteMyMessagesForEveryoneV1`.
 - [ ] Deploy and verify `deleteMyMessagesForEveryoneV1` using the dedicated message-delete identity.
 - [ ] Complete the direct/group iPhone/iPad acceptance matrix in `DEVICE-ACCEPTANCE-BUGS.md`.

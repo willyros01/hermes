@@ -6,7 +6,7 @@ REGION="us-central1"
 FUNCTION="deleteMyMessagesForEveryoneV1"
 CODEBASE="recovery"
 SERVICE_ACCOUNT="fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com"
-COMMIT="a52b65f85141b18217d8951525cd7b568682010e"
+COMMIT="d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d"
 SCRIPT_VERSION="1.1.32-a"
 
 ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"

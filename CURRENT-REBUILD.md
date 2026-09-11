@@ -506,4 +506,4 @@ Item 4 is repository-implemented through the existing message-deletion authority
 
 Other senders' rows and unsent Outbox rows are outside scope. Direct send/receive/receipts, group E2EE/membership/history, notification routing, attachment transport, disappearing-content semantics, PIN/auth, Settings, conversation deletion/archive, and protected Firebase configuration are unchanged. All 72 non-emulator test groups and all five Firestore emulator security suites pass locally; live callable deployment, `main`/Pages verification, and direct/group device acceptance remain release requirements.
 
-Short root Cloud Shell script `m.txt` is pinned to reviewed implementation commit `a52b65f85141b18217d8951525cd7b568682010e`; it preflights the complete Functions graph, deploys only `deleteMyMessagesForEveryoneV1`, and verifies ACTIVE state plus the dedicated runtime service account.
+Short root Cloud Shell script `m.txt` is pinned to published implementation commit `d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d`; it preflights the complete Functions graph, deploys only `deleteMyMessagesForEveryoneV1`, and verifies ACTIVE state plus the dedicated runtime service account.
