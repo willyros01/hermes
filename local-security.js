@@ -8,6 +8,7 @@ const CONFIG_KEY="local-security-v1";
 const LEGACY_CONFIG_KEY="fidunio-local-security-v1";
 const AUTH_BYPASS_KEY="fidunio-auth-bypass-once";
 const ACCOUNT_E2EE_LOCAL_PREFIX="account-e2ee-runtime-v1:";
+const PASSWORD_RESET_PENDING_KEY="password-reset-pending-v1";
 const DEFAULT_TIMEOUT_MS=5*60*1000;
 const PBKDF2_ITERATIONS=210000;
 
@@ -44,6 +45,9 @@ export async function saveLocalAccountE2EEIdentity({uid,keyId,revision,privateKe
 export async function readLocalAccountE2EEIdentity(uid,{keyId,revision}={}){try{const db=await openDb(),row=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid)));if(!row||row.uid!==String(uid)||row.keyId!==String(keyId)||Number(row.revision)!==Number(revision)||row.privateKey?.type!=="private")return null;return row;}catch{return null;}}
 export async function inspectLocalAccountE2EEIdentity(uid,{keyId,revision}={}){try{const db=await openDb(),row=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid)));if(!row||row.uid!==String(uid)||row.privateKey?.type!=="private")return{exists:false,keyMatches:false,revisionMatches:false};return{exists:true,keyMatches:row.keyId===String(keyId),revisionMatches:Number(row.revision)===Number(revision),revision:Number(row.revision)||0};}catch{return{exists:false,keyMatches:false,revisionMatches:false};}}
 export async function clearLocalAccountE2EEIdentity(uid){const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").delete(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid));await txDone(tx);}
+export async function markPasswordResetPending(email){const mail=String(email||"").trim().toLowerCase();if(!mail)throw new Error("Enter your email address first.");const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").put({email:mail,createdAt:Date.now()},PASSWORD_RESET_PENDING_KEY);await txDone(tx);}
+export async function hasPasswordResetPending(email){try{const db=await openDb(),row=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(PASSWORD_RESET_PENDING_KEY)),mail=String(email||"").trim().toLowerCase();return!!row&&row.email===mail&&Date.now()-Number(row.createdAt||0)<24*60*60*1000;}catch{return false;}}
+export async function clearPasswordResetPending(){const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").delete(PASSWORD_RESET_PENDING_KEY);await txDone(tx);}
 export async function changeLocalPin(currentPin,newPin){if(!await verifyLocalPin(currentPin))throw new Error("Current FIDUNIO PIN is incorrect.");newPin=String(newPin||"");if(!validPin(newPin))throw new Error("FIDUNIO PIN must contain exactly 6 digits.");const salt=randomBytes(16),hash=await derivePin(newPin,salt);await queueConfigMutation(cfg=>{cfg.pin={salt:bytesToB64Url(salt),hash:bytesToB64Url(hash),iterations:PBKDF2_ITERATIONS};});}
 export async function removeLocalPin(currentPin){if(!await verifyLocalPin(currentPin))throw new Error("Current PIN is incorrect.");await queueConfigMutation(cfg=>{cfg.pin=null;cfg.biometric=null;});}
 export async function platformAuthenticatorAvailable(){try{return!!(window.isSecureContext&&window.PublicKeyCredential&&navigator.credentials&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());}catch{return false;}}

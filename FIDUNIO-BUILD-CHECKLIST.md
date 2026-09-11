@@ -822,3 +822,14 @@ No point earned; completion remains 96%.
 - [x] Bound affected-device repair to the same UID/keyId with a stale revision and reuse the existing password/PIN unlock owner.
 - [x] Keep missing and different-key installations rejected.
 - [ ] Complete repository baseline, push to `main`, verify workflows/Pages, and perform the affected-device acceptance steps.
+
+### FIDUNIO 1.1.27 Forgot Password recovery completion
+
+- [x] Prove the Firebase reset-email call was wired but the E2EE recovery transition was unreachable/incomplete.
+- [x] Persist one expiring email-bound reset handoff only after Firebase accepts the email request.
+- [x] Route post-reset sign-in through one authentication-owned recovery screen before application startup.
+- [x] Require the existing six-digit PIN and reuse the established server session/retry/hold/revision authority.
+- [x] Restore and rewrap the same identity under the new password, save the local revision, and consume the handoff only after success.
+- [x] Offer authenticated missing-local installations bounded PIN-gated recovery instead of stranding them.
+- [x] Add a permanent Forgot Password integration gate to the full workflow.
+- [ ] Complete full baseline, push runtime plus all outstanding documentation to `main`, verify workflows/Pages, and run the 1.1.27 device matrix.

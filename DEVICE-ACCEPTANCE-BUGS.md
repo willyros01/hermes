@@ -246,3 +246,15 @@ Device acceptance remains required. Do not use Forgot Password or recovery for t
 4. Confirm the original conversations and messages open and decrypt; do not rejoin or use Forgot Password.
 5. Sign out and sign in again with the new password; confirm normal PIN/biometric unlock without another resynchronization prompt.
 6. Change the password once more only after steps 1–5 pass, then verify the next login succeeds normally and the same history remains available.
+
+## FIDUNIO 1.1.27 Forgot Password acceptance
+
+1. Confirm version 1.1.27 after two complete launches and record the test account's current history.
+2. Sign out, enter the enrolled email, press Forgot Password once, and confirm the new message explains that the existing PIN will be required.
+3. Open the Firebase email, choose a new password, return to FIDUNIO, and sign in with that new password.
+4. Confirm FIDUNIO does not open Messages or Settings first; it must show Recover Secure Messaging.
+5. Enter one deliberately wrong PIN and confirm recovery fails without opening the app. Do not repeat more than once because server attempt limits are intentional.
+6. Enter the existing six-digit PIN, confirm recovery succeeds, and verify the same direct/group history decrypts with no replacement identity.
+7. Sign out and sign in again with the new password. Confirm normal PIN/biometric behavior and no repeated recovery screen.
+8. On the second device, sign in using the new password. If its local identity is current it must open normally; if unavailable it must offer PIN-gated recovery rather than the former stranded-installation error.
+9. Regress password change, direct/group send-receive, notifications, receipts, Outbox, attachments, Settings/Profile/User Administration, and app restart on iPhone and iPad.

@@ -19,7 +19,7 @@ export function unlockAccountE2EE({uid,password,pin}){return manager.unlock({uid
 export function restoreLocalAccountE2EE(identity){return manager.restoreLocal(identity);}
 export async function recoverAccountE2EE({uid,newPassword,pin}){
   const recovered=await recoveryClient.recoverKey({pin});
-  try{return await manager.recover({uid,recoveryUnlockKey:recovered.recoveryUnlockKey,newPassword,pin});}
+  try{await manager.recover({uid,recoveryUnlockKey:recovered.recoveryUnlockKey,newPassword,pin});await saveLocalAccountE2EEIdentity(manager.getRuntimeIdentity());return manager.getRuntimeIdentity();}
   finally{recovered.recoveryUnlockKey.fill(0);}
 }
 export async function changeAccountPasswordWithE2EE({uid,currentPassword,newPassword,pin}){

@@ -788,3 +788,7 @@ The correction preserves the existing E2EE identity, public key, `keyId`, messag
 ## FIDUNIO 1.1.26 — local identity revision repair
 
 Password-change acceptance found a second boundary: successful E2EE rewrap increments its cloud revision, so the device-local identity must be refreshed before the user signs out. Version 1.1.26 does that on both successful completion and Firebase-failure rollback. An installation already affected by 1.1.25 may resynchronize only when its local UID/keyId match the authoritative identity and only after the new Firebase password and existing six-digit PIN unlock the current wrapper. This preserves the same private key and message history and does not weaken new-device rejection.
+
+## FIDUNIO 1.1.27 — Firebase reset plus secure-message recovery
+
+Forgot Password is now one pre-application recovery lifecycle. Firebase still owns the reset email and password mutation. FIDUNIO records only a non-secret, expiring local handoff; after the new password authenticates, the authentication gate requires the existing PIN and invokes the established server recovery protocol. The same private identity is rewrapped under the new password, its current revision is saved locally, and the handoff is deleted only after success. No administrator, browser record, reset email, or Firebase password alone can decrypt messages. Server session expiry, attempt limits, account holds, UID/keyId/revision binding, and single-use consumption are unchanged.

@@ -32,6 +32,6 @@ assert.match(app,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)/);
 assert.match(app,/state\.selectedId=c\.id;state\.route="chat"/);
 assert.match(app,/function unlockLocalApp\(\)[\s\S]*?requestAppActivation\("unlock"\)/);
 assert.doesNotMatch(app,/pendingNotificationRoute[\s\S]{0,500}state\.messages\[/);
-assert.match(sw,/SHELL_REVISION="1\.1\.26-password-change-local-resync"/);
-assert.match(version,/version: "1\.1\.26"/);
+assert.match(sw,/SHELL_REVISION="1\.1\.27-password-reset-recovery-gate"/);
+assert.match(version,/version: "1\.1\.27"/);
 console.log("FCM N5 data-only notification tap routing gate passed");

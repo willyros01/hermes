@@ -15,7 +15,7 @@ import {
   sendFidunioPasswordReset
 } from "./firebase.js";
 import {validateFidunioInvitation,redeemInvitationForEnrollment} from "./invitation-owner.js";
-import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity,inspectLocalAccountE2EEIdentity} from "./local-security.js";
+import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity,inspectLocalAccountE2EEIdentity,markPasswordResetPending,hasPasswordResetPending,clearPasswordResetPending} from "./local-security.js";
 import {bindAuthenticatedAccountE2EE,unlockAccountE2EE,enrollAccountE2EE,recoverAccountE2EE,restoreLocalAccountE2EE,getAccountE2EERuntimeIdentity,resetAccountE2EEForSignOut} from "./e2ee-account-runtime.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
 import {
@@ -143,12 +143,31 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   setTimeout(()=>saved||password?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
 }
 
+async function renderPasswordResetRecovery(user,password,{reason="password-reset"}={}){
+  authShell(`<p class="small-note"><strong>Recover Secure Messaging</strong></p><p class="small-note">${reason==="missing-local"?"This account's secure identity is not saved on this installation.":"Your Firebase password was reset. Restore the same messaging identity before FIDUNIO opens."}</p><label class="form-label" id="recoveryPinLabel">Existing six-digit FIDUNIO PIN</label><div id="recoveryPinHost"></div><button class="primary" id="recoverMessagingBtn" style="margin-top:14px">Recover Messaging</button><button class="secondary" id="recoverySignOutBtn" style="margin-top:10px">Use Another Account</button><div id="recoveryNote"></div>`);
+  const pinInput=mountSixDigitPinInput(document.querySelector("#recoveryPinHost"),{onComplete:()=>document.querySelector("#recoverMessagingBtn")?.click()});
+  document.querySelector("#recoverMessagingBtn").onclick=async()=>{
+    const btn=document.querySelector("#recoverMessagingBtn"),note=document.querySelector("#recoveryNote"),pin=pinInput.value(),security=getLocalSecurityStatus();
+    btn.disabled=true;btn.textContent="Recovering…";pinInput.setDisabled(true);
+    try{
+      if(security.hasPin&&!await verifyLocalPin(pin))throw new Error("Incorrect PIN.");
+      await recoverAccountE2EE({uid:user.uid,newPassword:password,pin});
+      if(!security.hasPin)await setLocalPin(pin);
+      await clearPasswordResetPending();markSuccessfulAuthBypass();await startApp();
+    }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Recover Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();}
+  };
+  document.querySelector("#recoverySignOutBtn").onclick=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
+  setTimeout(()=>pinInput.focus(),0);
+}
+
 async function enterAfterPasswordSignIn(user,bound,password){
   if(bound.state?.state==="READY"){markSuccessfulAuthBypass();await startApp();return;}
+  if(await hasPasswordResetPending(user.email)){await renderPasswordResetRecovery(user,password);return;}
   const saved=bound.identity?await readLocalAccountE2EEIdentity(user.uid,bound.identity):null;
   if(!saved){
     const local=bound.identity?await inspectLocalAccountE2EEIdentity(user.uid,bound.identity):null;
     if(local?.exists&&local.keyMatches&&!local.revisionMatches){await renderSessionUnlock(user,{hasIdentity:true,identity:bound.identity,password});return;}
+    if(bound.hasIdentity){await renderPasswordResetRecovery(user,password,{reason:"missing-local"});return;}
     throw new Error("Secure messaging is not available on this device. Rejoin or recover this installation.");
   }
   restoreLocalAccountE2EE(saved);
@@ -182,7 +201,7 @@ function renderSignIn(){
     const email=document.querySelector("#loginEmail").value.trim(),note=document.querySelector("#loginNote"),btn=document.querySelector("#forgotBtn");
     if(!email){note.innerHTML='<p class="warning-note">Enter your email address first.</p>';return;}
     btn.disabled=true;
-    try{await sendPasswordReset(email);note.innerHTML='<p class="small-note">Password reset email sent. Check your inbox.</p>';}
+    try{await sendPasswordReset(email);await markPasswordResetPending(email);note.innerHTML='<p class="small-note">Password reset email sent. After choosing the new password, return here to recover secure messaging with your existing FIDUNIO PIN.</p>';}
     catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
     finally{btn.disabled=false;}
   };
