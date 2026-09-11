@@ -268,3 +268,20 @@ Device acceptance remains required. Do not use Forgot Password or recovery for t
 7. Sign out and sign in again with the new password. Confirm normal PIN/biometric behavior and no repeated recovery screen.
 8. On the second device, sign in using the new password. If its local identity is current it must open normally; if unavailable it must offer PIN-gated recovery rather than the former stranded-installation error.
 9. Regress password change, direct/group send-receive, notifications, receipts, Outbox, attachments, Settings/Profile/User Administration, and app restart on iPhone and iPad.
+
+## FIDUNIO 1.1.29 N6 acceptance closeout
+
+**DEVICE ACCEPTED 2026-09-11.** The user reports cold and warm group-notification tests passed on both iPad and iPhone. The 1.1.28 intermittent permission banner did not recur on the 1.1.29 single-stream correction.
+
+## FIDUNIO 1.1.30 Sending → Sent visibility acceptance
+
+1. Confirm visible version 1.1.30 after two complete launches on iPhone and iPad.
+2. From each device, send one unique direct text and one unique group text.
+3. The outgoing bubble must appear immediately with **Sending** and remain continuously visible until it changes to **Sent**, **Delivered**, or **Read**.
+4. Repeat once while another message arrives or a receipt changes, exercising listener projection during the send.
+5. Repeat one direct and one group send after Wi-Fi is disabled; the row must remain visible as Queued/Sending and must not duplicate after reconnect.
+6. Send one attachment in direct and group chat; its staged row must remain visible through upload and confirmation.
+7. Press and hold one pending test row and delete it; it must not reappear from optimistic projection.
+8. Regress cold/warm group notifications, composer draft/focus, latest-message positioning and group receipts.
+
+Exit: every staged row remains visible, each exact authoritative server row replaces it once, no duplicate appears, all repository checks pass, and Pages serves 1.1.30.

@@ -333,6 +333,13 @@ The Settings Security host coordinates first setup through existing public opera
 - `app.js` owns one active group conversation identity and reuses the matching stream across notification, foreground and listener readiness signals.
 - `e2ee-account-group-conversation.js` owns stream closure. After close, no projection, granted-history read, receipt maintenance, error callback or late priority waiter may continue.
 - The existing activation, Firebase, E2EE, receipt, render, backend notification and membership owners remain unchanged.
+
+## FIDUNIO 1.1.30 optimistic outgoing projection boundary
+
+- `app.js` stages each text/attachment row and renders it before asynchronous Outbox preparation, as before.
+- `optimistic-outgoing-projection.js` is the sole memory-only reservation owner between that first paint and the exact authoritative Firestore row. Direct/group listener owners may merge around it but cannot erase it.
+- An exact server message ID replaces and releases the reservation. Explicit local purge/delete and sign-out also release it, preventing resurrection.
+- The owner cannot encrypt, persist Outbox data, attempt transport, write Firebase, mint receipt state, alter membership or interpret notifications. Those authorities remain unchanged.
 - N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.
 - Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
 - Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.

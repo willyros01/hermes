@@ -56,6 +56,7 @@ import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
 import {listPendingNotificationRoutes,consumePendingNotificationRoutes,groupPendingNotificationRoutes} from "./notification-pending-inbox.js";
+import {createOptimisticOutgoingProjectionOwner} from "./optimistic-outgoing-projection.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -100,6 +101,7 @@ let notificationInboxLoadPromise=null;
 let appActivationPromise=null;
 const appActivationReasons=new Set();
 const composerStateByConversation=new Map();
+const optimisticOutgoingProjection=createOptimisticOutgoingProjectionOwner();
 let pendingChatViewport=null;
 let chatRenderGeneration=0;
 let cloudConversationUnsub = null;
@@ -437,6 +439,7 @@ async function purgeLocalDisappearingMessageTraces(uid,messageIds){
     for(const row of historyWrites)history.put(row.value,row.key);
     for(const id of plan.outboxDeleteIds)outbox.delete(id);
     await txDone(tx);
+    for(const conversationId of Object.keys(state.messages))for(const messageId of ids)optimisticOutgoingProjection.release(conversationId,messageId);
     let attachmentUrlsReleased=0;
     const targetIds=new Set(ids);
     for(const [key,runtime] of [...attachmentRuntime.entries()]){
@@ -734,7 +737,7 @@ function beginCloudGroupMessageSubscription(groupId){
         ?planPartialDirectMessageProjection(existing,rows)
         :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:rows,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
-      state.messages[groupId]=[...projection.rows];
+      state.messages[groupId]=optimisticOutgoingProjection.project(groupId,projection.rows,{isHidden:messageId=>isMessageHidden(groupId,messageId)});
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
       if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
       if(state.route==="chat"&&String(state.selectedId)===String(groupId))render({background:true});
@@ -1007,7 +1010,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         ?planPartialDirectMessageProjection(existing,remote)
         :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:remote,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
-      const merged=[...projection.rows];
+      const merged=optimisticOutgoingProjection.project(conversationId,projection.rows,{isHidden:messageId=>isMessageHidden(conversationId,messageId)});
       state.messages[conversationId]=merged;
 
       const last=merged.at(-1);
@@ -1069,6 +1072,7 @@ async function initializeFirebaseLayer(){
         beginCloudGroupSubscription();
       }else{
         composerStateByConversation.clear();
+        optimisticOutgoingProjection.reset();
         attachmentReceiveService.releaseAll();
         for(const url of localAttachmentPreviewUrls)URL.revokeObjectURL(url);
         localAttachmentPreviewUrls.clear();
@@ -1749,6 +1753,7 @@ async function sendSelectedAttachmentFile(kind,file){
   const previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});
   const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),createdAt:new Date(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);
   localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});
+  optimisticOutgoingProjection.stage(c.id,stagedMessage);
   if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();
   try{
     const bytes=new Uint8Array(await file.arrayBuffer());
@@ -1796,6 +1801,7 @@ async function sendCurrent(){
   },state.settings.disappearingTextSeconds);
 
   if(!state.messages[conversationId]) state.messages[conversationId]=[];
+  optimisticOutgoingProjection.stage(conversationId,m);
   state.messages[conversationId].push(m);
   c.preview=messagePreview(text);
   c.time=m.time;

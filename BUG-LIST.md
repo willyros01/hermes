@@ -395,4 +395,13 @@ The service worker persists the validated opaque route locally before notificati
 - **Observed:** After successful N6 deployment, 2 of 4 iPad notification retrievals opened the correct group and displayed the exact message but also showed `Missing or insufficient permissions`.
 - **Cause:** Repeated activation could replace the same group stream, and the closed stream could continue asynchronous history/receipt maintenance and report a stale Firestore error.
 - **Correction:** Reuse the active conversation-bound group stream and make close a hard boundary for projection, history, receipts, errors and late priority reads.
-- **Status:** CORRECTION CANDIDATE — focused gates pass; full workflows, Pages and repeated device acceptance required.
+- **Status:** CLOSED / DEVICE ACCEPTED 2026-09-11 — cold and warm group notifications passed on both iPad and iPhone without the permission banner.
+
+## FIDUNIO 1.1.30 — outgoing Sending bubble disappears before Sent
+
+- **Observed:** After group-notification acceptance, a newly sent message vanished from the sender's conversation until Sent confirmation appeared.
+- **Risk:** The sender sees no evidence of the active attempt and may send a duplicate.
+- **Cause:** The established optimistic path rendered before Outbox persistence, but its permanent test checked source ordering only. It did not protect the visible row against an authoritative Firestore listener projection during asynchronous preparation.
+- **Correction:** One memory-only optimistic projection owner reserves the exact text/attachment row before first render. Direct and group snapshots merge it until the exact server ID appears; server authority then replaces it. Delete/purge and sign-out release it.
+- **Unchanged:** Firebase/Firestore data and rules, encrypted Outbox durability and attempt state, E2EE, receipts, notifications, groups/membership, attachments and backend Functions.
+- **Status:** 1.1.30 CORRECTION CANDIDATE — local focused gates pass; full baseline, deployment and iPhone/iPad acceptance required.

@@ -873,3 +873,15 @@ No point earned; completion remains 96%.
 - [x] Offer authenticated missing-local installations bounded PIN-gated recovery instead of stranding them.
 - [x] Add a permanent Forgot Password integration gate to the full workflow.
 - [ ] Complete full baseline, push runtime plus all outstanding documentation to `main`, verify workflows/Pages, and run the 1.1.27 device matrix.
+
+### FIDUNIO 1.1.30 optimistic outgoing projection correction
+
+- [x] Record 1.1.29 cold/warm group-notification acceptance on iPad and iPhone.
+- [x] Preserve the existing render-before-Outbox requirement.
+- [x] Add one memory-only owner that retains a staged outgoing text or attachment across direct/group listener projection.
+- [x] Release the reservation only on exact authoritative-ID projection, explicit purge/delete or sign-out.
+- [x] Keep encrypted Outbox, transport attempt, Firebase, E2EE, receipt, notification and membership authority unchanged.
+- [x] Add permanent behavioral coverage for empty/unrelated snapshots, confirmation, deletion and hidden-message non-resurrection.
+- [x] Reconfirm **Start Account Recovery** as a deferred selected-user action under User Administration in `TODO.md`.
+- [x] Complete full local non-emulator baseline, all five Firestore emulator security suites, Functions notification/delete tests, syntax, protected-config and diff checks.
+- [ ] Push the exact release to `main`, verify workflows/Pages, and complete the 1.1.30 device matrix.

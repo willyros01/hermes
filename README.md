@@ -803,3 +803,9 @@ Touched screens/functions: notification display/tap, PIN-to-chat transition, pen
 ## FIDUNIO 1.1.29 — stable group-notification retrieval
 
 Version 1.1.29 corrects the intermittent permission banner observed after an otherwise successful group notification route. Repeated activation now reuses the active group conversation stream, matching the accepted direct-message owner. Once replaced, an old stream cannot project, load history, write receipts, report errors or retain a late priority request. The backend group-notification deployment, Firestore rules, FCM payload, encryption, membership and Outbox are unchanged.
+
+Cold and warm group-notification acceptance passed on iPad and iPhone on 2026-09-11.
+
+## FIDUNIO 1.1.30 — continuous Sending visibility
+
+Version 1.1.30 closes a listener-projection race in the sender UI. A text or attachment that has been staged and painted remains visible as Sending/Queued while direct or group Firestore snapshots arrive. The exact authoritative server row replaces it normally, and deletion/sign-out cannot resurrect it. This memory-only projection rule supplements the earlier render-before-Outbox ordering gate without moving encrypted Outbox, transport, Firebase, E2EE, receipt, notification or membership authority.
