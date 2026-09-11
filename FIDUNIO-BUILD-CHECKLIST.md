@@ -950,5 +950,6 @@ No point earned; completion remains 96%.
 - [x] Converge participant devices only from full server-backed list absence, including encrypted history and conversation-bound Outbox cleanup.
 - [x] Add the permanent focused gate to the Rebuild Baseline workflow and advance the installed PWA to 1.1.35.
 - [x] Complete all 84 non-emulator workflow steps and all six Firestore emulator suites, including the new deletion-barrier suite; syntax, diff and focused authority gates pass.
-- [ ] Publish exact runtime tree to `main`, verify Rebuild Baseline and Pages, and deploy `deleteConversationForEveryoneV1` plus Firestore rules.
+- [x] Publish exact implementation tree `82c6f1636bef2c9e5356ebc0718abc933f0af557` to `main` as `ca265dfe2f5bafc87bdba34e5c9fe4afc1968023`; publish pinned deploy script in follow-up `522be7b3801456e9d49aac4daa7bf1a73f96a976`.
+- [ ] Verify Rebuild Baseline and Pages, then deploy `deleteConversationForEveryoneV1` plus Firestore rules with the pinned script.
 - [ ] Complete repeated direct/group iPhone/iPad multi-device archive/delete/attachment/Outbox/recreate acceptance.
