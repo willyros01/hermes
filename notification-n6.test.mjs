@@ -36,6 +36,7 @@ assert.match(routeOwner,/getCloudGroupFromServer\(route\.conversationId,firebase
 assert.match(routeOwner,/beginCloudGroupMessageSubscription\(c\.id\)[\s\S]*?prioritizeGroupMessageForApp\(c\.id,route\.messageId\)/);
 assert.match(routeOwner,/state\.selectedId=c\.id;state\.route="chat"/);
 assert.equal((app.match(/applyPendingNotificationRoute\(\)/g)||[]).length,2);
+assert.match(app,/cloudGroupMessageConversationId[\s\S]*?===wanted\)return/);
 
 assert.match(firebase,/export async function getCloudGroupFromServer[\s\S]*?getDocFromServer/);
 assert.match(firebase,/export async function getCloudGroupMessageFromServer[\s\S]*?getDocFromServer/);
@@ -44,5 +45,7 @@ assert.match(groupOwner,/const priorities=new Map\(\)/);
 assert.match(groupOwner,/if\(priority\)[\s\S]*?if\(!pendingSnapshot\)break/);
 assert.match(groupOwner,/await onRows\?\.\(merged,meta\)/);
 assert.doesNotMatch(groupOwner,/state\.|render\(/);
+
+assert.match(groupOwner,/if\(closed\)return;[\s\S]*?for\(const messageId of receiptUpdates\)\{if\(closed\)return;/);
 
 console.log("FCM N6 group notification single-owner and privacy integration gate passed");

@@ -112,6 +112,7 @@ let cloudGroupSyncPending = false;
 let groupCandidates = [];
 let cloudMessageUnsub = null;
 let cloudMessageConversationId = null;
+let cloudGroupMessageConversationId = null;
 let deviceSecurityInfo = null;
 let deviceRegistryStatus = "";
 let myRegisteredDevices = [];
@@ -574,7 +575,7 @@ async function applyPendingNotificationRoute(){
         c=mergeCloudConversation(remote);
       }
       if(!c?.cloud||c?.cloudGroup||c?.type==="group")return false;
-      closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
+      stopCloudGroupMessageSubscription();beginCloudMessageSubscription(c.id,{force:true});
     }
     let messageReady=notificationMessageHasProjected(route);
     if(!messageReady){
@@ -688,6 +689,10 @@ function stopCloudMessageSubscription(){
   if(cloudMessageUnsub){ cloudMessageUnsub(); cloudMessageUnsub=null; }
   cloudMessageConversationId=null;
 }
+function stopCloudGroupMessageSubscription(){
+  closeGroupForApp();
+  cloudGroupMessageConversationId=null;
+}
 function beginCloudConversationSubscription(){
   if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
   if(!firebaseUser) return;
@@ -712,10 +717,13 @@ function ensureActiveCloudMessageSubscription(force=false){
   if(!firebaseUser || state.route!=="chat") return;
   const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));
   if(c?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(c.id);}
-  else if(c?.cloud){closeGroupForApp();beginCloudMessageSubscription(c.id,{force});}
+  else if(c?.cloud){stopCloudGroupMessageSubscription();beginCloudMessageSubscription(c.id,{force});}
 }
 function beginCloudGroupMessageSubscription(groupId){
-  if(!firebaseUser)return;
+  const wanted=String(groupId||"");
+  if(!firebaseUser||!wanted)return;
+  if(String(cloudGroupMessageConversationId||"")===wanted)return;
+  stopCloudGroupMessageSubscription();
   openGroupForApp(groupId,{
     isOpen:()=>state.route==="chat"&&String(state.selectedId)===String(groupId),
     onRows:async (rows,meta={})=>{
@@ -736,6 +744,7 @@ function beginCloudGroupMessageSubscription(groupId){
     },
     onError:err=>{firebaseError=err?.message||String(err);}
   });
+  cloudGroupMessageConversationId=wanted;
 }
 
 /* FIDUNIO direct-message E2EE foundation */
@@ -1065,6 +1074,7 @@ async function initializeFirebaseLayer(){
         localAttachmentPreviewUrls.clear();
         attachmentRuntime.clear();
         resetGroupAppIntegrationForSignOut();
+        cloudGroupMessageConversationId=null;
         resetAccountE2EEForSignOut();
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
         stopPeerDisplayNameSubscription();
@@ -1226,8 +1236,8 @@ function drawTabletConversationList(term=""){
     const chosen=state.conversations.find(x=>String(x.id)===String(state.selectedId));
     if(chosen) chosen.unread=0;
     if(chosen?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(chosen.id);}
-    else if(chosen?.cloud){closeGroupForApp();beginCloudMessageSubscription(chosen.id,{force:true});}
-    else{closeGroupForApp();stopCloudMessageSubscription();}
+    else if(chosen?.cloud){stopCloudGroupMessageSubscription();beginCloudMessageSubscription(chosen.id,{force:true});}
+    else{stopCloudGroupMessageSubscription();stopCloudMessageSubscription();}
     render();
   });
 }
@@ -1478,8 +1488,8 @@ function renderMessages(){
       const chosen=state.conversations.find(x=>String(x.id)===String(state.selectedId));
       if(chosen)chosen.unread=0;
       if(chosen?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(chosen.id);}
-      else if(chosen?.cloud){closeGroupForApp();beginCloudMessageSubscription(chosen.id,{force:true});}
-      else{closeGroupForApp();stopCloudMessageSubscription();}
+      else if(chosen?.cloud){stopCloudGroupMessageSubscription();beginCloudMessageSubscription(chosen.id,{force:true});}
+      else{stopCloudGroupMessageSubscription();stopCloudMessageSubscription();}
       render();
     });
   };

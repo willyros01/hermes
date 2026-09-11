@@ -697,9 +697,19 @@ No point earned; completion remains 96%.
 - [x] Feed the exact notified row through the existing serialized group decrypt/projection owner before snapshot/cache/receipt maintenance.
 - [x] Consume only after exact row and group composer are mounted; fail closed for missing/unauthorized targets and retain transient failures.
 - [x] Add permanent backend privacy/fan-out and frontend single-owner N6 gates; retain direct N5 and activation/composer gates.
-- [ ] Push exact 1.1.28 candidate to `main`; verify all workflows and live Pages.
+- [x] Push exact 1.1.28 candidate to `main`; verify all workflows and live Pages.
 - [ ] Deploy and verify only `recovery:notifyGroupMessageCreatedV1` through the pinned Cloud Shell handoff.
 - [ ] Device acceptance: iPhone/iPad, warm/background and terminated/cold, one group and multiple pending conversations, multiple installations, sender exclusion, removed member, deleted message, direct-notification regression, group compose/receipt/scroll regression.
+
+## FIDUNIO 1.1.29 N6 group retrieval correction
+
+- [x] Record the iPad result: exact group/message displayed, but 2 of 4 trials showed `Missing or insufficient permissions`.
+- [x] Preserve the live 1.1.28 backend Function; do not redeploy rules or backend notification code.
+- [x] Retain one active group conversation identity and reuse its stream across repeated activation.
+- [x] Make stream close terminate projection, history, receipt, error and late-priority work.
+- [x] Add permanent N6 and receipt/lifecycle regression assertions.
+- [ ] Pass the complete repository security gate and exact Pages deployment.
+- [ ] Repeat iPad and iPhone background/cold group notification tests at least five times each with no permission banner.
 - [ ] iPhone and iPad device acceptance passes.
 
 - [x] Initial full gate 34436219194: notification N2/N3/N4/N5 and preceding security stages passed; stopped only at stale 1.1.9 shell-revision assertion.

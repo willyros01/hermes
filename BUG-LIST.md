@@ -390,3 +390,9 @@ The service worker persists the validated opaque route locally before notificati
 ### FDA-AUTH-003 — Forgot Password resets Firebase but strands E2EE recovery
 
 **Severity:** Critical recovery defect. **Root cause:** the sign-in button sent a valid Firebase reset email but created no durable transition to the established E2EE recovery owner. A same-device local key could hide the mismatch while leaving the cloud wrapper under the old password; an installation without the matching local key was rejected before it could reach the recovery button inside Settings. **1.1.27 correction:** persist an expiring email-bound reset handoff after Firebase accepts the reset-email request; after successful sign-in, keep the app closed and present one authentication-owned recovery screen requiring the existing six-digit PIN. The existing server session restores the same key, rewraps it with the new password, saves the current local revision, then consumes the handoff. Authenticated missing-local installations are offered the same cryptographic recovery rather than stranded. Failures remain on the recovery screen and server retry/hold limits remain authoritative.
+## FIDUNIO 1.1.29 — intermittent group-notification permission banner
+
+- **Observed:** After successful N6 deployment, 2 of 4 iPad notification retrievals opened the correct group and displayed the exact message but also showed `Missing or insufficient permissions`.
+- **Cause:** Repeated activation could replace the same group stream, and the closed stream could continue asynchronous history/receipt maintenance and report a stale Firestore error.
+- **Correction:** Reuse the active conversation-bound group stream and make close a hard boundary for projection, history, receipts, errors and late priority reads.
+- **Status:** CORRECTION CANDIDATE — focused gates pass; full workflows, Pages and repeated device acceptance required.

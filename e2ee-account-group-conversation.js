@@ -26,19 +26,23 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
   const priorityReads=new Map();
   let rawRows=[],memberUids=[],closed=false,pendingSnapshot=null,running=null;
   const emit=async(rows,meta)=>{
+    if(closed)return;
     const live=[],receiptUpdates=[];
     for(const row of rows){
       let text="[Encrypted group message — account encryption unavailable]",decryptAvailable=false;
-      try{text=await decryptAccountGroupMessage({groupId:key,messageId:row.id,row});decryptAvailable=true;}catch(err){onError?.(err);}
+      try{text=await decryptAccountGroupMessage({groupId:key,messageId:row.id,row});decryptAvailable=true;}catch(err){if(!closed)onError?.(err);}
       live.push({id:row.id,mine:row.senderUid===id.uid,senderUid:row.senderUid,text,time:row.timeLabel||"",state:aggregateReceipt(row,receiptRows.get(row.id),id.uid,memberUids),cloud:true,e2ee:4,keyEpoch:row.keyEpoch,createdAt:asDate(row.createdAt),disappearAfterSeconds:row.disappearAfterSeconds??null,decryptAvailable});
       if(decryptAvailable&&row.senderUid!==id.uid)receiptUpdates.push(row.id);
     }
 
+    if(closed)return;
     let granted=[];
-    if(meta?.partial!==true)try{granted=await loadAccountGroupGrantedHistory(key);}catch(err){onError?.(err);}
+    if(meta?.partial!==true)try{granted=await loadAccountGroupGrantedHistory(key);}catch(err){if(!closed)onError?.(err);}
+    if(closed)return;
     const merged=mergeGroupHistoryProjection(live,granted);
     if(!closed)await onRows?.(merged,meta);
-    if(meta?.partial!==true)for(const messageId of receiptUpdates){try{await updateCloudGroupReceipt(key,messageId,isOpen()?"read":"delivered");}catch(err){onError?.(err);}}
+    if(closed)return;
+    if(meta?.partial!==true)for(const messageId of receiptUpdates){if(closed)return;try{await updateCloudGroupReceipt(key,messageId,isOpen()?"read":"delivered");}catch(err){if(!closed)onError?.(err);}}
   };
   const authorityReady=readCloudGroupAuthority(key).then(a=>{memberUids=a.memberUids||[];});
   const priorities=new Map();
@@ -53,11 +57,11 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
         const snapshot=pendingSnapshot;pendingSnapshot=null;
         try{await emit(snapshot.rows,snapshot.meta);}catch(error){onError?.(error);}
       }
-    })().catch(error=>onError?.(error)).finally(()=>{running=null;if(!closed&&(priorities.size||pendingSnapshot))start();});
+    })().catch(error=>{if(!closed)onError?.(error);}).finally(()=>{running=null;if(!closed&&(priorities.size||pendingSnapshot))start();});
     return running;
   };
-  const offerSnapshot=(rows,meta={})=>{pendingSnapshot={rows,meta};start();};
-  const offerPriority=(messageId,row)=>new Promise((resolve,reject)=>{const item=priorities.get(messageId)||{messageId,rows:[row],meta:{fromCache:false,hasPendingWrites:false,partial:true,priorityMessageId:messageId},waiters:[]};item.rows=[row];item.waiters.push({resolve,reject});priorities.set(messageId,item);start();});
+  const offerSnapshot=(rows,meta={})=>{if(closed)return;pendingSnapshot={rows,meta};start();};
+  const offerPriority=(messageId,row)=>new Promise((resolve,reject)=>{if(closed){reject(new Error("Group message delivery owner closed."));return;}const item=priorities.get(messageId)||{messageId,rows:[row],meta:{fromCache:false,hasPendingWrites:false,partial:true,priorityMessageId:messageId},waiters:[]};item.rows=[row];item.waiters.push({resolve,reject});priorities.set(messageId,item);start();});
   const unsub=subscribeCloudGroupMessages(key,(rows,meta={})=>{
     rawRows=rows||[];const snapshotMeta={fromCache:meta.fromCache===true,hasPendingWrites:meta.hasPendingWrites===true};
     for(const row of rawRows){

@@ -12,10 +12,15 @@ assert.match(app,/visibilitychange/);
 assert.match(app,/pageshow/);
 assert.match(app,/function requestAppActivation\(reason\)/);
 assert.doesNotMatch(app,/ensureActiveCloudMessageSubscription\(true\)/,"lifecycle activation must reuse the owned subscription instead of force-replacing it");
+assert.match(app,/let cloudGroupMessageConversationId\s*=\s*null/,"group messaging must retain the active conversation identity");
+assert.match(app,/cloudGroupMessageConversationId[\s\S]*?===wanted\)return/,"repeated activation must reuse the active group stream");
 assert.match(group,/subscribeCloudGroupReceipts/);
 assert.match(group,/const priorities=new Map\(\)/,"group delivery must use the owned keyed priority queue");
 assert.match(group,/offerSnapshot\(rawRows,snapshotMeta\)/,"listener snapshots must re-enter the same group delivery owner");
 assert.match(group,/const priority=priorities\.values\(\)\.next\(\)\.value;[\s\S]*?if\(!pendingSnapshot\)break/,"priority messages must be processed before a coalesced listener snapshot");
 assert.match(group,/isOpen\(\)\?\"read\":\"delivered\"/);
+
+assert.match(group,/if\(closed\)return;[\s\S]*?for\(const messageId of receiptUpdates\)\{if\(closed\)return;/,"a replaced group stream must not continue receipt maintenance");
+assert.match(group,/offerPriority[\s\S]*?if\(closed\)\{reject\(new Error\("Group message delivery owner closed\."\)\);return;\}/,"a late priority read must settle after its stream is replaced");
 
 console.log("Receipt and lifecycle stabilization anchors passed");
