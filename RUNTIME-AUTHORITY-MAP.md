@@ -311,6 +311,8 @@ Accepted direct-message physical deletion belongs only to callable `deleteDirect
 
 As of 0.9.9.9k that callable also owns accepted group-message physical deletion when explicitly requested as a group operation. It revalidates original sender and current membership and transactionally removes receipts, history-grant traces, and the group source; the UI remains sender-only.
 
+FIDUNIO 1.1.32 adds bounded bulk selection to that same authority through `deleteMyMessagesForEveryoneV1`. The server repository alone lists up to 25 direct/group rows with authoritative `senderUid == authenticated UID`; the shared deletion core revalidates each source and preserves attachment/group-trace-before-source ordering. `app.js` owns only Direct Chat Info/Group Info confirmation, progress, serialized page requests and local purge of confirmed IDs. It does not list server authority or gain Firestore delete access. Messages from other senders and unsent Outbox rows remain outside the operation.
+
 User access presentation is governed by `USER-ACCESS-KEY-UX.md`: email/password plus one six-digit FIDUNIO PIN are visible; internal cryptographic resources retain distinct code owners and domain separation but no ordinary-user controls.
 
 The Settings Security host coordinates first setup through existing public operations. `settings-lifecycle.js` owns the DOM and serialization; `local-security.js` remains sole installation-verifier owner; `e2ee-account-runtime.js` remains sole account-identity lifecycle facade. The same transient user PIN never creates shared derived key material or another storage owner.

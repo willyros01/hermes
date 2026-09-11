@@ -813,3 +813,9 @@ Version 1.1.30 closes a listener-projection race in the sender UI. A text or att
 ## FIDUNIO 1.1.31 — restore accepted direct messaging
 
 Device feedback rejected the direct portion of 1.1.30. Version 1.1.31 removes the group-only optimistic reservation from direct listener projection and direct text/attachment staging, restoring the accepted 1.1.29 direct behavior. Group handling remains separate. A permanent isolation gate prevents this ownership crossover from recurring.
+
+## FIDUNIO 1.1.32 — mass delete my sent messages
+
+Version 1.1.32 adds **Delete My Sent Messages** to Direct Chat Info and Group Info. After an explicit irreversible confirmation, one serialized client operation calls the existing server deletion authority in pages of at most 25 authoritative rows selected by `senderUid == authenticated UID`. Every row is revalidated as sender-owned and membership-authorized; attachments are removed before the source, and group receipts/history-grant copies are cleaned through the established group deletion repository. Confirmed IDs are physically purged from local message/history/Outbox projections and attachment URLs, with visible progress.
+
+The feature does not grant system owners or group administrators authority over another sender's content. Messages from other people and Queued/Sending/Failed unsent rows are preserved. No client Firestore delete, tombstone, second Firebase owner, message/E2EE/receipt/Outbox format change, notification change, or conversation-delete/archive behavior is introduced. The new callable must be deployed under the existing dedicated message-delete service account before device testing. Permanent core and UI/ownership gates cover direct/group selection, bounded paging, attachment-before-source order, confirmation wording, serialization, and local purge.

@@ -898,3 +898,18 @@ No point earned; completion remains 96%.
 - [x] Complete full local non-emulator validation, all five Firestore emulator suites, Functions notification/delete tests, syntax, protected-config and diff checks.
 - [ ] Push to `main` and verify Pages/security checks.
 - [ ] Complete the narrow bidirectional iPhone/iPad direct-message acceptance.
+
+### FIDUNIO 1.1.32 mass sender-owned message deletion
+
+- [x] Extend the existing message-delete core rather than add client Firestore delete or a second backend owner.
+- [x] Select only authoritative direct/group rows whose `senderUid` equals the authenticated UID, in server pages of at most 25.
+- [x] Revalidate sender and membership per row and preserve attachment/group receipt/history-trace cleanup before source deletion.
+- [x] Add **Delete My Sent Messages** to Direct Chat Info and Group Info with irreversible confirmation, disabled controls and visible count progress.
+- [x] Serialize client page requests and physically purge only server-confirmed IDs from UID-local state/history/attachment runtime.
+- [x] Preserve messages from other senders and Queued/Sending/Failed Outbox rows.
+- [x] Add permanent callable-core and UI/ownership gates to the full baseline workflow.
+- [x] Complete all 72 non-emulator test groups, all five Firestore emulator security suites, Functions import, syntax, protected-config and diff checks locally.
+- [ ] Push the complete 1.1.31 + 1.1.32 runtime and pending todo documentation to `main`; verify security workflows and Pages.
+- [x] Prepare short root script `m.txt`, pinned to implementation commit `a52b65f85141b18217d8951525cd7b568682010e`, to deploy and verify only `deleteMyMessagesForEveryoneV1`.
+- [ ] Deploy and verify `deleteMyMessagesForEveryoneV1` using the dedicated message-delete identity.
+- [ ] Complete the direct/group iPhone/iPad acceptance matrix in `DEVICE-ACCEPTANCE-BUGS.md`.

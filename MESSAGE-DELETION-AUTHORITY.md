@@ -24,6 +24,14 @@ Accepted sent or received direct/group messages may be removed only from the cur
 
 The 0.9.9.9k client exposes pending outgoing cancellation, local Delete for Me, and sender-owned accepted direct/group Delete for Everyone through the existing long-press action. The callable is deployed under dedicated identity `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com`; the updated group path requires deployment and real-device acceptance.
 
+## FIDUNIO 1.1.32 — mass sender-owned deletion
+
+**Delete My Sent Messages** extends the same server deletion owner to one selected direct or group conversation. The client never enumerates deletion authority from its visible cache and never receives Firestore delete permission. Callable `deleteMyMessagesForEveryoneV1` verifies current membership, queries a maximum of 25 authoritative message rows whose `senderUid` equals the authenticated UID, and reuses the single-message sender/member revalidation plus attachment-before-source cleanup for every row. Group rows retain receipt and history-grant cleanup. The client serially requests additional bounded pages, physically purges only the confirmed IDs from its local message/history cache, releases attachment URLs, updates visible progress, and stops explicitly on failure.
+
+The action does not depend on FIDUNIO system-owner or group-admin status: “My” means the authenticated original sender. It cannot delete another sender's message. Pending Queued, Sending or Failed Outbox rows are outside this operation and retain their existing individual cancellation path. Direct Chat Info and Group Info are the only predefined UI entry areas, followed by an irreversible confirmation. The existing single-message callable and client delete-deny Firestore rules remain unchanged.
+
+Repository implementation and permanent focused gates are complete. Live deployment of `deleteMyMessagesForEveryoneV1` plus direct/group iPhone/iPad acceptance remain required before device closeout.
+
 ## Acceptance
 
 - Pending deletion survives restart and reconnect and never retries.
@@ -31,3 +39,4 @@ The 0.9.9.9k client exposes pending outgoing cancellation, local Delete for Me, 
 - A recipient cannot delete another sender's source message.
 - Associated attachment objects are removed before the source message.
 - Failure remains explicit; no local success is shown unless the callable succeeds.
+- A bulk operation removes only authenticated-sender rows, preserves other senders and unsent Outbox rows, displays progress, and converges after restart on direct and group devices.

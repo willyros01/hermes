@@ -122,6 +122,18 @@ export const deleteDirectMessageForEveryoneV1 = onCall(
   request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request)
 );
 
+export const deleteMyMessagesForEveryoneV1 = onCall(
+  {
+    region:"us-central1",
+    serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,
+    enforceAppCheck:REQUIRE_APP_CHECK,
+    timeoutSeconds:60,
+    memory:"256MiB",
+    maxInstances:10
+  },
+  request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request)
+);
+
 export const notifyDirectMessageCreatedV1 = onDocumentCreated(
   {
     document:"conversations/{conversationId}/messages/{messageId}",

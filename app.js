@@ -28,7 +28,8 @@ import {
   uploadEncryptedAttachment,
   downloadEncryptedAttachment,
   deleteCloudDirectMessageForEveryone,
-  deleteCloudGroupMessageForEveryone
+  deleteCloudGroupMessageForEveryone,
+  deleteCloudMyMessagesForEveryone
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -90,6 +91,7 @@ let localKeyPromise = null;
 let hydrated = false;
 let persistTimer = null;
 let localPurgeTail=Promise.resolve();
+let bulkMessageDeleteTail=Promise.resolve();
 let reconnectRecoveryTail=Promise.resolve();
 let firebaseReady = false;
 let firebaseError = "";
@@ -461,6 +463,24 @@ async function deleteMessageForMe(conversationId,messageId){
   const c=state.conversations.find(x=>String(x.id)===cid),last=state.messages[cid]?.at(-1);
   if(c){c.preview=messagePreview(last?.text);c.time=last?.time||"";}
   await persistState();
+}
+function deleteMySentMessagesForEveryone(conversationId,messageKind,onProgress){
+  const run=bulkMessageDeleteTail.then(async()=>{
+    if(!firebaseUser)throw new Error("A signed-in account is required to delete sent messages.");
+    if(!state.online)throw new Error("Connect to the internet before deleting sent messages for everyone.");
+    const cid=String(conversationId||"");let total=0,rounds=0;
+    while(rounds++<200){
+      const result=await deleteCloudMyMessagesForEveryone(cid,messageKind);
+      const ids=[...new Set((result?.deletedMessageIds||[]).map(String).filter(Boolean))];
+      if(ids.length){await purgeLocalDisappearingMessageTraces(firebaseUser.uid,ids);total+=ids.length;onProgress?.(total);}
+      if(!result?.hasMore)break;
+    }
+    if(rounds>200)throw new Error("Deletion stopped safely before exceeding the bounded operation limit. Select the action again to continue.");
+    const c=state.conversations.find(x=>String(x.id)===cid),last=state.messages[cid]?.at(-1);
+    if(c){c.preview=messagePreview(last?.text);c.time=last?.time||"";}
+    await persistState();return total;
+  });
+  bulkMessageDeleteTail=run.catch(()=>{});return run;
 }
 
 async function cacheCloudHistory(conversationId,messages){
@@ -2111,6 +2131,7 @@ ${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':
 <h2>Group Controls</h2>
 <div class="row"><div class="row-main"><strong>History policy</strong><span>New members see messages only from the time they join. An administrator may deliberately grant earlier history from the beginning or a selected date.</span></div><span class="role-tag">From join</span></div>
 <div class="row"><div class="row-main"><strong>Encryption</strong><span>Account-authoritative group E2EE with membership-bound key epochs.</span></div><span class="role-tag">E2EE</span></div>
+<button class="danger-btn" id="bulkDeleteSentBtn">Delete My Sent Messages</button>
         </div>
         ${isOwner?'<p class="small-note">The group owner cannot leave until ownership transfer is deliberately implemented.</p>':'<button class="danger-btn" id="leaveBtn">Leave Group</button>'}
       </section>
@@ -2121,6 +2142,7 @@ ${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':
   document.querySelectorAll(".historyGrantBtn").forEach(btn=>btn.onclick=()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member)return;state.modal={type:"history",memberId:member.id,historyChoice:"beginning",historyDate:""};render();});
   document.querySelectorAll(".removeMemberBtn").forEach(btn=>btn.onclick=async()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member||!confirm(`Remove ${member.name} from this group?`))return;btn.disabled=true;try{await removeGroupMemberForApp(c.id,member.id);}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}});
   const leave=document.querySelector("#leaveBtn");if(leave)leave.onclick=async()=>{if(!confirm(`Leave ${c.name}? You will lose access to future messages.`))return;leave.disabled=true;try{await leaveGroupForApp(c.id);state.route="messages";state.selectedId=null;}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
+  const bulkDelete=document.querySelector("#bulkDeleteSentBtn");if(bulkDelete)bulkDelete.onclick=()=>{state.modal={type:"bulkDeleteSentConfirm",conversationId:c.id,messageKind:"group",conversationName:c.name};render();};
 }
 
 function openAddMemberModal(){
@@ -2306,10 +2328,28 @@ function renderModal(){
         <h2>Chat Info</h2>
         <p><strong>${esc(c?.name||"FIDUNIO contact")}</strong></p>
         <p class="small-note">One-to-one FIDUNIO conversation.</p>
-        <button class="secondary" id="modalCancel">Close</button>
+        <div class="modal-actions"><button class="danger-btn" id="bulkDeleteSentBtn">Delete My Sent Messages</button><button class="secondary" id="modalCancel">Close</button></div>
       </div>`;
     document.body.appendChild(host);
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
+    host.querySelector("#bulkDeleteSentBtn").onclick=()=>{state.modal={type:"bulkDeleteSentConfirm",conversationId:modal.conversationId,messageKind:"direct",conversationName:c?.name||"this conversation"};host.remove();render();};
+  } else if(modal.type==="bulkDeleteSentConfirm"){
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteSentTitle">
+        <h2 id="bulkDeleteSentTitle">Delete My Sent Messages?</h2>
+        <p>This permanently removes every message you sent in <strong>${esc(modal.conversationName||"this conversation")}</strong> for everyone, including its attachments. Messages sent by other people and unsent queued or failed messages are not deleted.</p>
+        <p class="warning-note">This cannot be undone.</p>
+        <div class="modal-actions message-delete-actions"><button class="modal-delete" id="bulkDeleteConfirmBtn">Delete My Sent Messages</button><button class="modal-cancel" id="modalCancel">Cancel</button></div>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+    const confirmButton=host.querySelector("#bulkDeleteConfirmBtn");confirmButton.onclick=async()=>{
+      confirmButton.disabled=true;host.querySelector("#modalCancel").disabled=true;confirmButton.textContent="Deleting…";
+      try{
+        const count=await deleteMySentMessagesForEveryone(modal.conversationId,modal.messageKind,total=>{if(confirmButton.isConnected)confirmButton.textContent=`Deleting… ${total}`;});
+        state.modal=null;host.remove();render();alert(count?`${count} sent message${count===1?"":"s"} deleted for everyone.`:"No sent messages were found.");
+      }catch(err){confirmButton.disabled=false;host.querySelector("#modalCancel").disabled=false;confirmButton.textContent="Delete My Sent Messages";alert(err?.message||String(err));}
+    };
   } else if(modal.type==="conversationSecurity"){
     const c=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const peerUid=modal.peerUid || c?.peerUid || null;

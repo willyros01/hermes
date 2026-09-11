@@ -297,3 +297,17 @@ Exit: every staged row remains visible, each exact authoritative server row repl
 5. Confirm no disappearance, duplicate, delayed reappearance or group-notification regression.
 
 This acceptance is deliberately limited to the restored direct-message behavior.
+
+## FIDUNIO 1.1.32 mass sender-deletion acceptance
+
+Prerequisite: Pages serves visible version 1.1.32 and callable `deleteMyMessagesForEveryoneV1` is ACTIVE under `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com`.
+
+1. In one direct conversation, create at least two accepted messages from the test sender, one accepted message from the other account, and one sender attachment. Restart both devices and confirm all rows are present.
+2. On the sender device open **Chat Info → Delete My Sent Messages**. Confirm the warning names the conversation, says the operation is for everyone and cannot be undone, and says other people's and unsent messages are preserved.
+3. Cancel once and confirm nothing changes. Reopen, confirm deletion, and observe disabled controls plus **Deleting…** progress followed by the exact deleted count.
+4. Confirm every accepted sender-owned text/attachment disappears on sender and recipient, while the other account's message remains. Close/reopen both devices and confirm deleted rows do not return.
+5. Repeat steps 1–4 in a group with accepted rows from the deleting sender and at least two other members. Confirm other senders' rows, membership, group history access, receipts for retained rows, and group notifications remain functional.
+6. If practical, queue or fail one unsent message before the operation; confirm it remains available under its existing individual retry/cancel behavior and is not counted as a sent-message deletion.
+7. Regress single-message **Delete for Me**, sender-only **Delete for Everyone**, bidirectional direct Sending → Sent → Delivered → Read, group send/receipts, one new attachment, and iPhone/iPad large-text layout.
+
+Exit: only the authenticated sender's accepted rows are physically absent everywhere, attachment/group traces do not reappear, other senders and unsent rows remain, failure is explicit, and the existing messaging/notification paths pass regression.

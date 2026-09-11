@@ -2,6 +2,18 @@ export function createMessageDeleteAdminRepositories({db,bucket}){
   if(!db||!bucket)throw new Error("Firestore and Storage admin services are required.");
   return Object.freeze({
     messageRepo:Object.freeze({
+      async listDirectMessageIdsBySender({conversationId,senderUid,limit}){
+        const conversationRef=db.doc(`conversations/${conversationId}`),conversation=await conversationRef.get();
+        if(!conversation.exists||!Array.isArray(conversation.data()?.members)||!conversation.data().members.map(String).includes(String(senderUid)))throw Object.assign(new Error("Conversation membership is required."),{code:"DELETE_DENIED"});
+        const snap=await conversationRef.collection("messages").where("senderUid","==",String(senderUid)).limit(Number(limit)).get();
+        return(snap.docs||[]).map(doc=>String(doc.id));
+      },
+      async listGroupMessageIdsBySender({groupId,senderUid,limit}){
+        const groupRef=db.doc(`groups/${groupId}`),group=await groupRef.get();
+        if(!group.exists||!Array.isArray(group.data()?.memberUids)||!group.data().memberUids.map(String).includes(String(senderUid)))throw Object.assign(new Error("Group membership is required."),{code:"DELETE_DENIED"});
+        const snap=await groupRef.collection("messages").where("senderUid","==",String(senderUid)).limit(Number(limit)).get();
+        return(snap.docs||[]).map(doc=>String(doc.id));
+      },
       async readDirectMessage({conversationId,messageId}){
         const conversationRef=db.doc(`conversations/${conversationId}`),messageRef=conversationRef.collection("messages").doc(messageId);
         const [conversation,message]=await Promise.all([conversationRef.get(),messageRef.get()]);

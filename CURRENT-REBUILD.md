@@ -499,3 +499,11 @@ Runtime commit `b3bcaa8014b35c9bfffb908555fa9052bc7cd60f` is on `main`. Rebuild 
 ## FIDUNIO 1.1.31 — direct-message projection restore
 
 Real-device feedback rejected the direct-message scope of 1.1.30: Sending/Sent/Read behavior regressed after the new optimistic reservation was connected to both group and direct paths. Version 1.1.31 surgically restores the accepted direct listener projection and direct text/attachment staging boundaries to their 1.1.29 form. The reservation remains group-only. No direct Outbox, encryption, Firebase write, receipt, notification, group membership or backend logic changes. A permanent isolation gate prevents the group-only owner from entering direct projection again.
+
+## FIDUNIO 1.1.32 — bounded mass sender deletion
+
+Item 4 is repository-implemented through the existing message-deletion authority. Direct Chat Info and Group Info expose **Delete My Sent Messages** and one owned confirmation/progress modal. `firebase.js` remains the sole callable bridge. New callable `deleteMyMessagesForEveryoneV1` uses the existing dedicated message-delete service account and server repositories, verifies current membership, selects no more than 25 rows per invocation by authenticated `senderUid`, then reuses the existing per-message sender revalidation and attachment/group-trace-before-source cleanup. The client serially drains further pages and physically purges only server-confirmed IDs from local state/history.
+
+Other senders' rows and unsent Outbox rows are outside scope. Direct send/receive/receipts, group E2EE/membership/history, notification routing, attachment transport, disappearing-content semantics, PIN/auth, Settings, conversation deletion/archive, and protected Firebase configuration are unchanged. All 72 non-emulator test groups and all five Firestore emulator security suites pass locally; live callable deployment, `main`/Pages verification, and direct/group device acceptance remain release requirements.
+
+Short root Cloud Shell script `m.txt` is pinned to reviewed implementation commit `a52b65f85141b18217d8951525cd7b568682010e`; it preflights the complete Functions graph, deploys only `deleteMyMessagesForEveryoneV1`, and verifies ACTIVE state plus the dedicated runtime service account.
