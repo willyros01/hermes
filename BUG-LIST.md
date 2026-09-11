@@ -393,7 +393,7 @@ The service worker persists the validated opaque route locally before notificati
 
 ### FDA-MASSDEL-001 — server deletion succeeds but one sender row lingers
 
-**Severity:** High acceptance defect. **1.1.32 evidence:** two Sent direct messages were deleted from sender and receiver, but one sender row remained until the final listener snapshot. **Cause:** sequential backend deletion emitted an intermediate snapshot that repainted the later row after local purge. **1.1.33 correction:** a conversation-keyed memory-only projection owner suppresses only server-confirmed deleted IDs until full server-backed absence. It introduces no timer, reload, forced listener, persistent tombstone, backend change or second authority. Status: correction candidate pending full gate, Pages and repeat direct/group device acceptance.
+**Severity:** High acceptance defect. **1.1.32 evidence:** two Sent direct messages were deleted from sender and receiver, but one sender row remained until the final listener snapshot. **Cause:** sequential backend deletion emitted an intermediate snapshot that repainted the later row after local purge. **1.1.33 correction:** a conversation-keyed memory-only projection owner suppresses only server-confirmed deleted IDs until full server-backed absence. It introduces no timer, reload, forced listener, persistent tombstone, backend change or second authority. Status: repository/Pages validated; repeat direct/group device acceptance pending.
 ## FIDUNIO 1.1.29 — intermittent group-notification permission banner
 
 - **Observed:** After successful N6 deployment, 2 of 4 iPad notification retrievals opened the correct group and displayed the exact message but also showed `Missing or insufficient permissions`.

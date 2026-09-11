@@ -515,3 +515,5 @@ The validated 1.1.32 tree is on `main`; security and Pages workflows passed. The
 ## FIDUNIO 1.1.33 bounded convergence correction
 
 One memory-only owner now reserves only IDs returned as deleted by the callable. Direct and group projections suppress those IDs while sequential backend deletion snapshots arrive, then release each reservation only when a full server-backed snapshot proves the source absent. Cache/priority snapshots cannot release it. The owner is conversation-scoped and resets on sign-out; it persists no tombstone. Backend, Firebase listener ownership, single-message deletion, Outbox, E2EE, receipts, notifications and protected configuration remain unchanged. Full gate, `main`/Pages and repeated device acceptance are required.
+
+Exact 1.1.33 tree `1ce5eab49c7573622a028cfeb800755173d3fdfe` is on `main`. Rebuild Baseline `34627532056`, E2EE Rules `34627532087`, Recovery `34627532062`, Firebase Adapter `34627532036`, and Pages `34627531490` completed SUCCESS. Remote `version.js` and the new cached convergence module were verified. Device retest remains open; no backend redeployment is required.

@@ -923,5 +923,5 @@ No point earned; completion remains 96%.
 - [x] Reset the non-persistent convergence owner on sign-out; create no hidden-ID tombstone or accepted-ID registry.
 - [x] Add a behavioral gate covering pre-delete, intermediate, cache-only, final authoritative, conversation-isolation and reset cases.
 - [x] Complete all 82 non-emulator workflow steps and all five Firestore emulator suites locally; syntax, diff and focused convergence gates pass.
-- [ ] Push to `main` and verify security workflow and Pages.
+- [x] Publish exact tree to `main` as `1ce5eab49c7573622a028cfeb800755173d3fdfe`; Rebuild Baseline `34627532056`, Rules `34627532087`, Recovery `34627532062`, Firebase Adapter `34627532036`, and Pages `34627531490` completed SUCCESS.
 - [ ] Repeat direct deletion, then complete group and neighboring regression acceptance.
