@@ -814,3 +814,11 @@ No point earned; completion remains 96%.
 - [x] Complete the full local repository baseline: all 70 non-emulator test groups and all five Firestore emulator security suites pass.
 - [ ] Push the complete runtime plus outstanding local documentation to `main` and verify every workflow/Pages deployment.
 - [ ] Complete the 1.1.25 real-device acceptance steps in `DEVICE-ACCEPTANCE-BUGS.md`.
+
+### FIDUNIO 1.1.26 local identity revision repair
+
+- [x] Preserve the successful Firebase password change and identify the stale local E2EE revision as the post-login failure.
+- [x] Save the current runtime identity revision after forward rewrap and rollback.
+- [x] Bound affected-device repair to the same UID/keyId with a stale revision and reuse the existing password/PIN unlock owner.
+- [x] Keep missing and different-key installations rejected.
+- [ ] Complete repository baseline, push to `main`, verify workflows/Pages, and perform the affected-device acceptance steps.

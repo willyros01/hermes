@@ -15,7 +15,7 @@ import {
   sendFidunioPasswordReset
 } from "./firebase.js";
 import {validateFidunioInvitation,redeemInvitationForEnrollment} from "./invitation-owner.js";
-import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity} from "./local-security.js";
+import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity,inspectLocalAccountE2EEIdentity} from "./local-security.js";
 import {bindAuthenticatedAccountE2EE,unlockAccountE2EE,enrollAccountE2EE,recoverAccountE2EE,restoreLocalAccountE2EE,getAccountE2EERuntimeIdentity,resetAccountE2EEForSignOut} from "./e2ee-account-runtime.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
 import {
@@ -111,7 +111,7 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
     authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with device</button>':""}<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="${security.hasBiometric?"secondary":"primary"}" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   }else{
     const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
-    authShell(`<p class="small-note">Set up secure messaging for ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">Choose your six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">Continue</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
+    authShell(`<p class="small-note">${hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   }
   const pinInput=mountSixDigitPinInput(document.querySelector("#sessionPinHost"),{onComplete:()=>document.querySelector("#sessionUnlockBtn")?.click()});
   document.querySelector("#sessionUnlockBtn").onclick=async()=>{
@@ -143,10 +143,14 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   setTimeout(()=>saved||password?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
 }
 
-async function enterAfterPasswordSignIn(user,bound){
+async function enterAfterPasswordSignIn(user,bound,password){
   if(bound.state?.state==="READY"){markSuccessfulAuthBypass();await startApp();return;}
   const saved=bound.identity?await readLocalAccountE2EEIdentity(user.uid,bound.identity):null;
-  if(!saved)throw new Error("Secure messaging is not available on this device. Rejoin or recover this installation.");
+  if(!saved){
+    const local=bound.identity?await inspectLocalAccountE2EEIdentity(user.uid,bound.identity):null;
+    if(local?.exists&&local.keyMatches&&!local.revisionMatches){await renderSessionUnlock(user,{hasIdentity:true,identity:bound.identity,password});return;}
+    throw new Error("Secure messaging is not available on this device. Rejoin or recover this installation.");
+  }
   restoreLocalAccountE2EE(saved);
   markSuccessfulAuthBypass();
   await startApp();
@@ -170,7 +174,7 @@ function renderSignIn(){
     try{
       const user=await signInFidunio(document.querySelector("#loginEmail").value.trim(),password);
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
-      await enterAfterPasswordSignIn(user,bound);
+      await enterAfterPasswordSignIn(user,bound,password);
     }
     catch(err){resetAccountE2EEForSignOut();try{await signOutFidunio();}catch{}renderGate("signin",err?.message||String(err));}
   };

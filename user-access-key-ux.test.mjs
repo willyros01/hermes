@@ -25,7 +25,8 @@ requireTrue(!auth.includes('id="loginPinHost"')&&!auth.includes('id="loginPinLab
 requireTrue(auth.includes('class="auth-choice')&&auth.includes('auth-choice-icon')&&auth.includes('role="tablist"'),"Sign In and Join must use the approved graphic navigation tiles");
 requireTrue(bootstrap.includes('button.classList.add("is-busy")')&&bootstrap.includes('aria-busy'),"disabled action buttons must receive shared spinner feedback");
 requireTrue(auth.includes('id="joinPinHost"')&&auth.includes("mountSixDigitPinInput"),"Join must create the PIN with the shared six-slot owner");
-requireTrue(auth.includes("enterAfterPasswordSignIn(user,bound)"),"successful password sign-in must enter without a PIN prompt");
+requireTrue(auth.includes("enterAfterPasswordSignIn(user,bound,password)"),"successful password sign-in must preserve its password only for a bounded stale-revision repair");
+requireTrue(auth.includes("if(saved)")&&auth.includes("restoreLocalAccountE2EE(saved)"),"a current saved identity must enter without another PIN prompt");
 requireTrue(auth.includes("restoreLocalAccountE2EE(saved)"),"password sign-in must restore the saved device encryption identity");
 requireTrue(auth.includes("unlockAccountE2EE({uid:user.uid,password,pin})"),"account recovery must retain the existing password and PIN cryptographic path");
 requireTrue(auth.includes("recoverAccountE2EE({uid:user.uid,newPassword:password,pin})"),"a stale password wrapper must have one bounded same-identity recovery path");

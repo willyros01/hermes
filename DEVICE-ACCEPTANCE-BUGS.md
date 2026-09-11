@@ -237,3 +237,12 @@ The device matrix closes only with consistent repeated behavior. An occasional s
 6. Confirm Profile Save, email unchanged, Settings/Profile/User Administration loading, notifications and ordinary app restart remain unchanged.
 
 Device acceptance remains required. Do not use Forgot Password or recovery for this normal password-change test.
+
+## FIDUNIO 1.1.26 affected-device repair acceptance
+
+1. Confirm version 1.1.26 after two complete launches.
+2. On the device affected by 1.1.25, sign in using the new password.
+3. At “Resynchronize secure messaging,” enter the existing six-digit FIDUNIO PIN and press Restore Messaging.
+4. Confirm the original conversations and messages open and decrypt; do not rejoin or use Forgot Password.
+5. Sign out and sign in again with the new password; confirm normal PIN/biometric unlock without another resynchronization prompt.
+6. Change the password once more only after steps 1–5 pass, then verify the next login succeeds normally and the same history remains available.

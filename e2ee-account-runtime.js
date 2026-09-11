@@ -3,6 +3,7 @@ import { createFirebaseAccountE2EEIdentityStore } from "./e2ee-account-firebase-
 import { createAccountE2EEAuthLifecycle } from "./e2ee-account-lifecycle.js";
 import { createAccountE2EERecoveryClient } from "./e2ee-account-recovery-client.js";
 import { enrollCloudE2EERecovery,startCloudE2EERecovery,completeCloudE2EERecovery,changeFidunioPassword } from "./firebase.js";
+import {saveLocalAccountE2EEIdentity} from "./local-security.js";
 
 const recoveryClient=createAccountE2EERecoveryClient({enroll:enrollCloudE2EERecovery,start:startCloudE2EERecovery,complete:completeCloudE2EERecovery});
 const identityStore=createFirebaseAccountE2EEIdentityStore();
@@ -26,10 +27,13 @@ export async function changeAccountPasswordWithE2EE({uid,currentPassword,newPass
   if(state.state==="EMPTY")return changeFidunioPassword(currentPassword,newPassword);
   if(state.state!=="READY")await manager.unlock({uid,password:currentPassword,pin});
   await manager.rewrap({uid,oldPassword:currentPassword,oldPin:pin,newPassword,newPin:pin});
-  try{return await changeFidunioPassword(currentPassword,newPassword);}
+  try{await changeFidunioPassword(currentPassword,newPassword);}
   catch(error){
     try{await manager.rewrap({uid,oldPassword:newPassword,oldPin:pin,newPassword:currentPassword,newPin:pin});}
     catch(rollbackError){const e=new Error("Firebase password change failed and the E2EE wrapper rollback also failed. Use account recovery before messaging.");e.cause={error,rollbackError};throw e;}
+    try{await saveLocalAccountE2EEIdentity(manager.getRuntimeIdentity());}catch(localError){console.warn("FIDUNIO could not refresh the rolled-back local E2EE identity",localError);}
     throw error;
   }
+  try{await saveLocalAccountE2EEIdentity(manager.getRuntimeIdentity());}catch(localError){console.warn("FIDUNIO password changed; local E2EE identity will resynchronize at next login",localError);}
+  return manager.getRuntimeIdentity();
 }
