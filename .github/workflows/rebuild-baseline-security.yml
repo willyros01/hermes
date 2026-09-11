@@ -105,7 +105,7 @@ jobs:
       - {name: Controlled sender direct-message deletion, run: npm run test:message-delete-core}
       - {name: Mass sender-owned direct and group deletion, run: npm run test:mass-message-delete}
       - {name: Mass deletion projection convergence, run: npm run test:bulk-message-delete-projection}
-      - {name: Group membership leave, list and discovery lifecycle, run: node group-membership-lifecycle.test.mjs}
+      - {name: "Group membership leave, list and discovery lifecycle", run: node group-membership-lifecycle.test.mjs}
       - {name: Single visible FIDUNIO PIN and hidden-key UX, run: npm run test:user-access-key-ux}
       - {name: Password change E2EE bridge and rollback, run: node password-change-integration.test.mjs}
       - {name: Forgot Password Firebase-to-E2EE recovery handoff, run: node forgot-password-recovery.test.mjs}
