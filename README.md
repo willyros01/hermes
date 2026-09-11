@@ -827,3 +827,5 @@ The first direct device test proved both selected messages were physically delet
 This correction adds no persistent hidden-ID decision or tombstone, no client/server deletion authority, and no new Firebase listener. The existing callable and deployed backend remain unchanged. Sending, Sent/Delivered/Read, encrypted Outbox, E2EE, notifications, single-message deletion, groups, attachments, PIN/auth and protected Firebase configuration are untouched.
 
 Exact tree `1ce5eab49c7573622a028cfeb800755173d3fdfe` is published on `main`. Rebuild Baseline, all dedicated E2EE gates and GitHub Pages completed successfully. No backend redeployment is required for 1.1.33; repeat direct and group device acceptance remains open.
+
+The repeated direct test passed on 1.1.33; direct immediate convergence is device accepted. Group matrix coverage remains open. The deferred list now also records administrator add/remove-member controls for an existing group conversation; this acceptance/documentation update changes no runtime.
