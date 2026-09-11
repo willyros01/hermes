@@ -809,3 +809,7 @@ Cold and warm group-notification acceptance passed on iPad and iPhone on 2026-09
 ## FIDUNIO 1.1.30 — continuous Sending visibility
 
 Version 1.1.30 closes a listener-projection race in the sender UI. A text or attachment that has been staged and painted remains visible as Sending/Queued while direct or group Firestore snapshots arrive. The exact authoritative server row replaces it normally, and deletion/sign-out cannot resurrect it. This memory-only projection rule supplements the earlier render-before-Outbox ordering gate without moving encrypted Outbox, transport, Firebase, E2EE, receipt, notification or membership authority.
+
+## FIDUNIO 1.1.31 — restore accepted direct messaging
+
+Device feedback rejected the direct portion of 1.1.30. Version 1.1.31 removes the group-only optimistic reservation from direct listener projection and direct text/attachment staging, restoring the accepted 1.1.29 direct behavior. Group handling remains separate. A permanent isolation gate prevents this ownership crossover from recurring.

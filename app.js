@@ -1010,7 +1010,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         ?planPartialDirectMessageProjection(existing,remote)
         :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:remote,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
-      const merged=optimisticOutgoingProjection.project(conversationId,projection.rows,{isHidden:messageId=>isMessageHidden(conversationId,messageId)});
+      const merged=[...projection.rows];
       state.messages[conversationId]=merged;
 
       const last=merged.at(-1);
@@ -1753,7 +1753,7 @@ async function sendSelectedAttachmentFile(kind,file){
   const previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});
   const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),createdAt:new Date(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);
   localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});
-  optimisticOutgoingProjection.stage(c.id,stagedMessage);
+  if(c.cloudGroup)optimisticOutgoingProjection.stage(c.id,stagedMessage);
   if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();
   try{
     const bytes=new Uint8Array(await file.arrayBuffer());
@@ -1801,7 +1801,7 @@ async function sendCurrent(){
   },state.settings.disappearingTextSeconds);
 
   if(!state.messages[conversationId]) state.messages[conversationId]=[];
-  optimisticOutgoingProjection.stage(conversationId,m);
+  if(cloudGroup)optimisticOutgoingProjection.stage(conversationId,m);
   state.messages[conversationId].push(m);
   c.preview=messagePreview(text);
   c.time=m.time;

@@ -1,6 +1,6 @@
 function key(value){return String(value??"").trim();}
 
-// Memory-only owner for a send that has already been shown to the sender but
+// Memory-only owner for a group send that has already been shown to the sender but
 // has not yet appeared in an authoritative Firestore snapshot. Listener
 // projection may merge newer server rows, but it cannot erase this local send.
 export function createOptimisticOutgoingProjectionOwner(){
@@ -45,6 +45,7 @@ export function createOptimisticOutgoingProjectionOwner(){
 
 export const OPTIMISTIC_OUTGOING_PROJECTION_V1=Object.freeze({
   memoryOnly:true,
+  groupOnly:true,
   firestoreSnapshotCannotEraseStagedSend:true,
   authoritativeExactIdWins:true,
   createsTransportAuthority:false

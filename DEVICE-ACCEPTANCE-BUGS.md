@@ -285,3 +285,15 @@ Device acceptance remains required. Do not use Forgot Password or recovery for t
 8. Regress cold/warm group notifications, composer draft/focus, latest-message positioning and group receipts.
 
 Exit: every staged row remains visible, each exact authoritative server row replaces it once, no duplicate appears, all repository checks pass, and Pages serves 1.1.30.
+
+**1.1.30 direct scope rejected.** Direct Sending/Sent/Read behavior regressed. Use 1.1.31 for retest.
+
+## FIDUNIO 1.1.31 direct-message restore acceptance
+
+1. Confirm visible version 1.1.31 after two complete launches.
+2. Send one unique direct message from iPad to iPhone. Confirm continuous **Sending → Sent → Delivered → Read** and readable text on both devices.
+3. Reverse direction from iPhone to iPad and confirm the same sequence.
+4. Repeat once while the recipient conversation is already open and once after it is opened from Messages.
+5. Confirm no disappearance, duplicate, delayed reappearance or group-notification regression.
+
+This acceptance is deliberately limited to the restored direct-message behavior.

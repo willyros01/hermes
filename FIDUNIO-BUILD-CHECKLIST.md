@@ -886,3 +886,15 @@ No point earned; completion remains 96%.
 - [x] Complete full local non-emulator baseline, all five Firestore emulator security suites, Functions notification/delete tests, syntax, protected-config and diff checks.
 - [x] Push runtime commit `b3bcaa8014b35c9bfffb908555fa9052bc7cd60f` to `main`; Rebuild Baseline Security Gate `34603708400` and Pages `34603708508` completed SUCCESS, and remote `version.js` serves 1.1.30.
 - [ ] Complete the 1.1.30 iPhone/iPad device matrix.
+
+### FIDUNIO 1.1.31 direct-message projection restore
+
+- [x] Identify 1.1.30 as the exact direct-path regression point.
+- [x] Restore the direct listener projection to the accepted 1.1.29 implementation.
+- [x] Remove direct text and direct attachment staging from the group-only reservation owner.
+- [x] Keep the 1.1.29 group-notification stream correction and group-only reservation integration unchanged.
+- [x] Add a permanent source boundary that fails if group-only optimistic projection enters direct messaging.
+- [x] Pass focused direct send/read-receipt/Outbox/notification and group-isolation tests.
+- [x] Complete full local non-emulator validation, all five Firestore emulator suites, Functions notification/delete tests, syntax, protected-config and diff checks.
+- [ ] Push to `main` and verify Pages/security checks.
+- [ ] Complete the narrow bidirectional iPhone/iPad direct-message acceptance.

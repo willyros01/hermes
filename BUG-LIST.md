@@ -405,3 +405,11 @@ The service worker persists the validated opaque route locally before notificati
 - **Correction:** One memory-only optimistic projection owner reserves the exact text/attachment row before first render. Direct and group snapshots merge it until the exact server ID appears; server authority then replaces it. Delete/purge and sign-out release it.
 - **Unchanged:** Firebase/Firestore data and rules, encrypted Outbox durability and attempt state, E2EE, receipts, notifications, groups/membership, attachments and backend Functions.
 - **Status:** 1.1.30 CORRECTION CANDIDATE — local focused gates pass; full baseline, deployment and iPhone/iPad acceptance required.
+
+### FIDUNIO 1.1.30 rejected for direct messaging; 1.1.31 surgical restore
+
+- **Device result:** Direct Sending/Sent/Read behavior regressed after 1.1.30, although it had already been accepted before that release.
+- **Regression point:** 1.1.30 unnecessarily connected the new group optimistic-reservation owner to the direct listener and direct text/attachment staging paths.
+- **1.1.31 correction:** Restore the direct listener projection and direct staging boundaries exactly to their 1.1.29 form. Keep the reservation owner group-only.
+- **Permanent boundary:** The group-only gate fails if the owner appears in direct subscription projection or unconditional direct staging.
+- **Status:** CORRECTION CANDIDATE pending full validation, deployment and direct device acceptance.
