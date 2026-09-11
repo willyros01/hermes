@@ -402,3 +402,11 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - `bulk-message-delete-projection.js` owns one conversation-keyed, memory-only suppression set. It filters direct/group projection rows but owns no Firebase read/write, deletion, IndexedDB, Outbox, DOM, timer or persistent tombstone.
 - Full server-backed source absence releases each ID; cache and partial notification projections cannot. Sign-out resets the owner.
 - Existing direct/group listener, central render, single-message deletion, E2EE, receipt and transport owners are unchanged.
+
+## FIDUNIO 1.1.34 group membership projection authority
+
+- `e2ee-account-group-runtime.js -> firebase.js#commitCloudGroupMembershipEpoch()` remains the only serialized membership/key-epoch mutation path. Version 1.1.34 does not add a writer or alter that transaction.
+- `firebase.js#subscribeMyGroups()` remains the sole Firestore group-list read owner. It now gives each async snapshot assembly a revision, discards older completions, reports cache/pending-write metadata, and filters member subdocuments by the parent group's authoritative `memberUids`.
+- `app.js#reconcileCloudGroupSnapshot()` remains inside the sole application-state/render owner. It may remove a cloud-group projection only after a full server-backed, non-pending group snapshot omits the ID. A locally initiated leave may remove that same projection only after the serialized server transaction succeeds.
+- `group-membership-lifecycle.js` contains pure absence planning plus the bounded Add Member directory wait. It owns no Firebase, membership, E2EE, application state, DOM, IndexedDB or durable authority.
+- Direct conversations remain exactly two-account resources. Message, receipt, notification, Outbox, attachment and history owners are unchanged.

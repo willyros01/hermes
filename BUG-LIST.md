@@ -394,6 +394,10 @@ The service worker persists the validated opaque route locally before notificati
 ### FDA-MASSDEL-001 — server deletion succeeds but one sender row lingers
 
 **Severity:** High acceptance defect. **1.1.32 evidence:** two Sent direct messages were deleted from sender and receiver, but one sender row remained until the final listener snapshot. **Cause:** sequential backend deletion emitted an intermediate snapshot that repainted the later row after local purge. **1.1.33 correction:** a conversation-keyed memory-only projection owner suppresses only server-confirmed deleted IDs until full server-backed absence. It introduces no timer, reload, forced listener, persistent tombstone, backend change or second authority. Status: DIRECT DEVICE ACCEPTED on 1.1.33; group and remaining cross-device matrix coverage pending.
+
+### FDA-GROUP-002 — departed member/group remains and Add Member hangs
+
+**Severity:** High group-administration defect. **1.1.33 evidence:** Leave Group completed but the departed member and group remained projected in Group Info, Messages and Groups; Add Member remained at Loading FIDUNIO users. **Cause:** correct membership writes fed a merge-only group-list projection, overlapping async snapshot assembly had no stale-completion guard, and directory loading was unbounded. **1.1.34 correction:** latest-only snapshot assembly, parent-membership filtering, server-backed absence reconciliation, immediate post-commit leave projection removal, and a bounded retryable directory modal. Membership/E2EE/rules/backend authority is unchanged. Status: REPOSITORY CANDIDATE; full local non-emulator and all five Firestore emulator baselines pass, pending `main`/Pages and device acceptance.
 ## FIDUNIO 1.1.29 — intermittent group-notification permission banner
 
 - **Observed:** After successful N6 deployment, 2 of 4 iPad notification retrievals opened the correct group and displayed the exact message but also showed `Missing or insufficient permissions`.

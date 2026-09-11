@@ -926,3 +926,15 @@ No point earned; completion remains 96%.
 - [x] Publish exact tree to `main` as `1ce5eab49c7573622a028cfeb800755173d3fdfe`; Rebuild Baseline `34627532056`, Rules `34627532087`, Recovery `34627532062`, Firebase Adapter `34627532036`, and Pages `34627531490` completed SUCCESS.
 - [x] Repeat direct deletion on 1.1.33; user confirmed the immediate-convergence correction works.
 - [ ] Complete group and remaining iPhone/iPad neighboring regression acceptance.
+
+### FIDUNIO 1.1.34 group membership lifecycle correction
+
+- [x] Confirm the existing serialized membership transaction already deletes the target member document, updates `memberUids` and rotates the E2EE key epoch atomically.
+- [x] Discard stale overlapping group-list snapshot completions and project member cards only for UIDs present in the authoritative parent membership.
+- [x] Reconcile full server-backed group-list absence by removing unauthorized group rows from Messages and Groups; never use cache-only or pending-write absence as removal authority.
+- [x] Remove the departed account's local group/chat projection immediately after its leave transaction succeeds and persist that state through the existing local owner.
+- [x] Bound Add Member directory loading and provide Cancel, explicit failure and Try Again controls with stale-request rejection.
+- [x] Keep Firebase initialization, membership mutation, group E2EE/epoch schema, Firestore rules, direct-message membership, notifications, receipts, Outbox and backend Functions unchanged.
+- [x] Add a permanent group-membership lifecycle gate to the full baseline workflow and bump the installed PWA to 1.1.34.
+- [x] Complete the full local non-emulator and all five Firestore emulator baselines; syntax, protected-config and diff checks pass.
+- [ ] Publish the exact validated tree to `main`, verify workflows/Pages, and complete iPhone/iPad membership acceptance.

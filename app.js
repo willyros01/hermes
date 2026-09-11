@@ -55,6 +55,7 @@ import { createAttachmentSendService } from "./attachment-send-service.js";
 import { createAttachmentReceiveService } from "./attachment-receive-service.js";
 import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-transport-policy.js";
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
+import {awaitBoundedGroupMemberDirectory,cloudGroupIdsMissingFromAuthoritativeSnapshot} from "./group-membership-lifecycle.js";
 import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
 import {listPendingNotificationRoutes,consumePendingNotificationRoutes,groupPendingNotificationRoutes} from "./notification-pending-inbox.js";
 import {createOptimisticOutgoingProjectionOwner} from "./optimistic-outgoing-projection.js";
@@ -115,6 +116,7 @@ let peerDisplayNameKey = "";
 let peerDisplayNames = {};
 let cloudGroupUnsub = null;
 let cloudGroupSyncPending = false;
+let addMemberDirectoryRevision = 0;
 let groupCandidates = [];
 let cloudMessageUnsub = null;
 let cloudMessageConversationId = null;
@@ -681,11 +683,36 @@ function mergeCloudGroup(remote){
   if(!state.messages[item.id])state.messages[item.id]=[];
   return existing||item;
 }
+function removeCloudGroupProjection(groupId){
+  const id=String(groupId||"");
+  if(!id)return false;
+  const before=state.conversations.length;
+  state.conversations=state.conversations.filter(c=>!(c.cloudGroup===true&&String(c.id)===id));
+  if(state.conversations.length===before)return false;
+  if(String(cloudGroupMessageConversationId||"")===id)stopCloudGroupMessageSubscription();
+  for(const message of state.messages[id]||[])optimisticOutgoingProjection.release(id,message.id);
+  for(const [key,runtime] of [...attachmentRuntime.entries()]){
+    if(!String(key).startsWith(`${id}:`))continue;
+    if(runtime?.result?.url)releaseAttachmentResult(runtime.result);
+    attachmentRuntime.delete(key);
+  }
+  delete state.messages[id];
+  delete state.hiddenMessages[id];
+  if(String(state.selectedId||"")===id){state.selectedId=null;if(state.route==="chat"||state.route==="groupInfo")state.route="messages";}
+  return true;
+}
+function reconcileCloudGroupSnapshot(rows,meta={}){
+  rows=rows||[];
+  rows.forEach(mergeCloudGroup);
+  const removed=cloudGroupIdsMissingFromAuthoritativeSnapshot(state.conversations,rows,meta);
+  for(const id of removed)removeCloudGroupProjection(id);
+  return removed;
+}
 function beginCloudGroupSubscription(){
   if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
   if(!firebaseUser)return;
   cloudGroupSyncPending=true;
-  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,rows=>{cloudGroupSyncPending=false;rows.forEach(mergeCloudGroup);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});});
+  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,(rows,meta={})=>{cloudGroupSyncPending=false;reconcileCloudGroupSnapshot(rows,meta);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});});
 }
 function stopPeerDisplayNameSubscription(){
   try{peerDisplayNameUnsub();}catch{}
@@ -2148,15 +2175,16 @@ ${isAdmin?'<button class="secondary" id="addMemberBtn">＋ Add Member</button>':
   const add=document.querySelector("#addMemberBtn");if(add)add.onclick=()=>openAddMemberModal();
   document.querySelectorAll(".historyGrantBtn").forEach(btn=>btn.onclick=()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member)return;state.modal={type:"history",memberId:member.id,historyChoice:"beginning",historyDate:""};render();});
   document.querySelectorAll(".removeMemberBtn").forEach(btn=>btn.onclick=async()=>{const member=c.members.find(m=>String(m.id)===String(btn.dataset.id));if(!member||!confirm(`Remove ${member.name} from this group?`))return;btn.disabled=true;try{await removeGroupMemberForApp(c.id,member.id);}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}});
-  const leave=document.querySelector("#leaveBtn");if(leave)leave.onclick=async()=>{if(!confirm(`Leave ${c.name}? You will lose access to future messages.`))return;leave.disabled=true;try{await leaveGroupForApp(c.id);state.route="messages";state.selectedId=null;}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
+  const leave=document.querySelector("#leaveBtn");if(leave)leave.onclick=async()=>{if(!confirm(`Leave ${c.name}? You will lose access to future messages.`))return;leave.disabled=true;try{await leaveGroupForApp(c.id);removeCloudGroupProjection(c.id);state.route="messages";state.selectedId=null;await persistState();}catch(err){firebaseError=err?.message||String(err);alert(firebaseError);}finally{render();}};
   const bulkDelete=document.querySelector("#bulkDeleteSentBtn");if(bulkDelete)bulkDelete.onclick=()=>{state.modal={type:"bulkDeleteSentConfirm",conversationId:c.id,messageKind:"group",conversationName:c.name};render();};
 }
 
 function openAddMemberModal(){
   const c=currentConversation();if(!c)return;
-  state.modal={type:"addMember",options:[],selected:null,loading:true};render();
+  const revision=++addMemberDirectoryRevision,groupId=String(c.id);
+  state.modal={type:"addMember",groupId,revision,options:[],selected:null,loading:true};render();
   const currentIds=new Set(c.members.map(m=>String(m.id)));
-  listCloudUsers().then(rows=>{if(!state.modal||state.modal.type!=="addMember")return;const available=(rows||[]).filter(p=>!currentIds.has(String(p.uid))).map(p=>({id:p.uid,name:p.displayName||p.email||p.uid}));state.modal={type:"addMember",options:available,selected:available[0]?.id||null,loading:false};render();}).catch(err=>{firebaseError=err?.message||String(err);if(state.modal?.type==="addMember"){state.modal={type:"addMember",options:[],selected:null,loading:false,error:firebaseError};render();}});
+  awaitBoundedGroupMemberDirectory(listCloudUsers()).then(rows=>{if(state.modal?.type!=="addMember"||state.modal.revision!==revision||state.modal.groupId!==groupId)return;const available=(rows||[]).filter(p=>!currentIds.has(String(p.uid))).map(p=>({id:p.uid,name:p.displayName||p.email||p.uid}));state.modal={type:"addMember",groupId,revision,options:available,selected:available[0]?.id||null,loading:false};render();}).catch(err=>{firebaseError=err?.message||String(err);if(state.modal?.type==="addMember"&&state.modal.revision===revision&&state.modal.groupId===groupId){state.modal={type:"addMember",groupId,revision,options:[],selected:null,loading:false,error:firebaseError};render();}});
 }
 
 function renderModal(){
@@ -2302,7 +2330,7 @@ function renderModal(){
       <div class="modal">
         <h2>Add Member</h2>
         <p>New members begin with access only from the time they join.</p>
-        ${modal.loading?'<p class="small-note">Loading FIDUNIO users…</p>':modal.error?`<p class="warning-note">${esc(modal.error)}</p>`:modal.options.length?`
+        ${modal.loading?'<p class="small-note">Loading FIDUNIO users…</p><div class="modal-actions"><button class="modal-cancel" id="modalCancel">Cancel</button></div>':modal.error?`<p class="warning-note">${esc(modal.error)}</p><div class="modal-actions"><button class="modal-cancel" id="modalCancel">Cancel</button><button class="modal-confirm" id="modalRetry">Try Again</button></div>`:modal.options.length?`
           <div class="choice-list">
             ${modal.options.map(p=>`
               <label class="member-option">
@@ -2319,7 +2347,8 @@ function renderModal(){
       </div>`;
     document.body.appendChild(host);
     host.querySelectorAll('input[name="newMember"]').forEach(r=>r.onchange=()=>state.modal.selected=r.value);
-    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render()};
+    host.querySelector("#modalCancel").onclick=()=>{addMemberDirectoryRevision++;state.modal=null;host.remove();render()};
+    const retry=host.querySelector("#modalRetry");if(retry)retry.onclick=()=>openAddMemberModal();
     const confirm=host.querySelector("#modalConfirm");
     if(confirm) confirm.onclick=async()=>{
       const modalNow=state.modal,p=modalNow?.options?.find(x=>String(x.id)===String(modalNow.selected)),c=currentConversation();

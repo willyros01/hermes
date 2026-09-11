@@ -829,3 +829,9 @@ This correction adds no persistent hidden-ID decision or tombstone, no client/se
 Exact tree `1ce5eab49c7573622a028cfeb800755173d3fdfe` is published on `main`. Rebuild Baseline, all dedicated E2EE gates and GitHub Pages completed successfully. No backend redeployment is required for 1.1.33; repeat direct and group device acceptance remains open.
 
 The repeated direct test passed on 1.1.33; direct immediate convergence is device accepted. Group matrix coverage remains open. The deferred list now also records administrator add/remove-member controls for an existing group conversation; this acceptance/documentation update changes no runtime.
+
+## FIDUNIO 1.1.34 — group membership lifecycle convergence
+
+The group membership mutation was already atomic: it updates parent membership, deletes or creates the member document, and rotates the encrypted key epoch through one serialized runtime/Firebase path. Version 1.1.34 corrects the read/UI side. Overlapping group snapshot assemblies are latest-only, member cards are constrained by parent `memberUids`, and a full server-backed non-pending snapshot removes groups the account no longer belongs to from both Messages and Groups. A successful local Leave removes that projection immediately. Cache-only absence cannot revoke or rewrite state.
+
+Add Member user discovery now has a bounded 12-second wait, Cancel, explicit connection error and Try Again. Each request has a revision so a late prior read cannot overwrite the current modal. No Firestore rule, E2EE format, membership writer, backend Function, direct-chat membership, message/receipt/notification/Outbox authority or protected configuration changes.
