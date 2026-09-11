@@ -32,6 +32,10 @@ The action does not depend on FIDUNIO system-owner or group-admin status: “My�
 
 Repository implementation and permanent focused gates are complete. Live deployment of `deleteMyMessagesForEveryoneV1` plus direct/group iPhone/iPad acceptance remain required before device closeout.
 
+## FIDUNIO 1.1.33 — intermediate-snapshot convergence
+
+The bulk callable is deployed and ACTIVE. The first direct test proved physical deletion on both devices, but one sender row remained until the listener delivered the final snapshot. Because a server page deletes rows sequentially, intermediate snapshots are valid transport observations but must not repaint IDs the callable has already confirmed deleted. One conversation-keyed memory-only projection owner suppresses only those confirmed IDs and releases them only after full server-backed absence. It owns no deletion, Firebase, persistence or timing authority; cache/partial absence cannot release it, and sign-out clears it. The single-message path is unchanged.
+
 ## Acceptance
 
 - Pending deletion survives restart and reconnect and never retries.

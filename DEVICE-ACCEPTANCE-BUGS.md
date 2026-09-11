@@ -311,3 +311,11 @@ Prerequisite: Pages serves visible version 1.1.32 and callable `deleteMyMessages
 7. Regress single-message **Delete for Me**, sender-only **Delete for Everyone**, bidirectional direct Sending → Sent → Delivered → Read, group send/receipts, one new attachment, and iPhone/iPad large-text layout.
 
 Exit: only the authenticated sender's accepted rows are physically absent everywhere, attachment/group traces do not reappear, other senders and unsent rows remain, failure is explicit, and the existing messaging/notification paths pass regression.
+
+## FDA-MASSDEL-001 — one sender row lingers after bulk deletion
+
+- **Build/device evidence:** On 1.1.32, two direct messages reached Sent. **Delete My Sent Messages** removed one immediately; the second remained temporarily on the sender screen, then disappeared without another action. Both disappeared on the receiver.
+- **Severity:** High acceptance defect; physical deletion succeeds but delayed sender convergence makes the operation appear incomplete.
+- **Cause:** The backend correctly deletes selected rows sequentially. The active listener can deliver/project an intermediate snapshot containing the later row after local purge and before the final server-backed empty snapshot.
+- **1.1.33 correction:** One conversation-keyed memory-only owner suppresses only server-confirmed deleted IDs from in-flight/intermediate direct/group projections until authoritative absence releases them. No timer, reload, forced subscription, persistent hidden ID, backend change or second Firebase owner.
+- **Status:** CORRECTION CANDIDATE. All 82 non-emulator workflow steps and five Firestore emulator suites pass locally; `main`/Pages proof and repeat direct/group device acceptance required.

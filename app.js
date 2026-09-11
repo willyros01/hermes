@@ -58,6 +58,7 @@ import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTime
 import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
 import {listPendingNotificationRoutes,consumePendingNotificationRoutes,groupPendingNotificationRoutes} from "./notification-pending-inbox.js";
 import {createOptimisticOutgoingProjectionOwner} from "./optimistic-outgoing-projection.js";
+import {createBulkMessageDeleteProjectionOwner} from "./bulk-message-delete-projection.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -104,6 +105,7 @@ let appActivationPromise=null;
 const appActivationReasons=new Set();
 const composerStateByConversation=new Map();
 const optimisticOutgoingProjection=createOptimisticOutgoingProjectionOwner();
+const bulkMessageDeleteProjection=createBulkMessageDeleteProjectionOwner();
 let pendingChatViewport=null;
 let chatRenderGeneration=0;
 let cloudConversationUnsub = null;
@@ -472,7 +474,7 @@ function deleteMySentMessagesForEveryone(conversationId,messageKind,onProgress){
     while(rounds++<200){
       const result=await deleteCloudMyMessagesForEveryone(cid,messageKind);
       const ids=[...new Set((result?.deletedMessageIds||[]).map(String).filter(Boolean))];
-      if(ids.length){await purgeLocalDisappearingMessageTraces(firebaseUser.uid,ids);total+=ids.length;onProgress?.(total);}
+      if(ids.length){bulkMessageDeleteProjection.reserve(cid,ids);await purgeLocalDisappearingMessageTraces(firebaseUser.uid,ids);total+=ids.length;onProgress?.(total);}
       if(!result?.hasMore)break;
     }
     if(rounds>200)throw new Error("Deletion stopped safely before exceeding the bounded operation limit. Select the action again to continue.");
@@ -757,9 +759,11 @@ function beginCloudGroupMessageSubscription(groupId){
         ?planPartialDirectMessageProjection(existing,rows)
         :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:rows,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
-      state.messages[groupId]=optimisticOutgoingProjection.project(groupId,projection.rows,{isHidden:messageId=>isMessageHidden(groupId,messageId)});
+      const bulkProjection=bulkMessageDeleteProjection.project(groupId,projection.rows,{authoritative:projection.authoritative,authoritativeRemoteIds:rows.map(message=>message.id)});
+      state.messages[groupId]=optimisticOutgoingProjection.project(groupId,bulkProjection.rows,{isHidden:messageId=>isMessageHidden(groupId,messageId)});
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
       if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
+      else if(c&&bulkProjection.affected){c.preview="";c.time="";}
       if(state.route==="chat"&&String(state.selectedId)===String(groupId))render({background:true});
       if(pendingNotificationRoute&&notificationMessageHasProjected(pendingNotificationRoute))void requestAppActivation("notification-message-projected");
       if(meta.partial===true)return{projectedMessageIds:state.messages[groupId].map(message=>String(message.id))};
@@ -1030,7 +1034,8 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         ?planPartialDirectMessageProjection(existing,remote)
         :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:remote,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
-      const merged=[...projection.rows];
+      const bulkProjection=bulkMessageDeleteProjection.project(conversationId,projection.rows,{authoritative:projection.authoritative,authoritativeRemoteIds:remote.map(message=>message.id)});
+      const merged=[...bulkProjection.rows];
       state.messages[conversationId]=merged;
 
       const last=merged.at(-1);
@@ -1038,6 +1043,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         c.preview=messagePreview(last.text);
         c.time=last.time;
       }
+      else if(bulkProjection.affected){c.preview="";c.time="";}
 
       // Visible projection is not subordinate to IndexedDB durability or the
       // server-backed Read-receipt recovery. The central render owner patches
@@ -1093,6 +1099,7 @@ async function initializeFirebaseLayer(){
       }else{
         composerStateByConversation.clear();
         optimisticOutgoingProjection.reset();
+        bulkMessageDeleteProjection.reset();
         attachmentReceiveService.releaseAll();
         for(const url of localAttachmentPreviewUrls)URL.revokeObjectURL(url);
         localAttachmentPreviewUrls.clear();

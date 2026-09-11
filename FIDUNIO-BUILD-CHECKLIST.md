@@ -909,7 +909,19 @@ No point earned; completion remains 96%.
 - [x] Preserve messages from other senders and Queued/Sending/Failed Outbox rows.
 - [x] Add permanent callable-core and UI/ownership gates to the full baseline workflow.
 - [x] Complete all 72 non-emulator test groups, all five Firestore emulator security suites, Functions import, syntax, protected-config and diff checks locally.
-- [ ] Push the complete 1.1.31 + 1.1.32 runtime and pending todo documentation to `main`; verify security workflows and Pages.
+- [x] Push the complete 1.1.31 + 1.1.32 runtime and pending todo documentation to `main`; authenticated connector commits `d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d` and `355beff7c56fa3fd3a0c930f82cd0a1c32ccc94b`, with successful security and Pages workflows.
 - [x] Prepare short root script `m.txt`, pinned to published implementation commit `d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d`, to deploy and verify only `deleteMyMessagesForEveryoneV1`.
-- [ ] Deploy and verify `deleteMyMessagesForEveryoneV1` using the dedicated message-delete identity.
+- [x] Deploy and verify `deleteMyMessagesForEveryoneV1` using the dedicated message-delete identity; user reported `m.txt` completed successfully and the Function is ACTIVE on 2026-09-11.
 - [ ] Complete the direct/group iPhone/iPad acceptance matrix in `DEVICE-ACCEPTANCE-BUGS.md`.
+
+### FIDUNIO 1.1.33 immediate mass-delete projection convergence
+
+- [x] Record the 1.1.32 direct-device failure: two Sent rows were physically removed on both devices, but one sender row remained temporarily before the final listener snapshot.
+- [x] Preserve the deployed backend and existing single-message deletion path unchanged.
+- [x] Reserve only server-confirmed bulk-deleted IDs in one conversation-keyed, memory-only projection owner before local purge.
+- [x] Suppress those IDs from direct/group intermediate projections; release each only after full server-backed absence, never cache/partial absence.
+- [x] Reset the non-persistent convergence owner on sign-out; create no hidden-ID tombstone or accepted-ID registry.
+- [x] Add a behavioral gate covering pre-delete, intermediate, cache-only, final authoritative, conversation-isolation and reset cases.
+- [x] Complete all 82 non-emulator workflow steps and all five Firestore emulator suites locally; syntax, diff and focused convergence gates pass.
+- [ ] Push to `main` and verify security workflow and Pages.
+- [ ] Repeat direct deletion, then complete group and neighboring regression acceptance.

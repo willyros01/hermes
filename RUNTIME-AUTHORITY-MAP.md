@@ -395,3 +395,10 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - `prioritizeConversationMessage()` performs one exact server read and must rejoin the unchanged existing owner. It cannot create a listener or project state itself.
 - `beginCloudMessageSubscription()` remains the sole decrypt/merge callback. Partial priority rows merge by ID without authoritative purge and paint before maintenance.
 - `render()` remains the sole DOM owner. A notification is complete only when the exact message row and conversation-bound composer are mounted.
+
+## FIDUNIO 1.1.33 bulk-delete convergence authority
+
+- `deleteMySentMessagesForEveryone()` remains the one serialized bulk-delete controller and reserves only server-confirmed deleted IDs before local purge.
+- `bulk-message-delete-projection.js` owns one conversation-keyed, memory-only suppression set. It filters direct/group projection rows but owns no Firebase read/write, deletion, IndexedDB, Outbox, DOM, timer or persistent tombstone.
+- Full server-backed source absence releases each ID; cache and partial notification projections cannot. Sign-out resets the owner.
+- Existing direct/group listener, central render, single-message deletion, E2EE, receipt and transport owners are unchanged.

@@ -507,3 +507,11 @@ Item 4 is repository-implemented through the existing message-deletion authority
 Other senders' rows and unsent Outbox rows are outside scope. Direct send/receive/receipts, group E2EE/membership/history, notification routing, attachment transport, disappearing-content semantics, PIN/auth, Settings, conversation deletion/archive, and protected Firebase configuration are unchanged. All 72 non-emulator test groups and all five Firestore emulator security suites pass locally; live callable deployment, `main`/Pages verification, and direct/group device acceptance remain release requirements.
 
 Short root Cloud Shell script `m.txt` is pinned to published implementation commit `d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d`; it preflights the complete Functions graph, deploys only `deleteMyMessagesForEveryoneV1`, and verifies ACTIVE state plus the dedicated runtime service account.
+
+## FIDUNIO 1.1.32 deployment and first device result
+
+The validated 1.1.32 tree is on `main`; security and Pages workflows passed. The user ran `m.txt` successfully and reported `deleteMyMessagesForEveryoneV1` ACTIVE. In the first direct test, both Sent messages were physically deleted on sender and receiver, but the sender displayed one row until a later listener snapshot. This rejects immediate sender-screen convergence while proving backend authority and receiver deletion.
+
+## FIDUNIO 1.1.33 bounded convergence correction
+
+One memory-only owner now reserves only IDs returned as deleted by the callable. Direct and group projections suppress those IDs while sequential backend deletion snapshots arrive, then release each reservation only when a full server-backed snapshot proves the source absent. Cache/priority snapshots cannot release it. The owner is conversation-scoped and resets on sign-out; it persists no tombstone. Backend, Firebase listener ownership, single-message deletion, Outbox, E2EE, receipts, notifications and protected configuration remain unchanged. Full gate, `main`/Pages and repeated device acceptance are required.

@@ -13,6 +13,9 @@ assert.match(app,/This cannot be undone\./,"bulk deletion must display irreversi
 assert.match(app,/Messages sent by other people and unsent queued or failed messages are not deleted\./,"confirmation must state the bounded sender-only scope");
 assert.match(app,/let bulkMessageDeleteTail=Promise\.resolve\(\)/,"bulk deletion must have one serialized client request path");
 assert.match(app,/while\(rounds\+\+<200\)[\s\S]*?deleteCloudMyMessagesForEveryone[\s\S]*?purgeLocalDisappearingMessageTraces\(firebaseUser\.uid,ids\)/,"client must consume bounded server pages and physically purge confirmed local rows");
+assert.match(app,/bulkMessageDeleteProjection\.reserve\(cid,ids\)[\s\S]*?purgeLocalDisappearingMessageTraces\(firebaseUser\.uid,ids\)/,"server-confirmed IDs must be reserved against intermediate listener repaint before local purge");
+assert.match(app,/bulkMessageDeleteProjection\.project\(conversationId,projection\.rows,[\s\S]*?authoritativeRemoteIds:remote\.map/,"direct projection must suppress confirmed IDs until server-backed absence");
+assert.match(app,/bulkMessageDeleteProjection\.project\(groupId,projection\.rows,[\s\S]*?authoritativeRemoteIds:rows\.map/,"group projection must suppress confirmed IDs until server-backed absence");
 assert.match(firebase,/callCloudFunction\("deleteMyMessagesForEveryoneV1"/,"firebase.js must remain the sole client callable bridge");
 assert.match(functions,/export const deleteMyMessagesForEveryoneV1 = onCall[\s\S]*?messageDeleteCore\.deleteMyMessagesForEveryoneV1/,"Functions entry point must use the existing deletion core");
 assert.match(core,/const BULK_DELETE_PAGE_SIZE=25/,"server work must be bounded per invocation");
