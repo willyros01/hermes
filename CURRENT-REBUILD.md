@@ -455,6 +455,8 @@ N6 is implemented through the established owners. The server trigger reads curre
 
 No Firestore rules, group E2EE format/key lifecycle, Outbox send order, receipt authority, PIN owner, direct-notification semantics, attachment/disappearing-content owner or protected Firebase configuration changed. Local focused gates pass. Full baseline, exact-main publication, Pages verification, live deployment of `notifyGroupMessageCreatedV1`, and repeated iPhone/iPad group/multi-installation acceptance remain required.
 
+Implementation is published at `c273f0bfc0275c612fb91c916da0f4d08109dcaa`. The operator-safe `gn.txt` handoff is pinned to that commit and deploys only `functions:recovery:notifyGroupMessageCreatedV1`; live backend deployment and device acceptance remain pending.
+
 ## FIDUNIO 1.1.25 — password-change PIN bridge correction
 
 Source diagnosis proved the Settings bridge passed `{pin}` into an E2EE rewrap API requiring `{oldPin,newPin}`. Both values were therefore undefined and the six-digit validator rejected the operation before Firebase changed the password. The bounded correction passes the same entered PIN explicitly as old and new PIN for the forward password-only wrapper change and its Firebase-failure rollback. Change Password now contains and reads its own Current Password input, while the Profile field is labeled only for email changes. Successful completion clears all transient password and PIN fields.

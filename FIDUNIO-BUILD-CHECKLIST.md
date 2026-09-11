@@ -811,14 +811,29 @@ No point earned; completion remains 96%.
 - [x] Push exact runtime tree `9a3bcea96c726958c58f788980792f051921dabe` to `main` as `17210008b89da26ee137cbbd529bb222c09fc164`; Rebuild Baseline `34529867052`, E2EE Rules `34529867135`, E2EE Recovery `34529866986`, Firebase Adapter `34529867158`, and Pages `34529864925` complete SUCCESS; live Pages serves version `1.1.24` and cache revision `1.1.24-notification-priority-semaphore`.
 - [x] Complete the repeated iPhone/iPad matrix above — user tested every defined scenario at least five times on both devices; all behaved as expected. Mark 1.1.24 DEVICE ACCEPTED and the checkpoint baseline (2026-09-10).
 
-### Deferred N6 group-notification implementation boundary
+### Approved N6 group-notification implementation boundary
 
-- [ ] Derive recipients from the authoritative current active group-member list at notification-processing time; exclude the sender.
-- [ ] Fan out only to enabled registered installations using a generic payload with opaque conversation/message identifiers.
-- [ ] Reuse the 1.1.24 single activation, message-delivery and render owners for PIN-to-exact-group-message routing.
-- [ ] Keep existing membership/history-entitlement, Firestore and E2EE rules as final access authority; fail closed for stale, deleted or unauthorized targets.
-- [ ] Do not add a join-before-message notification check or message-time recipient snapshot for the initial implementation.
-- [ ] Do not build, commit or push this scope until explicitly requested.
+- [x] Derive recipients from the authoritative current active group-member list at notification-processing time; exclude the sender.
+- [x] Fan out only to enabled registered installations using a generic payload with opaque conversation/message identifiers.
+- [x] Reuse the 1.1.24 single activation, message-delivery and render owners for PIN-to-exact-group-message routing.
+- [x] Keep existing membership/history-entitlement, Firestore and E2EE rules as final access authority; fail closed for stale, deleted or unauthorized targets.
+- [x] Do not add a join-before-message notification check or message-time recipient snapshot for the initial implementation.
+- [x] Implementation began only after the user's explicit build authorization.
+
+### FIDUNIO 1.1.28 N6 group-notification build
+
+- [x] Derive recipients from current authoritative group membership and exclude the sender.
+- [x] Fan out opaque data-only payloads to enabled installations in FCM batches of at most 500.
+- [x] Reuse the 1.1.24 activation mutex, durable pending inbox and central render owner.
+- [x] Revalidate current membership after PIN and route one exact server read through the sole group decrypt/projection owner.
+- [x] Preserve membership, Firestore and E2EE as final access authority; consume missing/unauthorized routes and retain transient failures.
+- [x] Add permanent backend privacy/fan-out/batching, route, priority and ownership gates.
+- [x] Pass all 82 non-emulator tests, all five Firestore emulator suites, Functions import, syntax, protected-config and diff checks locally.
+- [x] Publish implementation commit `c273f0bfc0275c612fb91c916da0f4d08109dcaa` to `main`.
+- [x] Prepare `gn.txt`, pinned to that implementation commit, to deploy and verify only `notifyGroupMessageCreatedV1`.
+- [ ] Verify all GitHub workflows and live Pages for the final documentation/script commit.
+- [ ] Run `gn.txt` in Cloud Shell and record ACTIVE Function, runtime SA, Eventarc trigger and exact Cloud Run invoker evidence.
+- [ ] Complete repeated iPhone/iPad group-notification acceptance.
 
 ### FIDUNIO 1.1.25 password-change correction
 

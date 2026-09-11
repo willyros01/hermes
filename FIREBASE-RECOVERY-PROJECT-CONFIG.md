@@ -162,6 +162,8 @@ The deployment handoff is COMPLETE. enrollRecoveryV1, startE2EERecoveryV1 and co
 ## FIDUNIO 1.1.28 N6 live handoff boundary
 
 Repository source adds `notifyGroupMessageCreatedV1` in codebase `recovery`, region `us-central1`, using the existing dedicated `fidunio-notification@fidunio-fef13.iam.gserviceaccount.com` runtime identity. Deploy only `functions:recovery:notifyGroupMessageCreatedV1` from the pinned green commit. Do not redeploy Firestore rules, direct notification, recovery callables, purge scheduler, message deletion, Hosting, Auth, App Check or Firebase configuration. After deployment verify Function state ACTIVE, runtime service account, Eventarc trigger presence and Cloud Run invoker binding, then perform real-device group fan-out tests.
+
+The controlled Cloud Shell handoff is `gn.txt`, pinned to implementation commit `c273f0bfc0275c612fb91c916da0f4d08109dcaa`. It downloads and imports the complete Functions module graph, deploys only the N6 group trigger, verifies ACTIVE state and the dedicated runtime identity, resolves the generated Eventarc trigger in `nam5`, and grants/verifies `roles/run.invoker` only for that trigger identity on the new N6 Cloud Run service. Live deployment remains operator-pending.
 - Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
 - Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.
 
