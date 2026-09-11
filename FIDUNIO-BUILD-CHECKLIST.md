@@ -831,7 +831,7 @@ No point earned; completion remains 96%.
 - [x] Pass all 82 non-emulator tests, all five Firestore emulator suites, Functions import, syntax, protected-config and diff checks locally.
 - [x] Publish implementation commit `c273f0bfc0275c612fb91c916da0f4d08109dcaa` to `main`.
 - [x] Prepare `gn.txt`, pinned to that implementation commit, to deploy and verify only `notifyGroupMessageCreatedV1`.
-- [ ] Verify all GitHub workflows and live Pages for the final documentation/script commit.
+- [x] Verify GitHub and Pages: implementation runs Recovery `34594246788`, Firebase Adapter `34594246812`, Rebuild Baseline `34594246886`, and Pages `34594246065` completed SUCCESS; final handoff runs Rebuild Baseline `34594531574` and Pages `34594530919` completed SUCCESS. Live Pages serves version `1.1.28`, cache revision `1.1.28-group-notifications`, and the `group-message` route.
 - [ ] Run `gn.txt` in Cloud Shell and record ACTIVE Function, runtime SA, Eventarc trigger and exact Cloud Run invoker evidence.
 - [ ] Complete repeated iPhone/iPad group-notification acceptance.
 

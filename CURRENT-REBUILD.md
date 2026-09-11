@@ -453,9 +453,11 @@ Device acceptance/checkpoint: the user tested every defined 1.1.24 scenario at l
 
 N6 is implemented through the established owners. The server trigger reads current group membership, excludes the sender and sends opaque data-only notifications to enabled installations. `group-message` routes use the existing installation inbox and activation mutex. Current membership is revalidated from the server, and one exact server message read rejoins the existing serialized group decrypt/receipt owner ahead of queued snapshots. Projection precedes cache, persistence and receipts; only the central renderer reveals the exact group chat. Missing/unauthorized routes fail closed and transient failures remain pending.
 
-No Firestore rules, group E2EE format/key lifecycle, Outbox send order, receipt authority, PIN owner, direct-notification semantics, attachment/disappearing-content owner or protected Firebase configuration changed. Local focused gates pass. Full baseline, exact-main publication, Pages verification, live deployment of `notifyGroupMessageCreatedV1`, and repeated iPhone/iPad group/multi-installation acceptance remain required.
+No Firestore rules, group E2EE format/key lifecycle, Outbox send order, receipt authority, PIN owner, direct-notification semantics, attachment/disappearing-content owner or protected Firebase configuration changed. All local non-emulator and emulator suites pass; exact-main publication and Pages verification are complete. Live deployment of `notifyGroupMessageCreatedV1` and repeated iPhone/iPad group/multi-installation acceptance remain required.
 
 Implementation is published at `c273f0bfc0275c612fb91c916da0f4d08109dcaa`. The operator-safe `gn.txt` handoff is pinned to that commit and deploys only `functions:recovery:notifyGroupMessageCreatedV1`; live backend deployment and device acceptance remain pending.
+
+Repository evidence: implementation runs E2EE Recovery `34594246788`, Firebase Adapter `34594246812`, Rebuild Baseline `34594246886`, and Pages `34594246065` completed SUCCESS. Handoff runs Rebuild Baseline `34594531574` and Pages `34594530919` completed SUCCESS. Live Pages serves FIDUNIO `1.1.28`, shell revision `1.1.28-group-notifications`, and the `group-message` route.
 
 ## FIDUNIO 1.1.25 — password-change PIN bridge correction
 
