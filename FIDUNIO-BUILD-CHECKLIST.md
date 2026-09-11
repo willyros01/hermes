@@ -884,4 +884,5 @@ No point earned; completion remains 96%.
 - [x] Add permanent behavioral coverage for empty/unrelated snapshots, confirmation, deletion and hidden-message non-resurrection.
 - [x] Reconfirm **Start Account Recovery** as a deferred selected-user action under User Administration in `TODO.md`.
 - [x] Complete full local non-emulator baseline, all five Firestore emulator security suites, Functions notification/delete tests, syntax, protected-config and diff checks.
-- [ ] Push the exact release to `main`, verify workflows/Pages, and complete the 1.1.30 device matrix.
+- [x] Push runtime commit `b3bcaa8014b35c9bfffb908555fa9052bc7cd60f` to `main`; Rebuild Baseline Security Gate `34603708400` and Pages `34603708508` completed SUCCESS, and remote `version.js` serves 1.1.30.
+- [ ] Complete the 1.1.30 iPhone/iPad device matrix.
