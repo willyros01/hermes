@@ -15,7 +15,7 @@ const required=[
   'decryptAvailable&&row.senderUid!==id.uid',
   'isOpen()?"read":"delivered"',
   'disappearAfterSeconds:row.disappearAfterSeconds??null',
-  'onRows?.(merged,snapshotMeta)',
+  'await onRows?.(merged,meta)',
   'meta.fromCache===true'
 ];
 for(const token of required)if(!src.includes(token))throw new Error(`group conversation owner missing ${token}`);

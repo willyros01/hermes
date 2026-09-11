@@ -86,6 +86,7 @@ jobs:
       - {name: FCM N3 registration and Settings, run: npm run test:notification-n3}
       - {name: FCM N4 direct background notification, run: node functions/notification/direct-message-notification-core.test.mjs && node notification-n4.test.mjs}
       - {name: FCM N5 notification tap routing, run: npm run test:notification-n5}
+      - {name: FCM N6 group notification fan-out and routing, run: node functions/notification/group-message-notification-core.test.mjs && node notification-n6.test.mjs}
       - {name: Installation-local pending notification inbox, run: node notification-pending-inbox.test.mjs}
       - {name: Activation and composer single-owner lifecycle, run: node activation-composer-ownership.test.mjs}
       - {name: Notification route and immediate message projection, run: npm run test:notification-route-projection}

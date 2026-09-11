@@ -22,6 +22,7 @@ import {
   listCloudUsers,
   createCloudGroup,
   subscribeMyGroups,
+  getCloudGroupFromServer,
   readCloudMessageIdsFromServer,
   readCloudGroupMessageIdsFromServer,
   uploadEncryptedAttachment,
@@ -42,7 +43,7 @@ import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
-import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
+import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
@@ -553,24 +554,34 @@ async function applyPendingNotificationRoute(){
   notificationRouteRunning=true;
   try{
     let c=state.conversations.find(x=>String(x.id)===String(route.conversationId));
+    const groupRoute=route.type==="group-message";
     // A cold iPhone launch can restore an older local conversation record before
     // the cloud-conversation subscription upgrades it. Never reject/consume the
     // route from that cache race: resolve questionable local metadata against
     // Firestore server authority first. A transient server failure is caught
     // below and leaves the installation-local route available for the next
     // serialized activation.
-    if(!c?.cloud||c?.cloudGroup||c?.type==="group"){
-      const remote=await getCloudConversationFromServer(route.conversationId,firebaseUser.uid);
-      if(!remote){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
-      c=mergeCloudConversation(remote);
+    if(groupRoute){
+      const remote=await getCloudGroupFromServer(route.conversationId,firebaseUser.uid);
+      if(!remote){firebaseError="That group message is no longer available.";await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
+      c=mergeCloudGroup(remote);
+      if(!c?.cloudGroup||c?.type!=="group")return false;
+      stopCloudMessageSubscription();beginCloudGroupMessageSubscription(c.id);
+    }else{
+      if(!c?.cloud||c?.cloudGroup||c?.type==="group"){
+        const remote=await getCloudConversationFromServer(route.conversationId,firebaseUser.uid);
+        if(!remote){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
+        c=mergeCloudConversation(remote);
+      }
+      if(!c?.cloud||c?.cloudGroup||c?.type==="group")return false;
+      closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
     }
-    if(!c?.cloud||c?.cloudGroup||c?.type==="group")return false;
-    closeGroupForApp();beginCloudMessageSubscription(c.id,{force:true});
     let messageReady=notificationMessageHasProjected(route);
     if(!messageReady){
       try{
-        await awaitBoundedNotificationMessage(prioritizeConversationMessage(c.id,firebaseUser.uid,route.messageId));
+        await awaitBoundedNotificationMessage(groupRoute?prioritizeGroupMessageForApp(c.id,route.messageId):prioritizeConversationMessage(c.id,firebaseUser.uid,route.messageId));
       }catch(err){
+        if(groupRoute&&err?.code==="notification/not-found"){firebaseError="That group message is no longer available.";await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));return false;}
         console.warn("Notified message priority check did not complete before chat entry",err);
       }
       messageReady=notificationMessageHasProjected(route);
@@ -710,14 +721,18 @@ function beginCloudGroupMessageSubscription(groupId){
     onRows:async (rows,meta={})=>{
       rows=(rows||[]).filter(m=>!isMessageHidden(groupId,m.id));
       const existing=(state.messages[groupId]||[]).filter(m=>!isMessageHidden(groupId,m.id));
-      const outboxIds=(await getOutboxRecords()).map(x=>x.id);
-      const projection=planAuthoritativeMessageProjection({existingRows:existing,remoteRows:rows,snapshotMeta:meta,outboxMessageIds:outboxIds});
+      const outboxIds=meta.partial===true?[]:(await getOutboxRecords()).map(x=>x.id);
+      const projection=meta.partial===true
+        ?planPartialDirectMessageProjection(existing,rows)
+        :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:rows,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
       state.messages[groupId]=[...projection.rows];
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
       if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
-      await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
       if(state.route==="chat"&&String(state.selectedId)===String(groupId))render({background:true});
+      if(pendingNotificationRoute&&notificationMessageHasProjected(pendingNotificationRoute))void requestAppActivation("notification-message-projected");
+      if(meta.partial===true)return{projectedMessageIds:state.messages[groupId].map(message=>String(message.id))};
+      await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
     },
     onError:err=>{firebaseError=err?.message||String(err);}
   });

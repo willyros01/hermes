@@ -1,5 +1,5 @@
 import {prepareQueuedAccountGroupMessage,flushQueuedAccountGroupMessage,resetAccountGroupOutboxQueue} from "./e2ee-account-group-outbox.js";
-import {subscribeAccountGroupConversation,stopAccountGroupConversation,resetAccountGroupConversationStreams} from "./e2ee-account-group-conversation.js";
+import {subscribeAccountGroupConversation,prioritizeAccountGroupConversationMessage,stopAccountGroupConversation,resetAccountGroupConversationStreams} from "./e2ee-account-group-conversation.js";
 import {renameAccountGroup,addAccountGroupMember,removeAccountGroupMember,leaveAccountGroup,createAccountGroupHistoryGrant} from "./e2ee-account-group-service.js";
 
 // This is the only surface app.js needs for group text messaging/admin intent.
@@ -31,6 +31,8 @@ export function openGroupConversation(groupId,{onRows,onError,isOpen}={}){
   activeGroupId=id;
   return subscribeAccountGroupConversation(activeGroupId,{onRows,onError,isOpen});
 }
+
+export function prioritizeGroupConversationMessage(groupId,messageId){return prioritizeAccountGroupConversationMessage(groupId,messageId);}
 
 export function closeGroupConversation(){
   if(activeGroupId!==null)stopAccountGroupConversation(activeGroupId);

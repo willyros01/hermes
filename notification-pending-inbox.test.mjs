@@ -16,12 +16,14 @@ const grouped=groupPendingNotificationRoutes([
   {type:"direct-message",conversationId:"conversation-a",messageId:"message-a1"},
   {type:"direct-message",conversationId:"conversation-a",messageId:"message-a2"},
   {type:"direct-message",conversationId:"conversation-b",messageId:"message-b1"},
+  {type:"group-message",conversationId:"group-c",messageId:"message-c1"},
   {type:"group",conversationId:"rejected",messageId:"rejected"}
 ]);
-assert.equal(grouped.length,2);
+assert.equal(grouped.length,3);
 assert.deepEqual(grouped[0].messageIds,["message-a1","message-a2"]);
 assert.equal(grouped[0].route.messageId,"message-a2");
 assert.equal(grouped[1].route.conversationId,"conversation-b");
+assert.equal(grouped[2].route.type,"group-message");
 assert.match(worker,/await storePendingNotificationRoute\(envelope\.route\)/);
 assert.match(worker,/storePendingNotificationRoute\(envelope\.route\)[\s\S]*showNotification/);
 assert.match(app,/listPendingNotificationRoutes/);

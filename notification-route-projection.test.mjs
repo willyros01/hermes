@@ -12,7 +12,7 @@ assert.match(routeOwner,/if\(!c\?\.cloud\|\|c\?\.cloudGroup\|\|c\?\.type==="grou
   "stale local conversation metadata must be resolved by server authority before rejection");
 assert.match(app,/notificationRouteHasRendered\(routed\.route\)[\s\S]*?finalizePendingNotificationRoute/,
   "the inbox route must survive until the exact target chat is mounted");
-assert.match(routeOwner,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)[\s\S]*?awaitBoundedNotificationMessage\(prioritizeConversationMessage\(c\.id,firebaseUser\.uid,route\.messageId\)\)[\s\S]*?state\.route="chat"/,
+assert.match(routeOwner,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)[\s\S]*?awaitBoundedNotificationMessage\(groupRoute\?prioritizeGroupMessageForApp\(c\.id,route\.messageId\):prioritizeConversationMessage\(c\.id,firebaseUser\.uid,route\.messageId\)\)[\s\S]*?state\.route="chat"/,
   "notification activation must make the exact keyed message ready through the existing owner before revealing chat");
 assert.match(app,/messageReady&&notificationRouteHasRendered\(routed\.route\)/,
   "the pending semaphore must not be consumed until the exact message is ready and mounted");

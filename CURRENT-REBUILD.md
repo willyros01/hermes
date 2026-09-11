@@ -449,6 +449,12 @@ Deployment evidence: exact runtime tree `9a3bcea96c726958c58f788980792f051921dab
 
 Device acceptance/checkpoint: the user tested every defined 1.1.24 scenario at least five times on both iPhone and iPad and reported that everything behaved as expected. FDA-NOTIFY-002, the notification-related FDA-DM-001 projection/positioning scope, and FDA-COMPOSER-001 are closed for this release. FIDUNIO 1.1.24 is the documented checkpoint/rollback baseline for later work.
 
+## FIDUNIO 1.1.28 — N6 group notification candidate
+
+N6 is implemented through the established owners. The server trigger reads current group membership, excludes the sender and sends opaque data-only notifications to enabled installations. `group-message` routes use the existing installation inbox and activation mutex. Current membership is revalidated from the server, and one exact server message read rejoins the existing serialized group decrypt/receipt owner ahead of queued snapshots. Projection precedes cache, persistence and receipts; only the central renderer reveals the exact group chat. Missing/unauthorized routes fail closed and transient failures remain pending.
+
+No Firestore rules, group E2EE format/key lifecycle, Outbox send order, receipt authority, PIN owner, direct-notification semantics, attachment/disappearing-content owner or protected Firebase configuration changed. Local focused gates pass. Full baseline, exact-main publication, Pages verification, live deployment of `notifyGroupMessageCreatedV1`, and repeated iPhone/iPad group/multi-installation acceptance remain required.
+
 ## FIDUNIO 1.1.25 — password-change PIN bridge correction
 
 Source diagnosis proved the Settings bridge passed `{pin}` into an E2EE rewrap API requiring `{oldPin,newPin}`. Both values were therefore undefined and the six-digit validator rejected the operation before Firebase changed the password. The bounded correction passes the same entered PIN explicitly as old and new PIN for the forward password-only wrapper change and its Firebase-failure rollback. Change Password now contains and reads its own Current Password input, while the Profile field is labeled only for email changes. Successful completion clears all transient password and PIN fields.

@@ -5,7 +5,7 @@ import {notificationEnvelopeFromFcmPayload,notificationOptionsForEnvelope} from 
 
 const route=normalizeNotificationRoute({type:"direct-message",conversationId:"conv-12345678",messageId:"msg-12345678"});
 assert.deepEqual({...route},{type:"direct-message",conversationId:"conv-12345678",messageId:"msg-12345678"});
-assert.equal(normalizeNotificationRoute({type:"group-message",conversationId:"c",messageId:"m"}),null);
+assert.deepEqual({...normalizeNotificationRoute({type:"group-message",conversationId:"c",messageId:"m"})},{type:"group-message",conversationId:"c",messageId:"m"});
 assert.equal(notificationRouteFromUrl("https://example.test/hermes/?fidunioNotification=direct-message&conversationId=conv-12345678&messageId=msg-12345678")?.conversationId,"conv-12345678");
 assert.equal(urlWithoutNotificationRoute("https://example.test/hermes/?fidunioNotification=direct-message&conversationId=c&messageId=m&keep=1#x"),"/hermes/?keep=1#x");
 assert.equal(FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,"fidunio-notification-route");
@@ -31,7 +31,8 @@ assert.match(app,/getCloudConversationFromServer\(route\.conversationId,firebase
 assert.match(app,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)/);
 assert.match(app,/state\.selectedId=c\.id;state\.route="chat"/);
 assert.match(app,/function unlockLocalApp\(\)[\s\S]*?requestAppActivation\("unlock"\)/);
-assert.doesNotMatch(app,/pendingNotificationRoute[\s\S]{0,500}state\.messages\[/);
-assert.match(sw,/SHELL_REVISION="1\.1\.27-password-reset-recovery-gate"/);
-assert.match(version,/version: "1\.1\.27"/);
+const routeOwner=app.slice(app.indexOf("async function applyPendingNotificationRoute"),app.indexOf("async function finalizePendingNotificationRoute"));
+assert.doesNotMatch(routeOwner,/state\.messages\[[^\]]+\]\s*=/,"notification routing must not manufacture message rows");
+assert.match(sw,/SHELL_REVISION="1\.1\.28-group-notifications"/);
+assert.match(version,/version: "1\.1\.28"/);
 console.log("FCM N5 data-only notification tap routing gate passed");

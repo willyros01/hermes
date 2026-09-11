@@ -8,10 +8,10 @@ function boundedOpaqueId(value,label,max=256){
 }
 
 export function normalizeNotificationRoute(value){
-  if(!value||typeof value!=="object"||value.type!=="direct-message")return null;
+  if(!value||typeof value!=="object"||!["direct-message","group-message"].includes(value.type))return null;
   try{
     return Object.freeze({
-      type:"direct-message",
+      type:value.type,
       conversationId:boundedOpaqueId(value.conversationId,"Conversation ID"),
       messageId:boundedOpaqueId(value.messageId,"Message ID")
     });

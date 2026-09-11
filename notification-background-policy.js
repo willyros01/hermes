@@ -14,12 +14,12 @@ function boundedNotificationBody(value){
 
 export function notificationEnvelopeFromFcmPayload(payload){
   const data=payload?.data;
-  if(!data||data.type!=="direct-message")return null;
+  if(!data||!["direct-message","group-message"].includes(data.type))return null;
   const conversationId=boundedOpaqueId(data.conversationId);
   const messageId=boundedOpaqueId(data.messageId);
   if(!conversationId||!messageId)return null;
   return Object.freeze({
-    route:Object.freeze({type:"direct-message",conversationId,messageId}),
+    route:Object.freeze({type:data.type,conversationId,messageId}),
     body:boundedNotificationBody(data.notificationBody)
   });
 }

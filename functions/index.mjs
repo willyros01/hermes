@@ -14,7 +14,8 @@ import { createDisappearingPurgeExecutor } from "./disappearing/disappearing-pur
 import { createDisappearingPurgeFirestoreAdminRepository } from "./disappearing/disappearing-purge-firestore-admin-adapter.mjs";
 import { runDisappearingPurgeSweep } from "./disappearing/disappearing-scheduler-core.mjs";
 import { createDirectMessageNotificationCore } from "./notification/direct-message-notification-core.mjs";
-import { createDirectNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
+import { createGroupMessageNotificationCore } from "./notification/group-message-notification-core.mjs";
+import { createNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
 
 if (!getApps().length) initializeApp();
 
@@ -30,8 +31,9 @@ const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({
 const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:attachmentBucket});
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
-const {conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo}=createDirectNotificationAdminRepositories({db});
+const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo}=createNotificationAdminRepositories({db});
 const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
+const groupNotificationCore=createGroupMessageNotificationCore({groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
 
 function decodeMasterSecret() {
   const raw = String(RECOVERY_MASTER.value() || "");
@@ -133,6 +135,22 @@ export const notifyDirectMessageCreatedV1 = onDocumentCreated(
   async event=>{
     const message=event.data?.data?.();if(!message)return null;
     return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});
+  }
+);
+
+export const notifyGroupMessageCreatedV1 = onDocumentCreated(
+  {
+    document:"groups/{groupId}/messages/{messageId}",
+    region:"us-central1",
+    serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,
+    timeoutSeconds:30,
+    memory:"256MiB",
+    maxInstances:20,
+    retry:false
+  },
+  async event=>{
+    const message=event.data?.data?.();if(!message)return null;
+    return groupNotificationCore.handleCreatedMessage({groupId:event.params.groupId,messageId:event.params.messageId,message});
   }
 );
 

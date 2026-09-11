@@ -322,6 +322,16 @@ The Settings Security host may coordinate first setup by calling the existing E2
 
 - N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.
 - Live N4 trigger: `notifyDirectMessageCreatedV1`; Eventarc trigger region is `nam5`; the trigger service account has `roles/run.invoker` only on the N4 Cloud Run service.
+
+FIDUNIO 1.1.28 N6 GROUP NOTIFICATION OWNERS
+- Accepted group message trigger: notifyGroupMessageCreatedV1 only.
+- Recipient source: current authoritative groups/{groupId}.memberUids; sender excluded.
+- Token and invalid-token cleanup: shared server notification device repository only.
+- Pending route: existing installation-local notification inbox only; opaque group/message IDs, no content or membership list.
+- Startup/resume/PIN route decision: existing app activation promise mutex only.
+- Group exact read/decrypt/projection/receipt: existing e2ee-account-group-conversation owner with one keyed priority queue and one coalesced snapshot slot.
+- DOM/chat/composer: existing central render and conversation-bound composer owners only.
+- Notification is never membership, history, Firestore or E2EE authority.
 - N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.
 - Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
 - Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.

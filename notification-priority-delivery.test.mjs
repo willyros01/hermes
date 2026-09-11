@@ -12,7 +12,7 @@ assert.ok(routeStart>=0&&routeEnd>routeStart,"notification activation owner must
 assert.match(routeOwner,/setUnlockTransitionStatus\("Opening message…"\)/,
   "PIN transition must stay covered while the keyed message is prepared");
 const subscribe=routeOwner.indexOf("beginCloudMessageSubscription(c.id,{force:true})");
-const prioritize=routeOwner.indexOf("await awaitBoundedNotificationMessage(prioritizeConversationMessage(c.id,firebaseUser.uid,route.messageId))");
+const prioritize=routeOwner.indexOf("await awaitBoundedNotificationMessage(groupRoute?prioritizeGroupMessageForApp(c.id,route.messageId):prioritizeConversationMessage(c.id,firebaseUser.uid,route.messageId))");
 const reveal=routeOwner.indexOf('state.selectedId=c.id;state.route="chat"');
 assert.ok(subscribe>=0&&prioritize>subscribe&&reveal>prioritize,
   "the existing stream and exact priority read must run before chat is revealed");
@@ -43,6 +43,6 @@ assert.equal((firebase.match(/onSnapshot\(q,\{includeMetadataChanges:true\}/g)||
   "direct-message delivery must retain one listener implementation");
 assert.match(worker,/"\.\/direct-message-delivery-owner\.js"/,
   "the installed PWA shell must cache the delivery-owner module");
-assert.match(worker,/SHELL_REVISION="1\.1\.27-password-reset-recovery-gate"/);
+assert.match(worker,/SHELL_REVISION="1\.1\.28-group-notifications"/);
 
 console.log("Notification priority semaphore integration gate passed");

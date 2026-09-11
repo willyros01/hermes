@@ -68,4 +68,4 @@ Test export/import, tampering, wrong account, wrong PIN, expired/locked recovery
 ## Current focus
 
 - Notification tap routing, exact-message priority projection, newest positioning and composer stability are DEVICE ACCEPTED on iPhone and iPad at the FIDUNIO 1.1.24 checkpoint.
-- Next notification phase is N6: groups + multi-device, unless another priority is explicitly chosen first.
+- N6 group + multi-device notifications are implemented in the FIDUNIO 1.1.28 repository candidate. Live deployment of `notifyGroupMessageCreatedV1`, workflow completion and repeated device acceptance remain before N6 closure.

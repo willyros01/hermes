@@ -158,6 +158,10 @@ The deployment handoff is COMPLETE. enrollRecoveryV1, startE2EERecoveryV1 and co
 - N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.
 - Live N4 trigger: `notifyDirectMessageCreatedV1`; Eventarc trigger region is `nam5`; the trigger service account has `roles/run.invoker` only on the N4 Cloud Run service.
 - N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.
+
+## FIDUNIO 1.1.28 N6 live handoff boundary
+
+Repository source adds `notifyGroupMessageCreatedV1` in codebase `recovery`, region `us-central1`, using the existing dedicated `fidunio-notification@fidunio-fef13.iam.gserviceaccount.com` runtime identity. Deploy only `functions:recovery:notifyGroupMessageCreatedV1` from the pinned green commit. Do not redeploy Firestore rules, direct notification, recovery callables, purge scheduler, message deletion, Hosting, Auth, App Check or Firebase configuration. After deployment verify Function state ACTIVE, runtime service account, Eventarc trigger presence and Cloud Run invoker binding, then perform real-device group fan-out tests.
 - Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
 - Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.
 

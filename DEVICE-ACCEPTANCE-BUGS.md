@@ -112,6 +112,16 @@ Issue 1 is closed for device acceptance.
 
 - N4 real-device acceptance passed: a backgrounded iPhone received the generic `FIDUNIO — New message` notification after the live Eventarc/Cloud Run invocation permission was corrected.
 - Live N4 trigger: `notifyDirectMessageCreatedV1`; Eventarc trigger region is `nam5`; the trigger service account has `roles/run.invoker` only on the N4 Cloud Run service.
+
+## FDA-NOTIFY-003 — N6 group notification acceptance
+
+- Build: FIDUNIO 1.1.28 repository candidate.
+- Severity: release acceptance.
+- Expected: an accepted encrypted group message notifies every enabled installation of each current member except the sender; tap/PIN opens the exact group at the new row without hijacking startup, composer or scroll.
+- Implementation: server-authoritative current-member fan-out, opaque data-only payload, existing installation inbox/activation mutex, existing group delivery owner with keyed exact-message priority, central render only.
+- Status: repository implementation complete; live Function deployment and device acceptance pending.
+- Re-test: iPhone and iPad warm/background and terminated/cold at least five times each; multi-installation fan-out; sender exclusion; multiple-conversation chooser; removed member and deleted message fail-closed; direct notification checkpoint; typing/draft/focus; newest positioning; group receipts, Outbox, attachments and disappearing messages.
+- Exit: all repository workflows green, Pages serves 1.1.28, `notifyGroupMessageCreatedV1` verified ACTIVE under the dedicated notification service account, and the user accepts the repeated device matrix.
 - N5 candidate adds deterministic notification-tap routing. The service worker may focus/open FIDUNIO and pass only opaque direct-message routing intent. `app.js` remains the route/message owner and resolves the conversation through existing Firestore/E2EE state.
 - Notification metadata never creates a message row, decrypts content, or writes receipts. Cold-open routing waits behind the normal local PIN/auth gates.
 - Device acceptance still required for N5 warm-open and cold-open taps before N5 is closed.

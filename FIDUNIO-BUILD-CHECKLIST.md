@@ -685,6 +685,21 @@ No point earned; completion remains 96%.
 - [ ] Full Rebuild Baseline Security Gate passes on exact candidate.
 - [ ] Exact GitHub Pages deployment passes.
 - [ ] Deploy reviewed notifyDirectMessageCreatedV1 backend candidate.
+
+## FIDUNIO 1.1.28 N6 group notifications
+
+- [x] Preserve FIDUNIO 1.1.24 as the device-accepted direct-notification checkpoint.
+- [x] Derive group recipients server-side from current authoritative `memberUids`; exclude sender.
+- [x] Fan out only to enabled installations; bound FCM multicast batches to 500 and reuse stale-token cleanup.
+- [x] Keep payload data-only and limited to route type, opaque conversation/message IDs and bounded generic body.
+- [x] Accept `group-message` through the existing worker, installation inbox and activation mutex.
+- [x] Revalidate current group membership through the central Firebase owner after PIN.
+- [x] Feed the exact notified row through the existing serialized group decrypt/projection owner before snapshot/cache/receipt maintenance.
+- [x] Consume only after exact row and group composer are mounted; fail closed for missing/unauthorized targets and retain transient failures.
+- [x] Add permanent backend privacy/fan-out and frontend single-owner N6 gates; retain direct N5 and activation/composer gates.
+- [ ] Push exact 1.1.28 candidate to `main`; verify all workflows and live Pages.
+- [ ] Deploy and verify only `recovery:notifyGroupMessageCreatedV1` through the pinned Cloud Shell handoff.
+- [ ] Device acceptance: iPhone/iPad, warm/background and terminated/cold, one group and multiple pending conversations, multiple installations, sender exclusion, removed member, deleted message, direct-notification regression, group compose/receipt/scroll regression.
 - [ ] iPhone and iPad device acceptance passes.
 
 - [x] Initial full gate 34436219194: notification N2/N3/N4/N5 and preceding security stages passed; stopped only at stale 1.1.9 shell-revision assertion.
