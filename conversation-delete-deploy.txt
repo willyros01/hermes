@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+REGION="us-central1"
+FUNCTION="deleteConversationForEveryoneV1"
+CODEBASE="recovery"
+SERVICE_ACCOUNT="fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com"
+COMMIT="ca265dfe2f5bafc87bdba34e5c9fe4afc1968023"
+SCRIPT_VERSION="1.1.35-a"
+
+ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
+if [[ "$ACTIVE_PROJECT" != "$PROJECT" ]]; then
+  echo "STOP: Cloud Shell project is '$ACTIVE_PROJECT', expected '$PROJECT'."
+  exit 1
+fi
+if ! command -v firebase >/dev/null 2>&1; then
+  echo "Firebase CLI not found; installing firebase-tools..."
+  npm install -g firebase-tools
+fi
+if ! gcloud iam service-accounts describe "$SERVICE_ACCOUNT" --project="$PROJECT" >/dev/null 2>&1; then
+  echo "STOP: dedicated message-delete service account is missing."
+  exit 1
+fi
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+ARCHIVE="$WORK/fidunio.tar.gz"
+ROOT="$WORK/hermes-$COMMIT"
+
+echo "FIDUNIO 1.1.35 permanent conversation-deletion deployment"
+echo "Project: $PROJECT"
+echo "Function: $FUNCTION"
+echo "Pinned source: $COMMIT"
+echo "Script: $SCRIPT_VERSION"
+
+curl --retry 3 --retry-delay 2 -fsSL "https://github.com/willyros01/hermes/archive/$COMMIT.tar.gz" -o "$ARCHIVE"
+tar -xzf "$ARCHIVE" -C "$WORK"
+
+if ! grep -q 'export const deleteConversationForEveryoneV1 = onCall' "$ROOT/functions/index.mjs"; then
+  echo "STOP: pinned source does not export the reviewed conversation-delete callable."
+  exit 1
+fi
+if ! grep -q 'deletionState:"deleting"' "$ROOT/functions/conversation-delete/conversation-delete-firestore-admin-adapter.mjs"; then
+  echo "STOP: pinned source does not contain the reviewed deletion barrier."
+  exit 1
+fi
+if ! grep -q 'function conversationWritable' "$ROOT/firestore.rules" || ! grep -q 'function groupWritable' "$ROOT/firestore.rules"; then
+  echo "STOP: pinned Firestore rules do not contain the reviewed write barriers."
+  exit 1
+fi
+
+echo "Preflighting the complete pinned Functions module graph..."
+npm --prefix "$ROOT/functions" install --ignore-scripts --silent
+(
+  cd "$ROOT"
+  node --input-type=module -e "const m=await import('./functions/index.mjs');if(typeof m.deleteConversationForEveryoneV1!=='function')throw new Error('conversation-delete export missing');console.log('Pinned Functions graph imports successfully')"
+)
+
+cd "$ROOT"
+firebase deploy \
+  --project "$PROJECT" \
+  --only "firestore:rules,functions:$CODEBASE:$FUNCTION" \
+  --non-interactive
+
+STATE="$(gcloud functions describe "$FUNCTION" --gen2 --project="$PROJECT" --region="$REGION" --format='value(state)')"
+RUNTIME_SA="$(gcloud functions describe "$FUNCTION" --gen2 --project="$PROJECT" --region="$REGION" --format='value(serviceConfig.serviceAccountEmail)')"
+if [[ "$STATE" != "ACTIVE" ]]; then
+  echo "STOP: Function deployment state is '$STATE'."
+  exit 1
+fi
+if [[ "$RUNTIME_SA" != "$SERVICE_ACCOUNT" ]]; then
+  echo "STOP: Function runtime service account is '$RUNTIME_SA', expected '$SERVICE_ACCOUNT'."
+  exit 1
+fi
+
+echo "SUCCESS"
+echo "$FUNCTION is ACTIVE."
+echo "Firestore deletion-barrier rules deployed."
+echo "Runtime service account: $RUNTIME_SA"
