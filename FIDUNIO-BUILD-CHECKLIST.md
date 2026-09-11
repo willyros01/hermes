@@ -937,4 +937,5 @@ No point earned; completion remains 96%.
 - [x] Keep Firebase initialization, membership mutation, group E2EE/epoch schema, Firestore rules, direct-message membership, notifications, receipts, Outbox and backend Functions unchanged.
 - [x] Add a permanent group-membership lifecycle gate to the full baseline workflow and bump the installed PWA to 1.1.34.
 - [x] Complete the full local non-emulator and all five Firestore emulator baselines; syntax, protected-config and diff checks pass.
-- [ ] Publish the exact validated tree to `main`, verify workflows/Pages, and complete iPhone/iPad membership acceptance.
+- [x] Publish implementation tree `0b614b97fa14a3d5ac0bdf8b2409c4dbde5c55f9` to `main` as `46a5a7b9310ea517d9aee7d18a2d31cd80edd7db`; quote the new comma-containing YAML step name in follow-up `5b8069acc6b33a5b2de97addc9477c344e2974a1`. Rebuild Baseline `34650618943` and Pages `34650618536` completed SUCCESS.
+- [ ] Complete iPhone/iPad membership acceptance.
