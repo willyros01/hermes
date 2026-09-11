@@ -253,13 +253,15 @@ The client may never submit the destination token list as authority.
 
 For a newly accepted group message:
 
-1. Server reads authoritative group membership/entitlement.
-2. Current authorized members are resolved server-side.
-3. Sender is excluded.
-4. Removed/unauthorized members receive no notification.
-5. Each eligible registered installation receives the generic notification.
+1. Server reads the authoritative current active-member list when the notification trigger processes the message.
+2. Sender is excluded.
+3. Each enabled registered installation belonging to the remaining members receives the generic notification.
+4. The payload contains only notification type plus opaque `conversationId`/`messageId` routing identifiers; it is never access authority.
+5. On open, the existing group-membership, history-entitlement, Firestore and E2EE owners independently allow or reject access to the actual message.
 
 The group-member list must not be exposed as plaintext notification content.
+
+No separate “member joined before message creation” notification check or message-time recipient snapshot is required for the initial implementation. Notification delivery grants no message or history access. A stale notification, deleted message, membership change, or entitlement change is resolved by the existing authoritative access path when the app attempts to open the message. Rejection consumes/discards the unusable pending route and returns to the normal conversation surface with a simple unavailable-message notice; it must not manufacture a row or weaken access rules.
 
 ## 11. Attachments
 
@@ -382,11 +384,12 @@ Exit: architecture referenced by all relevant durable docs and marked required r
 
 ### N6 — Groups + multi-device
 
-- group recipients derived from authoritative membership;
+- group recipients derived from the authoritative current active-member list at notification-processing time;
 - sender excluded;
-- removed/unauthorized member excluded;
 - multi-installation fan-out;
-- no message content in payload.
+- generic payload with only opaque group/message routing identifiers;
+- existing membership/history, Firestore and E2EE rules remain final access authority;
+- no separate join-time check or message-time recipient snapshot in the initial implementation.
 
 ### N7 — Lifecycle/reliability closeout
 
@@ -546,3 +549,7 @@ The installation-local inbox and server-authoritative route validation remain un
 The pending inbox record is the durable semaphore and its key is `(conversationId, messageId)`. After unlock/auth/hydration are ready, the activation owner keeps the PIN transition mounted and starts the existing conversation subscription. If the keyed row is absent, `prioritizeConversationMessage` performs one `getDocFromServer` for that exact document and submits it to the same delivery owner as listener snapshots. Priority is processed after any currently executing projection but before a queued snapshot or maintenance step. Duplicate priority requests share the keyed operation; later full snapshots merge by ID.
 
 The priority row is non-authoritative: it cannot purge history or Outbox data. Projection/decryption and rendering happen before cache, state persistence, or receipt recovery. Only the activation owner reveals chat, and only after the exact row is projected; only the render/activation owners consume the record after the row and exact conversation composer are mounted. Timeout, offline, missing document, decryption failure, or render mismatch leaves the record pending. No-notification activation bypasses the path.
+
+## Agreed N6 group-notification boundary — 2026-09-10
+
+The first group-notification release will follow the general rule rather than add speculative exception machinery. The server derives recipients from the authoritative current active group members when it processes the accepted message, excludes the sender, and fans out a generic notification to their enabled installations. Notification metadata is only an opaque wake-up/route hint. It does not prove membership, disclose content, grant history, or bypass Firestore/E2EE. Actual access is resolved by the existing group membership/history-entitlement, Firestore and E2EE authorities after PIN unlock. Stale, deleted or no-longer-authorized targets fail closed through that path. This decision is documentation-only pending an explicitly requested release build.

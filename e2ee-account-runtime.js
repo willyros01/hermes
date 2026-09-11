@@ -25,10 +25,10 @@ export async function changeAccountPasswordWithE2EE({uid,currentPassword,newPass
   const state=manager.getState();
   if(state.state==="EMPTY")return changeFidunioPassword(currentPassword,newPassword);
   if(state.state!=="READY")await manager.unlock({uid,password:currentPassword,pin});
-  await manager.rewrap({uid,oldPassword:currentPassword,newPassword,pin});
+  await manager.rewrap({uid,oldPassword:currentPassword,oldPin:pin,newPassword,newPin:pin});
   try{return await changeFidunioPassword(currentPassword,newPassword);}
   catch(error){
-    try{await manager.rewrap({uid,oldPassword:newPassword,newPassword:currentPassword,pin});}
+    try{await manager.rewrap({uid,oldPassword:newPassword,oldPin:pin,newPassword:currentPassword,newPin:pin});}
     catch(rollbackError){const e=new Error("Firebase password change failed and the E2EE wrapper rollback also failed. Use account recovery before messaging.");e.cause={error,rollbackError};throw e;}
     throw error;
   }

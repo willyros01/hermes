@@ -224,3 +224,16 @@ The device matrix closes only with consistent repeated behavior. An occasional s
 6. With no notification, unlock/resume normally and verify no targeted message read or forced chat navigation occurs.
 7. While typing during incoming messages, verify text, focus, caret, input height, and viewport do not jump or clear. Enter via the conversation list and verify newest positioning.
 8. Regress Sent/Delivered/Read, offline Outbox/reconnect, message deletion, disappearing text, group chat, one attachment, iPad sidebar, notification chooser, and Settings/Profile/User Administration loading.
+
+**Acceptance result (2026-09-10): PASS / CHECKPOINT.** The user completed every defined scenario at least five times on both iPhone and iPad and reported that all behavior was as expected. Release 1.1.24 is device accepted and recorded as the checkpoint baseline.
+
+## FIDUNIO 1.1.25 password-change acceptance
+
+1. Confirm visible version 1.1.25 after two complete launches.
+2. In Settings → Profile → Change Password, enter the current password, a new password twice, and the existing six-digit FIDUNIO PIN.
+3. Confirm “Password changed successfully,” with no PIN-validation error and no lost Settings/Profile content.
+4. Sign out; confirm the old password fails and the new password signs in.
+5. Confirm the existing PIN/biometric unlock still works, the same conversations/history decrypt, and direct/group send and receive remain functional.
+6. Confirm Profile Save, email unchanged, Settings/Profile/User Administration loading, notifications and ordinary app restart remain unchanged.
+
+Device acceptance remains required. Do not use Forgot Password or recovery for this normal password-change test.

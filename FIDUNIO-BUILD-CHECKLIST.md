@@ -794,4 +794,23 @@ No point earned; completion remains 96%.
 - [x] Add permanent behavioral and integration gates and service-worker cache inclusion.
 - [x] Complete full local non-emulator and emulator-backed repository validation.
 - [x] Push exact runtime tree `9a3bcea96c726958c58f788980792f051921dabe` to `main` as `17210008b89da26ee137cbbd529bb222c09fc164`; Rebuild Baseline `34529867052`, E2EE Rules `34529867135`, E2EE Recovery `34529866986`, Firebase Adapter `34529867158`, and Pages `34529864925` complete SUCCESS; live Pages serves version `1.1.24` and cache revision `1.1.24-notification-priority-semaphore`.
-- [ ] Complete the repeated iPhone/iPad matrix above.
+- [x] Complete the repeated iPhone/iPad matrix above — user tested every defined scenario at least five times on both devices; all behaved as expected. Mark 1.1.24 DEVICE ACCEPTED and the checkpoint baseline (2026-09-10).
+
+### Deferred N6 group-notification implementation boundary
+
+- [ ] Derive recipients from the authoritative current active group-member list at notification-processing time; exclude the sender.
+- [ ] Fan out only to enabled registered installations using a generic payload with opaque conversation/message identifiers.
+- [ ] Reuse the 1.1.24 single activation, message-delivery and render owners for PIN-to-exact-group-message routing.
+- [ ] Keep existing membership/history-entitlement, Firestore and E2EE rules as final access authority; fail closed for stale, deleted or unauthorized targets.
+- [ ] Do not add a join-before-message notification check or message-time recipient snapshot for the initial implementation.
+- [ ] Do not build, commit or push this scope until explicitly requested.
+
+### FIDUNIO 1.1.25 password-change correction
+
+- [x] Diagnose the Settings-to-E2EE PIN property mismatch before changing code.
+- [x] Pass the existing PIN as explicit `oldPin` and `newPin` for forward rewrap and rollback.
+- [x] Give Change Password its own Current Password field and clear transient secrets after success.
+- [x] Add a permanent password-change bridge/rollback/UI ownership gate to the full baseline.
+- [x] Complete the full local repository baseline: all 70 non-emulator test groups and all five Firestore emulator security suites pass.
+- [ ] Push the complete runtime plus outstanding local documentation to `main` and verify every workflow/Pages deployment.
+- [ ] Complete the 1.1.25 real-device acceptance steps in `DEVICE-ACCEPTANCE-BUGS.md`.
