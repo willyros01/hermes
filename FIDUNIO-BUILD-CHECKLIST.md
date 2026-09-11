@@ -912,7 +912,7 @@ No point earned; completion remains 96%.
 - [x] Push the complete 1.1.31 + 1.1.32 runtime and pending todo documentation to `main`; authenticated connector commits `d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d` and `355beff7c56fa3fd3a0c930f82cd0a1c32ccc94b`, with successful security and Pages workflows.
 - [x] Prepare short root script `m.txt`, pinned to published implementation commit `d4909f9b831aa5a4f07c5a9b04b633cbf117ff2d`, to deploy and verify only `deleteMyMessagesForEveryoneV1`.
 - [x] Deploy and verify `deleteMyMessagesForEveryoneV1` using the dedicated message-delete identity; user reported `m.txt` completed successfully and the Function is ACTIVE on 2026-09-11.
-- [ ] Complete the direct/group iPhone/iPad acceptance matrix in `DEVICE-ACCEPTANCE-BUGS.md`.
+- [x] Complete direct and group device acceptance: corrected direct mass deletion passed, followed by a positive group mass-delete result on 2026-09-11. Item 4 is DEVICE ACCEPTED / CLOSED.
 
 ### FIDUNIO 1.1.33 immediate mass-delete projection convergence
 
@@ -925,7 +925,7 @@ No point earned; completion remains 96%.
 - [x] Complete all 82 non-emulator workflow steps and all five Firestore emulator suites locally; syntax, diff and focused convergence gates pass.
 - [x] Publish exact tree to `main` as `1ce5eab49c7573622a028cfeb800755173d3fdfe`; Rebuild Baseline `34627532056`, Rules `34627532087`, Recovery `34627532062`, Firebase Adapter `34627532036`, and Pages `34627531490` completed SUCCESS.
 - [x] Repeat direct deletion on 1.1.33; user confirmed the immediate-convergence correction works.
-- [ ] Complete group and remaining iPhone/iPad neighboring regression acceptance.
+- [x] Complete the group mass-delete feature path; the user reported a positive group result on 2026-09-11. Together with the accepted direct correction, item 4 is DEVICE ACCEPTED / CLOSED.
 
 ### FIDUNIO 1.1.34 group membership lifecycle correction
 
@@ -938,4 +938,17 @@ No point earned; completion remains 96%.
 - [x] Add a permanent group-membership lifecycle gate to the full baseline workflow and bump the installed PWA to 1.1.34.
 - [x] Complete the full local non-emulator and all five Firestore emulator baselines; syntax, protected-config and diff checks pass.
 - [x] Publish implementation tree `0b614b97fa14a3d5ac0bdf8b2409c4dbde5c55f9` to `main` as `46a5a7b9310ea517d9aee7d18a2d31cd80edd7db`; quote the new comma-containing YAML step name in follow-up `5b8069acc6b33a5b2de97addc9477c344e2974a1`. Rebuild Baseline `34650618943` and Pages `34650618536` completed SUCCESS.
-- [ ] Complete iPhone/iPad membership acceptance.
+- [x] Complete membership acceptance: the user reports all defined item 9 tests passed positively on 2026-09-11. Item 9 and FDA-GROUP-002 are DEVICE ACCEPTED / CLOSED.
+
+### FIDUNIO 1.1.35 permanent conversation archive and deletion
+
+- [x] Add accessible Conversation actions to every direct/group Messages-list row on phone and tablet layouts.
+- [x] Add encrypted installation-local Archive state plus an Archived view and explicit Unarchive; preserve shared history and membership.
+- [x] Define permanent authority: either direct participant may delete a direct chat; only the group owner may delete a group.
+- [x] Require typed `DELETE` confirmation and one serialized client callable path through `firebase.js`.
+- [x] Add the server deletion barrier, rules write freeze, attachment-first cleanup and recursive Firestore tree deletion under the dedicated message-delete identity.
+- [x] Converge participant devices only from full server-backed list absence, including encrypted history and conversation-bound Outbox cleanup.
+- [x] Add the permanent focused gate to the Rebuild Baseline workflow and advance the installed PWA to 1.1.35.
+- [x] Complete all 84 non-emulator workflow steps and all six Firestore emulator suites, including the new deletion-barrier suite; syntax, diff and focused authority gates pass.
+- [ ] Publish exact runtime tree to `main`, verify Rebuild Baseline and Pages, and deploy `deleteConversationForEveryoneV1` plus Firestore rules.
+- [ ] Complete repeated direct/group iPhone/iPad multi-device archive/delete/attachment/Outbox/recreate acceptance.

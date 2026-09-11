@@ -520,6 +520,18 @@ Exact 1.1.33 tree `1ce5eab49c7573622a028cfeb800755173d3fdfe` is on `main`. Rebui
 
 The user repeated the direct mass-delete test on 1.1.33 and confirmed it works. FDA-MASSDEL-001 direct convergence is device accepted. Group and remaining cross-device regression coverage remain open. Deferred TODO now explicitly includes reliable add/remove-member controls for an existing group conversation, using the established membership plus E2EE epoch-rotation authority; direct one-to-one membership remains fixed.
 
+### Mass-delete device closeout — 2026-09-11
+
+The user subsequently completed group mass-delete testing with a positive result. Together with the already accepted corrected direct path, TODO item 4 and FDA-MASSDEL-001 are DEVICE ACCEPTED / CLOSED. No new runtime, backend, rules or configuration change accompanies this acceptance record.
+
 ## FIDUNIO 1.1.34 group membership lifecycle correction
 
 Device testing exposed three related projection defects: leaving did not immediately remove the group/member row, the unauthorized group remained in Messages and Groups, and Add Member could wait forever for the user directory. The underlying atomic membership/key-epoch transaction was already correct. The correction keeps that writer unchanged, rejects stale overlapping group snapshot assemblies, filters member cards against parent `memberUids`, reconciles only full server-backed non-pending group absence, and removes the leaving account's local group projection after confirmed commit. Add Member now has a 12-second UI read boundary, Cancel and Try Again, with request revisions preventing a late read from overwriting a newer modal. Full local non-emulator and all five Firestore emulator baselines pass. Exact runtime tree `0b614b97fa14a3d5ac0bdf8b2409c4dbde5c55f9` is on `main`; Rebuild Baseline `34650618943` and Pages `34650618536` completed SUCCESS. Device acceptance remains pending.
+
+**Device closeout — 2026-09-11:** The user reports all defined TODO item 9 tests passed positively. Existing-group add/remove/leave membership behavior, projection convergence, member discovery and related regressions are DEVICE ACCEPTED. TODO item 9 and FDA-GROUP-002 are closed.
+
+## FIDUNIO 1.1.35 permanent conversation actions
+
+TODO item 5 is implemented as permanent row-level functionality on both Messages layouts. Archive is UID-scoped encrypted installation state, hides the row from the normal list without changing cloud history, remains archived on new activity, and is reversible in Archived. Delete for Everyone requires typed confirmation. Either direct participant is authorized; group deletion is owner-only. The dedicated callable establishes a server-time write barrier, removes attachment objects first, then recursively deletes the Firestore conversation/group tree. Client delete rules remain closed.
+
+Direct and group list listeners now pass/consume cache and pending-write metadata for authoritative absence. Only a full server-backed omission can trigger participant-device removal and serialized local deletion of that conversation's encrypted history, hidden IDs, drafts, attachment URLs and Outbox rows. All 84 non-emulator workflow steps and all six Firestore emulator suites, including the new deletion-barrier suite, pass locally. Functions/rules deployment, main/Pages verification and device acceptance remain pending.

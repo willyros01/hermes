@@ -44,3 +44,11 @@ The bulk callable is deployed and ACTIVE. The first direct test proved physical 
 - Associated attachment objects are removed before the source message.
 - Failure remains explicit; no local success is shown unless the callable succeeds.
 - A bulk operation removes only authenticated-sender rows, preserves other senders and unsent Outbox rows, displays progress, and converges after restart on direct and group devices.
+
+## FIDUNIO 1.1.35 — permanent conversation deletion
+
+`deleteConversationForEveryoneV1` is the sole shared-conversation deletion owner. Either authoritative direct participant may request permanent direct-chat deletion; only the authoritative group `ownerUid` may request permanent group deletion. The callable first stamps a server-owned `deletionState: deleting` barrier. Firestore rules keep client delete denied and reject message, receipt, history, membership, epoch and parent writes after that barrier. The server removes every message attachment prefix before `recursiveDelete` removes the entire direct/group document tree.
+
+`app.js` owns one serialized request path and requires the user to type `DELETE` in the explicit destructive modal. A full server-backed, non-pending conversation/group-list snapshot is the convergence authority on every participant installation. Only then may the local owner remove the list row, encrypted history record, hidden-message state, attachment URLs, draft and encrypted Outbox rows for that conversation. Cache-only absence cannot authorize this purge. A direct chat may later be deliberately recreated as a new empty conversation between the same two accounts; deleted history does not return.
+
+Archive is separate and non-destructive. It is stored only inside the UID-scoped encrypted installation state, filters the normal Messages list, preserves cloud history and membership, remains archived on new messages, and is reversed only through the Archived list. It has no Firebase, E2EE, receipt, Outbox or participant-wide authority.

@@ -104,6 +104,8 @@ jobs:
       - {name: Pending encrypted-Outbox message deletion, run: npm run test:pending-message-delete}
       - {name: Controlled sender direct-message deletion, run: npm run test:message-delete-core}
       - {name: Mass sender-owned direct and group deletion, run: npm run test:mass-message-delete}
+      - {name: Permanent conversation archive and deletion, run: node conversation-delete.test.mjs}
+      - {name: Permanent conversation deletion rules barrier, run: npx firebase emulators:exec --only firestore --project demo-fidunio-conversation-delete-rules "node firestore-conversation-deletion.rules.test.mjs"}
       - {name: Mass deletion projection convergence, run: npm run test:bulk-message-delete-projection}
       - {name: "Group membership leave, list and discovery lifecycle", run: node group-membership-lifecycle.test.mjs}
       - {name: Single visible FIDUNIO PIN and hidden-key UX, run: npm run test:user-access-key-ux}

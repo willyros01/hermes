@@ -10,6 +10,8 @@ import { createRecoveryCallableCore } from "./recovery/e2ee-recovery-callable-co
 import { createRecoveryFirestoreAdminRepositories } from "./recovery/e2ee-recovery-firestore-admin-adapter.mjs";
 import { createMessageDeleteCallableCore } from "./message-delete/message-delete-callable-core.mjs";
 import { createMessageDeleteAdminRepositories } from "./message-delete/message-delete-firestore-admin-adapter.mjs";
+import { createConversationDeleteCallableCore } from "./conversation-delete/conversation-delete-callable-core.mjs";
+import { createConversationDeleteAdminRepositories } from "./conversation-delete/conversation-delete-firestore-admin-adapter.mjs";
 import { createDisappearingPurgeExecutor } from "./disappearing/disappearing-purge-executor.js";
 import { createDisappearingPurgeFirestoreAdminRepository } from "./disappearing/disappearing-purge-firestore-admin-adapter.mjs";
 import { runDisappearingPurgeSweep } from "./disappearing/disappearing-scheduler-core.mjs";
@@ -29,6 +31,7 @@ const db = getFirestore();
 const attachmentBucket=getStorage().bucket(ATTACHMENT_BUCKET);
 const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({ db });
 const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:attachmentBucket});
+const {conversationRepo,attachmentRepo:conversationAttachmentRepo}=createConversationDeleteAdminRepositories({db,bucket:attachmentBucket});
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
 const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo}=createNotificationAdminRepositories({db});
@@ -57,13 +60,14 @@ const core = createRecoveryCallableCore({
   requireAppCheck: REQUIRE_APP_CHECK
 });
 const messageDeleteCore=createMessageDeleteCallableCore({messageRepo,attachmentRepo});
+const conversationDeleteCore=createConversationDeleteCallableCore({conversationRepo,attachmentRepo:conversationAttachmentRepo});
 
 function mapError(error) {
   const code = String(error?.code || "");
   if (code === "INVALID_INPUT") return new HttpsError("invalid-argument", "Recovery request is invalid.");
   if (code === "APP_CHECK_REQUIRED") return new HttpsError("failed-precondition", "Recovery authorization failed.");
   if (code === "AUTH_REQUIRED") return new HttpsError("unauthenticated", "Sign in before deleting a message.");
-  if (code === "DELETE_DENIED") return new HttpsError("permission-denied", "This message cannot be deleted by this account.");
+  if (code === "DELETE_DENIED") return new HttpsError("permission-denied", "This deletion cannot be performed by this account.");
   if ([
     "SESSION_EXPIRED","SESSION_LOCKED","SESSION_CONSUMED","SESSION_CONFLICT","SESSION_MISSING",
     "RECOVERY_STALE","RECOVERY_DENIED","ACCOUNT_HOLD","ACCOUNT_CONFLICT","IDENTITY_MISSING"
@@ -132,6 +136,18 @@ export const deleteMyMessagesForEveryoneV1 = onCall(
     maxInstances:10
   },
   request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request)
+);
+
+export const deleteConversationForEveryoneV1 = onCall(
+  {
+    region:"us-central1",
+    serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,
+    enforceAppCheck:REQUIRE_APP_CHECK,
+    timeoutSeconds:300,
+    memory:"512MiB",
+    maxInstances:5
+  },
+  request=>invoke(conversationDeleteCore.deleteConversationForEveryoneV1,request)
 );
 
 export const notifyDirectMessageCreatedV1 = onDocumentCreated(

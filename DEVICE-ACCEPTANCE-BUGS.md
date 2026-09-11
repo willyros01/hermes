@@ -318,7 +318,7 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 - **Severity:** High acceptance defect; physical deletion succeeds but delayed sender convergence makes the operation appear incomplete.
 - **Cause:** The backend correctly deletes selected rows sequentially. The active listener can deliver/project an intermediate snapshot containing the later row after local purge and before the final server-backed empty snapshot.
 - **1.1.33 correction:** One conversation-keyed memory-only owner suppresses only server-confirmed deleted IDs from in-flight/intermediate direct/group projections until authoritative absence releases them. No timer, reload, forced subscription, persistent hidden ID, backend change or second Firebase owner.
-- **Status:** DIRECT CORRECTION DEVICE ACCEPTED on 1.1.33 — the user confirmed mass deletion now works. Repository, Pages and all gates passed. Group/iPhone/iPad matrix coverage remains open before closing the overall mass-delete item.
+- **Status:** DEVICE ACCEPTED / CLOSED 2026-09-11 — the corrected direct path passed, and the user subsequently reported a positive group mass-delete result. Repository, Pages and all gates passed. The direct and group feature paths are accepted.
 
 ## FDA-GROUP-002 — leave/list convergence and Add Member directory loading
 
@@ -327,4 +327,12 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 - **1.1.34 correction:** parent `memberUids` filters projected member cards, only the latest assembled group snapshot may project, confirmed leave removes the local row immediately, and full server-backed snapshots prune groups no longer authorized. Cache-only and pending-write absence fail closed. Add Member now times out clearly and offers Cancel/Try Again while stale reads cannot replace a newer modal request.
 - **Unchanged:** atomic member document + parent membership + E2EE epoch transaction, Firestore rules, history boundaries, direct conversations, messages, receipts, notifications, Outbox, backend Functions and protected configuration.
 - **Acceptance:** on iPhone and iPad, have a non-owner leave and confirm immediate removal from its Messages/Groups lists; confirm the owner sees the member disappear; remove another member and confirm the same; restart all devices and confirm no row returns. Open Add Member, load eligible users, cancel once, retry once, add a user, and confirm the new user starts at join-time history. Regress group send/receive, receipts, notifications and direct chat.
-- **Status:** 1.1.34 DEPLOYED DEVICE CANDIDATE. Full local non-emulator and all five Firestore emulator baselines pass; exact runtime tree is on `main`; Rebuild Baseline `34650618943` and Pages `34650618536` completed successfully. Device acceptance remains pending.
+- **Status:** DEVICE ACCEPTED / CLOSED 2026-09-11. The user reports all defined item 9 tests passed positively. Full local non-emulator and all five Firestore emulator baselines pass; exact runtime tree is on `main`; Rebuild Baseline `34650618943` and Pages `34650618536` completed successfully.
+
+## FDA-CONVDEL-001 — permanent Archive/Delete Conversation
+
+- **Build:** FIDUNIO 1.1.35 candidate.
+- **Expected:** every direct/group row exposes Conversation actions. Archive hides only this installation's row, retains shared history, stays archived on new activity, and restores from Archived. Delete requires typing `DELETE`; either direct participant may delete a direct chat, while only the group owner may delete a group. Every participant device loses the conversation and its local cached history/queued Outbox rows after authoritative cloud absence. Attachments and all nested Firestore traces are physically absent.
+- **Safety boundary:** cache-only or pending-write absence cannot purge; new writes are denied after the server deletion barrier; client Firestore delete stays denied; non-owner group members cannot delete the group; a failed callable must remain explicit.
+- **Acceptance:** test archive/unarchive and new incoming activity on iPhone and iPad; direct deletion initiated from each participant role; group owner deletion and non-owner denial; messages, receipts, history grants/copies, attachments and member/epoch removal; queued/failed Outbox on another installation; offline/reconnect; restart; notifications for a deleted route; and deliberate empty direct-chat recreation.
+- **Status:** IMPLEMENTED; FUNCTION/RULES DEPLOYMENT, MAIN/PAGES VERIFICATION AND DEVICE ACCEPTANCE PENDING.

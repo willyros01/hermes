@@ -830,6 +830,8 @@ Exact tree `1ce5eab49c7573622a028cfeb800755173d3fdfe` is published on `main`. Re
 
 The repeated direct test passed on 1.1.33; direct immediate convergence is device accepted. Group matrix coverage remains open. The deferred list now also records administrator add/remove-member controls for an existing group conversation; this acceptance/documentation update changes no runtime.
 
+Group mass-delete testing subsequently passed on 2026-09-11. Direct and group paths are now DEVICE ACCEPTED, closing mass-delete TODO item 4 and FDA-MASSDEL-001.
+
 ## FIDUNIO 1.1.34 — group membership lifecycle convergence
 
 The group membership mutation was already atomic: it updates parent membership, deletes or creates the member document, and rotates the encrypted key epoch through one serialized runtime/Firebase path. Version 1.1.34 corrects the read/UI side. Overlapping group snapshot assemblies are latest-only, member cards are constrained by parent `memberUids`, and a full server-backed non-pending snapshot removes groups the account no longer belongs to from both Messages and Groups. A successful local Leave removes that projection immediately. Cache-only absence cannot revoke or rewrite state.
@@ -837,3 +839,13 @@ The group membership mutation was already atomic: it updates parent membership, 
 Add Member user discovery now has a bounded 12-second wait, Cancel, explicit connection error and Try Again. Each request has a revision so a late prior read cannot overwrite the current modal. No Firestore rule, E2EE format, membership writer, backend Function, direct-chat membership, message/receipt/notification/Outbox authority or protected configuration changes.
 
 Exact runtime tree `0b614b97fa14a3d5ac0bdf8b2409c4dbde5c55f9` is published on `main`. Rebuild Baseline `34650618943` and Pages `34650618536` completed successfully. No backend deployment is required; iPhone/iPad group membership acceptance remains open.
+
+Device acceptance completed on 2026-09-11. The user reports all defined TODO item 9 tests passed positively. Existing-group add/remove/leave behavior and the corrected membership/list/member-discovery lifecycle are DEVICE ACCEPTED; item 9 and FDA-GROUP-002 are closed.
+
+## FIDUNIO 1.1.35 — permanent conversation archive and deletion
+
+Version 1.1.35 implements the permanent Messages-list Conversation actions feature. Each direct/group row on iPhone and iPad exposes an accessible actions button. Archive is deliberately installation-local: it moves the row out of the normal list, preserves all shared history and membership, remains archived when new messages arrive, and can be restored from the Archived view.
+
+Delete for Everyone is permanently destructive. Either participant may delete a direct conversation; only the group owner may delete a group. The user must type `DELETE`. The new `deleteConversationForEveryoneV1` callable revalidates server authority, stamps a server-time deletion barrier that Firestore rules use to stop new writes, deletes all message attachment objects, and recursively removes messages, receipts, group history copies/grants, epochs, member rows and the parent. Client Firestore delete remains denied. Full server-backed list absence converges every participant installation and removes the conversation's encrypted history and queued Outbox rows locally; cache-only absence cannot purge.
+
+The runtime advances from 1.1.34 to 1.1.35. This repository candidate also includes the previously held local device-acceptance closeouts for mass delete item 4 and group membership item 9. All 84 non-emulator workflow steps and all six Firestore emulator suites, including the new deletion-barrier suite, pass locally; live Function/rules deployment, main/Pages workflow verification and repeated direct/group iPhone/iPad multi-device acceptance remain required.

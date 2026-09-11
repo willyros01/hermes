@@ -43,6 +43,6 @@ assert.equal((firebase.match(/onSnapshot\(q,\{includeMetadataChanges:true\}/g)||
   "direct-message delivery must retain one listener implementation");
 assert.match(worker,/"\.\/direct-message-delivery-owner\.js"/,
   "the installed PWA shell must cache the delivery-owner module");
-assert.match(worker,/SHELL_REVISION="1\.1\.34-group-membership-lifecycle"/);
+assert.match(worker,/SHELL_REVISION="1\.1\.35-conversation-actions"/);
 
 console.log("Notification priority semaphore integration gate passed");

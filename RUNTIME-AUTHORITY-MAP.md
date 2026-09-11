@@ -410,3 +410,11 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - `app.js#reconcileCloudGroupSnapshot()` remains inside the sole application-state/render owner. It may remove a cloud-group projection only after a full server-backed, non-pending group snapshot omits the ID. A locally initiated leave may remove that same projection only after the serialized server transaction succeeds.
 - `group-membership-lifecycle.js` contains pure absence planning plus the bounded Add Member directory wait. It owns no Firebase, membership, E2EE, application state, DOM, IndexedDB or durable authority.
 - Direct conversations remain exactly two-account resources. Message, receipt, notification, Outbox, attachment and history owners are unchanged.
+
+## FIDUNIO 1.1.35 conversation archive/deletion authority
+
+- `app.js` remains the sole list/DOM/state owner. `archivedConversations` is UID-scoped encrypted installation state; it only filters the normal versus Archived list and never mutates cloud history.
+- `deleteConversationForEveryone()` is the one serialized client request path. `firebase.js` remains the sole callable bridge. No client SDK delete path or service-worker semantic owner is introduced.
+- `deleteConversationForEveryoneV1` plus `conversation-delete-firestore-admin-adapter.mjs` are the sole shared deletion owner. Direct membership or group ownership is revalidated server-side; a server timestamped deletion barrier freezes new writes; attachment objects are deleted before the whole Firestore tree.
+- Full server-backed, non-pending direct/group list absence is the only cross-device local purge trigger. The existing local-storage serializer removes that conversation's encrypted history and Outbox rows, message projection, hidden IDs, draft and attachment URLs.
+- Message-level deletion, E2EE, receipts, notification routing, group membership/key epochs, PIN/auth and protected configuration retain their existing owners.

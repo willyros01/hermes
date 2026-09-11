@@ -29,7 +29,8 @@ import {
   downloadEncryptedAttachment,
   deleteCloudDirectMessageForEveryone,
   deleteCloudGroupMessageForEveryone,
-  deleteCloudMyMessagesForEveryone
+  deleteCloudMyMessagesForEveryone,
+  deleteCloudConversationForEveryone
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -79,6 +80,8 @@ let state = {
   modal:null,
   quickPhrases:["Yes","No","OK","On my way","Running late","Call me"],
   conversations:[],
+  archivedConversations:{},
+  archivedView:false,
   messages:{},
   hiddenMessages:{},
   settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto",disappearingTextSeconds:null},
@@ -94,6 +97,7 @@ let hydrated = false;
 let persistTimer = null;
 let localPurgeTail=Promise.resolve();
 let bulkMessageDeleteTail=Promise.resolve();
+let conversationDeleteTail=Promise.resolve();
 let reconnectRecoveryTail=Promise.resolve();
 let firebaseReady = false;
 let firebaseError = "";
@@ -251,6 +255,7 @@ async function decryptLocal(record){
 function serializableState(){
   return {
     conversations:state.conversations,
+    archivedConversations:state.archivedConversations,
     messages:state.messages,
     hiddenMessages:state.hiddenMessages,
     settings:state.settings,
@@ -288,6 +293,7 @@ async function loadPersistedState(){
     if(!encrypted) return;
     const saved=await decryptLocal(encrypted);
     if(saved.conversations) state.conversations=saved.conversations;
+    if(saved.archivedConversations&&typeof saved.archivedConversations==="object")state.archivedConversations=saved.archivedConversations;
     if(saved.messages) state.messages=saved.messages;
     if(saved.hiddenMessages&&typeof saved.hiddenMessages==="object")state.hiddenMessages=saved.hiddenMessages;
     if(saved.settings) state.settings={...state.settings,...saved.settings};
@@ -485,6 +491,56 @@ function deleteMySentMessagesForEveryone(conversationId,messageKind,onProgress){
     await persistState();return total;
   });
   bulkMessageDeleteTail=run.catch(()=>{});return run;
+}
+
+function isConversationArchived(conversationId){return Number(state.archivedConversations[String(conversationId)]||0)>0;}
+function listedConversations(){return state.conversations.filter(c=>state.archivedView?isConversationArchived(c.id):!isConversationArchived(c.id));}
+async function setConversationArchived(conversationId,archived){
+  const id=String(conversationId||"");if(!id)return;
+  if(archived)state.archivedConversations[id]=Date.now();else delete state.archivedConversations[id];
+  if(archived&&String(state.selectedId||"")===id)state.selectedId=null;
+  await persistState();render();
+}
+async function purgeLocalConversationTraces(targetUid,conversationId){
+  const uid=String(targetUid||""),id=String(conversationId||"");
+  if(!uid||!firebaseUser||String(firebaseUser.uid)!==uid||!id)throw new Error("Active authenticated UID is required for conversation cleanup.");
+  const reserved=(await getOutboxRecords()).filter(row=>String(row.conversationId||"")===id).map(row=>String(row.id));
+  for(const messageId of reserved)outboxCancellationRequests.add(messageId);
+  try{
+    await outboxCycleTail.catch(()=>{});
+    return await serializeLocalPurge(async()=>{
+      clearTimeout(persistTimer);persistTimer=null;
+      const db=await openDb(),outboxRows=await getOutboxRecords();
+      const tx=db.transaction(["history","outbox"],"readwrite");
+      tx.objectStore("history").delete(id);
+      for(const row of outboxRows)if(String(row.conversationId||"")===id)tx.objectStore("outbox").delete(row.id);
+      await txDone(tx);
+      for(const message of state.messages[id]||[])optimisticOutgoingProjection.release(id,message.id);
+      for(const [key,runtime] of [...attachmentRuntime.entries()]){
+        if(!String(key).startsWith(`${id}:`))continue;
+        if(runtime?.result?.url)releaseAttachmentResult(runtime.result);
+        attachmentRuntime.delete(key);
+      }
+      composerStateByConversation.delete(id);delete state.messages[id];delete state.hiddenMessages[id];delete state.archivedConversations[id];
+      state.conversations=state.conversations.filter(c=>String(c.id)!==id);
+      if(String(cloudMessageConversationId||"")===id)stopCloudMessageSubscription();
+      if(String(cloudGroupMessageConversationId||"")===id)stopCloudGroupMessageSubscription();
+      if(String(state.selectedId||"")===id){state.selectedId=null;if(state.route==="chat"||state.route==="groupInfo")state.route="messages";}
+      await persistState();
+      return{outboxDeleted:outboxRows.filter(row=>String(row.conversationId||"")===id).length};
+    });
+  }finally{for(const messageId of reserved)outboxCancellationRequests.delete(messageId);}
+}
+function deleteConversationForEveryone(conversationId,conversationKind){
+  const run=conversationDeleteTail.then(async()=>{
+    if(!firebaseUser)throw new Error("A signed-in account is required to delete a conversation.");
+    if(!state.online)throw new Error("Connect to the internet before permanently deleting a conversation.");
+    const id=String(conversationId||"");
+    const result=await deleteCloudConversationForEveryone(id,conversationKind);
+    await purgeLocalConversationTraces(firebaseUser.uid,id);
+    return result;
+  });
+  conversationDeleteTail=run.catch(()=>{});return run;
 }
 
 async function cacheCloudHistory(conversationId,messages){
@@ -701,11 +757,28 @@ function removeCloudGroupProjection(groupId){
   if(String(state.selectedId||"")===id){state.selectedId=null;if(state.route==="chat"||state.route==="groupInfo")state.route="messages";}
   return true;
 }
+function cloudDirectIdsMissingFromAuthoritativeSnapshot(rows,meta={}){
+  if(meta.fromCache===true||meta.hasPendingWrites===true)return[];
+  const present=new Set((rows||[]).map(row=>String(row.id)));
+  return state.conversations.filter(c=>c?.cloud===true&&c?.cloudGroup!==true&&!present.has(String(c.id))).map(c=>String(c.id));
+}
+function removeCloudDirectProjection(conversationId){
+  const id=String(conversationId||"");
+  if(!id)return false;
+  const before=state.conversations.length;
+  state.conversations=state.conversations.filter(c=>!(c.cloud===true&&c.cloudGroup!==true&&String(c.id)===id));
+  if(state.conversations.length===before)return false;
+  if(String(cloudMessageConversationId||"")===id)stopCloudMessageSubscription();
+  for(const message of state.messages[id]||[])optimisticOutgoingProjection.release(id,message.id);
+  delete state.messages[id];delete state.hiddenMessages[id];delete state.archivedConversations[id];composerStateByConversation.delete(id);
+  if(String(state.selectedId||"")===id){state.selectedId=null;if(state.route==="chat")state.route="messages";}
+  return true;
+}
 function reconcileCloudGroupSnapshot(rows,meta={}){
   rows=rows||[];
   rows.forEach(mergeCloudGroup);
   const removed=cloudGroupIdsMissingFromAuthoritativeSnapshot(state.conversations,rows,meta);
-  for(const id of removed)removeCloudGroupProjection(id);
+  for(const id of removed){removeCloudGroupProjection(id);if(firebaseUser)void purgeLocalConversationTraces(firebaseUser.uid,id).catch(err=>console.warn("Deleted group local cleanup failed",err));}
   return removed;
 }
 function beginCloudGroupSubscription(){
@@ -749,9 +822,11 @@ function beginCloudConversationSubscription(){
   if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
   if(!firebaseUser) return;
   cloudConversationSyncPending=true;
-  cloudConversationUnsub=subscribeMyConversations(firebaseUser.uid, rows=>{
+  cloudConversationUnsub=subscribeMyConversations(firebaseUser.uid,(rows,meta={})=>{
     cloudConversationSyncPending=false;
     rows.forEach(mergeCloudConversation);
+    const removed=cloudDirectIdsMissingFromAuthoritativeSnapshot(rows,meta);
+    for(const id of removed){removeCloudDirectProjection(id);void purgeLocalConversationTraces(firebaseUser.uid,id).catch(err=>console.warn("Deleted direct-chat local cleanup failed",err));}
     syncPeerDisplayNameSubscription(rows);
     // A restored Firestore conversation may repair peerUid for an older
     // local record. Reattach the active chat listener after reconciliation.
@@ -1258,6 +1333,7 @@ function renderConversationSidebar(active="messages"){
       </div>
       <div class="tablet-search-wrap">
         <input class="search" id="tabletSearchBox" placeholder="Search conversations" />
+        <button class="conversation-view-toggle" id="tabletArchivedViewBtn">${state.archivedView?"Back to Messages":`Archived (${Object.keys(state.archivedConversations).length})`}</button>
       </div>
       <div class="tablet-conversation-list" id="tabletConversationList"></div>
       <nav class="tablet-bottom-nav" aria-label="FIDUNIO sections">
@@ -1277,17 +1353,20 @@ function bindTabletNavigation(){
 function drawTabletConversationList(term=""){
   const list=document.querySelector("#tabletConversationList");
   if(!list) return;
-  list.innerHTML=state.conversations
+  list.innerHTML=listedConversations()
     .filter(c=>c.name.toLowerCase().includes(term.toLowerCase())||c.preview.toLowerCase().includes(term.toLowerCase()))
     .map(c=>`
-      <button class="tablet-conversation ${String(c.id)===String(state.selectedId)?"active":""}" data-id="${c.id}">
-        <div class="avatar ${c.type==="group"?"group-avatar":""}">${initials(c.name)}</div>
-        <div class="tablet-conversation-main">
-          <div class="tablet-row-top"><span class="name">${esc(c.name)}</span><span class="meta">${esc(c.time)}</span></div>
-          <div class="preview">${c.type==="group"?"Group • ":""}${esc(c.preview)}</div>
-        </div>
-      </button>`).join("");
-  list.querySelectorAll(".tablet-conversation").forEach(btn=>btn.onclick=()=>{
+      <div class="tablet-conversation-shell">
+        <button class="tablet-conversation conversation-open ${String(c.id)===String(state.selectedId)?"active":""}" data-id="${esc(c.id)}">
+          <div class="avatar ${c.type==="group"?"group-avatar":""}">${initials(c.name)}</div>
+          <div class="tablet-conversation-main">
+            <div class="tablet-row-top"><span class="name">${esc(c.name)}</span><span class="meta">${esc(c.time)}</span></div>
+            <div class="preview">${c.type==="group"?"Group • ":""}${esc(c.preview)}</div>
+          </div>
+        </button>
+        <button class="conversation-menu" data-conversation-actions="${esc(c.id)}" aria-label="Conversation actions for ${esc(c.name)}">•••</button>
+      </div>`).join("");
+  list.querySelectorAll(".conversation-open").forEach(btn=>btn.onclick=()=>{
     const raw=btn.dataset.id;
     state.selectedId=/^\d+$/.test(raw)?Number(raw):raw;
     state.route="chat";
@@ -1298,6 +1377,8 @@ function drawTabletConversationList(term=""){
     else{stopCloudGroupMessageSubscription();stopCloudMessageSubscription();}
     render();
   });
+  bindConversationActionButtons(list);
+  const archivedToggle=document.querySelector("#tabletArchivedViewBtn");if(archivedToggle)archivedToggle.onclick=()=>{state.archivedView=!state.archivedView;state.selectedId=null;state.route="messages";render();};
 }
 
 function captureComposerStateFromDom(){
@@ -1486,8 +1567,9 @@ function renderUnlock(){
 
 function renderMessages(){
   if(isWideLayout()){
-    let chosen=state.conversations.find(c=>String(c.id)===String(state.selectedId));
-    if(!chosen) chosen=state.conversations[0]||null;
+    const available=listedConversations();
+    let chosen=available.find(c=>String(c.id)===String(state.selectedId));
+    if(!chosen) chosen=available[0]||null;
     if(chosen){
       state.selectedId=chosen.id;
       state.route="chat";
@@ -1520,6 +1602,7 @@ function renderMessages(){
       ${shellTop("Messages",undefined,'<button class="icon-btn icon-2d" id="settingsBtn" aria-label="Settings">'+icon2d("settings",23)+'</button>'+mainSignOutMarkup())}
       <section class="content">
         <input class="search" id="searchBox" placeholder="Search conversations" />
+        <button class="conversation-view-toggle" id="archivedViewBtn">${state.archivedView?"Back to Messages":`Archived (${Object.keys(state.archivedConversations).length})`}</button>
         <div class="conversation-list" id="conversationList"></div>
       </section>
       <button class="fab icon-2d" id="newBtn" aria-label="New conversation">${icon2d("plus",26)}</button>
@@ -1527,19 +1610,23 @@ function renderMessages(){
   document.querySelector("#settingsBtn").onclick=()=>{state.route="settings";render()};
   document.querySelector("#newBtn").onclick=()=>{state.route="newConversation";render()};
   bindMainSignOut();
+  document.querySelector("#archivedViewBtn").onclick=()=>{state.archivedView=!state.archivedView;state.selectedId=null;render();};
   const list=document.querySelector("#conversationList");
   const draw=(term="")=>{
-    const rows=state.conversations.filter(c=>(c.name||"").toLowerCase().includes(term.toLowerCase())||(c.preview||"").toLowerCase().includes(term.toLowerCase()));
+    const rows=listedConversations().filter(c=>(c.name||"").toLowerCase().includes(term.toLowerCase())||(c.preview||"").toLowerCase().includes(term.toLowerCase()));
     list.innerHTML=rows.length?rows.map(c=>`
-        <button class="conversation" data-id="${c.id}">
-          <div class="avatar ${c.type==="group"?"group-avatar":""}">${initials(c.name||"FIDUNIO")}</div>
-          <div>
-            <div class="name">${esc(c.name||"FIDUNIO contact")}</div>
-            <div class="preview">${c.type==="group"?"Group • ":""}${esc(c.preview||"")}</div>
-          </div>
-          <div class="meta">${esc(c.time||"")}${c.unread?`<div class="badge">${c.unread}</div>`:""}</div>
-        </button>`).join(""):`<div class="card" style="text-align:center"><h2>${term?"No matching conversations":"No conversations yet"}</h2><p class="small-note">${term?"Try another search.":"Start a private conversation with another FIDUNIO user."}</p></div>`;
-    list.querySelectorAll(".conversation").forEach(btn=>btn.onclick=()=>{
+        <div class="conversation-row-shell">
+          <button class="conversation conversation-open" data-id="${esc(c.id)}">
+            <div class="avatar ${c.type==="group"?"group-avatar":""}">${initials(c.name||"FIDUNIO")}</div>
+            <div>
+              <div class="name">${esc(c.name||"FIDUNIO contact")}</div>
+              <div class="preview">${c.type==="group"?"Group • ":""}${esc(c.preview||"")}</div>
+            </div>
+            <div class="meta">${esc(c.time||"")}${c.unread?`<div class="badge">${c.unread}</div>`:""}</div>
+          </button>
+          <button class="conversation-menu" data-conversation-actions="${esc(c.id)}" aria-label="Conversation actions for ${esc(c.name||"FIDUNIO contact")}">•••</button>
+        </div>`).join(""):`<div class="card" style="text-align:center"><h2>${term?"No matching conversations":state.archivedView?"No archived conversations":"No conversations yet"}</h2><p class="small-note">${term?"Try another search.":state.archivedView?"Archived conversations will appear here.":"Start a private conversation with another FIDUNIO user."}</p></div>`;
+    list.querySelectorAll(".conversation-open").forEach(btn=>btn.onclick=()=>{
       const raw=btn.dataset.id;
       state.selectedId=/^\d+$/.test(raw)?Number(raw):raw;
       state.route="chat";
@@ -1550,9 +1637,19 @@ function renderMessages(){
       else{stopCloudGroupMessageSubscription();stopCloudMessageSubscription();}
       render();
     });
+    bindConversationActionButtons(list);
   };
   draw();
   document.querySelector("#searchBox").oninput=e=>draw(e.target.value);
+}
+
+function bindConversationActionButtons(host=document){
+  host.querySelectorAll("[data-conversation-actions]").forEach(button=>button.onclick=event=>{
+    event.preventDefault();event.stopPropagation();
+    const conversation=state.conversations.find(c=>String(c.id)===String(button.dataset.conversationActions));
+    if(!conversation)return;
+    state.modal={type:"conversationActions",conversationId:conversation.id};render();
+  });
 }
 
 function renderGroups(){
@@ -2357,6 +2454,46 @@ function renderModal(){
       try{await addGroupMemberForApp(c.id,p.id);state.modal=null;host.remove();render();}
       catch(err){firebaseError=err?.message||String(err);confirm.disabled=false;alert(firebaseError);}
     };
+  } else if(modal.type==="conversationActions"){
+    const c=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
+    const archived=isConversationArchived(modal.conversationId);
+    const isCloudGroup=!!c?.cloudGroup,canDelete=(!!c?.cloud&&!isCloudGroup)||(isCloudGroup&&String(c.ownerUid||"")===String(firebaseUser?.uid||""));
+    host.innerHTML=`
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="conversationActionsTitle">
+        <h2 id="conversationActionsTitle">Conversation actions</h2>
+        <p><strong>${esc(c?.name||"Conversation")}</strong></p>
+        <div class="modal-actions">
+          <button class="secondary" id="archiveConversationBtn">${archived?"Unarchive":"Archive"}</button>
+          ${canDelete?'<button class="modal-delete" id="deleteConversationBtn">Delete for Everyone</button>':isCloudGroup?'<p class="small-note">Only the group owner can permanently delete this group.</p>':""}
+          <button class="modal-cancel" id="modalCancel">Cancel</button>
+        </div>
+        <p class="small-note">Archive changes only this installation’s Messages list and preserves all shared history. Use Archived to restore it.</p>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
+    host.querySelector("#archiveConversationBtn").onclick=async()=>{state.modal=null;host.remove();await setConversationArchived(modal.conversationId,!archived);};
+    const deleteButton=host.querySelector("#deleteConversationBtn");if(deleteButton)deleteButton.onclick=()=>{state.modal={type:"conversationDeleteConfirm",conversationId:c.id,conversationKind:isCloudGroup?"group":"direct",conversationName:c.name};host.remove();render();};
+  } else if(modal.type==="conversationDeleteConfirm"){
+    host.innerHTML=`
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="conversationDeleteTitle">
+        <h2 id="conversationDeleteTitle">Permanently Delete Conversation?</h2>
+        <p>This permanently deletes <strong>${esc(modal.conversationName||"this conversation")}</strong>, every message, receipt, shared-history copy, and attachment for every participant on every device.</p>
+        <p class="warning-note">This cannot be undone. Type DELETE to confirm.</p>
+        <label class="form-label" for="conversationDeletePhrase">Confirmation</label>
+        <input class="text-input" id="conversationDeletePhrase" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="DELETE">
+        <div class="modal-actions message-delete-actions"><button class="modal-delete" id="conversationDeleteConfirmBtn" disabled>Delete for Everyone</button><button class="modal-cancel" id="modalCancel">Cancel</button></div>
+      </div>`;
+    document.body.appendChild(host);
+    const input=host.querySelector("#conversationDeletePhrase"),confirmButton=host.querySelector("#conversationDeleteConfirmBtn"),cancelButton=host.querySelector("#modalCancel");
+    input.oninput=()=>{confirmButton.disabled=input.value.trim().toUpperCase()!=="DELETE";};
+    cancelButton.onclick=()=>{state.modal=null;host.remove();render();};
+    confirmButton.onclick=async()=>{
+      confirmButton.disabled=true;cancelButton.disabled=true;input.disabled=true;confirmButton.textContent="Deleting…";
+      state.modal=null;
+      try{await deleteConversationForEveryone(modal.conversationId,modal.conversationKind);host.remove();render();alert("Conversation permanently deleted for everyone.");}
+      catch(err){state.modal=modal;host.remove();render();alert(err?.message||String(err));}
+    };
+    setTimeout(()=>input.focus(),0);
   } else if(modal.type==="directChatInfo"){
     const c=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     host.innerHTML=`
