@@ -83,7 +83,8 @@ jobs:
       - name: Remove transport and commit exact candidate
         run: |
           set -euo pipefail
-          rm -f fidunio-1.1.41.patch.part{1,2,3,4} .github/workflows/fidunio-1.1.41-publish.yml
+          git checkout HEAD -- .github/workflows/rebuild-baseline-security.yml
+          rm -f fidunio-1.1.41.patch.part{1,2,3,4}
           git add -A
           git config user.name "willyros01"
           git config user.email "willyros01@gmail.com"
