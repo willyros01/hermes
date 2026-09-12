@@ -427,3 +427,10 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - Firestore rules deny direct source reads before `historyFrom`, receipt mutation for an inaccessible source, and epoch reads when the signed-in UID has no envelope. Collection list access remains current-member ciphertext transport because Firestore cannot authorize a query by comparing its bound with a timestamp dynamically read from another document; E2EE envelopes remain the content boundary.
 - `e2ee-account-group-conversation.js` continues to own decryption, projection and receipt requests, but now receives only ordinary entitled source rows plus separately authorized active grant copies.
 - PIN/background lifecycle, membership/epoch mutation, direct messages, Outbox, notifications and conversation actions are unchanged.
+## 1.1.37 group authority recovery
+
+- `firebase.js` remains the only Firebase SDK owner. Ordinary group subscriptions always use the member's `historyFrom` when present.
+- `readCloudRetainedGroupMessages` is the separate administrator-only, server-backed retained-ciphertext source for explicit history grants.
+- `e2ee-account-group-firebase-adapter.js` delegates retained history directly to that owner and no longer borrows the live conversation subscription.
+- Firestore epoch documents use current-group-member read authority; per-account envelope presence remains enforced by group cryptography, not as a shared transport authorization prerequisite.
+- Direct pre-boundary group-message reads and receipt operations remain constrained by `groupMessageReadable`.

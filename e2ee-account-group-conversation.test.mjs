@@ -2,6 +2,7 @@ import fs from "node:fs";
 import {mergeGroupHistoryProjection} from "./e2ee-account-group-history-projection.js";
 const src=fs.readFileSync(new URL("./e2ee-account-group-conversation.js",import.meta.url),"utf8");
 const firebaseSrc=fs.readFileSync(new URL("./firebase.js",import.meta.url),"utf8");
+const adapterSrc=fs.readFileSync(new URL("./e2ee-account-group-firebase-adapter.js",import.meta.url),"utf8");
 const rulesSrc=fs.readFileSync(new URL("./firestore.rules",import.meta.url),"utf8");
 const required=[
   'readCloudGroupAuthority',
@@ -22,8 +23,9 @@ const required=[
 ];
 for(const token of required)if(!src.includes(token))throw new Error(`group conversation owner missing ${token}`);
 for(const forbidden of ['initializeApp(','getFirestore(','firebase-config','senderDeviceId','recipientDeviceId'])if(src.includes(forbidden))throw new Error(`group conversation owner crosses authority boundary: ${forbidden}`);
-for(const token of ['readCloudGroupMessageAccess','"members",uid','historyFrom','canReadEarlier','where("createdAt",">=",access.historyFrom)'])if(!firebaseSrc.includes(token))throw new Error(`group join-time Firebase boundary missing ${token}`);
-for(const token of ['groupMessageReadable(groupId,d)','d.createdAt>=groupMemberDoc(groupId,request.auth.uid).data.historyFrom','request.auth.uid in resource.data.envelopes','canReadGroupMessage(groupId,messageId)'])if(!rulesSrc.includes(token))throw new Error(`group join-time rules boundary missing ${token}`);
+for(const token of ['readCloudGroupMessageAccess','"members",uid','historyFrom','where("createdAt",">=",access.historyFrom)','readCloudRetainedGroupMessages','Only a group administrator can read retained history sources.'])if(!firebaseSrc.includes(token))throw new Error(`group join-time Firebase boundary missing ${token}`);
+for(const token of ['groupMessageReadable(groupId,d)','d.createdAt>=groupMemberDoc(groupId,request.auth.uid).data.historyFrom','match /epochs/{epochId}{allow read: if isGroupMember(groupId)','canReadGroupMessage(groupId,messageId)'])if(!rulesSrc.includes(token))throw new Error(`group join-time rules boundary missing ${token}`);
+if(!adapterSrc.includes('readCloudRetainedGroupMessages')||adapterSrc.includes('subscribeCloudGroupMessages'))throw new Error('history-grant source read must remain separate from ordinary group subscription');
 
 const t0=new Date("2026-09-06T10:00:00Z"),t1=new Date("2026-09-06T11:00:00Z"),t2=new Date("2026-09-06T12:00:00Z");
 const projected=mergeGroupHistoryProjection([

@@ -968,3 +968,15 @@ No point earned; completion remains 96%.
 - [x] Verify Rebuild Baseline `34669079121`, E2EE Rules `34669079149`, Firebase Adapter `34669079128`, and Pages `34669186160` SUCCESS; script follow-up baseline `34669187077` also completed SUCCESS, and live Pages serves 1.1.36 / `1.1.36-group-history-boundary`.
 - [x] Deploy only the reviewed Firestore rules with the pinned script; user reported SUCCESS on 2026-09-12.
 - [ ] Re-test new-member and remove/re-add history boundaries, PIN/background return, explicit grant, post-join send/receipts and group notification on iPhone/iPad.
+
+### FIDUNIO 1.1.37 group authority recovery
+
+- [x] Reproduce the 1.1.36 deployed failure as an epoch authorization dependency shared by group display/send/receipt/membership paths.
+- [x] Bound every ordinary group stream, including administrators, at member `historyFrom`.
+- [x] Give explicit administrator history grants a separate retained-source server read through sole Firebase owner `firebase.js`.
+- [x] Restore encrypted epoch records to current-member read authority while preserving account-bound cryptographic envelope validation.
+- [x] Keep direct pre-boundary message reads and inaccessible receipts denied.
+- [x] Add post-rejoin message, epoch, receipt-write and receipt-list emulator coverage; expanded group matrix passes 48/48.
+- [x] Complete all 85 workflow run steps and all six Firestore emulator suites; expanded group matrix passes 48/48.
+- [ ] Publish exact implementation to `main`, verify workflows/Pages, and provide a pinned corrective rules script.
+- [ ] Deploy corrected Firestore rules and repeat the full FDA-GROUP-003/FDA-GROUP-004 iPhone/iPad acceptance matrix.
