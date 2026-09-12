@@ -41,6 +41,7 @@ jobs:
       - {name: Account group-message bounded app integration, run: npm run test:e2ee-account-group-app-integration}
       - {name: Attachment crypto foundation, run: npm run test:e2ee-account-attachment-crypto}
       - {name: Attachment transport and send owner, run: npm run test:attachment-send-service}
+      - {name: Large attachment network preference, run: node large-attachment-network-policy.test.mjs}
       - {name: Photo file audio video UI wiring, run: npm run test:attachment-ui-wiring}
       - {name: Attachment receive integrity and object lifecycle, run: npm run test:attachment-receive}
       - {name: Attachment offline and account isolation, run: npm run test:attachment-offline}
