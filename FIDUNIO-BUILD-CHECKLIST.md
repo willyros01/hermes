@@ -964,6 +964,7 @@ No point earned; completion remains 96%.
 - [x] Preserve the membership transaction, E2EE epoch writer, explicit history copies, direct messaging, Outbox, notifications, PIN and conversation actions.
 - [x] Advance runtime/cache to 1.1.36 / `1.1.36-group-history-boundary` and strengthen the permanent group-conversation/receipt gates.
 - [x] Pass all 84 non-emulator workflow steps and all six Firestore emulator suites; the expanded group matrix passes 46/46.
-- [ ] Publish the exact candidate to `main` and verify Rebuild Baseline plus Pages.
+- [x] Publish exact implementation tree `5ec21d002765f91f091ba9e6b950fd63e02bf3f0` to `main` as `5a6449c9165228a0f7cf75418f3dbecadc736f99`.
+- [ ] Verify Rebuild Baseline plus Pages.
 - [ ] Deploy only the reviewed Firestore rules with the pinned script.
 - [ ] Re-test new-member and remove/re-add history boundaries, PIN/background return, explicit grant, post-join send/receipts and group notification on iPhone/iPad.
