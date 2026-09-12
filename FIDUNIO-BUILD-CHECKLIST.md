@@ -981,3 +981,14 @@ No point earned; completion remains 96%.
 - [x] Publish exact implementation tree `42498a160b2765243a94e311a2f8bdcf2008c497` to `main` as `0b2d104d8b94b44144fd7bf6698d95d5d223e91a` and provide pinned corrective rules script `hr.txt`.
 - [x] Verify Rebuild Baseline `34671731563`, E2EE Rules `34671731548`, Firebase Adapter `34671731547`, and Pages `34671731357` SUCCESS; live Pages serves 1.1.37 / `1.1.37-group-authority-recovery`.
 - [ ] Deploy corrected Firestore rules and repeat the full FDA-GROUP-003/FDA-GROUP-004 iPhone/iPad acceptance matrix.
+
+### FIDUNIO 1.1.38 terminal group-stream recovery
+
+- [x] Prove send and Delete for Everyone remain authorized and isolate delayed convergence to the terminated client listener.
+- [x] Distinguish terminal group-message listener errors from nonterminal receipt/decrypt/history/projection errors.
+- [x] Release the same-group reuse guard on terminal failure and generation-block late callbacks from replaced streams.
+- [x] Reattach only through existing foreground, online, group reselect and authoritative group-list events; add no polling or timer recovery.
+- [x] Scope the listener error to its group and clear it only after a server-backed message snapshot.
+- [x] Preserve rules, membership, E2EE, receipts, deletion, Outbox, notifications, backend Functions and protected Firebase configuration.
+- [x] Advance runtime/cache to 1.1.38 / `1.1.38-group-stream-recovery` and add a permanent workflow gate.
+- [ ] Publish to `main`, verify required workflows/Pages, and complete FDA-GROUP-005 iPhone/iPad acceptance.

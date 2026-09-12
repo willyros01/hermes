@@ -46,6 +46,7 @@ import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccoun
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
+import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
@@ -125,6 +126,7 @@ let groupCandidates = [];
 let cloudMessageUnsub = null;
 let cloudMessageConversationId = null;
 let cloudGroupMessageConversationId = null;
+const groupMessageStreamLifecycle=createGroupMessageStreamLifecycle();
 let deviceSecurityInfo = null;
 let deviceRegistryStatus = "";
 let myRegisteredDevices = [];
@@ -785,7 +787,7 @@ function beginCloudGroupSubscription(){
   if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
   if(!firebaseUser)return;
   cloudGroupSyncPending=true;
-  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,(rows,meta={})=>{cloudGroupSyncPending=false;reconcileCloudGroupSnapshot(rows,meta);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});});
+  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,(rows,meta={})=>{cloudGroupSyncPending=false;reconcileCloudGroupSnapshot(rows,meta);if(meta.fromCache!==true&&meta.hasPendingWrites!==true)ensureActiveCloudMessageSubscription(false);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});});
 }
 function stopPeerDisplayNameSubscription(){
   try{peerDisplayNameUnsub();}catch{}
@@ -815,6 +817,7 @@ function stopCloudMessageSubscription(){
   cloudMessageConversationId=null;
 }
 function stopCloudGroupMessageSubscription(){
+  groupMessageStreamLifecycle.close();
   closeGroupForApp();
   cloudGroupMessageConversationId=null;
 }
@@ -849,31 +852,41 @@ function ensureActiveCloudMessageSubscription(force=false){
 function beginCloudGroupMessageSubscription(groupId){
   const wanted=String(groupId||"");
   if(!firebaseUser||!wanted)return;
-  if(String(cloudGroupMessageConversationId||"")===wanted)return;
+  if(groupMessageStreamLifecycle.canReuse(wanted)&&String(cloudGroupMessageConversationId||"")===wanted)return;
   stopCloudGroupMessageSubscription();
+  const token=groupMessageStreamLifecycle.open(wanted);
+  cloudGroupMessageConversationId=wanted;
   openGroupForApp(groupId,{
     isOpen:()=>state.route==="chat"&&String(state.selectedId)===String(groupId),
     onRows:async (rows,meta={})=>{
+      if(!groupMessageStreamLifecycle.isCurrent(token))return;
       rows=(rows||[]).filter(m=>!isMessageHidden(groupId,m.id));
       const existing=(state.messages[groupId]||[]).filter(m=>!isMessageHidden(groupId,m.id));
       const outboxIds=meta.partial===true?[]:(await getOutboxRecords()).map(x=>x.id);
+      if(!groupMessageStreamLifecycle.isCurrent(token))return;
       const projection=meta.partial===true
         ?planPartialDirectMessageProjection(existing,rows)
         :planAuthoritativeMessageProjection({existingRows:existing,remoteRows:rows,snapshotMeta:meta,outboxMessageIds:outboxIds});
       if(projection.authoritative&&projection.purgeMessageIds.length)await purgeLocalDisappearingMessageTraces(firebaseUser.uid,projection.purgeMessageIds);
+      if(!groupMessageStreamLifecycle.isCurrent(token))return;
       const bulkProjection=bulkMessageDeleteProjection.project(groupId,projection.rows,{authoritative:projection.authoritative,authoritativeRemoteIds:rows.map(message=>message.id)});
       state.messages[groupId]=optimisticOutgoingProjection.project(groupId,bulkProjection.rows,{isHidden:messageId=>isMessageHidden(groupId,messageId)});
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
       if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
       else if(c&&bulkProjection.affected){c.preview="";c.time="";}
+      if(meta.partial!==true)groupMessageStreamLifecycle.confirmServerSnapshot(token,meta);
       if(state.route==="chat"&&String(state.selectedId)===String(groupId))render({background:true});
       if(pendingNotificationRoute&&notificationMessageHasProjected(pendingNotificationRoute))void requestAppActivation("notification-message-projected");
       if(meta.partial===true)return{projectedMessageIds:state.messages[groupId].map(message=>String(message.id))};
       await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
     },
-    onError:err=>{firebaseError=err?.message||String(err);}
+    onError:(err,context={})=>{
+      const outcome=groupMessageStreamLifecycle.reject(token,err,context);
+      if(!outcome.accepted)return;
+      if(outcome.terminal){closeGroupForApp();cloudGroupMessageConversationId=null;}
+      if(state.route==="chat"&&String(state.selectedId)===wanted)render({background:true});
+    }
   });
-  cloudGroupMessageConversationId=wanted;
 }
 
 /* FIDUNIO direct-message E2EE foundation */
@@ -1719,8 +1732,9 @@ function renderGroupName(){
 }
 
 function chatStatusMarkup(c){
+  const visibleFirebaseError=isGroup(c)?(groupMessageStreamLifecycle.errorFor(c.id)||firebaseError):firebaseError;
   const waitingForNotifiedMessage=pendingNotificationRoute&&String(pendingNotificationRoute.conversationId)===String(c?.id)&&!notificationMessageHasProjected(pendingNotificationRoute);
-  return `${waitingForNotifiedMessage?'<div class="status-banner" role="status">Loading new message…</div>':""}${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${firebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(firebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
+  return `${waitingForNotifiedMessage?'<div class="status-banner" role="status">Loading new message…</div>':""}${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${visibleFirebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(visibleFirebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
 }
 function renderChat(){
   const c=currentConversation();

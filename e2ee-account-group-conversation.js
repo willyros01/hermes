@@ -22,6 +22,7 @@ function aggregateReceipt(row,receipts,myUid,memberUids){
 
 export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen=()=>false}={}){
   const id=needIdentity(),key=String(groupId);stopAccountGroupConversation(key);
+  const report=(error,context={})=>onError?.(error,context);
   const receiptStops=new Map(),receiptRows=new Map();
   const priorityReads=new Map();
   let rawRows=[],memberUids=[],closed=false,pendingSnapshot=null,running=null;
@@ -30,19 +31,19 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
     const live=[],receiptUpdates=[];
     for(const row of rows){
       let text="[Encrypted group message — account encryption unavailable]",decryptAvailable=false;
-      try{text=await decryptAccountGroupMessage({groupId:key,messageId:row.id,row});decryptAvailable=true;}catch(err){if(!closed)onError?.(err);}
+      try{text=await decryptAccountGroupMessage({groupId:key,messageId:row.id,row});decryptAvailable=true;}catch(err){if(!closed)report(err,{source:"decrypt",terminal:false});}
       live.push({id:row.id,mine:row.senderUid===id.uid,senderUid:row.senderUid,text,time:row.timeLabel||"",state:aggregateReceipt(row,receiptRows.get(row.id),id.uid,memberUids),cloud:true,e2ee:4,keyEpoch:row.keyEpoch,createdAt:asDate(row.createdAt),disappearAfterSeconds:row.disappearAfterSeconds??null,decryptAvailable});
       if(decryptAvailable&&row.senderUid!==id.uid)receiptUpdates.push(row.id);
     }
 
     if(closed)return;
     let granted=[];
-    if(meta?.partial!==true)try{granted=await loadAccountGroupGrantedHistory(key);}catch(err){if(!closed)onError?.(err);}
+    if(meta?.partial!==true)try{granted=await loadAccountGroupGrantedHistory(key);}catch(err){if(!closed)report(err,{source:"history",terminal:false});}
     if(closed)return;
     const merged=mergeGroupHistoryProjection(live,granted);
     if(!closed)await onRows?.(merged,meta);
     if(closed)return;
-    if(meta?.partial!==true)for(const messageId of receiptUpdates){if(closed)return;try{await updateCloudGroupReceipt(key,messageId,isOpen()?"read":"delivered");}catch(err){if(!closed)onError?.(err);}}
+    if(meta?.partial!==true)for(const messageId of receiptUpdates){if(closed)return;try{await updateCloudGroupReceipt(key,messageId,isOpen()?"read":"delivered");}catch(err){if(!closed)report(err,{source:"receipt-write",terminal:false});}}
   };
   const authorityReady=readCloudGroupAuthority(key).then(a=>{memberUids=a.memberUids||[];});
   const priorities=new Map();
@@ -52,12 +53,12 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
       try{await authorityReady;}catch(error){for(const item of priorities.values())for(const waiter of item.waiters)waiter.reject(error);priorities.clear();throw error;}
       while(!closed){
         const priority=priorities.values().next().value;
-        if(priority){priorities.delete(priority.messageId);try{await emit(priority.rows,priority.meta);for(const waiter of priority.waiters)waiter.resolve(true);}catch(error){for(const waiter of priority.waiters)waiter.reject(error);onError?.(error);}continue;}
+        if(priority){priorities.delete(priority.messageId);try{await emit(priority.rows,priority.meta);for(const waiter of priority.waiters)waiter.resolve(true);}catch(error){for(const waiter of priority.waiters)waiter.reject(error);report(error,{source:"projection",terminal:false});}continue;}
         if(!pendingSnapshot)break;
         const snapshot=pendingSnapshot;pendingSnapshot=null;
-        try{await emit(snapshot.rows,snapshot.meta);}catch(error){onError?.(error);}
+        try{await emit(snapshot.rows,snapshot.meta);}catch(error){report(error,{source:"projection",terminal:false});}
       }
-    })().catch(error=>{if(!closed)onError?.(error);}).finally(()=>{running=null;if(!closed&&(priorities.size||pendingSnapshot))start();});
+    })().catch(error=>{if(!closed)report(error,{source:"authority",terminal:false});}).finally(()=>{running=null;if(!closed&&(priorities.size||pendingSnapshot))start();});
     return running;
   };
   const offerSnapshot=(rows,meta={})=>{if(closed)return;pendingSnapshot={rows,meta};start();};
@@ -65,11 +66,11 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
   const unsub=subscribeCloudGroupMessages(key,(rows,meta={})=>{
     rawRows=rows||[];const snapshotMeta={fromCache:meta.fromCache===true,hasPendingWrites:meta.hasPendingWrites===true};
     for(const row of rawRows){
-      if(row.senderUid===id.uid&&!receiptStops.has(row.id))receiptStops.set(row.id,subscribeCloudGroupReceipts(key,row.id,rs=>{receiptRows.set(row.id,rs||[]);offerSnapshot(rawRows,snapshotMeta);},onError));
+      if(row.senderUid===id.uid&&!receiptStops.has(row.id))receiptStops.set(row.id,subscribeCloudGroupReceipts(key,row.id,rs=>{receiptRows.set(row.id,rs||[]);offerSnapshot(rawRows,snapshotMeta);},error=>{if(rawRows.some(message=>message.id===row.id))report(error,{source:"receipts",terminal:false});}));
     }
     for(const [messageId,stop] of [...receiptStops])if(!rawRows.some(r=>r.id===messageId)){try{stop();}catch{}receiptStops.delete(messageId);receiptRows.delete(messageId);}
     offerSnapshot(rawRows,snapshotMeta);
-  },onError);
+  },error=>report(error,{source:"messages",terminal:true}));
   streams.set(key,{async prioritize(messageId){const mid=String(messageId||"");if(!mid)throw new Error("Group notification message ID is required.");if(priorityReads.has(mid))return priorityReads.get(mid);const operation=getCloudGroupMessageFromServer(key,id.uid,mid).then(row=>offerPriority(mid,row)).finally(()=>priorityReads.delete(mid));priorityReads.set(mid,operation);return operation;},stop(){closed=true;pendingSnapshot=null;for(const item of priorities.values())for(const waiter of item.waiters)waiter.reject(new Error("Group message delivery owner closed."));priorities.clear();priorityReads.clear();try{unsub();}catch{}for(const stop of receiptStops.values())try{stop();}catch{}receiptStops.clear();receiptRows.clear();}});
   return()=>stopAccountGroupConversation(key);
 }

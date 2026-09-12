@@ -35,6 +35,7 @@ jobs:
       - {name: Account group-message service ownership, run: npm run test:e2ee-account-group-service}
       - {name: Account group-message Outbox ownership, run: npm run test:e2ee-account-group-outbox}
       - {name: Account group-message conversation ownership, run: npm run test:e2ee-account-group-conversation}
+      - {name: Group message terminal stream recovery, run: node group-message-stream-lifecycle.test.mjs}
       - {name: Account group-message app controller ownership, run: npm run test:e2ee-account-group-app-controller}
       - {name: Account group-message bounded app integration, run: npm run test:e2ee-account-group-app-integration}
       - {name: Attachment crypto foundation, run: npm run test:e2ee-account-attachment-crypto}
