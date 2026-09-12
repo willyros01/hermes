@@ -33,6 +33,6 @@ assert.match(app,/state\.selectedId=c\.id;state\.route="chat"/);
 assert.match(app,/function unlockLocalApp\(\)[\s\S]*?requestAppActivation\("unlock"\)/);
 const routeOwner=app.slice(app.indexOf("async function applyPendingNotificationRoute"),app.indexOf("async function finalizePendingNotificationRoute"));
 assert.doesNotMatch(routeOwner,/state\.messages\[[^\]]+\]\s*=/,"notification routing must not manufacture message rows");
-assert.match(sw,/SHELL_REVISION="1\.1\.37-group-authority-recovery"/);
-assert.match(version,/version: "1\.1\.37"/);
+assert.match(sw,/SHELL_REVISION="1\.1\.38-group-stream-recovery"/);
+assert.match(version,/version: "1\.1\.38"/);
 console.log("FCM N5 data-only notification tap routing gate passed");
