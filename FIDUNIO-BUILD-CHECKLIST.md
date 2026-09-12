@@ -978,5 +978,6 @@ No point earned; completion remains 96%.
 - [x] Keep direct pre-boundary message reads and inaccessible receipts denied.
 - [x] Add post-rejoin message, epoch, receipt-write and receipt-list emulator coverage; expanded group matrix passes 48/48.
 - [x] Complete all 85 workflow run steps and all six Firestore emulator suites; expanded group matrix passes 48/48.
-- [ ] Publish exact implementation to `main`, verify workflows/Pages, and provide a pinned corrective rules script.
+- [x] Publish exact implementation tree `42498a160b2765243a94e311a2f8bdcf2008c497` to `main` as `0b2d104d8b94b44144fd7bf6698d95d5d223e91a` and provide pinned corrective rules script `hr.txt`.
+- [ ] Verify workflows and Pages.
 - [ ] Deploy corrected Firestore rules and repeat the full FDA-GROUP-003/FDA-GROUP-004 iPhone/iPad acceptance matrix.

@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+COMMIT="0b2d104d8b94b44144fd7bf6698d95d5d223e91a"
+SCRIPT_VERSION="1.1.37-a"
+
+ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
+if [[ "$ACTIVE_PROJECT" != "$PROJECT" ]]; then
+  echo "STOP: Cloud Shell project is '$ACTIVE_PROJECT', expected '$PROJECT'."
+  exit 1
+fi
+if ! command -v firebase >/dev/null 2>&1; then
+  echo "Firebase CLI not found; installing firebase-tools..."
+  npm install -g firebase-tools
+fi
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+ARCHIVE="$WORK/fidunio.tar.gz"
+ROOT="$WORK/hermes-$COMMIT"
+
+echo "FIDUNIO 1.1.37 group authority-recovery rules deployment"
+echo "Project: $PROJECT"
+echo "Pinned source: $COMMIT"
+echo "Script: $SCRIPT_VERSION"
+
+curl --retry 3 --retry-delay 2 -fsSL "https://github.com/willyros01/hermes/archive/$COMMIT.tar.gz" -o "$ARCHIVE"
+tar -xzf "$ARCHIVE" -C "$WORK"
+
+if ! grep -Fq 'version: "1.1.37"' "$ROOT/version.js"; then
+  echo "STOP: pinned source is not FIDUNIO 1.1.37."
+  exit 1
+fi
+if ! grep -Fq 'where("createdAt",">=",access.historyFrom)' "$ROOT/firebase.js"; then
+  echo "STOP: pinned source lacks the reviewed ordinary join-time boundary."
+  exit 1
+fi
+if ! grep -Fq 'readCloudRetainedGroupMessages' "$ROOT/firebase.js" || ! grep -Fq 'Only a group administrator can read retained history sources.' "$ROOT/firebase.js"; then
+  echo "STOP: pinned source lacks the separate administrator retained-history owner."
+  exit 1
+fi
+if ! grep -Fq 'match /epochs/{epochId}{allow read: if isGroupMember(groupId)' "$ROOT/firestore.rules"; then
+  echo "STOP: pinned rules do not restore current-member encrypted epoch transport."
+  exit 1
+fi
+if grep -Fq 'request.auth.uid in resource.data.envelopes' "$ROOT/firestore.rules"; then
+  echo "STOP: pinned rules still contain the rejected 1.1.36 epoch authorization guard."
+  exit 1
+fi
+
+cd "$ROOT"
+firebase deploy \
+  --project "$PROJECT" \
+  --only "firestore:rules" \
+  --non-interactive
+
+ACTIVE_RULESET="$(python3 - "$PROJECT" <<'PY'
+import json
+import subprocess
+import sys
+import urllib.request
+
+project = sys.argv[1]
+token = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True).strip()
+headers = {"Authorization": f"Bearer {token}"}
+
+def read_json(url):
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request) as response:
+        return json.load(response)
+
+root = f"https://firebaserules.googleapis.com/v1/projects/{project}"
+release = read_json(f"{root}/releases/cloud.firestore")
+ruleset_name = release["rulesetName"]
+ruleset = read_json(f"https://firebaserules.googleapis.com/v1/{ruleset_name}")
+source = "\n".join(file.get("content", "") for file in ruleset.get("source", {}).get("files", []))
+required = (
+    "function groupMessageReadable",
+    "match /epochs/{epochId}{allow read: if isGroupMember(groupId)",
+)
+if not all(marker in source for marker in required):
+    raise SystemExit("STOP: active Firestore rules do not contain the reviewed recovery boundaries.")
+if "request.auth.uid in resource.data.envelopes" in source:
+    raise SystemExit("STOP: active Firestore rules still contain the rejected epoch guard.")
+print(ruleset_name)
+PY
+)"
+
+echo "SUCCESS"
+echo "FIDUNIO 1.1.37 Firestore group authority-recovery rules are active."
+echo "Pinned source: $COMMIT"
+echo "Active ruleset: $ACTIVE_RULESET"
+echo "No Functions, indexes, Storage rules, or application data were changed."
