@@ -1,3 +1,5 @@
+FIDUNIO 1.1.42 LARGE-ATTACHMENT DEVICE CORRECTION — 2026-09-12: Real-device testing on iPhone cellular sent a 19 MB attachment because Safari did not disclose Wi-Fi versus cellular and 1.1.41 Option 2 allowed unknown network type. That behavior is rejected. For >=5 MiB with Settings → Data → Large attachments on Wi-Fi only enabled, unknown/unverifiable network type now fails closed. FIDUNIO warns that Wi-Fi cannot be verified and requires an explicit Send Anyway confirmation before any file read/encryption/Outbox/upload. Positively reported cellular/WiMAX and offline states still wait; positively reported Wi-Fi/Ethernet proceeds. Attachment/E2EE/Firebase/Outbox/receipt/delete/notification/PIN ownership is unchanged. TODO item 6 remains open pending repeat device acceptance.
+
 ### Large attachments on Wi-Fi only — 1.1.41
 
 - [x] Use 5 MiB as the authoritative large-attachment threshold.

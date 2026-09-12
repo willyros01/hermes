@@ -38,8 +38,8 @@ export function evaluateLargeAttachmentNetworkPolicy({enabled,size,online,networ
     return {allowed:true,waitForWifi:false,reason:"reported-unmetered"};
   }
 
-  // Option 2: browsers that do not positively disclose their physical
-  // transport are allowed to proceed. This is essential on iPhone/iPad
-  // Safari, which generally does not expose Wi-Fi versus cellular here.
-  return {allowed:true,waitForWifi:false,reason:"network-type-unknown"};
+  // Fail closed when the browser cannot positively verify Wi-Fi/Ethernet.
+  // iPhone/iPad Safari commonly lands here. The application may offer an
+  // explicit user override, but the policy itself never silently proceeds.
+  return {allowed:false,waitForWifi:true,reason:"network-unverified",canOverride:true};
 }

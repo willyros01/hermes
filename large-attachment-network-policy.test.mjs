@@ -24,7 +24,9 @@ for(const networkType of ["wifi","ethernet"]){
 
 for(const networkType of ["",undefined,"unknown","bluetooth","other"]){
   const decision=evaluateLargeAttachmentNetworkPolicy({enabled:true,size:LARGE_ATTACHMENT_THRESHOLD_BYTES,online:true,networkType});
-  assert.equal(decision.allowed,true,`unknown/non-positive network type ${String(networkType)} must proceed under Option 2`);
+  assert.equal(decision.allowed,false,`unknown/non-positive network type ${String(networkType)} must not silently proceed`);
+  assert.equal(decision.reason,"network-unverified");
+  assert.equal(decision.canOverride,true,"unverified network must expose only an explicit user override");
 }
 
 assert.equal(evaluateLargeAttachmentNetworkPolicy({enabled:true,size:LARGE_ATTACHMENT_THRESHOLD_BYTES,online:false,networkType:"wifi"}).allowed,false,"offline large attachment must wait even if a stale type says Wi-Fi");
@@ -42,7 +44,7 @@ assert.match(app,/let pendingLargeAttachmentSend=null;/,"only one in-memory wait
 assert.match(app,/Another attachment is already waiting for Wi-Fi\./,"a second selection must be rejected while one waits");
 assert.match(app,/projectSelectedAttachmentRecord\(record,"waiting-wifi"\)/,"blocked selection must project Waiting for Wi-Fi state");
 assert.match(app,/Waiting for Wi-Fi/,"Waiting for Wi-Fi must be visible to the user");
-assert.match(app,/network-type information.*iPhone.*iPad.*Safari/is,"Data settings must explain Safari unknown-network allowance");
+assert.match(app,/cannot verify the network type.*explicit Send Anyway.*iPhone.*iPad.*Safari/is,"Data settings must explain Safari verification limitation and explicit override");
 assert.match(app,/resumePendingLargeAttachmentSend\(\)/,"waiting send must have an automatic resume path");
 assert.match(app,/attachmentNetworkConnection\?\.addEventListener\?\.\("change"/,"Network Information API change must trigger resume when available");
 assert.match(app,/if\(key==="wifiAttachments"\)void resumePendingLargeAttachmentSend\(\);/,"preference change must trigger resume");
@@ -52,7 +54,8 @@ const fileRead=app.indexOf("file.arrayBuffer()",policyCheck);
 assert.ok(policyCheck>=0&&fileRead>policyCheck,"network policy must run before file bytes are read");
 
 assert.match(serviceWorker,/\.\/large-attachment-network-policy\.js/,"service worker shell must cache the policy module");
-assert.match(serviceWorker,/1\.1\.41-large-attachment-network-policy/,"service-worker cache revision must advance");
-assert.match(version,/version:\s*"1\.1\.41"/,"visible release must advance to 1.1.41");
+assert.match(app,/Wi-Fi connection cannot be verified[\s\S]*Send Anyway/,"unknown network must require an explicit Send Anyway confirmation");
+assert.match(serviceWorker,/1\.1\.42-large-attachment-network-verification/,"service-worker cache revision must advance");
+assert.match(version,/version:\s*"1\.1\.42"/,"visible release must advance to 1.1.42");
 
 console.log("Large attachment network policy and integration regression gate passed");

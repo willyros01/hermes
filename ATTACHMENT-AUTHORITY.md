@@ -4,6 +4,10 @@
 
 `attachment-send-service.js` is the sole attachment send coordinator. `firebase.js` remains the sole Firebase SDK/service owner and is the only client module permitted to call Firebase Storage. `e2ee-account-attachment-crypto.js` is the byte-encryption/chunk-integrity owner. `app.js` owns browser selection/capture intent and the existing encrypted IndexedDB Outbox mutation path.
 
+## 1.1.42 unknown-network fail-closed correction
+
+Real-device iPhone cellular acceptance showed that Safari's undisclosed network type made the 1.1.41 Option 2 fallback send a 19 MB attachment without warning. That fallback is superseded. For a large attachment with the Wi-Fi-only preference enabled, an unknown/unverifiable network type is not send authority. `large-attachment-network-policy.js` returns a blocked `network-unverified` decision. `app.js`, as browser-selection/UI owner, may offer one explicit **Send Anyway** confirmation; only affirmative user action may continue into the unchanged attachment-send transaction. Cancellation performs no file read, encryption, Outbox staging, Storage upload, or message commit. Positively reported cellular/WiMAX and offline states continue to wait; positively reported Wi-Fi/Ethernet proceeds. No Firebase, E2EE, Outbox, receipt, deletion, notification, group, direct-message or PIN ownership changes.
+
 ## 1.1.41 large-attachment network-policy boundary
 
 The user-selected **Settings → Data → Large attachments on Wi-Fi only** policy is enforced before the existing attachment send transaction. `large-attachment-network-policy.js` is a pure browser-network decision helper; it owns no Firebase, E2EE, Outbox or message state. The authoritative large threshold is **5 MiB**. With the setting enabled, <5 MiB remains unrestricted; at/above 5 MiB waits while offline or when `NetworkInformation.type` positively reports `cellular`/`wimax`; `wifi`/`ethernet` proceeds; missing/unknown type also proceeds under the approved Option 2 because iPhone/iPad Safari generally does not expose a reliable Wi-Fi-versus-cellular type.

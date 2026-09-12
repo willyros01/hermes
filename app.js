@@ -1993,6 +1993,12 @@ async function sendSelectedAttachmentFile(kind,file){
   const record=createSelectedAttachmentRecord(kind,file,c);
   const decision=evaluateLargeAttachmentNetworkPolicy({enabled:!!state.settings.wifiAttachments,size:file.size,...readBrowserAttachmentNetworkState(navigator)});
   if(!decision.allowed){
+    if(decision.reason==="network-unverified"&&decision.canOverride){
+      const sendAnyway=globalThis.confirm?.("Wi-Fi connection cannot be verified. This large attachment may use cellular data. Press OK to Send Anyway, or Cancel to keep it from sending.")===true;
+      if(sendAnyway){await continueSelectedAttachmentSend(record);return;}
+      alert("Attachment not sent. Connect to verified Wi-Fi, or select it again and choose Send Anyway when prompted.");
+      return;
+    }
     pendingLargeAttachmentSend=record;
     projectSelectedAttachmentRecord(record,"waiting-wifi");
     return;
@@ -2758,7 +2764,7 @@ function renderSettings(){
           </div>
         </div>
 
-        <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}<p class="small-note">The large-attachment threshold is 5 MiB. When this is enabled, a large attachment waits if the browser positively reports cellular/WiMAX or the device is offline. If Wi-Fi/Ethernet is reported, it proceeds. If network-type information is unavailable, sending proceeds; iPhone/iPad Safari generally does not reliably disclose Wi-Fi versus cellular.</p></div>
+        <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}<p class="small-note">The large-attachment threshold is 5 MiB. When this is enabled, a large attachment waits if the browser reports cellular/WiMAX or the device is offline. If Wi-Fi/Ethernet is reported, it proceeds. If the browser cannot verify the network type, FIDUNIO does not send silently and asks for an explicit Send Anyway decision. iPhone/iPad Safari generally does not reliably disclose Wi-Fi versus cellular.</p></div>
 
         <div class="card">
           <h2>Account</h2>

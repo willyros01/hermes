@@ -1,3 +1,12 @@
+# FDA-LARGEATT-001 — iPhone unknown network silently bypassed Wi-Fi-only preference
+
+- **Build/device:** FIDUNIO 1.1.41, iPhone Safari/PWA, cellular data, 19 MB attachment.
+- **Observed:** attachment sent successfully without warning because Safari exposed no reliable network type and the 1.1.41 Option 2 fallback treated unknown as allowed.
+- **Expected:** a >=5 MiB attachment must not silently proceed unless Wi-Fi/Ethernet is positively known or the user explicitly overrides an unverifiable network.
+- **Repair allocation:** 1.1.42, policy/UI boundary only. Unknown network fails closed; explicit Send Anyway confirmation is the sole override. No attachment transport, E2EE, Firebase, Outbox, receipts, notifications, groups, PIN or deletion owner changes.
+- **Status:** FIX CANDIDATE — device re-acceptance required.
+- **Exit:** on iPhone cellular/unknown network, large attachment presents the warning and does not send without affirmative override; Send Anyway sends exactly once; small attachments and direct/group messaging regress unchanged.
+
 # FIDUNIO 1.1.41 — Large attachments on Wi-Fi only
 
 ## FDA-DATA-001 — large-attachment network preference
