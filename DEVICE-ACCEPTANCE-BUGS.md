@@ -364,3 +364,6 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 ## PIN and direct-photo forward progress — 1.1.39
 
 **Status: DEVICE CANDIDATE.** From a background notification on iPhone, enter the correct PIN and confirm FIDUNIO unlocks; if iOS stalls the local cryptographic check, confirm the screen returns within 12 seconds with “PIN check did not finish. Please try again.” and accepts another attempt without restart. From iPad, send a direct photo and confirm it leaves Queued without restarting; verify the recipient can open it. Recheck group text send/receive/delete and direct text send/receive to confirm unchanged behavior.
+## Full invitation letter — 1.1.40
+
+**Status: DEVICE CANDIDATE.** Create a fresh User invitation and a fresh Admin invitation. On iPhone and iPad, test Copy Invitation, Email Invitation and Share. Confirm the full accepted letter appears with readable paragraph breaks, correct inviter, correct role, expiry, a separately tappable Join FIDUNIO URL, a separately tappable Quick Start Guide URL, single-use/non-forward warning and FIDUNIO sign-off. Confirm the Join link still creates the intended account and no installation prompt occurs automatically.

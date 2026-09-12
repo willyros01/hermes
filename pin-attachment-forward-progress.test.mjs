@@ -28,5 +28,5 @@ assert.match(app,/awaitBoundedLocalPinVerification\(verifyLocalPin\(pinInput\.va
 assert.match(app,/catch\(err\)[\s\S]*?unlockError=err\?\.message[\s\S]*?render\(\)/,"a stalled PIN check must restore an interactive unlock screen");
 assert.match(app,/if\(!c\.cloudGroup\)await scheduleAttachmentOutboxRetryIfPending\(\{messageId:row\.messageId,readOutboxMessage:getOutboxMessage,scheduleRetry:scheduleReconnectRecovery\}\)/,"only a direct attachment still in Outbox may schedule existing recovery");
 assert.match(worker,/\.\/local-pin-verification-boundary\.js/);
-assert.match(worker,/SHELL_REVISION="1\.1\.39-pin-attachment-forward-progress"/);
+assert.match(worker,/SHELL_REVISION="1\.1\.40-share-copy-restoration"/);
 console.log("PIN and direct-attachment forward-progress gate passed");

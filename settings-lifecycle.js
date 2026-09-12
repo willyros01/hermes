@@ -39,8 +39,8 @@ function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Administ
 function profileStatus(p){if(p?.active===false)return p?.status||"deactivated";return p?.status||"active";}
 function dateText(v){const d=v?.toDate?.()||v;if(!d)return"—";try{return new Date(d).toLocaleString();}catch{return String(d);}}
 function guideUrl(){return new URL("./quick-start.html",location.href).href;}
-function inviteSubject(){return "Your FIDUNIO invitation";}
-function inviteMessage(invite){return `You are invited to FIDUNIO as ${prettyRole(invite.role)}.\n\nJoin: ${invite.link}\nQuick Start: ${guideUrl()}\nExpires: ${invite.expiresAt?.toLocaleString?.()||invite.expiresAt||""}`;}
+function inviteSubject(){return "You're invited to join FIDUNIO";}
+function inviteMessage(invite){const inviter=invite.invitedByName||"A FIDUNIO administrator",role=invite.role==="admin"?"Admin":"User";return `You're invited to FIDUNIO — Private Messaging\n\n${inviter} has invited you to join FIDUNIO, an invitation-only private messaging app for one-to-one and group conversations.\n\nYour role: ${role}\nInvitation expires: ${invite.expiresAt.toLocaleString()}\n\nJOIN FIDUNIO\n${invite.link}\n\nThis invitation is personal and can be used only once. After your account is created, the invitation becomes invalid. Please do not forward the invitation link.\n\nQUICK START GUIDE\n${guideUrl()}\n\nThe guide explains account setup, privacy and security basics, messaging, device identity, and PIN/biometric unlocking.\n\nFIDUNIO • Private Messaging`;}
 
 function serializeSettingsMutation(label,work){
   const run=mutationTail.then(()=>work());

@@ -29,6 +29,7 @@ jobs:
       - {name: Invitation lifecycle policy, run: npm run test:invitation-policy}
       - {name: Invitation enrollment rules gate, run: npm run emulator:test:invitation-rules}
       - {name: Invitation install coexistence closeout, run: npm run test:invitation-install-closeout}
+      - {name: Accepted full invitation letter restoration, run: node invitation-letter-restoration.test.mjs}
       - {name: Account group-message crypto, run: npm run test:e2ee-account-group-crypto}
       - {name: Account group-history grant crypto, run: npm run test:e2ee-account-group-history-crypto}
       - {name: Account group-message runtime, run: npm run test:e2ee-account-group-runtime}

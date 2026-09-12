@@ -4,6 +4,16 @@
 - [ ] **Direct chat date separators — 0.9.9.17 candidate:** apply the accepted horizontal-line `Month D, YYYY` day separator to one-to-one conversations while preserving per-message times and group sender name/time; pending iPhone/iPad device acceptance.
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### Full invitation letter restoration — 1.1.40
+
+- [x] Recover the exact accepted subject and letter from validated durable history.
+- [x] Restore one shared letter for Copy Invitation, Email Invitation and Share.
+- [x] Preserve inviter, role, expiry, clean Join URL, single-use warning, clean Quick Start Guide URL, guide summary and sign-off.
+- [x] Preserve the existing invitation mutation owner, Firebase lifecycle, redemption/revocation and install separation.
+- [x] Keep rejected automatic invite/install implementations absent.
+- [x] Add the exact-letter regression gate to the full baseline.
+- [ ] Device-confirm Copy, Email and Share formatting/links on iPhone and iPad.
+
 ### PIN and direct-attachment forward progress — 1.1.39
 
 - [x] Bound unlock-screen local PIN verification at 12 seconds and restore an enabled retry screen on timeout/error.
@@ -11,7 +21,7 @@
 - [x] After direct attachment commit, inspect only that exact message ID and reuse the existing reconnect recovery owner if it remains in Outbox.
 - [x] Preserve group attachment/text, Storage upload, Firebase auth, notification routing, PIN storage, E2EE, receipt, rules and deletion owners.
 - [x] Add a permanent simulated-stall and exact-Outbox-ID regression gate to the full baseline.
-- [ ] Device-confirm notification-to-PIN unlock recovery and direct-photo automatic retry without restart.
+- [x] Device-confirm notification-to-PIN unlock recovery and direct-photo automatic retry without restart.
 
 ### Open follow-up items
 
