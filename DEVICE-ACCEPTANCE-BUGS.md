@@ -361,3 +361,6 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 - **Unchanged:** Firestore rules, membership/epoch rotation, E2EE, receipts, send/delete authority, Outbox, notifications, backend Functions and protected Firebase configuration.
 - **Acceptance:** with owner and a removed/re-added member, open the same group on both devices; background/PIN-return the owner, send from the rejoined member, and confirm it appears without force-close. Delete that message for everyone and confirm immediate removal on both. Repeat in reverse, then test Wi-Fi off/on and leave/re-enter the same group. No persistent permission banner or duplicate messages/listeners may appear.
 - **Status:** 1.1.38 REPOSITORY CANDIDATE; device acceptance pending.
+## PIN and direct-photo forward progress — 1.1.39
+
+**Status: DEVICE CANDIDATE.** From a background notification on iPhone, enter the correct PIN and confirm FIDUNIO unlocks; if iOS stalls the local cryptographic check, confirm the screen returns within 12 seconds with “PIN check did not finish. Please try again.” and accepts another attempt without restart. From iPad, send a direct photo and confirm it leaves Queued without restarting; verify the recipient can open it. Recheck group text send/receive/delete and direct text send/receive to confirm unchanged behavior.

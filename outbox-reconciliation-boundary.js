@@ -56,3 +56,11 @@ export function planTimedOutOutboxRequeue({outboxRecords=[],messagesByConversati
   }
   return Object.freeze([...new Set(requeueIds)]);
 }
+
+export async function scheduleAttachmentOutboxRetryIfPending({messageId,readOutboxMessage,scheduleRetry}={}){
+  if(!messageId||typeof readOutboxMessage!=="function"||typeof scheduleRetry!=="function")throw new Error("Attachment Outbox retry dependencies are required.");
+  const pending=await readOutboxMessage(messageId);
+  if(!pending)return false;
+  scheduleRetry();
+  return true;
+}

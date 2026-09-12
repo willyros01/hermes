@@ -45,6 +45,7 @@ import { mountSettingsLifecycle } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
+import {awaitBoundedLocalPinVerification} from "./local-pin-verification-boundary.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
 
@@ -56,7 +57,7 @@ import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisap
 import { createAttachmentSendService } from "./attachment-send-service.js";
 import { createAttachmentReceiveService } from "./attachment-receive-service.js";
 import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-transport-policy.js";
-import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
+import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,scheduleAttachmentOutboxRetryIfPending,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 import {awaitBoundedGroupMemberDirectory,cloudGroupIdsMissingFromAuthoritativeSnapshot} from "./group-membership-lifecycle.js";
 import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
 import {listPendingNotificationRoutes,consumePendingNotificationRoutes,groupPendingNotificationRoutes} from "./notification-pending-inbox.js";
@@ -1561,8 +1562,13 @@ function renderUnlock(){
     pinButton.disabled=true;
     pinInput.setDisabled(true);
     pinButton.textContent="Checking…";
-    if(await verifyLocalPin(pinInput.value())){unlockLocalApp();return;}
-    unlockError="Incorrect PIN.";
+    try{
+      if(await awaitBoundedLocalPinVerification(verifyLocalPin(pinInput.value()))){unlockLocalApp();return;}
+      unlockError="Incorrect PIN.";
+    }catch(err){
+      console.warn("Local PIN verification did not complete",err);
+      unlockError=err?.message||"PIN check did not finish. Please try again.";
+    }
     render();
   };
   pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
@@ -1923,7 +1929,7 @@ async function sendSelectedAttachmentFile(kind,file){
   try{
     const bytes=new Uint8Array(await file.arrayBuffer());
     const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};
-    const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render({background:true});},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();},removeEncryptedOutbox:async()=>{}});
+    const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render({background:true});},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();if(!c.cloudGroup)await scheduleAttachmentOutboxRetryIfPending({messageId:row.messageId,readOutboxMessage:getOutboxMessage,scheduleRetry:scheduleReconnectRecovery});},removeEncryptedOutbox:async()=>{}});
     await svc.send(descriptor);
   }catch(err){stagedMessage.state="failed";await persistState();render({background:true});alert("Attachment could not be sent: "+(err?.message||err));}
 }

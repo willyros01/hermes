@@ -4,6 +4,15 @@
 - [ ] **Direct chat date separators — 0.9.9.17 candidate:** apply the accepted horizontal-line `Month D, YYYY` day separator to one-to-one conversations while preserving per-message times and group sender name/time; pending iPhone/iPad device acceptance.
 # FIDUNIO Complete Rebuild — Authoritative Build Checklist
 
+### PIN and direct-attachment forward progress — 1.1.39
+
+- [x] Bound unlock-screen local PIN verification at 12 seconds and restore an enabled retry screen on timeout/error.
+- [x] Preserve incorrect-PIN wording only for a completed false verification.
+- [x] After direct attachment commit, inspect only that exact message ID and reuse the existing reconnect recovery owner if it remains in Outbox.
+- [x] Preserve group attachment/text, Storage upload, Firebase auth, notification routing, PIN storage, E2EE, receipt, rules and deletion owners.
+- [x] Add a permanent simulated-stall and exact-Outbox-ID regression gate to the full baseline.
+- [ ] Device-confirm notification-to-PIN unlock recovery and direct-photo automatic retry without restart.
+
 ### Open follow-up items
 
 - [ ] **Disappearing attachments:** implement trace-free disappearance for photos/files/audio/video, including physical Firebase Storage manifest/chunk deletion and related-trace cleanup under `DISAPPEARING-PURGE-AUTHORITY.md`; preserve source-delete-last ordering; add permanent gates; deploy backend changes; complete direct/group/reopen device acceptance.

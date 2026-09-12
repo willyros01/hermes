@@ -98,6 +98,7 @@ jobs:
       - {name: 1.0 candidate UI and lifecycle gate, run: npm run test:release-candidate-ui}
       - {name: iPad RC stabilization gate, run: npm run test:ipad-rc-stabilization}
       - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}
+      - {name: PIN and direct-attachment forward progress, run: npm run test:pin-attachment-forward-progress}
       - {name: LTE optimistic outgoing-message visibility and snapshot retention, run: npm run test:lte-optimistic-message && node optimistic-outgoing-projection.test.mjs}
       - {name: Issue 3 iPhone composer and video source, run: npm run test:issue3-iphone-ui}
       - {name: Audio source chooser and recorder, run: npm run test:audio-source-recorder}
