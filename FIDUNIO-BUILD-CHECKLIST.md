@@ -1,3 +1,17 @@
+### Large attachments on Wi-Fi only — 1.1.41
+
+- [x] Use 5 MiB as the authoritative large-attachment threshold.
+- [x] Keep attachments smaller than 5 MiB unrestricted.
+- [x] Block large selections while offline or when browser network type positively reports cellular/WiMAX.
+- [x] Permit large selections on reported Wi-Fi/Ethernet and when the browser does not disclose network type (Option 2 / iOS Safari allowance).
+- [x] Evaluate policy before `File.arrayBuffer()`, encryption, Outbox staging or Firebase Storage upload.
+- [x] Display `Waiting for Wi-Fi`, keep only one memory-only pending File, reject a second selection, and re-evaluate on network/setting/foreground changes.
+- [x] Preserve existing attachment send, E2EE, Firebase Storage, direct/group, Outbox, receipt, delete, notification and PIN owners.
+- [x] Add a permanent large-attachment network-policy regression gate and service-worker cache entry.
+- [ ] Publish 1.1.41 to `main`; confirm repository workflows and live Pages version/cache.
+- [ ] Device-confirm small/large direct and group photo/file/audio/video behavior, positive-cellular wait→Wi-Fi exactly-once resume where supported, second-selection rejection, and direct/group text regression.
+- [ ] Decide after device testing whether restart durability for a waiting File requires a follow-up implementation.
+
 - [x] **Disappearing attachments — 0.9.9.19:** live backend deployed; direct photo/file/audio/video and group photo all device accepted after authoritative Read with close/reopen anti-resurrection pass.
 - [x] **Date/time presentation — 0.9.9.18:** group sender name/time + group/direct date separators device accepted.
 - [ ] **Direct chat date separators — 0.9.9.18 correction:** preserve authoritative direct-message `createdAt` through projection so the shared date separator can render; pending device acceptance.
@@ -12,7 +26,7 @@
 - [x] Preserve the existing invitation mutation owner, Firebase lifecycle, redemption/revocation and install separation.
 - [x] Keep rejected automatic invite/install implementations absent.
 - [x] Add the exact-letter regression gate to the full baseline.
-- [ ] Device-confirm Copy, Email and Share formatting/links on iPhone and iPad.
+- [x] Device-confirm the restored invitation is back to its original accepted form on the user device (accepted 2026-09-12).
 
 ### PIN and direct-attachment forward progress — 1.1.39
 

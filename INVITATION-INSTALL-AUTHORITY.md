@@ -22,7 +22,7 @@ The Settings Install panel must ultimately expose an explicit actionable install
 
 ## Invitation-letter restoration — implemented in 1.1.40
 
-The exact accepted subject and full invitation letter were recovered from the validated 0.9.5.1 checkpoint and safe 0.9.4.10 stabilization branch. Copy Invitation, Email Invitation and Share use the same restored text, including inviter, role, expiry, clean single-use Join URL, personal/non-forward warning, clean Quick Start Guide URL, guide summary and sign-off. The existing serialized invitation owner and install separation remain authoritative. Device acceptance is pending.
+The exact accepted subject and full invitation letter were recovered from the validated 0.9.5.1 checkpoint and safe 0.9.4.10 stabilization branch. Copy Invitation, Email Invitation and Share use the same restored text, including inviter, role, expiry, clean single-use Join URL, personal/non-forward warning, clean Quick Start Guide URL, guide summary and sign-off. The existing serialized invitation owner and install separation remain authoritative. **DEVICE ACCEPTED / CLOSED 2026-09-12:** the user confirmed the invitation is back to its original accepted form.
 
 ## Historical prohibition
 

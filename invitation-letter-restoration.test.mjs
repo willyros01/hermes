@@ -25,6 +25,6 @@ assert.match(settings,/navigator\.clipboard\.writeText\(text\)/,"Copy Invitation
 assert.match(settings,/mailto:\?subject=\$\{encodeURIComponent\(inviteSubject\(\)\)\}&body=\$\{encodeURIComponent\(inviteMessage\(invite\)\)\}/,"Email Invitation must use the restored subject and letter");
 assert.match(settings,/navigator\.share\(\{title:inviteSubject\(\),text:inviteMessage\(invite\)\}\)/,"Share must use the restored subject and letter");
 assert.match(firebase,/return\{id,token,role,invitedByName,expiresAt:expires,link:inviteLink\(token\)\}/,"new invitations must return the authoritative inviter name already written to Firestore");
-assert.match(worker,/SHELL_REVISION="1\.1\.40-share-copy-restoration"/);
+assert.match(worker,/SHELL_REVISION="1\.1\.41-large-attachment-network-policy"/);
 assert.match(workflow,/node invitation-letter-restoration\.test\.mjs/);
 console.log("Accepted full invitation letter restoration gate passed");

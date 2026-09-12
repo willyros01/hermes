@@ -57,6 +57,7 @@ import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisap
 import { createAttachmentSendService } from "./attachment-send-service.js";
 import { createAttachmentReceiveService } from "./attachment-receive-service.js";
 import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-transport-policy.js";
+import { evaluateLargeAttachmentNetworkPolicy, readBrowserAttachmentNetworkState } from "./large-attachment-network-policy.js";
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,scheduleAttachmentOutboxRetryIfPending,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 import {awaitBoundedGroupMemberDirectory,cloudGroupIdsMissingFromAuthoritativeSnapshot} from "./group-membership-lifecycle.js";
 import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
@@ -136,6 +137,7 @@ let localSecurityMessageIsError = false;
 let unlockError = "";
 let messageSendInFlight=false;
 let attachmentPickerActive=false;
+let pendingLargeAttachmentSend=null;
 const attachmentRuntime=new Map();
 const localAttachmentPreviewUrls=new Set();
 const attachmentReceiveService=createAttachmentReceiveService({downloadEncryptedAttachment});
@@ -259,7 +261,7 @@ function serializableState(){
   return {
     conversations:state.conversations,
     archivedConversations:state.archivedConversations,
-    messages:state.messages,
+    messages:Object.fromEntries(Object.entries(state.messages).map(([conversationId,messages])=>[conversationId,(Array.isArray(messages)?messages:[]).filter(message=>!message?.ephemeralAttachmentWait)])),
     hiddenMessages:state.hiddenMessages,
     settings:state.settings,
     peerTrust:state.peerTrust,
@@ -1867,15 +1869,17 @@ function renderConversationMessages(msgs,c){
 
 function renderBubble(m,c){
   if(m.system) return `<div class="day-divider">${esc(m.text)} • ${esc(m.time)}</div>`;
-  const label=m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
+  const label=m.state==="waiting-wifi"?"Waiting for Wi-Fi":m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
     m.state==="delivered"?"Delivered":m.state==="failed"?"Failed":"Read";
-  const cls=m.state==="queued"?"state-queued":m.state==="failed"?"state-failed":"";
+  const cls=(m.state==="queued"||m.state==="waiting-wifi")?"state-queued":m.state==="failed"?"state-failed":"";
   const hasMessageAction=!m.system;
   const descriptor=parseAttachmentDescriptor(m.text);
   let messageContent=`<div class="msg-text">${esc(m.text)}</div>`;
   if(descriptor){
     const key=attachmentRuntimeKey(c.id,m.id),runtime=attachmentRuntime.get(key);
-    if(m.state==="failed"){
+    if(m.state==="waiting-wifi"){
+      messageContent=`<div class="attachment-card attachment-loading">Waiting for Wi-Fi<span class="attachment-error-detail">${esc(descriptor.name||"Large attachment")}</span></div>`;
+    }else if(m.state==="failed"){
       messageContent=`<div class="attachment-card attachment-error">${descriptor.kind==="video"?"Video":descriptor.kind==="photo"?"Photo":"Attachment"} was not sent.<span class="attachment-error-detail">Press and hold this message to delete it, then try sending again.</span></div>`;
     }else if((m.state==="sending"||m.state==="queued")&&!runtime){
       messageContent=`<div class="attachment-card attachment-loading">Sending ${descriptor.kind==="photo"?"photo":"attachment"}…</div>`;
@@ -1915,23 +1919,85 @@ function bindPendingMessageActions(){
   });
 }
 
-async function sendSelectedAttachmentFile(kind,file){
-  const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
-  if(!file)return;
+function selectedAttachmentNetworkDecision(file){
+  const network=readBrowserAttachmentNetworkState(navigator);
+  return evaluateLargeAttachmentNetworkPolicy({enabled:!!state.settings.wifiAttachments,size:file?.size||0,online:network.online,networkType:network.networkType});
+}
+function conversationForAttachmentRecord(record){
+  return state.conversations.find(conversation=>String(conversation.id)===String(record?.conversationId))||null;
+}
+function projectSelectedAttachmentRecord(record,messageState){
+  const c=conversationForAttachmentRecord(record);
+  if(!c)return false;
+  record.stagedMessage.state=messageState;
+  record.stagedMessage.ephemeralAttachmentWait=messageState==="waiting-wifi";
+  if(!record.projected){
+    if(c.cloudGroup)optimisticOutgoingProjection.stage(c.id,record.stagedMessage);
+    if(!state.messages[c.id])state.messages[c.id]=[];
+    if(!state.messages[c.id].some(message=>String(message.id)===String(record.messageId)))state.messages[c.id].push(record.stagedMessage);
+    record.projected=true;
+  }
+  if(messageState!=="waiting-wifi"){
+    c.preview=messagePreview(record.previewText);
+    c.time=record.stagedMessage.time;
+  }
+  render({background:state.route!=="chat"||String(state.selectedId)!==String(c.id)});
+  return true;
+}
+function createSelectedAttachmentRecord(kind,file,c){
   const messageId=crypto.randomUUID(),attachmentId=crypto.randomUUID(),originalName=file.name||`${kind}-${Date.now()}`,originalType=file.type||"application/octet-stream";
-  try{validateAttachmentSelection({kind,name:originalName,type:originalType,size:file.size});}
-  catch(err){const limit=Math.round((ATTACHMENT_LIMITS_V1[kind]||0)/(1024*1024));const label=kind==="video"?"Video":kind==="audio"?"Audio":kind==="photo"?"Photo":"Attachment";alert(`${label} could not be selected: ${err?.message||err}${limit?` Maximum size is ${limit} MB.`:""}`);return;}
-  const previewUrl=URL.createObjectURL(file),previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});
+  const previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});
   const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),createdAt:new Date(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);
-  localAttachmentPreviewUrls.add(previewUrl);attachmentRuntime.set(attachmentRuntimeKey(c.id,messageId),{status:"ready",descriptor:parseAttachmentDescriptor(previewText),result:{url:previewUrl,name:originalName,type:originalType,size:file.size,kind,localPreview:true}});
-  if(c.cloudGroup)optimisticOutgoingProjection.stage(c.id,stagedMessage);
-  if(!state.messages[c.id])state.messages[c.id]=[];state.messages[c.id].push(stagedMessage);c.preview=messagePreview(previewText);c.time=stagedMessage.time;render();
+  return{kind,file,conversationId:String(c.id),messageId,attachmentId,originalName,originalType,previewText,stagedMessage,projected:false};
+}
+function attachLocalSelectedFilePreview(record){
+  const c=conversationForAttachmentRecord(record);if(!c)return;
+  const previewUrl=URL.createObjectURL(record.file);
+  localAttachmentPreviewUrls.add(previewUrl);
+  attachmentRuntime.set(attachmentRuntimeKey(c.id,record.messageId),{status:"ready",descriptor:parseAttachmentDescriptor(record.previewText),result:{url:previewUrl,name:record.originalName,type:record.originalType,size:record.file.size,kind:record.kind,localPreview:true}});
+}
+async function continueSelectedAttachmentSend(record){
+  const c=conversationForAttachmentRecord(record);
+  if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup)){
+    if(record?.stagedMessage){record.stagedMessage.ephemeralAttachmentWait=false;record.stagedMessage.state="failed";render({background:true});}
+    return alert("Attachments require a signed-in cloud conversation.");
+  }
+  projectSelectedAttachmentRecord(record,"sending");
+  attachLocalSelectedFilePreview(record);
+  const {file,messageId,attachmentId,kind,originalName,originalType,stagedMessage}=record;
   try{
     const bytes=new Uint8Array(await file.arrayBuffer());
     const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};
     const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render({background:true});},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();if(!c.cloudGroup)await scheduleAttachmentOutboxRetryIfPending({messageId:row.messageId,readOutboxMessage:getOutboxMessage,scheduleRetry:scheduleReconnectRecovery});},removeEncryptedOutbox:async()=>{}});
     await svc.send(descriptor);
-  }catch(err){stagedMessage.state="failed";await persistState();render({background:true});alert("Attachment could not be sent: "+(err?.message||err));}
+  }catch(err){stagedMessage.ephemeralAttachmentWait=false;stagedMessage.state="failed";await persistState();render({background:true});alert("Attachment could not be sent: "+(err?.message||err));}
+}
+async function resumePendingLargeAttachmentSend(){
+  const record=pendingLargeAttachmentSend;
+  if(!record)return;
+  const decision=selectedAttachmentNetworkDecision(record.file);
+  if(!decision.allowed){
+    projectSelectedAttachmentRecord(record,"waiting-wifi");
+    return;
+  }
+  pendingLargeAttachmentSend=null;
+  await continueSelectedAttachmentSend(record);
+}
+async function sendSelectedAttachmentFile(kind,file){
+  const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
+  if(!file)return;
+  if(pendingLargeAttachmentSend)return alert("Another attachment is already waiting for Wi-Fi.");
+  const originalName=file.name||`${kind}-${Date.now()}`,originalType=file.type||"application/octet-stream";
+  try{validateAttachmentSelection({kind,name:originalName,type:originalType,size:file.size});}
+  catch(err){const limit=Math.round((ATTACHMENT_LIMITS_V1[kind]||0)/(1024*1024));const label=kind==="video"?"Video":kind==="audio"?"Audio":kind==="photo"?"Photo":"Attachment";alert(`${label} could not be selected: ${err?.message||err}${limit?` Maximum size is ${limit} MB.`:""}`);return;}
+  const record=createSelectedAttachmentRecord(kind,file,c);
+  const decision=evaluateLargeAttachmentNetworkPolicy({enabled:!!state.settings.wifiAttachments,size:file.size,...readBrowserAttachmentNetworkState(navigator)});
+  if(!decision.allowed){
+    pendingLargeAttachmentSend=record;
+    projectSelectedAttachmentRecord(record,"waiting-wifi");
+    return;
+  }
+  await continueSelectedAttachmentSend(record);
 }
 
 async function chooseAndSendAttachment(kind,accept,capture){
@@ -2227,17 +2293,21 @@ function scheduleReconnectRecovery(){
 function recoverForegroundCloudSession(){void requestAppActivation("foreground");}
 window.addEventListener("online",()=>{
   void requestAppActivation("online");
+  void resumePendingLargeAttachmentSend();
 });
 window.addEventListener("offline",()=>{
   state.online=false;
+  void resumePendingLargeAttachmentSend();
   if(reconnectRecoveryTimer1) clearTimeout(reconnectRecoveryTimer1);
   if(reconnectRecoveryTimer2) clearTimeout(reconnectRecoveryTimer2);
   persistSoon();
   void requestAppActivation("offline");
 });
 document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible") recoverForegroundCloudSession();
+  if(document.visibilityState==="visible"){recoverForegroundCloudSession();void resumePendingLargeAttachmentSend();}
 });
+const attachmentNetworkConnection=navigator.connection||navigator.mozConnection||navigator.webkitConnection||null;
+attachmentNetworkConnection?.addEventListener?.("change",()=>{void resumePendingLargeAttachmentSend();});
 
 let lastWideLayout=isWideLayout();
 window.addEventListener("resize",()=>{
@@ -2688,7 +2758,7 @@ function renderSettings(){
           </div>
         </div>
 
-        <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}</div>
+        <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}<p class="small-note">The large-attachment threshold is 5 MiB. When this is enabled, a large attachment waits if the browser positively reports cellular/WiMAX or the device is offline. If Wi-Fi/Ethernet is reported, it proceeds. If network-type information is unavailable, sending proceeds; iPhone/iPad Safari generally does not reliably disclose Wi-Fi versus cellular.</p></div>
 
         <div class="card">
           <h2>Account</h2>
@@ -2740,6 +2810,7 @@ function renderSettings(){
   document.querySelector("#backBtn").onclick=()=>{state.route="messages";render()};
   document.querySelectorAll(".toggle").forEach(btn=>btn.onclick=()=>{
     const key=btn.dataset.key;state.settings[key]=!state.settings[key];persistSoon();render();
+    if(key==="wifiAttachments")void resumePendingLargeAttachmentSend();
   });
   document.querySelectorAll(".appearance-btn").forEach(btn=>btn.onclick=()=>{
     state.settings.appearance=btn.dataset.appearance;

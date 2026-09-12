@@ -1,3 +1,19 @@
+# FIDUNIO 1.1.41 — Large attachments on Wi-Fi only
+
+## FDA-DATA-001 — large-attachment network preference
+
+- **Build:** FIDUNIO 1.1.41 device candidate.
+- **Severity:** release acceptance for TODO item 6.
+- **Expected:** with Settings → Data → Large attachments on Wi-Fi only enabled, files below 5 MiB remain unrestricted; files at or above 5 MiB wait only when offline or when the browser positively reports cellular/WiMAX; Wi-Fi/Ethernet and unknown network type proceed. While blocked, show `Waiting for Wi-Fi`, retain only one pending selection, reject a second selection, and automatically resume exactly once after an applicable network/setting change.
+- **Security/ownership boundary:** policy evaluation occurs before the selected File is read. No plaintext read, attachment encryption, encrypted Outbox staging, Firebase Storage upload, direct/group message publication or receipt mutation begins while the initial policy is blocked. Existing attachment/E2EE/Firebase/Outbox/receipt/delete/notification/PIN owners remain unchanged.
+- **Known candidate limitation:** the blocked File is memory-only. If iOS reloads or terminates the PWA while waiting, the user must select it again. An already-started Firebase Storage upload is not paused if the connection changes afterward.
+- **Required device acceptance:** (1) enable the setting; (2) send a <5 MiB attachment normally; (3) on iPhone/iPad Safari verify the Data note explains unknown network types and a large attachment proceeds under Option 2; (4) where a browser positively reports cellular, verify a large attachment shows `Waiting for Wi-Fi`, then switch to Wi-Fi and confirm exactly one automatic send; (5) repeat direct/group photo/file/audio/video; (6) while one large attachment waits, select another and confirm rejection; (7) recheck direct/group text messaging.
+- **Status:** REPOSITORY CANDIDATE; device acceptance pending. Do not close TODO item 6 yet.
+
+## Full invitation letter — 1.1.40 closeout
+
+**Status: DEVICE ACCEPTED / CLOSED — 2026-09-12.** The user confirmed the invitation was restored to its original accepted form. The accepted invitation owner, redemption behavior and install separation remain authoritative.
+
 ## Disappearing attachments — 0.9.9.19
 
 **Status: NOT YET DEVICE-TESTABLE until live backend handoff succeeds.** After deployment, test a fresh direct photo and a fresh group attachment with 5 minutes: recipients can open before expiry; expiry begins from the accepted Read authority; after expiry the message and encrypted attachment disappear from all devices; close/reopen must not restore them; unread attachments must remain beyond the duration until authoritative Read.

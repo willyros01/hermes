@@ -4,6 +4,12 @@
 
 `attachment-send-service.js` is the sole attachment send coordinator. `firebase.js` remains the sole Firebase SDK/service owner and is the only client module permitted to call Firebase Storage. `e2ee-account-attachment-crypto.js` is the byte-encryption/chunk-integrity owner. `app.js` owns browser selection/capture intent and the existing encrypted IndexedDB Outbox mutation path.
 
+## 1.1.41 large-attachment network-policy boundary
+
+The user-selected **Settings → Data → Large attachments on Wi-Fi only** policy is enforced before the existing attachment send transaction. `large-attachment-network-policy.js` is a pure browser-network decision helper; it owns no Firebase, E2EE, Outbox or message state. The authoritative large threshold is **5 MiB**. With the setting enabled, <5 MiB remains unrestricted; at/above 5 MiB waits while offline or when `NetworkInformation.type` positively reports `cellular`/`wimax`; `wifi`/`ethernet` proceeds; missing/unknown type also proceeds under the approved Option 2 because iPhone/iPad Safari generally does not expose a reliable Wi-Fi-versus-cellular type.
+
+`app.js` remains browser selection/UI owner and may retain exactly one selected `File` in page memory while policy is blocked. It projects `Waiting for Wi-Fi`, rejects a second attachment selection, and re-evaluates on network/setting/foreground signals. It must not call `File.arrayBuffer()` until policy allows the send. Once allowed, the unchanged `attachment-send-service.js` transaction resumes as the sole attachment send coordinator. This policy does not pause a Storage upload already in progress and does not make a pending File restart-durable; those are explicit 1.1.41 candidate limitations pending device acceptance.
+
 ## Format and ordering
 
 A selected byte object is validated before encryption. Photo <=12 MiB, generic file <=20 MiB, audio <=25 MiB, video <=50 MiB. Encryption uses the existing 256 KiB AES-256-GCM chunk format with attachment/id/index/total AAD and whole-object SHA-256 integrity. Plaintext bytes are never passed to Firebase.
