@@ -979,5 +979,5 @@ No point earned; completion remains 96%.
 - [x] Add post-rejoin message, epoch, receipt-write and receipt-list emulator coverage; expanded group matrix passes 48/48.
 - [x] Complete all 85 workflow run steps and all six Firestore emulator suites; expanded group matrix passes 48/48.
 - [x] Publish exact implementation tree `42498a160b2765243a94e311a2f8bdcf2008c497` to `main` as `0b2d104d8b94b44144fd7bf6698d95d5d223e91a` and provide pinned corrective rules script `hr.txt`.
-- [ ] Verify workflows and Pages.
+- [x] Verify Rebuild Baseline `34671731563`, E2EE Rules `34671731548`, Firebase Adapter `34671731547`, and Pages `34671731357` SUCCESS; live Pages serves 1.1.37 / `1.1.37-group-authority-recovery`.
 - [ ] Deploy corrected Firestore rules and repeat the full FDA-GROUP-003/FDA-GROUP-004 iPhone/iPad acceptance matrix.
