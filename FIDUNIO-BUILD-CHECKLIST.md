@@ -954,3 +954,16 @@ No point earned; completion remains 96%.
 - [x] Deploy `deleteConversationForEveryoneV1` plus Firestore rules with the pinned script; the user reported SUCCESS on 2026-09-11, with the Function ACTIVE and deletion-barrier rules deployed.
 - [ ] Verify Rebuild Baseline and Pages.
 - [ ] Complete repeated direct/group iPhone/iPad multi-device archive/delete/attachment/Outbox/recreate acceptance.
+
+### FIDUNIO 1.1.36 group join-time history boundary correction
+
+- [x] Prove PIN/background unlock does not rotate the account identity and isolate the exact failure to pre-join group source projection.
+- [x] Keep `firebase.js` as sole Firebase owner and constrain non-admin group message subscriptions to the member record's `historyFrom`.
+- [x] Preserve administrator retained-source access only for the existing deliberate encrypted history-grant path.
+- [x] Deny direct pre-boundary message reads, inaccessible-source receipts and epoch reads without the account's envelope in Firestore rules.
+- [x] Preserve the membership transaction, E2EE epoch writer, explicit history copies, direct messaging, Outbox, notifications, PIN and conversation actions.
+- [x] Advance runtime/cache to 1.1.36 / `1.1.36-group-history-boundary` and strengthen the permanent group-conversation/receipt gates.
+- [x] Pass all 84 non-emulator workflow steps and all six Firestore emulator suites; the expanded group matrix passes 46/46.
+- [ ] Publish the exact candidate to `main` and verify Rebuild Baseline plus Pages.
+- [ ] Deploy only the reviewed Firestore rules with the pinned script.
+- [ ] Re-test new-member and remove/re-add history boundaries, PIN/background return, explicit grant, post-join send/receipts and group notification on iPhone/iPad.

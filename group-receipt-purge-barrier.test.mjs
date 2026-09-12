@@ -15,6 +15,6 @@ assert.match(receipt,/const \[messageSnap,snap\]=await Promise\.all\(\[tx\.get\(
 assert.match(receipt,/nextRevision=Number\(message\.receiptRevision\|\|0\)\+1/,"receipt write must derive the next monotonic parent revision");
 assert.match(receipt,/tx\.update\(messageRef,\{receiptRevision:nextRevision\}\)/,"receipt write must atomically advance parent revision");
 assert.doesNotMatch(rules,/function groupReceiptParentBarrier\(groupId,messageId\)/,"rules must not retain the circular receipt barrier");
-assert.match(rules,/allow create: if isGroupMember\(groupId\)&&exists\(groupMessagePath\(groupId,messageId\)\)&&request\.auth\.uid==uid&&validGroupReceiptCreate\(uid,request\.resource\.data\)/,"receipt create must require an existing message and the member's own valid receipt");
-assert.match(rules,/allow update: if isGroupMember\(groupId\)&&exists\(groupMessagePath\(groupId,messageId\)\)&&request\.auth\.uid==uid&&validGroupReceiptUpdate\(uid,request\.resource\.data,resource\.data\)/,"receipt update must remain member-owned and monotonic");
+assert.match(rules,/allow create: if canReadGroupMessage\(groupId,messageId\)&&request\.auth\.uid==uid&&validGroupReceiptCreate\(uid,request\.resource\.data\)/,"receipt create must require an entitled source message and the member's own valid receipt");
+assert.match(rules,/allow update: if canReadGroupMessage\(groupId,messageId\)&&request\.auth\.uid==uid&&validGroupReceiptUpdate\(uid,request\.resource\.data,resource\.data\)/,"receipt update must remain history-entitled, member-owned and monotonic");
 console.log("PASS straightforward group receipt source/rules authority");

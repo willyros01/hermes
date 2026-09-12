@@ -418,3 +418,12 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - `deleteConversationForEveryoneV1` plus `conversation-delete-firestore-admin-adapter.mjs` are the sole shared deletion owner. Direct membership or group ownership is revalidated server-side; a server timestamped deletion barrier freezes new writes; attachment objects are deleted before the whole Firestore tree.
 - Full server-backed, non-pending direct/group list absence is the only cross-device local purge trigger. The existing local-storage serializer removes that conversation's encrypted history and Outbox rows, message projection, hidden IDs, draft and attachment URLs.
 - Message-level deletion, E2EE, receipts, notification routing, group membership/key epochs, PIN/auth and protected configuration retain their existing owners.
+
+## FIDUNIO 1.1.36 group join-time history-read authority
+
+- `groups/{groupId}/members/{uid}.historyFrom` remains the authoritative ordinary-history lower bound established by the existing membership transaction.
+- `firebase.js#subscribeCloudGroupMessages()` remains the sole group Firestore listener owner. It reads that member record before subscribing and applies `createdAt >= historyFrom` for non-admin members.
+- Group administrators retain the unbounded retained-source query only because the existing serialized history-grant runtime must decrypt selected sources and re-encrypt message-granular copies for one target.
+- Firestore rules deny direct source reads before `historyFrom`, receipt mutation for an inaccessible source, and epoch reads when the signed-in UID has no envelope. Collection list access remains current-member ciphertext transport because Firestore cannot authorize a query by comparing its bound with a timestamp dynamically read from another document; E2EE envelopes remain the content boundary.
+- `e2ee-account-group-conversation.js` continues to own decryption, projection and receipt requests, but now receives only ordinary entitled source rows plus separately authorized active grant copies.
+- PIN/background lifecycle, membership/epoch mutation, direct messages, Outbox, notifications and conversation actions are unchanged.

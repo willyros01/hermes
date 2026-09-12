@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment,assertFails,assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc,getDoc,setDoc,serverTimestamp,writeBatch,deleteDoc } from "firebase/firestore";
+import { collection,doc,getDoc,getDocs,orderBy,query,setDoc,serverTimestamp,where,writeBatch,deleteDoc } from "firebase/firestore";
 const rules=readFileSync(new URL("./firestore.rules",import.meta.url),"utf8"),PROJECT_ID="demo-fidunio-group-e2ee-rules";
 const env=await initializeTestEnvironment({projectId:PROJECT_ID,firestore:{rules}}),A="groupOwnerA",B="groupMemberB",OUT="groupOutsider";
 const dbA=env.authenticatedContext(A).firestore(),dbB=env.authenticatedContext(B).firestore(),dbO=env.authenticatedContext(OUT).firestore(),results=[];
@@ -43,7 +43,12 @@ await test("19 membership change without matching epoch denied",async()=>{const 
 await test("20 admin atomic removal plus new epoch succeeds",async()=>{const e2={...epoch(),keyEpoch:2,memberKeyIds:{[A]:keyA},envelopes:{[A]:{senderKeyId:keyA,recipientKeyId:keyA,ciphertext:"CCCCCCCCCCCCCCCCCCCCCC",iv:"CCCCCCCCCCCCCCCC"}}};const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],adminUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));b.set(doc(dbA,"groups","g1","epochs","2"),e2);return assertSucceeds(b.commit());});
 await test("21 removed member cannot read new epoch",()=>assertFails(getDoc(doc(dbB,"groups","g1","epochs","2"))));
 
-await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();const g=await getDoc(doc(db,"groups","g1"));await setDoc(doc(db,"groups","g1"),{...g.data(),memberUids:[A,B],adminUids:[A],updatedAt:new Date()});await setDoc(doc(db,"groups","g1","members",B),{uid:B,displayName:B,role:"member",joinedAt:new Date(),historyFrom:new Date(),addedByUid:A,active:true});});
+const rejoinAt=new Date(m1CreatedAt.toMillis()+60_000);
+await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();const g=await getDoc(doc(db,"groups","g1"));await setDoc(doc(db,"groups","g1"),{...g.data(),memberUids:[A,B],adminUids:[A],keyEpoch:3,updatedAt:rejoinAt});await setDoc(doc(db,"groups","g1","members",B),{uid:B,displayName:B,role:"member",joinedAt:rejoinAt,historyFrom:rejoinAt,addedByUid:A,active:true});await setDoc(doc(db,"groups","g1","epochs","3"),{...epoch(),keyEpoch:3,memberKeyIds:{[A]:keyA,[B]:keyB},envelopes:{[A]:{senderKeyId:keyA,recipientKeyId:keyA,ciphertext:"DDDDDDDDDDDDDDDDDDDDDD",iv:"DDDDDDDDDDDDDDDD"},[B]:{senderKeyId:keyA,recipientKeyId:keyB,ciphertext:"EEEEEEEEEEEEEEEEEEEEEE",iv:"EEEEEEEEEEEEEEEE"}},createdAt:rejoinAt});});
+await test("21a rejoined member cannot directly read a pre-rejoin source message",()=>assertFails(getDoc(doc(dbB,"groups","g1","messages","m1"))));
+await test("21b rejoined member can query only ordinary messages at or after historyFrom",async()=>{const snap=await assertSucceeds(getDocs(query(collection(dbB,"groups","g1","messages"),where("createdAt",">=",rejoinAt),orderBy("createdAt","asc"))));if(!snap.empty)throw new Error("pre-rejoin source leaked through bounded query");});
+await test("21c rejoined member cannot read an epoch that has no matching envelope",()=>assertFails(getDoc(doc(dbB,"groups","g1","epochs","2"))));
+await test("21d rejoined member can read the post-rejoin epoch containing its envelope",()=>assertSucceeds(getDoc(doc(dbB,"groups","g1","epochs","3"))));
 await test("22 non-admin cannot create history grant",()=>assertFails(setDoc(doc(dbB,"groups","g1","historyGrants","hg0"),{...grant("hg0"),grantorUid:B,grantorKeyId:keyB,targetUid:A,targetKeyId:keyA})));
 await test("23 admin cannot grant history to outsider",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-out"),grant("hg-out",{targetUid:OUT,targetKeyId:"missing"}))));
 await test("24 timestamp grant cannot start before requested boundary",()=>assertFails(setDoc(doc(dbA,"groups","g1","historyGrants","hg-late"),grant("hg-late",{boundaryKind:"timestamp",boundaryAt:new Date(m1CreatedAt.toMillis()+60000)}))));
