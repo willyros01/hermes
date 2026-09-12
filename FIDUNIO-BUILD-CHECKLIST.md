@@ -966,5 +966,5 @@ No point earned; completion remains 96%.
 - [x] Pass all 84 non-emulator workflow steps and all six Firestore emulator suites; the expanded group matrix passes 46/46.
 - [x] Publish exact implementation tree `5ec21d002765f91f091ba9e6b950fd63e02bf3f0` to `main` as `5a6449c9165228a0f7cf75418f3dbecadc736f99`.
 - [x] Verify Rebuild Baseline `34669079121`, E2EE Rules `34669079149`, Firebase Adapter `34669079128`, and Pages `34669186160` SUCCESS; script follow-up baseline `34669187077` also completed SUCCESS, and live Pages serves 1.1.36 / `1.1.36-group-history-boundary`.
-- [ ] Deploy only the reviewed Firestore rules with the pinned script.
+- [x] Deploy only the reviewed Firestore rules with the pinned script; user reported SUCCESS on 2026-09-12.
 - [ ] Re-test new-member and remove/re-add history boundaries, PIN/background return, explicit grant, post-join send/receipts and group notification on iPhone/iPad.
