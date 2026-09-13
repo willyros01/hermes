@@ -55,7 +55,7 @@ assert.ok(policyCheck>=0&&fileRead>policyCheck,"network policy must run before f
 
 assert.match(serviceWorker,/\.\/large-attachment-network-policy\.js/,"service worker shell must cache the policy module");
 assert.match(app,/Wi-Fi connection cannot be verified[\s\S]*Send Anyway/,"unknown network must require an explicit Send Anyway confirmation");
-assert.match(serviceWorker,/1\.1\.42-large-attachment-network-verification/,"service-worker cache revision must advance");
-assert.match(version,/version:\s*"1\.1\.42"/,"visible release must advance to 1.1.42");
+assert.match(serviceWorker,/const SHELL_REVISION="[^"]+";/,"service worker must retain an explicit cache revision without pinning this feature gate to an obsolete release");
+assert.match(version,/version:\s*"\d+\.\d+\.\d+"/,"visible release must remain sourced from version.js");
 
 console.log("Large attachment network policy and integration regression gate passed");
