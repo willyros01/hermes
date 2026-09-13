@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+RULES_URL="https://raw.githubusercontent.com/willyros01/hermes/main/firestore.rules"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+printf 'FIDUNIO 1.1.43 message-reaction rules deployment\n'
+curl -fsSL "$RULES_URL" -o "$WORK/firestore.rules"
+printf '%s\n' '{"firestore":{"rules":"firestore.rules"}}' > "$WORK/firebase.json"
+cd "$WORK"
+
+if firebase deploy --only firestore:rules --project "$PROJECT"; then
+  printf 'SUCCESS: FIDUNIO 1.1.43 reaction rules deployed.\n'
+else
+  printf 'FAILED: reaction rules were not deployed.\n' >&2
+  exit 1
+fi
