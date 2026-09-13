@@ -10,10 +10,19 @@ function base64UrlToBytes(value){
   const raw=atob(padded),out=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);
   if(out.length!==32)throw new Error("Recovery key response is invalid.");return out;
 }
-export function createAccountE2EERecoveryClient({enroll,start,complete}={}){
+export function createAccountE2EERecoveryClient({enroll,start,complete,startAuthorized=null,completeAuthorized=null}={}){
   for(const [name,fn] of Object.entries({enroll,start,complete}))if(typeof fn!=="function")throw new Error(`Missing recovery callable: ${name}`);
+  if((startAuthorized===null)!==(completeAuthorized===null))throw new Error("Authorized recovery callables must be provided together.");
+  if(startAuthorized!==null&&typeof startAuthorized!=="function")throw new Error("Missing recovery callable: startAuthorized");
+  if(completeAuthorized!==null&&typeof completeAuthorized!=="function")throw new Error("Missing recovery callable: completeAuthorized");
   return Object.freeze({
     async protectRecoveryKey({keyId,pin,recoveryUnlockKey}){return enroll({keyId,pin,recoveryUnlockKey:bytesToBase64Url(recoveryUnlockKey)});},
-    async recoverKey({pin}){const started=await start();const finished=await complete({sessionId:started.sessionId,pin});return{...finished,recoveryUnlockKey:base64UrlToBytes(finished.recoveryUnlockKey)};}
+    async recoverKey({pin}){const started=await start();const finished=await complete({sessionId:started.sessionId,pin});return{...finished,recoveryUnlockKey:base64UrlToBytes(finished.recoveryUnlockKey)};},
+    async recoverKeyAuthorized({token,pin}){
+      if(startAuthorized===null)throw new Error("Administrator-authorized recovery is unavailable.");
+      const started=await startAuthorized({token});
+      const finished=await completeAuthorized({authorizationId:started.authorizationId,sessionId:started.sessionId,pin});
+      return{...finished,recoveryUnlockKey:base64UrlToBytes(finished.recoveryUnlockKey)};
+    }
   });
 }
