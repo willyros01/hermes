@@ -14,11 +14,11 @@ const passwordIds=[
   "recoveryPassword","signedInRecoveryPassword"
 ];
 for(const id of passwordIds){
-  assert.match(owner,new RegExp(`\\"${id}\\"`),`password visibility owner missing ${id}`);
-  assert.ok(auth.includes(`id=\\"${id}\\"`)||settings.includes(`id=\\"${id}\\"`)||recovery.includes(`id=\\"${id}\\"`),`password field ${id} not found in an established UI owner`);
+  assert.ok(owner.includes(`"${id}"`),`password visibility owner missing ${id}`);
+  assert.ok(auth.includes(`id="${id}"`)||settings.includes(`id="${id}"`)||recovery.includes(`id="${id}"`),`password field ${id} not found in an established UI owner`);
 }
 for(const pinId of ["passwordE2EEPin","accountE2EEPin","accountE2EEPin2","recoveryPinHost","joinPinHost","sessionPinHost"]){
-  assert.doesNotMatch(owner,new RegExp(`\\"${pinId}\\"`),`PIN field ${pinId} must remain outside password visibility owner`);
+  assert.ok(!owner.includes(`"${pinId}"`),`PIN field ${pinId} must remain outside password visibility owner`);
 }
 assert.match(owner,/input\.type=checkbox\.checked\?"text":"password"/);
 assert.match(owner,/text\.textContent=checkbox\.checked\?"Hide password":"Show password"/);
