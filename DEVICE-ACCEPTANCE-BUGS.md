@@ -1,3 +1,7 @@
+## ITEM 9 DEVICE ACCEPTANCE CLOSEOUT — 2026-09-13
+
+**Status: DEVICE ACCEPTED / CLOSED.** Existing-group membership administration passed the final real-device matrix: add, remove, re-add, join/rejoin history boundaries, owner member projection, post-rejoin send/receive and receipts, explicit From beginning history grant, background/PIN return with granted history preserved, and FCM notification tap → PIN → exact notified group/message routing. The accepted runtime is FIDUNIO 1.1.51; no further Item 9 device defect remains open.
+
 ## FDA-GROUP-006 — correct PIN return can remain on disabled unlock screen after history grant
 
 - **Build/device:** FIDUNIO 1.1.50, re-added/history-target member during final Item 9 acceptance.
@@ -6,8 +10,8 @@
 - **Cause:** `unlockLocalApp()` changed authoritative local lock state but deferred the first unlocked render until the serialized app-activation owner ran. Legitimate cloud/notification work can delay that owner, leaving the disabled PIN screen visible.
 - **Repair allocation:** FIDUNIO 1.1.51. Render immediately from the existing local lock owner after successful PIN verification, then signal the existing app-activation owner.
 - **Protected boundaries:** no membership transaction, history-grant copy, E2EE epoch, Firestore rule, message, receipt, notification, attachment, delete, Firebase-auth, or PIN-storage change.
-- **Status:** FIX CANDIDATE — device re-acceptance required.
-- **Exit:** on the re-added/history-target member, background/return -> correct PIN immediately opens FIDUNIO; granted earlier messages remain visible; one new group message reaches the owner; repeat return/PIN once with no hang.
+- **Status:** DEVICE ACCEPTED / CLOSED — 2026-09-13.
+- **Accepted evidence:** on the re-added/history-target member, correct PIN return opened FIDUNIO without the prior hang; granted earlier history remained available; post-return group messaging remained functional. A deliberate regression check also passed: background notification tap → PIN → exact notified group/message still routed correctly, proving the immediate local render did not regress the accepted FCM route owner.
 
 ## FDA-REACTION-001 — FIDUNIO 1.1.43 message reactions
 
