@@ -1,0 +1,42 @@
+name: Temporary reaction finalization
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-reaction-finalize.yml'
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+      - name: Apply documentation and permanent gate
+        run: python3 .github/reaction-finalize.py
+      - name: Reaction tests
+        run: npm run test:message-reactions
+      - name: Delete regression
+        run: npm run test:pending-message-delete
+      - name: UI regression
+        run: npm run test:release-candidate-ui
+      - name: Syntax checks
+        run: |
+          node --check app.js
+          node --check firebase.js
+          node --check e2ee-account-group-conversation.js
+          git diff --check
+      - name: Publish final candidate
+        run: |
+          rm -f .github/reaction-finalize.py .github/workflows/temp-reaction-finalize.yml
+          git config user.name "FIDUNIO Build"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize FIDUNIO 1.1.43 message reactions"
+          git push origin HEAD:main
