@@ -1,0 +1,45 @@
+name: Admin Recovery Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'settings-lifecycle.js'
+      - 'admin-recovery-client.js'
+      - 'account-recovery.html'
+      - 'account-recovery.js'
+      - 'e2ee-account-runtime.js'
+      - 'e2ee-account-recovery-client.js'
+      - 'functions/index.mjs'
+      - 'functions/recovery/admin-recovery-authorization-core.mjs'
+      - 'functions/recovery/admin-recovery-authorization-firestore.mjs'
+      - 'admin-recovery-authorization.test.mjs'
+      - 'admin-recovery-wiring.test.mjs'
+      - '.github/workflows/admin-recovery-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  admin-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax checks
+        run: |
+          node --check settings-lifecycle.js
+          node --check admin-recovery-client.js
+          node --check account-recovery.js
+          node --check e2ee-account-runtime.js
+          node --check e2ee-account-recovery-client.js
+          node --check functions/index.mjs
+          node --check functions/recovery/admin-recovery-authorization-core.mjs
+          node --check functions/recovery/admin-recovery-authorization-firestore.mjs
+      - name: Authorization policy
+        run: node admin-recovery-authorization.test.mjs
+      - name: Ownership and wiring
+        run: node admin-recovery-wiring.test.mjs
