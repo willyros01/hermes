@@ -3,9 +3,10 @@ import { createFirebaseAccountE2EEIdentityStore } from "./e2ee-account-firebase-
 import { createAccountE2EEAuthLifecycle } from "./e2ee-account-lifecycle.js";
 import { createAccountE2EERecoveryClient } from "./e2ee-account-recovery-client.js";
 import { enrollCloudE2EERecovery,startCloudE2EERecovery,completeCloudE2EERecovery,changeFidunioPassword } from "./firebase.js";
+import {startAdminAuthorizedRecovery,completeAdminAuthorizedRecovery} from "./admin-recovery-client.js";
 import {saveLocalAccountE2EEIdentity} from "./local-security.js";
 
-const recoveryClient=createAccountE2EERecoveryClient({enroll:enrollCloudE2EERecovery,start:startCloudE2EERecovery,complete:completeCloudE2EERecovery});
+const recoveryClient=createAccountE2EERecoveryClient({enroll:enrollCloudE2EERecovery,start:startCloudE2EERecovery,complete:completeCloudE2EERecovery,startAuthorized:startAdminAuthorizedRecovery,completeAuthorized:completeAdminAuthorizedRecovery});
 const identityStore=createFirebaseAccountE2EEIdentityStore();
 const manager=createAccountE2EEIdentityManager({identityStore,recoveryService:recoveryClient});
 const lifecycle=createAccountE2EEAuthLifecycle({manager});
@@ -17,11 +18,12 @@ export function getAccountE2EERuntimeIdentity(){return manager.getRuntimeIdentit
 export function enrollAccountE2EE({uid,password,pin}){return manager.enroll({uid,password,pin});}
 export function unlockAccountE2EE({uid,password,pin}){return manager.unlock({uid,password,pin});}
 export function restoreLocalAccountE2EE(identity){return manager.restoreLocal(identity);}
-export async function recoverAccountE2EE({uid,newPassword,pin}){
-  const recovered=await recoveryClient.recoverKey({pin});
+async function finishRecovery({uid,newPassword,pin,recovered}){
   try{await manager.recover({uid,recoveryUnlockKey:recovered.recoveryUnlockKey,newPassword,pin});await saveLocalAccountE2EEIdentity(manager.getRuntimeIdentity());return manager.getRuntimeIdentity();}
   finally{recovered.recoveryUnlockKey.fill(0);}
 }
+export async function recoverAccountE2EE({uid,newPassword,pin}){return finishRecovery({uid,newPassword,pin,recovered:await recoveryClient.recoverKey({pin})});}
+export async function recoverAccountE2EEAuthorized({uid,newPassword,pin,token}){return finishRecovery({uid,newPassword,pin,recovered:await recoveryClient.recoverKeyAuthorized({token,pin})});}
 export async function changeAccountPasswordWithE2EE({uid,currentPassword,newPassword,pin}){
   const state=manager.getState();
   if(state.state==="EMPTY")return changeFidunioPassword(currentPassword,newPassword);
