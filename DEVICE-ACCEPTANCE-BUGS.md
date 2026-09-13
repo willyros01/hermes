@@ -398,3 +398,15 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 ## Full invitation letter — 1.1.40
 
 **Status: DEVICE CANDIDATE.** Create a fresh User invitation and a fresh Admin invitation. On iPhone and iPad, test Copy Invitation, Email Invitation and Share. Confirm the full accepted letter appears with readable paragraph breaks, correct inviter, correct role, expiry, a separately tappable Join FIDUNIO URL, a separately tappable Quick Start Guide URL, single-use/non-forward warning and FIDUNIO sign-off. Confirm the Join link still creates the intended account and no installation prompt occurs automatically.
+
+
+## FDA-GROUP-005 — owner Group Info member projection erased by incomplete authority shell
+
+- **Build/device:** FIDUNIO 1.1.46 during final Item 9 device acceptance.
+- **Observed:** Add Member and join-time-history/bidirectional messaging passed. Immediately afterward, the owner Group Info displayed 0 members, while the newly added member Group Info correctly listed all current members. Testing stopped before remove/re-add.
+- **Expected:** every current member device keeps the authoritative subscribed member projection; a server lookup that intentionally does not load the member directory must not replace it with an empty placeholder.
+- **Cause:** `getCloudGroupFromServer()` intentionally returns an authority shell with `members: []`; `mergeCloudGroup()` treated that incomplete shell as authoritative and overwrote the owner conversation's populated member projection.
+- **Repair allocation:** FIDUNIO 1.1.47. `mergeCloudGroup()` now preserves the existing subscribed member list when the incoming authority shell is empty. A genuine non-empty subscribed member projection can still replace it normally.
+- **Protected boundaries:** no membership transaction, E2EE epoch rotation, join-time history rule, Firestore rule, message, receipt, notification, PIN, attachment, delete, or backend owner changes.
+- **Status:** FIX CANDIDATE — device re-acceptance required.
+- **Exit:** owner and member Group Info both show the complete member list after add/message/receipt activity; remove, re-add, join-time boundary, and PIN/background tests then pass.

@@ -1029,3 +1029,8 @@ No point earned; completion remains 96%.
 - [x] Preserve rules, membership, E2EE, receipts, deletion, Outbox, notifications, backend Functions and protected Firebase configuration.
 - [x] Advance runtime/cache to 1.1.38 / `1.1.38-group-stream-recovery` and add a permanent workflow gate.
 - [ ] Publish to `main`, verify required workflows/Pages, and complete FDA-GROUP-005 iPhone/iPad acceptance.
+
+
+## FIDUNIO 1.1.47 — Item 9 owner member-projection correction
+
+Final Item 9 device acceptance passed Add Member and join-time-history messaging, then exposed FDA-GROUP-005: owner Group Info showed zero members while the newly added member showed the complete list. The membership/epoch authority remained intact. The defect was a projection overwrite: `getCloudGroupFromServer()` intentionally returns `members: []`, and `mergeCloudGroup()` allowed that incomplete server-authority shell to replace the existing subscribed member directory. 1.1.47 preserves an existing populated member projection when the incoming shell is empty; genuine non-empty subscription results still replace it. Targeted syntax and group-membership lifecycle regression checks passed before publication. No Firebase rules/backend, E2EE epoch, membership transaction, history grant, messaging, receipt, notification, PIN, attachment, or deletion authority changed. Device re-acceptance remains required before closing TODO Item 9.
