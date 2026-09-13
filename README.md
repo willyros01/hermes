@@ -1,3 +1,5 @@
+FIDUNIO 1.1.43 MESSAGE REACTIONS — 2026-09-12: TODO item 1 is implemented as per-message reactions, not a composer emoji picker. The existing 650 ms press-and-hold Message actions owner remains singular and unchanged; its action sheet adds six large reaction choices (👍 ❤️ 😂 😮 😢 🙏) in a spacious 3 x 2 grid, physically separated from Delete for Me / Delete for Everyone to reduce tap errors. One account may hold one reaction per authoritative message; choosing another replaces only that account's entry and choosing the same reaction again removes it. Reactions are message metadata only and do not alter plaintext/ciphertext, E2EE, Outbox, receipts, notifications, attachments, PIN, deletion authority or the long-press lifecycle. `firebase.js` remains the sole Firebase owner and performs reaction changes in a Firestore transaction. Firestore rules allow a direct/group participant to modify only that participant's reaction-map key and only to the six approved values; group join-time source-read boundaries remain enforced, so grant-only historical copies gain no reaction write path. Direct and group Firestore emulator reaction matrices passed before publication. Runtime/cache advance 1.1.42 -> 1.1.43 / `1.1.43-message-reactions`. Root `mr.txt` is the controlled Firestore-rules deployment handoff. Device acceptance remains required before TODO item 1 is closed.
+
 FIDUNIO 1.1.42 LARGE-ATTACHMENT DEVICE CORRECTION — 2026-09-12: Real-device testing on iPhone cellular sent a 19 MB attachment because Safari did not disclose Wi-Fi versus cellular and 1.1.41 Option 2 allowed unknown network type. That behavior is rejected. For >=5 MiB with Settings → Data → Large attachments on Wi-Fi only enabled, unknown/unverifiable network type now fails closed. FIDUNIO warns that Wi-Fi cannot be verified and requires an explicit Send Anyway confirmation before any file read/encryption/Outbox/upload. Positively reported cellular/WiMAX and offline states still wait; positively reported Wi-Fi/Ethernet proceeds. Attachment/E2EE/Firebase/Outbox/receipt/delete/notification/PIN ownership is unchanged. TODO item 6 remains open pending repeat device acceptance.
 
 ## FIDUNIO 1.1.41 — large attachments on Wi-Fi only
@@ -73,7 +75,7 @@ FIDUNIO is the public product name for the Hermes private-messaging project. Thi
 - Internal/project name: **Hermes**
 - Sole authoritative development/deployment branch: `main`
 - Historical rebuild checkpoint branch: `fidunio-complete-rebuild` — read-only; no new work
-- Current checkpoint version: **0.9.9.13**
+- Current checkpoint version: **1.1.43**
 - Current weighted FIDUNIO 1.0 completion: **96%**
 - `version.js` is the only authoritative runtime release-number source.
 - GitHub Pages from `main` is the current full Firebase-connected device-test surface.

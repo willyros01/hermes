@@ -1,3 +1,9 @@
+## FDA-REACTION-001 — FIDUNIO 1.1.43 message reactions
+
+**Status: REPOSITORY CANDIDATE — RULES DEPLOYMENT + DEVICE ACCEPTANCE REQUIRED.**
+
+Acceptance: deploy `mr.txt`; direct chat on iPhone/iPad must add, replace, remove and cross-device-sync reactions for incoming and outgoing messages; group chat must do the same for at least two members; verify the spacious 3 x 2 reaction grid and separation from destructive actions prevent accidental delete taps; verify Delete for Me and sender-only Delete for Everyone still behave exactly as before; verify normal text send, Sent/Read receipts and notification routing regress unchanged. Grant-only earlier-history copies must not gain a reaction write path. Close only after repeated real-device pass.
+
 # FDA-LARGEATT-001 — iPhone unknown network silently bypassed Wi-Fi-only preference
 
 - **Build/device:** FIDUNIO 1.1.41, iPhone Safari/PWA, cellular data, 19 MB attachment.
