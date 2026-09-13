@@ -91,7 +91,7 @@ The required destructive iPhone/iPad recovery matrix passed on 2026-09-13 in FID
 ## 11. Reply to a message in group chat — 🟡 DEPLOYED DEVICE CANDIDATE
 
 - FIDUNIO 1.1.54 adds **Reply** to the existing group-message press-and-hold action sheet.
-- Reply target sender + bounded preview are shown above the composer and inside the resulting reply bubble.
+- Reply target sender + bounded preview are shown above the composer and inside the resulting reply bubble. When replying to your own message, the composer says **Replying to yourself** while the durable reply descriptor keeps the real sender identity for recipients.
 - Reply metadata stays inside the existing encrypted group text payload; no Firebase schema/rules/backend change.
 - Disappearing targets are intentionally excluded so quoted content cannot outlive the disappearing source.
 - First candidate supports text replies; send or cancel the reply before attaching a file.

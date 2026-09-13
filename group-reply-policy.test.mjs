@@ -1,3 +1,4 @@
+import {readFileSync} from "node:fs";
 import assert from "node:assert/strict";
 import {encodeGroupReplyDescriptor,groupReplyVisibleText,parseGroupReplyDescriptor,GROUP_REPLY_PREVIEW_LIMIT} from "./group-reply-policy.js";
 
@@ -21,3 +22,7 @@ assert.throws(()=>encodeGroupReplyDescriptor({replyToMessageId:"x",text:"   "}),
 const longPreview="x".repeat(GROUP_REPLY_PREVIEW_LIMIT+40);
 assert.equal(parseGroupReplyDescriptor(encodeGroupReplyDescriptor({replyToMessageId:"x",replyPreview:longPreview,text:"ok"})).replyPreview.length,GROUP_REPLY_PREVIEW_LIMIT);
 console.log("Group reply descriptor policy passes");
+
+const appSource=readFileSync(new URL("./app.js",import.meta.url),"utf8");
+assert.match(appSource,/isSelf:!!message\.mine/);
+assert.match(appSource,/Replying to \$\{existingComposerState\.replyTo\.isSelf\?"yourself":esc\(existingComposerState\.replyTo\.sender\)\}/);

@@ -168,7 +168,7 @@ function groupReplyTargetPreview(message){
 function beginGroupReply(conversation,message){
   if(!conversation?.cloudGroup||!message)return;
   const key=String(conversation.id),prior=composerStateByConversation.get(key)||{};
-  composerStateByConversation.set(key,{...prior,replyTo:{messageId:String(message.id),sender:groupSenderDisplayName(message,conversation)||"FIDUNIO member",preview:groupReplyTargetPreview(message)},focused:true});
+  composerStateByConversation.set(key,{...prior,replyTo:{messageId:String(message.id),sender:groupSenderDisplayName(message,conversation)||"FIDUNIO member",isSelf:!!message.mine,preview:groupReplyTargetPreview(message)},focused:true});
   state.modal=null;render();
   setTimeout(()=>document.querySelector(`#messageBox[data-conversation-id="${CSS.escape(key)}"]`)?.focus(),0);
 }
@@ -1834,7 +1834,7 @@ function renderChat(){
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
         <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
-        ${c.cloudGroup&&existingComposerState?.replyTo?`<div class="card" style="margin:0 4px 8px;padding:9px 11px;border-left:4px solid currentColor;display:flex;gap:10px;align-items:center"><div style="min-width:0;flex:1"><strong>Replying to ${esc(existingComposerState.replyTo.sender)}</strong><div class="small-note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(existingComposerState.replyTo.preview)}</div></div><button class="icon-btn" id="replyCancelBtn" type="button" aria-label="Cancel reply">×</button></div>`:""}
+        ${c.cloudGroup&&existingComposerState?.replyTo?`<div class="card" style="margin:0 4px 8px;padding:9px 11px;border-left:4px solid currentColor;display:flex;gap:10px;align-items:center"><div style="min-width:0;flex:1"><strong>Replying to ${existingComposerState.replyTo.isSelf?"yourself":esc(existingComposerState.replyTo.sender)}</strong><div class="small-note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(existingComposerState.replyTo.preview)}</div></div><button class="icon-btn" id="replyCancelBtn" type="button" aria-label="Cancel reply">×</button></div>`:""}
         <div class="compose-line">
           <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
           <textarea id="messageBox" data-conversation-id="${esc(c.id)}" rows="1" placeholder="Type a message…">${esc(existingComposerState?.draft||"")}</textarea>
