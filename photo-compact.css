@@ -1,0 +1,24 @@
+/* FIDUNIO compact photo presentation.
+ * Presentation only: attachment bytes, quality, E2EE, Storage, Outbox,
+ * receipts, delete actions and reaction ownership are unchanged. */
+.message-photo{
+  max-width:min(55vw,320px);
+  max-height:42vh;
+  width:auto;
+  height:auto;
+}
+
+/* iPad/tablet: use a smaller share of the wider conversation pane. */
+@media (min-width:700px){
+  .message-photo{
+    max-width:min(45vw,320px);
+    max-height:42vh;
+  }
+}
+
+/* Keep reaction chips in normal document flow below a loaded attachment. */
+.bubble .message-reactions{
+  position:relative;
+  width:100%;
+  margin-top:9px;
+}
