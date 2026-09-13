@@ -1,3 +1,14 @@
+## FDA-GROUP-006 — correct PIN return can remain on disabled unlock screen after history grant
+
+- **Build/device:** FIDUNIO 1.1.50, re-added/history-target member during final Item 9 acceptance.
+- **Observed:** after From beginning history grant passed, the member returned to FIDUNIO, entered the correct local PIN, and the app appeared hung on the PIN transition before the final background/PIN test could begin.
+- **Expected:** successful local PIN verification immediately releases the local lock presentation; cloud/history/notification activation may continue afterward without holding the unlock screen.
+- **Cause:** `unlockLocalApp()` changed authoritative local lock state but deferred the first unlocked render until the serialized app-activation owner ran. Legitimate cloud/notification work can delay that owner, leaving the disabled PIN screen visible.
+- **Repair allocation:** FIDUNIO 1.1.51. Render immediately from the existing local lock owner after successful PIN verification, then signal the existing app-activation owner.
+- **Protected boundaries:** no membership transaction, history-grant copy, E2EE epoch, Firestore rule, message, receipt, notification, attachment, delete, Firebase-auth, or PIN-storage change.
+- **Status:** FIX CANDIDATE — device re-acceptance required.
+- **Exit:** on the re-added/history-target member, background/return -> correct PIN immediately opens FIDUNIO; granted earlier messages remain visible; one new group message reaches the owner; repeat return/PIN once with no hang.
+
 ## FDA-REACTION-001 — FIDUNIO 1.1.43 message reactions
 
 **Status: REPOSITORY CANDIDATE — RULES DEPLOYMENT + DEVICE ACCEPTANCE REQUIRED.**

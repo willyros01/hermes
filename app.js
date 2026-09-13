@@ -189,6 +189,7 @@ function unlockLocalApp(){
   state.unlocked=true;
   unlockError="";
   noteLocalUnlock();
+  render();
   void requestAppActivation("unlock");
 }
 function setUnlockTransitionStatus(message){

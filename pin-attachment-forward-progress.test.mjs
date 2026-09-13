@@ -25,6 +25,7 @@ import {scheduleAttachmentOutboxRetryIfPending} from "./outbox-reconciliation-bo
 const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
 const worker=readFileSync(new URL("./service-worker.js",import.meta.url),"utf8");
 assert.match(app,/awaitBoundedLocalPinVerification\(verifyLocalPin\(pinInput\.value\(\)\)\)/,"PIN unlock must be bounded at the UI owner");
+assert.match(app,/function unlockLocalApp\(\)\{[\s\S]*?noteLocalUnlock\(\);\s*render\(\);\s*void requestAppActivation\("unlock"\)/,"successful local PIN unlock must render before cloud activation work");
 assert.match(app,/catch\(err\)[\s\S]*?unlockError=err\?\.message[\s\S]*?render\(\)/,"a stalled PIN check must restore an interactive unlock screen");
 assert.match(app,/if\(!c\.cloudGroup\)await scheduleAttachmentOutboxRetryIfPending\(\{messageId:row\.messageId,readOutboxMessage:getOutboxMessage,scheduleRetry:scheduleReconnectRecovery\}\)/,"only a direct attachment still in Outbox may schedule existing recovery");
 assert.match(worker,/\.\/local-pin-verification-boundary\.js/);
