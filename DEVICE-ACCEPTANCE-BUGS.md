@@ -421,3 +421,8 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 - **Protected boundaries:** no Firebase rules/backend, membership, group epoch, normal message visibility, receipt, notification, PIN, attachment, reaction, or delete behavior changed.
 - **Status:** FIX CANDIDATE — device re-acceptance required.
 - **Exit:** From beginning succeeds when eligible v4 retained history exists; selected-date succeeds for an eligible range; a range with no eligible retained v4 history returns a clear safe message rather than a Firestore permission error.
+
+
+### FDA-GROUP-006 follow-up — 1.1.49 exact timestamp repair
+
+The 1.1.48 source-format filter did not clear the device failure. Root cause review found exact Timestamp authority was being weakened by `Timestamp -> Date -> Timestamp` conversion before history grant writes. Firestore rules compare `firstSharedAt` / `sourceCreatedAt` to the retained source message `createdAt` exactly, so lost sub-millisecond precision can produce the observed generic permission denial. 1.1.49 preserves the original Firestore Timestamp for grant and copy writes and uses a derived Date only for local sorting/boundary checks. Status remains FIX CANDIDATE; repeat From beginning on the same real-device group before any selected-date testing.
