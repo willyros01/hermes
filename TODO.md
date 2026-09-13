@@ -86,3 +86,14 @@ The required destructive iPhone/iPad recovery matrix passed on 2026-09-13 in FID
 - N6 group + multi-device notifications are DEVICE ACCEPTED on FIDUNIO 1.1.29: the user reports cold and warm notification tests passed on both iPad and iPhone with no repeated permission banner.
 - FIDUNIO 1.1.30 corrects the sender-side gap where an outgoing bubble could disappear between its first optimistic render and the Sent confirmation. The permanent gate covers listener-snapshot retention, not only source ordering.
 - Item 9 / existing-group membership administration is DEVICE ACCEPTED / CLOSED on 2026-09-13. The accepted path includes the 1.1.47 owner-member projection repair, 1.1.50 bounded history-grant writes, and 1.1.51 immediate post-PIN render; add/remove/re-add, history boundary/grant, messaging/receipts, PIN/background return, and FCM exact-message routing all passed real-device acceptance.
+
+
+## 11. Reply to a message in group chat — 🟡 DEPLOYED DEVICE CANDIDATE
+
+- FIDUNIO 1.1.54 adds **Reply** to the existing group-message press-and-hold action sheet.
+- Reply target sender + bounded preview are shown above the composer and inside the resulting reply bubble.
+- Reply metadata stays inside the existing encrypted group text payload; no Firebase schema/rules/backend change.
+- Disappearing targets are intentionally excluded so quoted content cannot outlive the disappearing source.
+- First candidate supports text replies; send or cancel the reply before attaching a file.
+- Required acceptance: iPhone + iPad, reply to incoming/outgoing/attachment target, close/reopen persistence, Cancel/draft preservation, reactions/delete regression, Sent→Read, direct-chat unchanged, and FCM exact-message routing.
+- **Status:** device acceptance pending.

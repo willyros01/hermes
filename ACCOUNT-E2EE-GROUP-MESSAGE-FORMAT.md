@@ -159,3 +159,8 @@ Encrypted group message documents carry outer integer `receiptRevision`, initial
 
 ## 0.9.6.29 Group Info history-grant intent
 Group Info now exposes admin-only `beginning` and selected-date history-grant intent. `app.js` supplies only target UID plus boundary to `grantGroupHistoryForApp`; source selection remains inside the serialized group runtime and `readRetainedGroupMessages` server authority. The UI does not use cache-only rows as grant source and does not fabricate local history-access state. Gate: `34062508968` SUCCESS.
+
+
+## Group reply compatibility — FIDUNIO 1.1.54
+
+A group text reply does **not** add a Firestore field or change the outer `fidunio-group-message-v1` transport. The existing encrypted plaintext `text` member may contain a versioned application reply descriptor (`fidunioReply: 1`) with the target message ID, bounded sender/preview, and reply body. The descriptor is encrypted as part of the normal group plaintext before publication. Disappearing source messages are not eligible for quoted Reply in this candidate, preventing a non-disappearing reply preview from retaining disappearing source content.

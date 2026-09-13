@@ -50,6 +50,7 @@ import {awaitBoundedLocalPinVerification} from "./local-pin-verification-boundar
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
 import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions} from "./message-reaction-policy.js";
+import {encodeGroupReplyDescriptor,parseGroupReplyDescriptor} from "./group-reply-policy.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
@@ -153,9 +154,28 @@ function parseAttachmentDescriptor(text){
   try{const descriptor=JSON.parse(text);return descriptor?.fidunioAttachment===1?descriptor:null;}catch{return null;}
 }
 function messagePreview(text){
+  const reply=parseGroupReplyDescriptor(text);
+  if(reply)return reply.text;
   const descriptor=parseAttachmentDescriptor(text);
   if(!descriptor)return text||"";
   return descriptor.kind==="photo"||String(descriptor.type||"").startsWith("image/")?"📷 Photo":`📎 ${descriptor.name||"Attachment"}`;
+}
+function groupReplyTargetPreview(message){
+  const reply=parseGroupReplyDescriptor(message?.text);
+  const source=reply?.text??messagePreview(message?.text);
+  return String(source||"Message").replace(/\s+/g," ").trim().slice(0,160)||"Message";
+}
+function beginGroupReply(conversation,message){
+  if(!conversation?.cloudGroup||!message)return;
+  const key=String(conversation.id),prior=composerStateByConversation.get(key)||{};
+  composerStateByConversation.set(key,{...prior,replyTo:{messageId:String(message.id),sender:groupSenderDisplayName(message,conversation)||"FIDUNIO member",preview:groupReplyTargetPreview(message)},focused:true});
+  state.modal=null;render();
+  setTimeout(()=>document.querySelector(`#messageBox[data-conversation-id="${CSS.escape(key)}"]`)?.focus(),0);
+}
+function clearGroupReplyComposer(conversationId){
+  captureComposerStateFromDom();
+  const key=String(conversationId),prior=composerStateByConversation.get(key)||{},next={...prior};
+  delete next.replyTo;composerStateByConversation.set(key,next);render();
 }
 function attachmentRuntimeKey(conversationId,messageId){return `${conversationId}:${messageId}`;}
 function releaseAttachmentResult(result){
@@ -1814,6 +1834,7 @@ function renderChat(){
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
         <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
+        ${c.cloudGroup&&existingComposerState?.replyTo?`<div class="card" style="margin:0 4px 8px;padding:9px 11px;border-left:4px solid currentColor;display:flex;gap:10px;align-items:center"><div style="min-width:0;flex:1"><strong>Replying to ${esc(existingComposerState.replyTo.sender)}</strong><div class="small-note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(existingComposerState.replyTo.preview)}</div></div><button class="icon-btn" id="replyCancelBtn" type="button" aria-label="Cancel reply">×</button></div>`:""}
         <div class="compose-line">
           <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
           <textarea id="messageBox" data-conversation-id="${esc(c.id)}" rows="1" placeholder="Type a message…">${esc(existingComposerState?.draft||"")}</textarea>
@@ -1846,12 +1867,13 @@ function renderChat(){
     return render();
   };
   document.querySelector("#moreBtn").onclick=()=>{state.toolsOpen=!state.toolsOpen;render()};
+  const replyCancelBtn=document.querySelector("#replyCancelBtn");if(replyCancelBtn)replyCancelBtn.onclick=()=>clearGroupReplyComposer(c.id);
   const disappearSelect=document.querySelector("#disappearSelect");
   if(disappearSelect)disappearSelect.onchange=()=>{state.settings.disappearingTextSeconds=disappearSelect.value==="off"?null:Number(disappearSelect.value);persistSoon();render();};
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
-  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(label==="Photo"||label==="Video"||label==="Audio"){state.modal={type:label==="Photo"?"photoSource":label==="Video"?"videoSource":"audioSource"};return render();}const map={File:["file","*/*",false]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
+  document.querySelectorAll(".tool").forEach(btn=>btn.onclick=()=>{const label=btn.textContent.trim();if(c.cloudGroup&&composerStateByConversation.get(String(c.id))?.replyTo){alert("Send or cancel the text reply before attaching a file.");return;}if(label==="Photo"||label==="Video"||label==="Audio"){state.modal={type:label==="Photo"?"photoSource":label==="Video"?"videoSource":"audioSource"};return render();}const map={File:["file","*/*",false]};const action=map[label];if(action)chooseAndSendAttachment(...action);});
   const box=document.querySelector("#messageBox");
   const saveComposerState=()=>{
     const prior=composerStateByConversation.get(String(c.id))||{};
@@ -1919,8 +1941,11 @@ function renderBubble(m,c){
     m.state==="delivered"?"Delivered":m.state==="failed"?"Failed":"Read";
   const cls=(m.state==="queued"||m.state==="waiting-wifi")?"state-queued":m.state==="failed"?"state-failed":"";
   const hasMessageAction=!m.system;
-  const descriptor=parseAttachmentDescriptor(m.text);
-  let messageContent=`<div class="msg-text">${esc(m.text)}</div>`;
+  const reply=parseGroupReplyDescriptor(m.text);
+  const descriptor=reply?null:parseAttachmentDescriptor(m.text);
+  let messageContent=reply
+    ?`<div style="border-left:3px solid currentColor;padding:5px 8px;margin-bottom:7px;opacity:.82"><strong>${esc(reply.replyToSender)}</strong><div class="small-note">${esc(reply.replyPreview)}</div></div><div class="msg-text">${esc(reply.text)}</div>`
+    :`<div class="msg-text">${esc(m.text)}</div>`;
   if(descriptor){
     const key=attachmentRuntimeKey(c.id,m.id),runtime=attachmentRuntime.get(key);
     if(m.state==="waiting-wifi"){
@@ -2067,8 +2092,8 @@ async function chooseAndSendAttachment(kind,accept,capture){
 async function sendCurrent(){
   if(messageSendInFlight)return;
   const box=document.querySelector("#messageBox");
-  const text=box.value.trim();
-  if(!text) return;
+  const draftText=box.value.trim();
+  if(!draftText) return;
   messageSendInFlight=true;
   box.value="";
   box.style.height="46px";
@@ -2079,6 +2104,8 @@ async function sendCurrent(){
     const c=currentConversation();
     const cloud=!!c?.cloud;
     const cloudGroup=!!c?.cloudGroup;
+    const composerKey=String(conversationId),replyTo=cloudGroup?composerStateByConversation.get(composerKey)?.replyTo:null;
+    const text=replyTo?encodeGroupReplyDescriptor({replyToMessageId:replyTo.messageId,replyToSender:replyTo.sender,replyPreview:replyTo.preview,text:draftText}):draftText;
 
   if(cloud && c?.peerUid && !firebaseUser){throw new Error("Sign in before sending an encrypted message.");}
 
@@ -2097,9 +2124,10 @@ async function sendCurrent(){
   state.messages[conversationId].push(m);
   c.preview=messagePreview(text);
   c.time=m.time;
+  if(replyTo){const prior=composerStateByConversation.get(composerKey)||{},next={...prior,draft:""};delete next.replyTo;composerStateByConversation.set(composerKey,next);}
   render();
 
-  // The Outbox is authoritative. Group plaintext enters only the encrypted local Outbox.
+  // The Outbox is authoritative. Group reply metadata remains inside the same encrypted text payload.
   if(cloudGroup){
     m.cloud=true;m.group=true;
     await queueGroupTextForApp({groupId:conversationId,messageId:m.id,text,time:m.time,disappearAfterSeconds:m.disappearAfterSeconds??null,persistEncryptedOutbox:persistGroupOutboxPayload});
@@ -2123,7 +2151,7 @@ async function sendCurrent(){
       render({background:true});
     }else{
       const currentBox=document.querySelector("#messageBox");
-      if(currentBox&&!currentBox.value)currentBox.value=text;
+      if(currentBox&&!currentBox.value)currentBox.value=draftText;
     }
     throw err;
   }finally{
@@ -2545,12 +2573,14 @@ function renderModal(){
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
     const canReact=!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false;
+    const canReply=!!conversation?.cloudGroup&&!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&message.authoritativeSource!==false&&!(Number(message.disappearAfterSeconds)>0);
     const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
     const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
-        <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":"Choose a reaction, or manage this message below."}</p>
+        <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":canReply?"Reply, react, or manage this message below.":"Choose a reaction, or manage this message below."}</p>
+        ${canReply?'<div class="modal-actions" style="margin-bottom:12px"><button class="modal-confirm" id="modalReply">Reply</button></div>':""}
         ${canReact?`<section class="message-reaction-section" aria-label="React to message"><div class="message-reaction-title">React</div><div class="message-reaction-picker">${reactionButtons}</div><div class="small-note">Tap your selected reaction again to remove it.</div></section>`:""}
         <div class="modal-actions ${isPending?"":"message-delete-actions"} ${isPending?"":"message-delete-section"}">
           ${isPending?'<button class="modal-delete" id="modalDeletePending">Delete Message</button>':'<button class="modal-delete" id="modalDeleteForMe">Delete for Me</button>'}
@@ -2568,6 +2598,7 @@ function renderModal(){
       }
       catch(err){button.disabled=false;alert(err?.message||String(err));}
     };
+    const replyBtn=host.querySelector("#modalReply");if(replyBtn)replyBtn.onclick=()=>{state.modal=null;host.remove();beginGroupReply(conversation,message);};
     host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=()=>perform(button,()=>setCloudMessageReaction(modal.conversationId,modal.messageId,conversation?.cloudGroup?"group":"direct",button.dataset.reaction)));
     const pendingBtn=host.querySelector("#modalDeletePending");if(pendingBtn)pendingBtn.onclick=()=>perform(pendingBtn,()=>cancelPendingOutboxMessage(modal.messageId,modal.conversationId));
     const meBtn=host.querySelector("#modalDeleteForMe");if(meBtn)meBtn.onclick=()=>perform(meBtn,()=>deleteMessageForMe(modal.conversationId,modal.messageId));
