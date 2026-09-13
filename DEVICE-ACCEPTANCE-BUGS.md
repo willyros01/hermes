@@ -410,3 +410,14 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 - **Protected boundaries:** no membership transaction, E2EE epoch rotation, join-time history rule, Firestore rule, message, receipt, notification, PIN, attachment, delete, or backend owner changes.
 - **Status:** FIX CANDIDATE — device re-acceptance required.
 - **Exit:** owner and member Group Info both show the complete member list after add/message/receipt activity; remove, re-add, join-time boundary, and PIN/background tests then pass.
+
+
+## FDA-GROUP-006 — earlier-history grant can select legacy non-v4 source rows
+
+- **Build/device:** FIDUNIO 1.1.47, iPad owner during Item 9 re-add acceptance.
+- **Observed:** re-add passed, but History access → From beginning → Grant Access returned `Missing or insufficient permissions`.
+- **Cause:** Firestore history-grant authority permits source/copy messages only when the source group message is current E2EE v4. The runtime read every retained group message and did not exclude legacy pre-v4 rows before choosing grant sources.
+- **Repair allocation:** FIDUNIO 1.1.48. Filter history-grant source rows to `e2ee == 4` and `groupFormat == fidunio-group-message-v1` before applying beginning/date boundaries.
+- **Protected boundaries:** no Firebase rules/backend, membership, group epoch, normal message visibility, receipt, notification, PIN, attachment, reaction, or delete behavior changed.
+- **Status:** FIX CANDIDATE — device re-acceptance required.
+- **Exit:** From beginning succeeds when eligible v4 retained history exists; selected-date succeeds for an eligible range; a range with no eligible retained v4 history returns a clear safe message rather than a Firestore permission error.
