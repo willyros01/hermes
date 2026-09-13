@@ -11,7 +11,7 @@ import {
 import {storePendingNotificationRoute} from "./notification-pending-inbox.js";
 
 const SW_VERSION=globalThis.FIDUNIO_RELEASE?.version||"unknown";
-const SHELL_REVISION="1.1.52-portable-account-vault";
+const SHELL_REVISION="1.1.53-ios-recovery-file-picker";
 const CACHE=`fidunio-shell-${SW_VERSION}-${SHELL_REVISION}`;
 const SHELL=["./","./index.html","./account-recovery.html","./account-recovery.js","./admin-recovery-client.js","./password-visibility.js","./password-visibility.css","./version.js","./styles.css","./styles-0.9.0.css","./photo-compact.css","./bootstrap.js","./auth-ui-clean.js","./app.js","./firebase.js","./group-membership-lifecycle.js","./direct-message-delivery-owner.js","./optimistic-outgoing-projection.js","./bulk-message-delete-projection.js","./message-reaction-policy.js","./firebase-config.js","./notification-policy.js","./notification-registration.js","./notification-config.js","./notification-routing.js","./notification-background-policy.js","./notification-pending-inbox.js","./settings-lifecycle.js","./new-message-owner.js","./pin-input.js","./local-pin-verification-boundary.js","./local-security.js","./account-storage.js","./disappearing-content-policy.js","./disappearing-compose-policy.js","./disappearing-local-storage-plan.js","./disappearing-authoritative-projection.js","./disappearing-reconnect-recovery.js","./outbox-reconciliation-boundary.js","./attachment-send-service.js","./large-attachment-network-policy.js","./attachment-receive-service.js","./e2ee-account-attachment-crypto.js","./e2ee-account-runtime.js","./e2ee-account-lifecycle.js","./e2ee-account-identity-manager.js","./e2ee-account-firebase-adapter.js","./e2ee-account-firestore-adapter.js","./e2ee-account-crypto.js","./e2ee-account-recovery-client.js","./e2ee-account-message-runtime.js","./e2ee-account-message-service.js","./e2ee-account-message-crypto.js","./manifest.json","./favicon.png","./fidunio-logo.png","./icon-180.png","./icon-192.png","./icon-512.png"];
 const FIREBASE_SDK=["https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-functions.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js","https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-sw.js"];
@@ -78,6 +78,14 @@ self.addEventListener("notificationclick",event=>{
   event.notification.close();
   const route=notificationClickRoute(event.notification.data);
   event.waitUntil((async()=>{
+    if(!route)return;
+    const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+    for(const client of windows){
+      if("navigate" in client){
+        try{await client.navigate(notificationRouteUrl(client.url,route));}catch{}
+      }
+      if("focus" in client){await client.focus();return;}
+    }
     if(!route)return;
     const target=notificationRouteUrl(new URL("./",self.registration.scope).href,route);
     await self.clients.openWindow(target);
