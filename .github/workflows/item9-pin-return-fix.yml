@@ -1,0 +1,92 @@
+name: Item 9 PIN Return Fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply bounded PIN return correction
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p=Path(path); s=p.read_text()
+              if old not in s:
+                  raise SystemExit(f'anchor missing in {path}')
+              p.write_text(s.replace(old,new,1))
+
+          replace_once('app.js', '''function unlockLocalApp(){
+            state.unlocked=true;
+            unlockError="";
+            noteLocalUnlock();
+            void requestAppActivation("unlock");
+          }''', '''function unlockLocalApp(){
+            state.unlocked=true;
+            unlockError="";
+            noteLocalUnlock();
+            render();
+            void requestAppActivation("unlock");
+          }''')
+
+          p=Path('pin-attachment-forward-progress.test.mjs'); s=p.read_text()
+          anchor='assert.match(app,/awaitBoundedLocalPinVerification\\(verifyLocalPin\\(pinInput\\.value\\(\\)\\)\\)/,"PIN unlock must be bounded at the UI owner");\n'
+          addition='assert.match(app,/function unlockLocalApp\\(\\)\\{[\\s\\S]*?noteLocalUnlock\\(\\);\\s*render\\(\\);\\s*void requestAppActivation\\("unlock"\\)/,"successful local PIN unlock must render before cloud activation work");\n'
+          if addition not in s:
+              if anchor not in s: raise SystemExit('PIN test anchor missing')
+              s=s.replace(anchor,anchor+addition,1)
+              p.write_text(s)
+
+          Path('version.js').write_text('globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "1.1.51" });\n')
+          replace_once('service-worker.js','const SHELL_REVISION="1.1.50-history-grant-bounded-copy-writes";','const SHELL_REVISION="1.1.51-pin-return-immediate-render";')
+
+          stamp='''FIDUNIO 1.1.51 ITEM 9 PIN/RETURN CORRECTION — 2026-09-13: Real-device acceptance after the successful 1.1.50 From beginning history grant exposed FDA-GROUP-006 on the re-added/history-target member: returning to FIDUNIO and entering the correct local PIN could remain on the disabled unlock screen and appear hung before the final background/PIN test began. Root cause is local presentation ordering: `unlockLocalApp()` set authoritative `state.unlocked=true` but deferred the first unlocked render until the broader serialized app-activation owner completed notification/cloud work. 1.1.51 keeps the same single lock owner but renders immediately after successful local PIN verification, then signals the existing activation owner asynchronously. Membership, granted-history crypto/copies, E2EE epochs, Firestore rules, messaging, receipts, notifications, attachments and Firebase ownership are unchanged. Device re-acceptance remains required before Item 9 closes.\n\n'''
+          for name in ['README.md','CURRENT-REBUILD.md','hermes-memory.txt','FIDUNIO-BUILD-CHECKLIST.md']:
+              p=Path(name); s=p.read_text()
+              if not s.startswith('FIDUNIO 1.1.51 ITEM 9 PIN/RETURN CORRECTION'):
+                  p.write_text(stamp+s)
+
+          p=Path('DEVICE-ACCEPTANCE-BUGS.md'); s=p.read_text()
+          bug='''## FDA-GROUP-006 — correct PIN return can remain on disabled unlock screen after history grant\n\n- **Build/device:** FIDUNIO 1.1.50, re-added/history-target member during final Item 9 acceptance.\n- **Observed:** after From beginning history grant passed, the member returned to FIDUNIO, entered the correct local PIN, and the app appeared hung on the PIN transition before the final background/PIN test could begin.\n- **Expected:** successful local PIN verification immediately releases the local lock presentation; cloud/history/notification activation may continue afterward without holding the unlock screen.\n- **Cause:** `unlockLocalApp()` changed authoritative local lock state but deferred the first unlocked render until the serialized app-activation owner ran. Legitimate cloud/notification work can delay that owner, leaving the disabled PIN screen visible.\n- **Repair allocation:** FIDUNIO 1.1.51. Render immediately from the existing local lock owner after successful PIN verification, then signal the existing app-activation owner.\n- **Protected boundaries:** no membership transaction, history-grant copy, E2EE epoch, Firestore rule, message, receipt, notification, attachment, delete, Firebase-auth, or PIN-storage change.\n- **Status:** FIX CANDIDATE — device re-acceptance required.\n- **Exit:** on the re-added/history-target member, background/return -> correct PIN immediately opens FIDUNIO; granted earlier messages remain visible; one new group message reaches the owner; repeat return/PIN once with no hang.\n\n'''
+          if '## FDA-GROUP-006 — correct PIN return' not in s:
+              p.write_text(bug+s)
+
+          p=Path('TODO.md'); s=p.read_text()
+          old='9. **Add or remove members in an existing group conversation — 1.1.49 EXACT HISTORY-TIMESTAMP CORRECTION; DEVICE RE-ACCEPTANCE PENDING**'
+          new='9. **Add or remove members in an existing group conversation — 1.1.51 PIN/RETURN CORRECTION; DEVICE RE-ACCEPTANCE PENDING**'
+          if old in s: s=s.replace(old,new,1)
+          elif new not in s: raise SystemExit('TODO Item 9 heading anchor missing')
+          marker='Direct conversations remain exactly two accounts.'
+          note='The 1.1.50 bounded one-copy-at-a-time history-grant correction passed the real-device **From beginning** grant test. Before the final background/PIN check could start, FDA-GROUP-006 showed the re-added/history-target member could remain on the disabled PIN transition after a correct PIN. FIDUNIO 1.1.51 makes the existing local lock owner render immediately after successful PIN verification and then continues the existing serialized cloud activation path. '
+          if note not in s:
+              if marker not in s: raise SystemExit('TODO Item 9 body anchor missing')
+              s=s.replace(marker,note+marker,1)
+          p.write_text(s)
+          PY
+
+          node --check app.js
+          node pin-attachment-forward-progress.test.mjs
+          node e2ee-account-group-runtime.test.mjs
+          git diff --check
+      - name: Commit correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js pin-attachment-forward-progress.test.mjs version.js service-worker.js README.md CURRENT-REBUILD.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md DEVICE-ACCEPTANCE-BUGS.md TODO.md
+          git commit -m "Fix Item 9 PIN return in 1.1.51"
+          git push origin main
