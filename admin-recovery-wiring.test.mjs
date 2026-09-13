@@ -1,0 +1,7 @@
+import fs from "node:fs";import assert from "node:assert/strict";
+const settings=fs.readFileSync("settings-lifecycle.js","utf8"),runtime=fs.readFileSync("e2ee-account-runtime.js","utf8"),client=fs.readFileSync("admin-recovery-client.js","utf8"),page=fs.readFileSync("account-recovery.js","utf8"),functions=fs.readFileSync("functions/index.mjs","utf8"),core=fs.readFileSync("functions/recovery/admin-recovery-authorization-core.mjs","utf8");
+assert.match(settings,/data-recovery-action="start"/);assert.match(settings,/Start Account Recovery/);assert.match(settings,/serializeSettingsMutation\("authorize account recovery"/);assert.match(settings,/revokeAdminRecoveryAuthorization/);
+assert.match(core,/30\*60\*1000/);assert.match(core,/callerUid===targetUid/);assert.match(core,/targetRole==="owner"/);assert.match(core,/targetRole==="admin"&&callerRole!=="owner"/);assert.doesNotMatch(core,/password|private key|message text/i);
+for(const name of ["createAdminRecoveryAuthorizationV1","listAdminRecoveryAuthorizationsV1","revokeAdminRecoveryAuthorizationV1","startAdminAuthorizedRecoveryV1","completeAdminAuthorizedRecoveryV1"])assert.match(functions,new RegExp(`export const ${name}`));
+assert.match(runtime,/recoverAccountE2EEAuthorized/);assert.match(page,/existing six-digit FIDUNIO PIN/);assert.match(page,/sendFidunioPasswordReset/);assert.match(client,/getFirebaseUser/);assert.doesNotMatch(client,/initializeApp|getAuth|getFunctions|getFirestore/);
+console.log("Administrator-authorized recovery wiring gate passes");
