@@ -12,8 +12,8 @@ cd "$WORK/hermes"
 
 npm --prefix functions install --ignore-scripts
 
-FUNCTIONS="createAdminRecoveryAuthorizationV1,listAdminRecoveryAuthorizationsV1,revokeAdminRecoveryAuthorizationV1,startAdminAuthorizedRecoveryV1,completeAdminAuthorizedRecoveryV1"
-if firebase deploy --only "functions:${FUNCTIONS//,/ ,functions:}" --project "$PROJECT"; then
+ONLY="functions:createAdminRecoveryAuthorizationV1,functions:listAdminRecoveryAuthorizationsV1,functions:revokeAdminRecoveryAuthorizationV1,functions:startAdminAuthorizedRecoveryV1,functions:completeAdminAuthorizedRecoveryV1"
+if firebase deploy --only "$ONLY" --project "$PROJECT"; then
   printf 'SUCCESS: FIDUNIO 1.1.45 administrator-authorized recovery functions deployed.\n'
 else
   printf 'FAILED: administrator-authorized recovery functions were not deployed.\n' >&2
