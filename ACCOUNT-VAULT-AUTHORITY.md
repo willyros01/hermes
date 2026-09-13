@@ -1,6 +1,12 @@
 # FIDUNIO Portable Account Vault Authority
 
-**STATUS: BINDING RECOVERY CONTRACT — FIDUNIO 1.1.53 DEVICE CANDIDATE**
+**STATUS: BINDING RECOVERY CONTRACT — FIDUNIO 1.1.53; IPHONE DEVICE ACCEPTED, IPAD PENDING**
+
+## iPhone device acceptance — 1.1.53
+
+On 2026-09-13 the user completed the destructive iPhone recovery path. A portable `.fidunio` recovery file was created and preserved outside Safari/FIDUNIO, the Home Screen installation and Safari website data were removed, FIDUNIO was reinstalled, and the same Firebase account was signed in. Current cloud-authorized message history repopulated from Firestore before vault import. After the 1.1.53 iOS file-picker correction, the preserved `.fidunio` file was selectable, the restore appeared to complete successfully, and the user then confirmed the recovery acceptance checks passed, including direct/group history, messaging/receipt behavior, attachment access, Settings review, and six-digit PIN/background return.
+
+This is real-device evidence for the iPhone path. It does not close Item 2 yet because the binding acceptance matrix still requires the destructive restore path on iPad. Installation-local notification/biometric state remains intentionally recreated through its existing owners rather than restored from the vault.
 
 ## Device acceptance correction — 1.1.53
 
@@ -8,7 +14,7 @@ The first destructive iPhone acceptance run on 2026-09-13 successfully created a
 
 FIDUNIO 1.1.53 corrects only this Settings → Data picker boundary. The hidden recovery input remains a normal browser file input without an `accept` attribute because iPhone/iPad Files may display but refuse selection of a custom extension/MIME pair. The user-facing control still instructs selection of the saved `.fidunio` file, and `account-vault-format.js` remains the authoritative format/cryptographic validator after selection. Removing the browser hint does not bypass UID, PIN, keyId, revision, integrity, size/schema, cloud-authority, Outbox anti-replay, or atomic-activation checks. No vault format, Firebase, E2EE, message, notification, attachment, receipt, deletion, membership, invitation, PIN, biometric, Storage, Functions, or Firestore authority changes.
 
-Permanent wiring coverage must reject reintroduction of a restrictive `accept` filter on `restoreVaultFile`. Real-device restore/import acceptance remains open on iPhone and iPad.
+Permanent wiring coverage must reject reintroduction of a restrictive `accept` filter on `restoreVaultFile`. Real-device restore/import acceptance is now passed on iPhone and remains open on iPad.
 
 ## Recovery objective
 
@@ -53,6 +59,6 @@ A created vault is a deliberate user-held encrypted backup. FIDUNIO cannot edit 
 
 Permanent repository coverage must retain cryptographic round trip, tamper/wrong-key/wrong-account/wrong-PIN binding, revision bounds, truncation/oversize limits, denied-conversation removal, deletion convergence, accepted-Outbox removal, attempted-Outbox replay blocking, interrupted activation rollback, service-worker caching, iOS-selectable recovery-file wiring, and single-owner wiring.
 
-Device acceptance requires creating a `.fidunio` file, removing Home Screen/browser site data, reinstalling on iPhone and iPad, restoring the same E2EE identity with existing PIN/server authority, importing, and verifying current direct/group history, settings, attachments, receipts, deletions and pending-send behavior. Re-enable notification/biometric capabilities through their normal owners, then regress messaging, attachments, deletion, invitation, group membership/history, local PIN and FCM notification → PIN → exact-message routing.
+Device acceptance requires creating a `.fidunio` file, removing Home Screen/browser site data, reinstalling on iPhone and iPad, restoring the same E2EE identity with existing PIN/server authority, importing, and verifying current direct/group history, settings, attachments, receipts, deletions and pending-send behavior. Re-enable notification/biometric capabilities through their normal owners, then regress messaging, attachments, deletion, invitation, group membership/history, local PIN and FCM notification → PIN → exact-message routing. The iPhone destructive restore path is accepted on 2026-09-13; iPad remains required before Item 2 closure.
 
 No Firebase rules, Functions, Storage policy, notification backend or other live backend change is part of 1.1.53.
