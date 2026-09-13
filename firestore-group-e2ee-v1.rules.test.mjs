@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment,assertFails,assertSucceeds } from "@firebase/rules-unit-testing";
-import { collection,doc,getDoc,getDocs,orderBy,query,setDoc,serverTimestamp,where,writeBatch,deleteDoc } from "firebase/firestore";
+import { collection,doc,getDoc,getDocs,orderBy,query,setDoc,updateDoc,serverTimestamp,where,writeBatch,deleteDoc } from "firebase/firestore";
 const rules=readFileSync(new URL("./firestore.rules",import.meta.url),"utf8"),PROJECT_ID="demo-fidunio-group-e2ee-rules";
 const env=await initializeTestEnvironment({projectId:PROJECT_ID,firestore:{rules}}),A="groupOwnerA",B="groupMemberB",OUT="groupOutsider";
 const dbA=env.authenticatedContext(A).firestore(),dbB=env.authenticatedContext(B).firestore(),dbO=env.authenticatedContext(OUT).firestore(),results=[];
@@ -38,6 +38,13 @@ await test("15a member first Read atomically stores server-backed readAt and adv
 await test("16 repeat Read cannot move first-read timestamp",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",B),{uid:B,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));
 await test("17 member cannot write another account receipt",()=>assertFails(setDoc(doc(dbB,"groups","g1","messages","m1","receipts",A),{uid:A,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));
 await test("18 outsider cannot write receipt",()=>assertFails(setDoc(doc(dbO,"groups","g1","messages","m1","receipts",OUT),{uid:OUT,state:"read",updatedAt:serverTimestamp(),readAt:serverTimestamp()})));
+
+await test("18a group sender can add own reaction",()=>assertSucceeds(updateDoc(doc(dbA,"groups","g1","messages","m1"),{reactions:{[A]:"👍"}})));
+await test("18b group member can add own reaction",()=>assertSucceeds(updateDoc(doc(dbB,"groups","g1","messages","m1"),{reactions:{[A]:"👍",[B]:"❤️"}})));
+await test("18c cannot overwrite another group reaction",()=>assertFails(updateDoc(doc(dbB,"groups","g1","messages","m1"),{reactions:{[A]:"😂",[B]:"❤️"}})));
+await test("18d unsupported group reaction denied",()=>assertFails(updateDoc(doc(dbB,"groups","g1","messages","m1"),{reactions:{[A]:"👍",[B]:"🔥"}})));
+await test("18e outsider group reaction denied",()=>assertFails(updateDoc(doc(dbO,"groups","g1","messages","m1"),{reactions:{[A]:"👍",[B]:"❤️",[OUT]:"😂"}})));
+await test("18f group reaction cannot mutate ciphertext",()=>assertFails(updateDoc(doc(dbB,"groups","g1","messages","m1"),{reactions:{[A]:"👍",[B]:"😂"},ciphertext:"BBBBBBBBBBBBBBBBBBBBBB"})));
 
 await test("19 membership change without matching epoch denied",async()=>{const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));return assertFails(b.commit());});
 await test("20 admin atomic removal plus new epoch succeeds",async()=>{const e2={...epoch(),keyEpoch:2,memberKeyIds:{[A]:keyA},envelopes:{[A]:{senderKeyId:keyA,recipientKeyId:keyA,ciphertext:"CCCCCCCCCCCCCCCCCCCCCC",iv:"CCCCCCCCCCCCCCCC"}}};const b=writeBatch(dbA);b.update(doc(dbA,"groups","g1"),{memberUids:[A],adminUids:[A],keyEpoch:2,updatedAt:serverTimestamp()});b.delete(doc(dbA,"groups","g1","members",B));b.set(doc(dbA,"groups","g1","epochs","2"),e2);return assertSucceeds(b.commit());});

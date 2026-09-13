@@ -52,6 +52,14 @@ await test("22 legacy e2ee v2 create remains allowed",()=>assertSucceeds(setDoc(
 await test("23 legacy plaintext create remains allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-v3","messages","m22"),{senderUid:A,state:"sent",createdAt:serverTimestamp(),text:"legacy regression"})));
 await test("24 recipient can mark plaintext message Read",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","m22"),{state:"read",readAt:serverTimestamp()})));
 
+await test("25 participant can add own reaction",()=>assertSucceeds(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"👍"}})));
+await test("26 second participant can add own reaction",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"👍",[B]:"❤️"}})));
+await test("27 cannot overwrite another direct reaction",()=>assertFails(updateDoc(doc(dbB,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"😂",[B]:"❤️"}})));
+await test("28 unsupported direct reaction denied",()=>assertFails(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"🔥",[B]:"❤️"}})));
+await test("29 outsider direct reaction denied",()=>assertFails(updateDoc(doc(dbC,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"👍",[B]:"❤️",[C]:"😂"}})));
+await test("30 direct reaction cannot mutate ciphertext",()=>assertFails(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"😂",[B]:"❤️"},ciphertext:"BBBBBBBBBBBBBBBBBBBBBB"})));
+await test("31 participant can remove own direct reaction",()=>assertSucceeds(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{reactions:{[B]:"❤️"}})));
+
 const failed=results.filter(([,ok])=>!ok);
 console.log(`\n${results.length-failed.length}/${results.length} account-message rule assertions passed.`);
 await env.cleanup();
