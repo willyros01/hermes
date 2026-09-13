@@ -70,6 +70,7 @@ jobs:
       - {name: Group date separators, run: node group-date-separator.test.mjs}
       - {name: Group sender time, run: node group-sender-time.test.mjs}
       - {name: Message reactions policy and wiring, run: npm run test:message-reactions}
+      - {name: Group message Reply descriptor policy, run: npm run test:group-reply}
       - {name: Group earlier-history admin UI, run: npm run test:group-history-admin-ui}
       - {name: Receipt lifecycle stabilization, run: npm run test:receipt-lifecycle-stabilization}
       - {name: Group history-grant purge barrier, run: npm run test:group-history-grant-purge-barrier}
