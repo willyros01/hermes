@@ -1,0 +1,83 @@
+name: Item 9 Device Closeout
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  closeout:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconcile Item 9 acceptance documentation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          closure = (
+              "FIDUNIO 1.1.51 ITEM 9 DEVICE ACCEPTANCE CLOSEOUT — 2026-09-13: TODO Item 9, add/remove members in an existing group conversation, is DEVICE ACCEPTED / CLOSED. Real-device acceptance passed Add Member, join-time history boundary, owner member projection, Remove, Re-add, removed-period history exclusion, post-rejoin bidirectional messaging and Sent→Read, explicit Grant Access → From beginning, normal background return through the six-digit PIN, persistence of granted earlier history, and a final FCM regression check proving notification tap → PIN → exact notified group/message still routes correctly. The 1.1.50 bounded one-copy-at-a-time history-grant correction and 1.1.51 immediate post-PIN render are accepted. Membership/epoch authority, E2EE, Firestore rules, receipts, notifications, attachments, deletes, Firebase Auth and direct two-account behavior remain unchanged.\n\n"
+          )
+
+          durable = [
+              "README.md",
+              "CURRENT-REBUILD.md",
+              "hermes-memory.txt",
+              "FIDUNIO-BUILD-CHECKLIST.md",
+          ]
+          pending = "Device re-acceptance remains required before Item 9 closes."
+          accepted = (
+              "Real-device re-acceptance passed on 2026-09-13, including normal PIN/background return, retained granted history, new group-message delivery, and FCM notification tap → PIN → exact-message routing; Item 9 is DEVICE ACCEPTED / CLOSED."
+          )
+          for name in durable:
+              p = Path(name)
+              text = p.read_text()
+              text = text.replace(pending, accepted, 1)
+              if not text.startswith("FIDUNIO 1.1.51 ITEM 9 DEVICE ACCEPTANCE CLOSEOUT"):
+                  text = closure + text
+              p.write_text(text)
+
+          todo = Path("TODO.md")
+          text = todo.read_text()
+          item9 = (
+              "9. **Add or remove members in an existing group conversation — DEVICE ACCEPTED / CLOSED 2026-09-13** — Group Info administrator Add Member / Remove uses the established serialized membership and E2EE epoch-rotation authority. Final real-device acceptance passed Add Member, join-time history exclusion, owner member projection, Remove, Re-add, exclusion of messages sent while removed, post-rejoin bidirectional messaging with Sent→Read, explicit Grant Access → From beginning, background return through the six-digit PIN, persistence of granted earlier history, and FCM notification tap → PIN → exact notified group/message routing. The accepted repair chain is 1.1.47 owner projection, 1.1.50 bounded one-copy-at-a-time history-grant writes, and 1.1.51 immediate unlocked render before asynchronous cloud activation. Corrected group rules were already deployed through the successful 1.1.43 full rules deployment. Direct conversations remain exactly two accounts. Item 9 is closed."
+          )
+          text, n = re.subn(r"^9\. \*\*Add or remove members in an existing group conversation.*$", item9, text, count=1, flags=re.M)
+          if n != 1:
+              raise SystemExit("TODO Item 9 line not found exactly once")
+          text = text.replace(
+              "- FIDUNIO 1.1.34 membership projection/member discovery passed their device matrix, but item 9 remains open for FDA-GROUP-005 device re-acceptance after the 1.1.47 owner-member-projection correction. The corrected group rules are already deployed. The established membership transaction, key-epoch rotation, and direct two-account boundary remain unchanged.",
+              "- Item 9 / existing-group membership administration is DEVICE ACCEPTED / CLOSED on 2026-09-13. The accepted path includes the 1.1.47 owner-member projection repair, 1.1.50 bounded history-grant writes, and 1.1.51 immediate post-PIN render; add/remove/re-add, history boundary/grant, messaging/receipts, PIN/background return, and FCM exact-message routing all passed real-device acceptance."
+          )
+          todo.write_text(text)
+
+          device = Path("DEVICE-ACCEPTANCE-BUGS.md")
+          text = device.read_text()
+          old = "- **Status:** FIX CANDIDATE — device re-acceptance required.\n- **Exit:** on the re-added/history-target member, background/return -> correct PIN immediately opens FIDUNIO; granted earlier messages remain visible; one new group message reaches the owner; repeat return/PIN once with no hang."
+          new = "- **Status:** DEVICE ACCEPTED / CLOSED — 2026-09-13.\n- **Accepted evidence:** on the re-added/history-target member, correct PIN return opened FIDUNIO without the prior hang; granted earlier history remained available; post-return group messaging remained functional. A deliberate regression check also passed: background notification tap → PIN → exact notified group/message still routed correctly, proving the immediate local render did not regress the accepted FCM route owner."
+          if old not in text:
+              raise SystemExit("FDA-GROUP-006 pending status block not found")
+          text = text.replace(old, new, 1)
+          if not text.startswith("## ITEM 9 DEVICE ACCEPTANCE CLOSEOUT"):
+              text = (
+                  "## ITEM 9 DEVICE ACCEPTANCE CLOSEOUT — 2026-09-13\n\n"
+                  "**Status: DEVICE ACCEPTED / CLOSED.** Existing-group membership administration passed the final real-device matrix: add, remove, re-add, join/rejoin history boundaries, owner member projection, post-rejoin send/receive and receipts, explicit From beginning history grant, background/PIN return with granted history preserved, and FCM notification tap → PIN → exact notified group/message routing. The accepted runtime is FIDUNIO 1.1.51; no further Item 9 device defect remains open.\n\n"
+                  + text
+              )
+          device.write_text(text)
+          PY
+
+          git diff --check
+          git status --short
+          git add README.md CURRENT-REBUILD.md hermes-memory.txt FIDUNIO-BUILD-CHECKLIST.md TODO.md DEVICE-ACCEPTANCE-BUGS.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Close Item 9 after device acceptance"
+          git push origin HEAD:main
