@@ -8,6 +8,8 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
 import { createRecoveryCallableCore } from "./recovery/e2ee-recovery-callable-core.mjs";
 import { createRecoveryFirestoreAdminRepositories } from "./recovery/e2ee-recovery-firestore-admin-adapter.mjs";
+import { createAdminRecoveryAuthorizationCore } from "./recovery/admin-recovery-authorization-core.mjs";
+import { createAdminRecoveryAuthorizationFirestoreRepository } from "./recovery/admin-recovery-authorization-firestore.mjs";
 import { createMessageDeleteCallableCore } from "./message-delete/message-delete-callable-core.mjs";
 import { createMessageDeleteAdminRepositories } from "./message-delete/message-delete-firestore-admin-adapter.mjs";
 import { createConversationDeleteCallableCore } from "./conversation-delete/conversation-delete-callable-core.mjs";
@@ -30,6 +32,7 @@ const ATTACHMENT_BUCKET = "fidunio-fef13.firebasestorage.app";
 const db = getFirestore();
 const attachmentBucket=getStorage().bucket(ATTACHMENT_BUCKET);
 const { identityRepo, sessionRepo } = createRecoveryFirestoreAdminRepositories({ db });
+const {profileRepo:adminRecoveryProfileRepo,authorizationRepo:adminRecoveryAuthorizationRepo}=createAdminRecoveryAuthorizationFirestoreRepository({db});
 const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,bucket:attachmentBucket});
 const {conversationRepo,attachmentRepo:conversationAttachmentRepo}=createConversationDeleteAdminRepositories({db,bucket:attachmentBucket});
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
@@ -59,6 +62,7 @@ const core = createRecoveryCallableCore({
   sessionRepo,
   requireAppCheck: REQUIRE_APP_CHECK
 });
+const adminRecoveryCore=createAdminRecoveryAuthorizationCore({profileRepo:adminRecoveryProfileRepo,authorizationRepo:adminRecoveryAuthorizationRepo,recoveryCore:core});
 const messageDeleteCore=createMessageDeleteCallableCore({messageRepo,attachmentRepo});
 const conversationDeleteCore=createConversationDeleteCallableCore({conversationRepo,attachmentRepo:conversationAttachmentRepo});
 
@@ -68,128 +72,33 @@ function mapError(error) {
   if (code === "APP_CHECK_REQUIRED") return new HttpsError("failed-precondition", "Recovery authorization failed.");
   if (code === "AUTH_REQUIRED") return new HttpsError("unauthenticated", "Sign in before deleting a message.");
   if (code === "DELETE_DENIED") return new HttpsError("permission-denied", "This deletion cannot be performed by this account.");
-  if ([
-    "SESSION_EXPIRED","SESSION_LOCKED","SESSION_CONSUMED","SESSION_CONFLICT","SESSION_MISSING",
-    "RECOVERY_STALE","RECOVERY_DENIED","ACCOUNT_HOLD","ACCOUNT_CONFLICT","IDENTITY_MISSING"
-  ].includes(code)) {
-    return new HttpsError("permission-denied", "Recovery authorization failed.");
-  }
+  if (["RECOVERY_ADMIN_DENIED","RECOVERY_AUTH_DENIED","RECOVERY_AUTH_CONFLICT","SESSION_EXPIRED","SESSION_LOCKED","SESSION_CONSUMED","SESSION_CONFLICT","SESSION_MISSING","RECOVERY_STALE","RECOVERY_DENIED","ACCOUNT_HOLD","ACCOUNT_CONFLICT","IDENTITY_MISSING"].includes(code)) return new HttpsError("permission-denied", "Recovery authorization failed.");
   console.error("FIDUNIO recovery callable failed", { code: code || "INTERNAL" });
   return new HttpsError("internal", "Recovery service is unavailable.");
 }
 
 async function invoke(handler, request) {
   try {
-    return await handler({
-      authUid: request.auth?.uid || "",
-      appCheckValid: !!request.app,
-      data: request.data || {}
-    });
-  } catch (error) {
-    throw mapError(error);
-  }
+    return await handler({authUid: request.auth?.uid || "",appCheckValid: !!request.app,data: request.data || {}});
+  } catch (error) { throw mapError(error); }
 }
 
-const common = Object.freeze({
-  region: "us-central1",
-  serviceAccount: RECOVERY_SERVICE_ACCOUNT,
-  enforceAppCheck: REQUIRE_APP_CHECK,
-  timeoutSeconds: 30,
-  memory: "256MiB",
-  maxInstances: 10
-});
+const common = Object.freeze({region: "us-central1",serviceAccount: RECOVERY_SERVICE_ACCOUNT,enforceAppCheck: REQUIRE_APP_CHECK,timeoutSeconds: 30,memory: "256MiB",maxInstances: 10});
 
-export const enrollRecoveryV1 = onCall(
-  { ...common, secrets: [RECOVERY_MASTER] },
-  request => invoke(core.enrollRecoveryV1, request)
-);
+export const enrollRecoveryV1 = onCall({ ...common, secrets: [RECOVERY_MASTER] },request => invoke(core.enrollRecoveryV1, request));
+export const startE2EERecoveryV1 = onCall(common,request => invoke(core.startE2EERecoveryV1, request));
+export const completeE2EERecoveryV1 = onCall({ ...common, secrets: [RECOVERY_MASTER] },request => invoke(core.completeE2EERecoveryV1, request));
 
-export const startE2EERecoveryV1 = onCall(
-  common,
-  request => invoke(core.startE2EERecoveryV1, request)
-);
+export const createAdminRecoveryAuthorizationV1=onCall(common,request=>invoke(adminRecoveryCore.createAdminRecoveryAuthorizationV1,request));
+export const listAdminRecoveryAuthorizationsV1=onCall(common,request=>invoke(adminRecoveryCore.listAdminRecoveryAuthorizationsV1,request));
+export const revokeAdminRecoveryAuthorizationV1=onCall(common,request=>invoke(adminRecoveryCore.revokeAdminRecoveryAuthorizationV1,request));
+export const startAdminAuthorizedRecoveryV1=onCall(common,request=>invoke(adminRecoveryCore.startAdminAuthorizedRecoveryV1,request));
+export const completeAdminAuthorizedRecoveryV1=onCall({...common,secrets:[RECOVERY_MASTER]},request=>invoke(adminRecoveryCore.completeAdminAuthorizedRecoveryV1,request));
 
-export const completeE2EERecoveryV1 = onCall(
-  { ...common, secrets: [RECOVERY_MASTER] },
-  request => invoke(core.completeE2EERecoveryV1, request)
-);
+export const deleteDirectMessageForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request));
+export const deleteMyMessagesForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:60,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request));
+export const deleteConversationForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:300,memory:"512MiB",maxInstances:5},request=>invoke(conversationDeleteCore.deleteConversationForEveryoneV1,request));
 
-export const deleteDirectMessageForEveryoneV1 = onCall(
-  {
-    region:"us-central1",
-    serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,
-    enforceAppCheck:REQUIRE_APP_CHECK,
-    timeoutSeconds:30,
-    memory:"256MiB",
-    maxInstances:10
-  },
-  request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request)
-);
-
-export const deleteMyMessagesForEveryoneV1 = onCall(
-  {
-    region:"us-central1",
-    serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,
-    enforceAppCheck:REQUIRE_APP_CHECK,
-    timeoutSeconds:60,
-    memory:"256MiB",
-    maxInstances:10
-  },
-  request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request)
-);
-
-export const deleteConversationForEveryoneV1 = onCall(
-  {
-    region:"us-central1",
-    serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,
-    enforceAppCheck:REQUIRE_APP_CHECK,
-    timeoutSeconds:300,
-    memory:"512MiB",
-    maxInstances:5
-  },
-  request=>invoke(conversationDeleteCore.deleteConversationForEveryoneV1,request)
-);
-
-export const notifyDirectMessageCreatedV1 = onDocumentCreated(
-  {
-    document:"conversations/{conversationId}/messages/{messageId}",
-    region:"us-central1",
-    serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,
-    timeoutSeconds:30,
-    memory:"256MiB",
-    maxInstances:20,
-    retry:false
-  },
-  async event=>{
-    const message=event.data?.data?.();if(!message)return null;
-    return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});
-  }
-);
-
-export const notifyGroupMessageCreatedV1 = onDocumentCreated(
-  {
-    document:"groups/{groupId}/messages/{messageId}",
-    region:"us-central1",
-    serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,
-    timeoutSeconds:30,
-    memory:"256MiB",
-    maxInstances:20,
-    retry:false
-  },
-  async event=>{
-    const message=event.data?.data?.();if(!message)return null;
-    return groupNotificationCore.handleCreatedMessage({groupId:event.params.groupId,messageId:event.params.messageId,message});
-  }
-);
-
-export const purgeDisappearingMessagesV1 = onSchedule(
-  {
-    region:"us-central1",
-    schedule:"every 1 minutes",
-    timeZone:"UTC",
-    serviceAccount:DISAPPEARING_PURGE_SERVICE_ACCOUNT,
-    timeoutSeconds:120,
-    memory:"256MiB"
-  },
-  async()=>runDisappearingPurgeSweep({db,executor:disappearingPurgeExecutor,limit:200})
-);
+export const notifyDirectMessageCreatedV1 = onDocumentCreated({document:"conversations/{conversationId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});});
+export const notifyGroupMessageCreatedV1 = onDocumentCreated({document:"groups/{groupId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return groupNotificationCore.handleCreatedMessage({groupId:event.params.groupId,messageId:event.params.messageId,message});});
+export const purgeDisappearingMessagesV1 = onSchedule({region:"us-central1",schedule:"every 1 minutes",timeZone:"UTC",serviceAccount:DISAPPEARING_PURGE_SERVICE_ACCOUNT,timeoutSeconds:120,memory:"256MiB"},async()=>runDisappearingPurgeSweep({db,executor:disappearingPurgeExecutor,limit:200}));
