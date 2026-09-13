@@ -12,7 +12,7 @@ cd "$WORK/hermes"
 
 npm --prefix functions install --ignore-scripts
 
-ONLY="functions:createAdminRecoveryAuthorizationV1,functions:listAdminRecoveryAuthorizationsV1,functions:revokeAdminRecoveryAuthorizationV1,functions:startAdminAuthorizedRecoveryV1,functions:completeAdminAuthorizedRecoveryV1"
+ONLY="functions:recovery:createAdminRecoveryAuthorizationV1,functions:recovery:listAdminRecoveryAuthorizationsV1,functions:recovery:revokeAdminRecoveryAuthorizationV1,functions:recovery:startAdminAuthorizedRecoveryV1,functions:recovery:completeAdminAuthorizedRecoveryV1"
 if firebase deploy --only "$ONLY" --project "$PROJECT"; then
   printf 'SUCCESS: FIDUNIO 1.1.45 administrator-authorized recovery functions deployed.\n'
 else
