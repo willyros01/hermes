@@ -741,7 +741,9 @@ function requestAppActivation(reason){
 }
 function mergeCloudGroup(remote){
   const existing=state.conversations.find(c=>String(c.id)===String(remote.id));
-  const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Encrypted group",time:remote.time||existing?.time||""};
+  const remoteMembers=Array.isArray(remote?.members)?remote.members:null;
+  const members=remoteMembers?.length?remoteMembers:Array.isArray(existing?.members)?existing.members:(remoteMembers||[]);
+  const item={...remote,members,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Encrypted group",time:remote.time||existing?.time||""};
   if(existing)Object.assign(existing,item);else state.conversations.unshift(item);
   if(!state.messages[item.id])state.messages[item.id]=[];
   return existing||item;
