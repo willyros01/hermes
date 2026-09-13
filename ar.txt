@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+REPO="https://github.com/willyros01/hermes.git"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+printf 'FIDUNIO 1.1.45 administrator-authorized recovery deployment\n'
+git clone --depth 1 --branch main "$REPO" "$WORK/hermes"
+cd "$WORK/hermes"
+
+npm --prefix functions install --ignore-scripts
+
+FUNCTIONS="createAdminRecoveryAuthorizationV1,listAdminRecoveryAuthorizationsV1,revokeAdminRecoveryAuthorizationV1,startAdminAuthorizedRecoveryV1,completeAdminAuthorizedRecoveryV1"
+if firebase deploy --only "functions:${FUNCTIONS//,/ ,functions:}" --project "$PROJECT"; then
+  printf 'SUCCESS: FIDUNIO 1.1.45 administrator-authorized recovery functions deployed.\n'
+else
+  printf 'FAILED: administrator-authorized recovery functions were not deployed.\n' >&2
+  exit 1
+fi
