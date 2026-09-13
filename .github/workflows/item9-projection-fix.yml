@@ -1,0 +1,45 @@
+name: Item 9 Projection Fix
+on:
+  push:
+    paths:
+      - .github/workflows/item9-projection-fix.yml
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch Item 9 owner projection
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app.js'); s=p.read_text()
+          old='const item={...remote,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Encrypted group",time:remote.time||existing?.time||""};'
+          new='const remoteMembers=Array.isArray(remote?.members)?remote.members:null;\n  const members=remoteMembers?.length?remoteMembers:Array.isArray(existing?.members)?existing.members:(remoteMembers||[]);\n  const item={...remote,members,type:"group",cloudGroup:true,unread:existing?.unread||0,preview:remote.preview||existing?.preview||"Encrypted group",time:remote.time||existing?.time||""};'
+          if s.count(old)!=1: raise SystemExit('mergeCloudGroup anchor changed')
+          p.write_text(s.replace(old,new,1))
+          Path('version.js').write_text('globalThis.FIDUNIO_RELEASE = Object.freeze({ version: "1.1.47" });\n')
+          p=Path('service-worker.js'); s=p.read_text()
+          import re
+          s,n=re.subn(r'const SHELL_REVISION="[^"]+";', 'const SHELL_REVISION="1.1.47-group-member-projection";', s, count=1)
+          if n!=1: raise SystemExit('service worker revision anchor changed')
+          p.write_text(s)
+          p=Path('group-membership-lifecycle.test.mjs'); s=p.read_text()
+          marker='ok("member projection is filtered by authoritative parent membership",/memberSnap\\.docs\\.filter\\(m=>currentMembers\\.has\\(m\\.id\\)\\)/.test(firebase));'
+          addition=marker+'\nok("incomplete authority shell cannot erase subscribed members",/remoteMembers\\?\\.length\\?remoteMembers:Array\\.isArray\\(existing\\?\\.members\\)\\?existing\\.members/.test(app));'
+          if s.count(marker)!=1: raise SystemExit('test anchor changed')
+          p.write_text(s.replace(marker,addition,1))
+          PY
+          node --check app.js
+          node group-membership-lifecycle.test.mjs
+      - name: Commit fix
+        run: |
+          git config user.name "FIDUNIO build"
+          git config user.email "actions@users.noreply.github.com"
+          git add app.js version.js service-worker.js group-membership-lifecycle.test.mjs
+          git commit -m "Fix Item 9 owner member projection in 1.1.47"
+          git push origin HEAD:main
