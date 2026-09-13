@@ -79,14 +79,6 @@ self.addEventListener("notificationclick",event=>{
   const route=notificationClickRoute(event.notification.data);
   event.waitUntil((async()=>{
     if(!route)return;
-    const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-    for(const client of windows){
-      if("navigate" in client){
-        try{await client.navigate(notificationRouteUrl(client.url,route));}catch{}
-      }
-      if("focus" in client){await client.focus();return;}
-    }
-    if(!route)return;
     const target=notificationRouteUrl(new URL("./",self.registration.scope).href,route);
     await self.clients.openWindow(target);
   })());
