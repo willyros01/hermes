@@ -117,5 +117,6 @@ jobs:
       - {name: Password change E2EE bridge and rollback, run: node password-change-integration.test.mjs}
       - {name: Forgot Password Firebase-to-E2EE recovery handoff, run: node forgot-password-recovery.test.mjs}
       - {name: Password visibility presentation owner, run: node password-visibility.test.mjs}
+      - {name: Portable encrypted account vault and recovery, run: npm run test:account-vault}
       - {name: Basic direct-message send and receive path, run: node direct-message-basic-path.test.mjs}
       - {name: Direct Read-receipt recovery, run: node direct-read-receipt.test.mjs}

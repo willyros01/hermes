@@ -18,6 +18,12 @@ export function getAccountE2EERuntimeIdentity(){return manager.getRuntimeIdentit
 export function enrollAccountE2EE({uid,password,pin}){return manager.enroll({uid,password,pin});}
 export function unlockAccountE2EE({uid,password,pin}){return manager.unlock({uid,password,pin});}
 export function restoreLocalAccountE2EE(identity){return manager.restoreLocal(identity);}
+export async function withAccountVaultRecoveryAuthority({pin,operation}){
+  if(typeof operation!=="function")throw new Error("FIDUNIO Vault operation is unavailable.");
+  const recovered=await recoveryClient.recoverKey({pin});
+  try{return await operation(recovered.recoveryUnlockKey);}
+  finally{recovered.recoveryUnlockKey.fill(0);}
+}
 async function finishRecovery({uid,newPassword,pin,recovered}){
   try{await manager.recover({uid,recoveryUnlockKey:recovered.recoveryUnlockKey,newPassword,pin});await saveLocalAccountE2EEIdentity(manager.getRuntimeIdentity());return manager.getRuntimeIdentity();}
   finally{recovered.recoveryUnlockKey.fill(0);}

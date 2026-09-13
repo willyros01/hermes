@@ -31,6 +31,7 @@ import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeA
 import {mountInstallGuidance} from "./install-guidance.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
 import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
+import {mountSixDigitPinInput} from "./pin-input.js";
 
 let mutationTail=Promise.resolve();
 let generation=0;
@@ -65,6 +66,7 @@ const GROUPS=[
 ];
 const PANEL_ORDER=["profile","general","privacy","notifications","users","invites","install","data","about"];
 let activeGroup="profile";
+let mountedAccountVaultOwner=null;
 
 function directCards(settings){return[...settings.querySelectorAll(":scope > .card")];}
 function cardByTitle(settings,title){return directCards(settings).find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}
@@ -258,6 +260,17 @@ async function renderNotifications(notificationsHost,info){
   }catch(err){card.innerHTML=`<h2>Notifications</h2><p class="warning-note">${esc(err?.message||String(err))}</p>`;}
 }
 
+function downloadVault(blob,filename){const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=filename;link.rel="noopener";document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function renderAccountVault(dataHost,info){
+  dataHost.querySelector("#fidunioAccountVaultCard")?.remove();if(!mountedAccountVaultOwner||!info?.user)return;
+  const card=document.createElement("div");card.className="card";card.id="fidunioAccountVaultCard";
+  card.innerHTML='<h2>FIDUNIO Recovery File</h2><p class="small-note">Save an encrypted copy of this account outside the browser. It can recover FIDUNIO after its Home Screen app or browser data is removed. A saved file can contain messages that existed when it was created; replace old files when you create a newer recovery copy.</p><label class="form-label">Existing six-digit FIDUNIO PIN</label><div id="vaultPinHost"></div><button class="primary" id="createVaultBtn" style="margin-top:12px">Create Recovery File</button><input id="restoreVaultFile" type="file" accept=".fidunio,application/vnd.fidunio.vault+json" hidden><button class="secondary" id="chooseVaultBtn" style="margin-top:10px">Restore from Recovery File</button><p class="small-note">Restoration requires this signed-in account, the existing PIN, and FIDUNIO recovery authority. Current cloud membership and deletions are checked before local data is activated. Notification and biometric registrations are recreated separately.</p><div id="vaultNote" aria-live="polite"></div>';
+  dataHost.appendChild(card);const pin=mountSixDigitPinInput(card.querySelector("#vaultPinHost"),{label:"Existing six-digit FIDUNIO PIN"}),note=card.querySelector("#vaultNote"),create=card.querySelector("#createVaultBtn"),choose=card.querySelector("#chooseVaultBtn"),fileInput=card.querySelector("#restoreVaultFile");
+  create.onclick=async()=>{if(pin.value().length!==6){note.innerHTML='<p class="warning-note">Enter your six-digit FIDUNIO PIN.</p>';pin.focus();return;}create.disabled=true;choose.disabled=true;pin.setDisabled(true);create.textContent="Creating encrypted file…";try{if(!await verifyLocalPin(pin.value()))throw new Error("Incorrect FIDUNIO PIN.");const result=await mountedAccountVaultOwner.create(pin.value());downloadVault(result.blob,result.filename);note.innerHTML='<p class="small-note">Recovery file created. Keep it in a location you control.</p>';pin.clear();}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}finally{create.disabled=false;choose.disabled=false;pin.setDisabled(false);create.textContent="Create Recovery File";}};
+  choose.onclick=()=>{if(pin.value().length!==6){note.innerHTML='<p class="warning-note">Enter your six-digit FIDUNIO PIN first.</p>';pin.focus();return;}fileInput.value="";fileInput.click();};
+  fileInput.onchange=async()=>{const file=fileInput.files?.[0];if(!file)return;if(!confirm("Restore this FIDUNIO Recovery File? Current local account data will be replaced only after the file and current cloud authority are verified."))return;create.disabled=true;choose.disabled=true;pin.setDisabled(true);choose.textContent="Verifying and restoring…";try{if(!await verifyLocalPin(pin.value()))throw new Error("Incorrect FIDUNIO PIN.");await mountedAccountVaultOwner.restore(file,pin.value());}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;create.disabled=false;choose.disabled=false;pin.setDisabled(false);choose.textContent="Restore from Recovery File";pin.clear();}};
+}
+
 async function hydrateAccountPanels(g,shell){
   const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications");
   /* Claim the legacy IDs synchronously so old observer-era modules cannot
@@ -268,11 +281,12 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);
+    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 
-export function mountSettingsLifecycle(){
+export function mountSettingsLifecycle({accountVaultOwner}={}){
+  if(accountVaultOwner)mountedAccountVaultOwner=accountVaultOwner;
   const settings=document.querySelector(".content.settings");if(!settings)return;
   const g=++generation;
   settings.querySelector(":scope > #fidunioSettingsShell")?.remove();

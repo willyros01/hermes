@@ -1,3 +1,7 @@
+## FIDUNIO 1.1.52 — portable account recovery vault
+
+**Status: DEPLOYMENT / DEVICE CANDIDATE.** Create a recovery file from Settings → Data. Preserve it outside Safari. Remove FIDUNIO Home Screen and website data, reinstall, sign in, restore the same E2EE identity with the existing PIN, then import the file. Confirm settings/trust state, current direct/group history, attachments and permitted earlier-history copies return; deleted/disappeared/inaccessible rows do not; accepted Outbox IDs do not duplicate; attempted ambiguous rows remain Failed; never-attempted queued work remains eligible. Re-enable biometric and notifications normally. Regress PIN/background return, direct/group Sent→Read, attachments, Delete for Me/Everyone, invitation, membership/history and FCM notification → PIN → exact message. Repeat on iPhone and iPad. Item 2 remains open until this passes.
+
 ## ITEM 9 DEVICE ACCEPTANCE CLOSEOUT — 2026-09-13
 
 **Status: DEVICE ACCEPTED / CLOSED.** Existing-group membership administration passed the final real-device matrix: add, remove, re-add, join/rejoin history boundaries, owner member projection, post-rejoin send/receive and receipts, explicit From beginning history grant, background/PIN return with granted history preserved, and FCM notification tap → PIN → exact notified group/message routing. The accepted runtime is FIDUNIO 1.1.51; no further Item 9 device defect remains open.

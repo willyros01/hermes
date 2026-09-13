@@ -66,6 +66,9 @@ import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificat
 import {listPendingNotificationRoutes,consumePendingNotificationRoutes,groupPendingNotificationRoutes} from "./notification-pending-inbox.js";
 import {createOptimisticOutgoingProjectionOwner} from "./optimistic-outgoing-projection.js";
 import {createBulkMessageDeleteProjectionOwner} from "./bulk-message-delete-projection.js";
+import {createAccountVaultOwner} from "./account-vault-owner.js";
+import {reconcileAccountVaultPayload} from "./account-vault-reconciliation.js";
+import {activateVerifiedAccountVault} from "./account-vault-activation.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -96,6 +99,7 @@ let state = {
 const DB_NAME = "fidunio-local";
 const DB_VERSION = 2;
 const STATE_KEY = "app-state";
+const VAULT_IMPORT_TRANSITION_KEY="account-vault-import-transition-v1";
 let dbPromise = null;
 let localKeyPromise = null;
 let hydrated = false;
@@ -310,6 +314,42 @@ async function loadPersistedState(){
     if(saved.selectedId && state.conversations.some(c=>String(c.id)===String(saved.selectedId))) state.selectedId=saved.selectedId;
   }catch(err){ console.warn("Could not restore local Fidunio state",err); }
 }
+async function readEncryptedAccountSnapshot(){
+  const db=await openDb(),tx=db.transaction(["meta","history","outbox"],"readonly"),meta=tx.objectStore("meta"),history=tx.objectStore("history"),outbox=tx.objectStore("outbox");
+  const [appState,historyKeys,historyValues,outboxRows]=await Promise.all([idbRequest(meta.get(STATE_KEY)),idbRequest(history.getAllKeys()),idbRequest(history.getAll()),idbRequest(outbox.getAll())]);
+  await txDone(tx);return{appState,history:historyKeys.map((key,index)=>({key,value:historyValues[index]})),outbox:outboxRows};
+}
+async function writeEncryptedAccountSnapshot(snapshot,{transition=null}={}){
+  const db=await openDb(),tx=db.transaction(["meta","history","outbox"],"readwrite"),meta=tx.objectStore("meta"),history=tx.objectStore("history"),outbox=tx.objectStore("outbox");
+  if(snapshot?.appState===undefined)meta.delete(STATE_KEY);else meta.put(snapshot.appState,STATE_KEY);history.clear();outbox.clear();
+  for(const row of snapshot?.history||[])history.put(row.value,row.key);for(const row of snapshot?.outbox||[])outbox.put(row);
+  if(transition===null)meta.delete(VAULT_IMPORT_TRANSITION_KEY);else meta.put(transition,VAULT_IMPORT_TRANSITION_KEY);await txDone(tx);
+}
+async function recoverInterruptedVaultImport(){
+  const db=await openDb(),transition=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(VAULT_IMPORT_TRANSITION_KEY));
+  if(!transition)return false;if(!transition.before||transition.schemaVersion!==1)throw new Error("An interrupted FIDUNIO Vault restoration requires a safe local reset.");
+  await writeEncryptedAccountSnapshot(transition.before);return true;
+}
+async function capturePortableAccountVaultPayload(identity){
+  if(!firebaseUser||String(firebaseUser.uid)!==String(identity.uid))throw new Error("The authenticated account changed before FIDUNIO Vault creation.");
+  clearTimeout(persistTimer);persistTimer=null;await localPurgeTail.catch(()=>{});await outboxCycleTail.catch(()=>{});await persistState();
+  const raw=await readEncryptedAccountSnapshot(),appState=raw.appState?await decryptLocal(raw.appState):serializableState(),history=[],outbox=[];
+  for(const row of raw.history){const value=await decryptLocal(row.value);history.push({...value,conversationId:String(value?.conversationId||row.key)});}
+  for(const row of raw.outbox){outbox.push({id:String(row.id),conversationId:String(row.conversationId||""),createdAt:Number(row.createdAt)||Date.now(),sendAttempted:row.sendAttempted===true,payload:await decryptLocal(row.payload)});}
+  if(!state.online)throw new Error("Connect to the internet before creating a FIDUNIO Recovery File.");
+  return reconcileAccountVaultPayload({payload:{schemaVersion:1,uid:String(identity.uid),keyId:String(identity.keyId),identityRevision:Number(identity.revision),capturedAt:Date.now(),appState,history,outbox},readDirectIds:id=>readCloudMessageIdsFromServer(id,String(identity.uid)),readGroupIds:readCloudGroupMessageIdsFromServer});
+}
+async function activatePortableAccountVaultPayload(payload){
+  if(!state.online||!firebaseUser)throw new Error("Connect to the internet and sign in before restoring a FIDUNIO Vault.");
+  const uid=String(firebaseUser.uid),candidate=await reconcileAccountVaultPayload({payload,readDirectIds:id=>readCloudMessageIdsFromServer(id,uid),readGroupIds:readCloudGroupMessageIdsFromServer});
+  const encryptedState=await encryptLocal(candidate.appState),encryptedHistory=[],encryptedOutbox=[];
+  for(const record of candidate.history){encryptedHistory.push({key:String(record.conversationId),value:await encryptLocal(record)});}
+  for(const record of candidate.outbox){encryptedOutbox.push({id:String(record.id),conversationId:String(record.conversationId),createdAt:Number(record.createdAt)||Date.now(),sendAttempted:record.sendAttempted===true,payload:await encryptLocal(record.payload)});}
+  const next={appState:encryptedState,history:encryptedHistory,outbox:encryptedOutbox};
+  await activateVerifiedAccountVault({candidate:next,readBefore:readEncryptedAccountSnapshot,writeCandidate:(value,before)=>writeEncryptedAccountSnapshot(value,{transition:{schemaVersion:1,uid,startedAt:Date.now(),before}}),verifyCandidate:async()=>{const verify=await readEncryptedAccountSnapshot();await decryptLocal(verify.appState);for(const row of verify.history)await decryptLocal(row.value);for(const row of verify.outbox)await decryptLocal(row.payload);},commitCandidate:async()=>writeEncryptedAccountSnapshot(await readEncryptedAccountSnapshot()),restoreBefore:writeEncryptedAccountSnapshot});
+  location.reload();return{restored:true};
+}
+const accountVaultOwner=createAccountVaultOwner({getIdentity:()=>getAccountE2EELifecycleState().manager,capturePayload:capturePortableAccountVaultPayload,activatePayload:activatePortableAccountVaultPayload});
 async function queueOutboxMessage(conversationId,message){
   const db=await openDb();
   const c=state.conversations.find(x=>String(x.id)===String(conversationId));
@@ -1258,6 +1298,7 @@ async function initApp(){
    * Firebase being offline, slow, uncached, or temporarily empty must never
    * prevent already-downloaded local messages from being shown.
    */
+  await recoverInterruptedVaultImport();
   await loadPersistedState();
   await loadCloudHistory();
   await restoreOutboxIntoState();
@@ -2909,7 +2950,7 @@ function renderSettings(){
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
   };
-  mountSettingsLifecycle();
+  mountSettingsLifecycle({accountVaultOwner});
 }
 function settingRow(label,key){
   return `<div class="row"><span>${esc(label)}</span><button class="toggle ${state.settings[key]?"on":""}" data-key="${key}" aria-label="${esc(label)}"></button></div>`;

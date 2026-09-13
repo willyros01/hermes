@@ -1,0 +1,6 @@
+import fs from "node:fs";import assert from "node:assert/strict";
+const app=fs.readFileSync("app.js","utf8"),settings=fs.readFileSync("settings-lifecycle.js","utf8"),runtime=fs.readFileSync("e2ee-account-runtime.js","utf8"),sw=fs.readFileSync("service-worker.js","utf8");
+assert.match(app,/recoverInterruptedVaultImport\(\)/);assert.match(app,/activateVerifiedAccountVault/);assert.match(app,/readEncryptedAccountSnapshot/);assert.match(app,/writeEncryptedAccountSnapshot/);assert.match(app,/reconcileAccountVaultPayload/);assert.match(app,/sendAttempted:record\.sendAttempted===true/);
+assert.match(settings,/Create Recovery File/);assert.match(settings,/Restore from Recovery File/);assert.match(settings,/verifyLocalPin/);assert.match(settings,/mountSixDigitPinInput/);
+assert.match(runtime,/withAccountVaultRecoveryAuthority/);assert.match(runtime,/recoveryUnlockKey\.fill\(0\)/);assert.match(sw,/\.\/account-vault-format\.js/);assert.match(sw,/\.\/account-vault-owner\.js/);assert.match(sw,/\.\/account-vault-reconciliation\.js/);assert.match(sw,/\.\/account-vault-activation\.js/);
+assert.doesNotMatch(app,/initializeApp\s*\(/);assert.doesNotMatch(settings,/initializeApp\s*\(/);console.log("Portable FIDUNIO Vault uses the existing storage, Settings, recovery, Firebase, and service-worker owners");
