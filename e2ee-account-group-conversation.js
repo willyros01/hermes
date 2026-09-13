@@ -32,7 +32,7 @@ export function subscribeAccountGroupConversation(groupId,{onRows,onError,isOpen
     for(const row of rows){
       let text="[Encrypted group message — account encryption unavailable]",decryptAvailable=false;
       try{text=await decryptAccountGroupMessage({groupId:key,messageId:row.id,row});decryptAvailable=true;}catch(err){if(!closed)report(err,{source:"decrypt",terminal:false});}
-      live.push({id:row.id,mine:row.senderUid===id.uid,senderUid:row.senderUid,text,time:row.timeLabel||"",state:aggregateReceipt(row,receiptRows.get(row.id),id.uid,memberUids),cloud:true,e2ee:4,keyEpoch:row.keyEpoch,createdAt:asDate(row.createdAt),disappearAfterSeconds:row.disappearAfterSeconds??null,decryptAvailable});
+      live.push({id:row.id,mine:row.senderUid===id.uid,senderUid:row.senderUid,text,time:row.timeLabel||"",state:aggregateReceipt(row,receiptRows.get(row.id),id.uid,memberUids),cloud:true,e2ee:4,keyEpoch:row.keyEpoch,createdAt:asDate(row.createdAt),disappearAfterSeconds:row.disappearAfterSeconds??null,reactions:row.reactions&&typeof row.reactions==="object"?row.reactions:{},decryptAvailable});
       if(decryptAvailable&&row.senderUid!==id.uid)receiptUpdates.push(row.id);
     }
 

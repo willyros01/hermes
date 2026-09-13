@@ -323,6 +323,19 @@ textarea{
 .modal-confirm{border:0;background:var(--accent);color:#fff}
 .modal-delete{border:0;background:#a52b2b;color:#fff}
 .message-delete-actions .modal-cancel{grid-column:1/-1}
+.message-reaction-section{margin:16px 0 4px;padding:14px 0 20px;border-bottom:1px solid var(--line)}
+.message-reaction-title{font-weight:900;margin-bottom:12px}
+.message-reaction-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.message-reaction-btn{min-height:56px;border:1px solid var(--line);border-radius:14px;background:var(--tool);color:var(--ink);font-size:28px;line-height:1;padding:10px}
+.message-reaction-btn.selected{border:3px solid var(--accent);background:var(--accent-soft)}
+.message-reaction-section .small-note{margin-top:12px}
+.message-delete-section{margin-top:18px}
+.message-reactions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;justify-content:flex-start}
+.mine .message-reactions{justify-content:flex-end}
+.message-reaction-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:var(--tool);border:1px solid var(--line);font-size:15px;line-height:1.2}
+.message-reaction-chip.mine{border:2px solid var(--accent);background:var(--accent-soft)}
+.message-reaction-count{font-size:12px;font-weight:800;color:var(--muted)}
+html.text-aplusplus .message-reaction-btn{min-height:64px;font-size:32px}
 .pending-message-action{touch-action:pan-y}
 .pending-message-action:focus-visible .bubble{outline:4px solid var(--accent);outline-offset:3px}
 .settings{display:flex;flex-direction:column;gap:14px}

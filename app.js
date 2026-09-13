@@ -30,7 +30,8 @@ import {
   deleteCloudDirectMessageForEveryone,
   deleteCloudGroupMessageForEveryone,
   deleteCloudMyMessagesForEveryone,
-  deleteCloudConversationForEveryone
+  deleteCloudConversationForEveryone,
+  setCloudMessageReaction
 } from "./firebase.js";
 import {
   LOCK_TIMEOUTS,
@@ -48,6 +49,7 @@ import { mountSixDigitPinInput } from "./pin-input.js";
 import {awaitBoundedLocalPinVerification} from "./local-pin-verification-boundary.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
+import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions} from "./message-reaction-policy.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
@@ -1142,7 +1144,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
           else text="[Encrypted message — key unavailable]";
         }
-        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",createdAt:m.createdAt?.toDate?.()||m.createdAt||null,state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null,disappearingPurgeVersion:m.disappearingPurgeVersion??null});
+        remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",createdAt:m.createdAt?.toDate?.()||m.createdAt||null,state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null,disappearingPurgeVersion:m.disappearingPurgeVersion??null,reactions:m.reactions&&typeof m.reactions==="object"?m.reactions:{}});
       }
 
       // A keyed notification row is a non-authoritative merge and cannot
@@ -1897,11 +1899,14 @@ function renderBubble(m,c){
   }
   const groupSender=groupSenderDisplayName(m,c);
   const displayTime=messageDisplayTime(m);
+  const reactionSummary=summarizeMessageReactions(m.reactions,firebaseUser?.uid||"");
+  const reactionMarkup=reactionSummary.length?`<div class="message-reactions" aria-label="Message reactions">${reactionSummary.map(item=>`<span class="message-reaction-chip ${item.mine?"mine":""}">${esc(item.emoji)}${item.count>1?` <span class="message-reaction-count">${item.count}</span>`:""}</span>`).join("")}</div>`:"";
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
     ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(displayTime)}</span></div>`:""}
     <div class="bubble">
       ${messageContent}
       <div class="msg-meta"><span>${esc(m.time)}</span>${m.mine?`<span class="${cls}">${label}</span>`:""}</div>
+      ${reactionMarkup}
     </div>
   </div>`;
 }
@@ -2495,11 +2500,15 @@ function renderModal(){
     const isPending=message&&["queued","sending","failed"].includes(message.state);
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
+    const canReact=!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false;
+    const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
+    const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
-        <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":"Delete only from this device, or remove it for everyone?"}</p>
-        <div class="modal-actions ${isPending?"":"message-delete-actions"}">
+        <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":"Choose a reaction, or manage this message below."}</p>
+        ${canReact?`<section class="message-reaction-section" aria-label="React to message"><div class="message-reaction-title">React</div><div class="message-reaction-picker">${reactionButtons}</div><div class="small-note">Tap your selected reaction again to remove it.</div></section>`:""}
+        <div class="modal-actions ${isPending?"":"message-delete-actions"} ${isPending?"":"message-delete-section"}">
           ${isPending?'<button class="modal-delete" id="modalDeletePending">Delete Message</button>':'<button class="modal-delete" id="modalDeleteForMe">Delete for Me</button>'}
           ${canDeleteForEveryone?'<button class="modal-delete" id="modalDeleteForEveryone">Delete for Everyone</button>':""}
           <button class="modal-cancel" id="modalCancel">Cancel</button>
@@ -2515,6 +2524,7 @@ function renderModal(){
       }
       catch(err){button.disabled=false;alert(err?.message||String(err));}
     };
+    host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=()=>perform(button,()=>setCloudMessageReaction(modal.conversationId,modal.messageId,conversation?.cloudGroup?"group":"direct",button.dataset.reaction)));
     const pendingBtn=host.querySelector("#modalDeletePending");if(pendingBtn)pendingBtn.onclick=()=>perform(pendingBtn,()=>cancelPendingOutboxMessage(modal.messageId,modal.conversationId));
     const meBtn=host.querySelector("#modalDeleteForMe");if(meBtn)meBtn.onclick=()=>perform(meBtn,()=>deleteMessageForMe(modal.conversationId,modal.messageId));
     const everyoneBtn=host.querySelector("#modalDeleteForEveryone");if(everyoneBtn)everyoneBtn.onclick=()=>perform(everyoneBtn,async()=>{if(conversation?.cloudGroup)await deleteCloudGroupMessageForEveryone(modal.conversationId,modal.messageId);else await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);});

@@ -2,6 +2,7 @@ import { firebaseConfig } from "./firebase-config.js";
 import { normalizeDisappearSelection } from "./disappearing-content-policy.js";
 import {assertInvitationUsable,normalizeInvitationRole,canIssueInvitation} from "./invitation-policy.js";
 import {createDirectMessageDeliveryOwner} from "./direct-message-delivery-owner.js";
+import {nextMessageReactions} from "./message-reaction-policy.js";
 
 const SDK_VERSION="12.18.0";
 // Public reCAPTCHA Enterprise site key registered for FIDUNIO Web / willyros01.github.io.
@@ -35,6 +36,14 @@ export function deleteCloudDirectMessageForEveryone(conversationId,messageId){re
 export function deleteCloudGroupMessageForEveryone(groupId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(groupId||""),messageId:String(messageId||""),messageKind:"group"});}
 export function deleteCloudMyMessagesForEveryone(conversationId,messageKind="direct"){return callCloudFunction("deleteMyMessagesForEveryoneV1",{conversationId:String(conversationId||""),messageKind:messageKind==="group"?"group":"direct"});}
 export function deleteCloudConversationForEveryone(conversationId,conversationKind="direct"){return callCloudFunction("deleteConversationForEveryoneV1",{conversationId:String(conversationId||""),conversationKind:conversationKind==="group"?"group":"direct"});}
+export async function setCloudMessageReaction(conversationId,messageId,messageKind="direct",reaction){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const id=String(conversationId||"").trim(),mid=String(messageId||"").trim(),kind=messageKind==="group"?"group":"direct";
+  if(!id||!mid)throw new Error("Message reaction target is incomplete.");
+  if(kind==="group")await readCloudGroupAuthority(id);else{const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"conversations",id));if(!snap.exists()||!Array.isArray(snap.data().members)||!snap.data().members.includes(authUser.uid))throw new Error("Conversation is not available to this account.");}
+  const ref=kind==="group"?s.fsSdk.doc(s.db,"groups",id,"messages",mid):s.fsSdk.doc(s.db,"conversations",id,"messages",mid);
+  return s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const next=nextMessageReactions(snap.data().reactions,authUser.uid,reaction);tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};});
+}
 function normalizeInviteToken(token){return String(token||"").trim().replace(/\s+/g,"");}function bytesToUrlToken(bytes){let raw="";bytes.forEach(b=>raw+=String.fromCharCode(b));return btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");}async function sha256Hex(text){const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,"0")).join("");}async function inviteIdForToken(token){const clean=normalizeInviteToken(token);if(clean.length<20)throw new Error("Invitation code is incomplete.");return sha256Hex(clean);}function inviteLink(token){const url=new URL(globalThis.location?.href||"https://willyros01.github.io/hermes/");url.hash="";url.search="";url.searchParams.set("invite",token);return url.toString();}
 export async function getFidunioAccessInfo(){const s=await ensureServices();if(!authUser)return{user:null,profile:null,system:null,role:null};const [profileSnap,systemSnap]=await Promise.all([s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",authUser.uid)),s.fsSdk.getDoc(s.fsSdk.doc(s.db,"system","access"))]);const profile=profileSnap.exists()?{uid:profileSnap.id,...profileSnap.data()}:null;const system=systemSnap.exists()?systemSnap.data():null;return{user:authUser,profile,system,role:profile?.systemRole||null};}
 export async function claimLegacyOwner(){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const profileRef=s.fsSdk.doc(s.db,"users",authUser.uid),systemRef=s.fsSdk.doc(s.db,"system","access");const profileSnap=await s.fsSdk.getDoc(profileRef);if(!profileSnap.exists())throw new Error("This account does not have an existing FIDUNIO profile.");const systemSnap=await s.fsSdk.getDoc(systemRef);if(systemSnap.exists())throw new Error("FIDUNIO already has an Owner.");const batch=s.fsSdk.writeBatch(s.db);batch.set(systemRef,{ownerUid:authUser.uid,createdByUid:authUser.uid,createdAt:s.fsSdk.serverTimestamp(),accessModel:"invite-only-v1"});batch.update(profileRef,{systemRole:"owner"});await batch.commit();return getFidunioAccessInfo();}
