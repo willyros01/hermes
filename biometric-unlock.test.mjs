@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
+const local=readFileSync(new URL("./local-security.js",import.meta.url),"utf8");
+const settings=readFileSync(new URL("./settings-lifecycle.js",import.meta.url),"utf8");
+assert.match(app,/Unlock with Face ID or Biometric/);
+assert.doesNotMatch(app,/Unlock with device/);
+assert.match(app,/Enable Face ID or Biometric/);
+assert.match(settings,/cards:\["Privacy & Access"\]/);
+assert.match(local,/allowCredentials:/);
+assert.match(local,/userVerification:"required"/);
+assert.match(local,/authenticatorAttachment:"platform"/);
+console.log("FIDUNIO biometric unlock and Security-panel ownership gate passes");

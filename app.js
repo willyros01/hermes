@@ -1616,7 +1616,7 @@ function renderUnlock(){
       <section class="unlock-card">
         <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
         <h1>Unlock FIDUNIO</h1>
-        ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with device</button>':""}
+        ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric</button>':""}
         <label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label>
         <div id="localUnlockPin"></div>
         <button class="${security.hasBiometric?"secondary":"primary"}" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>
@@ -1644,9 +1644,9 @@ function renderUnlock(){
   const deviceButton=document.querySelector("#deviceUnlockBtn");
   if(deviceButton)deviceButton.onclick=async()=>{
     deviceButton.disabled=true;
-    deviceButton.textContent="Waiting for device…";
+    deviceButton.textContent="Waiting for Face ID or biometric…";
     if(await verifyBiometric()){unlockLocalApp();return;}
-    unlockError="Device unlock was cancelled or unavailable. Use your PIN instead.";
+    unlockError="Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.";
     render();
   };
   setTimeout(()=>pinInput.focus(),0);
@@ -2809,14 +2809,14 @@ function renderSettings(){
       <section class="content settings">
         <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
           ${(()=>{const security=getLocalSecurityStatus();return `
-            <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Device unlock enabled":""}</span></div>
+            <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Face ID or biometric enabled":""}</span></div>
             <label class="form-label" for="lockTimeoutSelect">Lock after inactivity</label>
             <select class="text-input" id="lockTimeoutSelect">${LOCK_TIMEOUTS.map(x=>`<option value="${x.value}" ${security.timeoutMs===x.value?"selected":""}>${esc(x.label)}</option>`).join("")}</select>
             ${security.hasPin?`
-              <button class="secondary" id="${security.hasBiometric?"disableBiometricBtn":"enableBiometricBtn"}" style="margin-top:10px">${security.hasBiometric?"Disable Device Unlock":"Enable Device Unlock"}</button>
+              <button class="secondary" id="${security.hasBiometric?"disableBiometricBtn":"enableBiometricBtn"}" style="margin-top:10px">${security.hasBiometric?"Disable Face ID or Biometric":"Enable Face ID or Biometric"}</button>
               <button class="secondary" id="lockNowBtn" style="margin-top:10px">Lock Now</button>
             `:'<p class="small-note">Create your one six-digit FIDUNIO PIN in the Security section.</p>'}
-            <p class="small-note">Your PIN is never stored. Device unlock uses the secure capability provided by your browser and device.</p>
+            <p class="small-note">Your PIN is never stored. Face ID or biometric unlock uses the secure capability provided by your browser and device.</p>
             ${localSecurityMessage?`<p class="${localSecurityMessageIsError?"warning-note":"small-note"}">${esc(localSecurityMessage)}</p>`:""}
           `})()}
           ${settingRow("Notification message previews","previews")}
@@ -2942,14 +2942,14 @@ function renderSettings(){
   };
   const enableBiometricBtn=document.querySelector("#enableBiometricBtn");
   if(enableBiometricBtn)enableBiometricBtn.onclick=async()=>{
-    enableBiometricBtn.disabled=true;enableBiometricBtn.textContent="Waiting for device…";
-    try{await enrollBiometric();setLocalSecurityMessage("Device unlock enabled.");render();}
+    enableBiometricBtn.disabled=true;enableBiometricBtn.textContent="Waiting for Face ID or biometric…";
+    try{await enrollBiometric();setLocalSecurityMessage("Face ID or biometric unlock enabled.");render();}
     catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const disableBiometricBtn=document.querySelector("#disableBiometricBtn");
   if(disableBiometricBtn)disableBiometricBtn.onclick=async()=>{
     disableBiometricBtn.disabled=true;
-    try{await disableBiometric();setLocalSecurityMessage("Device unlock disabled. PIN remains available.");render();}
+    try{await disableBiometric();setLocalSecurityMessage("Face ID or biometric unlock disabled. PIN remains available.");render();}
     catch(err){setLocalSecurityMessage(err?.message||String(err),true);render();}
   };
   const lockNowBtn=document.querySelector("#lockNowBtn");

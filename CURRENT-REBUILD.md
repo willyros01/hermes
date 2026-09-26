@@ -586,3 +586,14 @@ During final Item 9 device acceptance, add/remove/re-add and join-time history b
 ## FIDUNIO 1.1.49 — Item 9 exact history timestamp correction
 
 Real-device retest proved 1.1.48 still returned Firestore `Missing or insufficient permissions` for History access → From beginning. Further review found the grant builder converted each authoritative Firestore `createdAt` Timestamp through JavaScript `Date` before writing `firstSharedAt` and copy `sourceCreatedAt`. Firestore history-grant rules intentionally require exact equality with the retained source message timestamp; Date conversion can discard sub-millisecond Timestamp precision and therefore fail the rule even for a valid E2EE-v4 source. 1.1.49 keeps a Date only for local boundary comparison/sorting, while preserving the original authoritative Firestore Timestamp object for all grant/copy writes. The public runtime return remains a Date. No Firestore rules/backend, membership transaction, epoch rotation, message visibility, receipts, notifications, PIN, attachments, deletion, reaction, or normal E2EE send path changed. Device re-acceptance remains required.
+
+
+## FIDUNIO 1.1.55 — biometric unlock and iPad Security panel
+
+The WebAuthn assertion already requests the exact enrolled credential, restricts it to the internal platform authenticator, and requires user verification. This is the narrowest browser-supported path toward Face ID or biometric verification. Apple/Safari may still display its system authentication interface; FIDUNIO does not bypass operating-system security UI.
+
+The unlock control now reads **Unlock with Face ID or Biometric**. Enable, disable, status, and fallback messages use the same terminology. The six-digit FIDUNIO PIN remains available as fallback.
+
+The missing iPad **Privacy & Access** card was caused by FIDUNIO Settings ownership, not biometric capability detection. The Security panel existed, but its group definition did not claim the Privacy & Access card, so the generic Settings fallback moved that card under General. Security now explicitly owns Privacy & Access on all layouts.
+
+No Firebase, E2EE, notification, message, attachment, group, account-vault, or PIN-verification authority changed. Regression coverage is in biometric-unlock.test.mjs.
