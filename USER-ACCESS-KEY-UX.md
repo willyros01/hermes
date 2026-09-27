@@ -35,3 +35,8 @@ The candidate implements one ordinary **Security** area. New PINs are exactly si
 Device Identity, separate Account Encryption navigation, fingerprints, key identifiers, independent local-PIN controls, and Firebase-specific account wording are removed from ordinary Settings. The app shows **Account**, **FIDUNIO PIN**, optional device unlock, and **End-to-end encryption: On**.
 
 An existing installation whose prior PINs differ fails closed. It requires a separately reviewed migration or controlled clean-account reset; the app never guesses or replaces an identity. Full gates and device acceptance remain required.
+
+
+## 1.1.56 biometric wording consistency
+
+All normal returning biometric unlock surfaces use the user-facing label **Unlock with Face ID or Biometric**. This is terminology only: the enrolled platform WebAuthn credential remains the biometric owner, Apple/browser security UI remains authoritative, and the six-digit FIDUNIO PIN remains the fallback. The remembered-session authentication renderer and main application lock renderer must stay covered by the same permanent regression gate.
