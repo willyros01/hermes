@@ -433,3 +433,7 @@ The service worker persists the validated opaque route locally before notificati
 - **1.1.31 correction:** Restore the direct listener projection and direct staging boundaries exactly to their 1.1.29 form. Keep the reservation owner group-only.
 - **Permanent boundary:** The group-only gate fails if the owner appears in direct subscription projection or unconditional direct staging.
 - **Status:** CORRECTION CANDIDATE pending full validation, deployment and direct device acceptance.
+
+
+### FDA-BIO-001 — returning-session biometric label — 1.1.56
+1.1.55 updated the main lock screen but missed the separate remembered-session authentication renderer, leaving **Unlock with device** visible despite the correct release version. 1.1.56 updates only that existing auth UI wording, advances the shell revision, and extends permanent regression coverage to both unlock paths. Device acceptance is pending; PIN, WebAuthn semantics, E2EE, Firebase, messaging and notification ownership are unchanged.
