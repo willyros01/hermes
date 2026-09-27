@@ -108,7 +108,7 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   const saved=identity?await readLocalAccountE2EEIdentity(user.uid,identity):null;
   const security=getLocalSecurityStatus();
   if(saved){
-    authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with device</button>':""}<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="${security.hasBiometric?"secondary":"primary"}" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
+    authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with Face ID or Biometric</button>':""}<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="${security.hasBiometric?"secondary":"primary"}" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   }else{
     const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
     authShell(`<p class="small-note">${hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
@@ -130,10 +130,10 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   };
   const deviceBtn=document.querySelector("#sessionDeviceBtn");
   if(deviceBtn)deviceBtn.onclick=async()=>{
-    deviceBtn.disabled=true;deviceBtn.textContent="Waiting for device…";
+    deviceBtn.disabled=true;deviceBtn.textContent="Waiting for Face ID or biometric…";
     if(await verifyBiometric()){restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();await startApp();return;}
-    document.querySelector("#sessionNote").innerHTML='<p class="warning-note">Device unlock was cancelled or unavailable. Use your PIN instead.</p>';
-    deviceBtn.disabled=false;deviceBtn.textContent="Unlock with device";
+    document.querySelector("#sessionNote").innerHTML='<p class="warning-note">Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.</p>';
+    deviceBtn.disabled=false;deviceBtn.textContent="Unlock with Face ID or Biometric";
   };
   document.querySelector("#sessionSignOutBtn").onclick=async()=>{
     resetAccountE2EEForSignOut();
