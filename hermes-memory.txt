@@ -1006,3 +1006,15 @@ During final Item 9 device acceptance, add/remove/re-add and join-time history b
 ## FIDUNIO 1.1.49 — Item 9 exact history timestamp correction
 
 Real-device retest proved 1.1.48 still returned Firestore `Missing or insufficient permissions` for History access → From beginning. Further review found the grant builder converted each authoritative Firestore `createdAt` Timestamp through JavaScript `Date` before writing `firstSharedAt` and copy `sourceCreatedAt`. Firestore history-grant rules intentionally require exact equality with the retained source message timestamp; Date conversion can discard sub-millisecond Timestamp precision and therefore fail the rule even for a valid E2EE-v4 source. 1.1.49 keeps a Date only for local boundary comparison/sorting, while preserving the original authoritative Firestore Timestamp object for all grant/copy writes. The public runtime return remains a Date. No Firestore rules/backend, membership transaction, epoch rotation, message visibility, receipts, notifications, PIN, attachments, deletion, reaction, or normal E2EE send path changed. Device re-acceptance remains required.
+
+
+## FIDUNIO 1.1.55 — biometric unlock and iPad Security panel
+
+1.1.55 preserved the existing exact enrolled WebAuthn credential path, internal platform authenticator and required user verification, changed the main application biometric wording to **Unlock with Face ID or Biometric**, and assigned **Privacy & Access** explicitly to the Settings **Security** group so the iPad panel is no longer displaced to General. Six-digit PIN fallback and all security authorities remained unchanged. Device testing later exposed that the separate remembered-session authentication surface still retained the old **Unlock with device** label; that follow-up is FDA-BIO-001 / 1.1.56.
+
+
+## FIDUNIO 1.1.56 — returning-session biometric label completion
+
+Real-device acceptance of 1.1.55 exposed FDA-BIO-001: the installed PWA showed the correct 1.1.55 version but the remembered-session authentication surface still said **Unlock with device**. Source review found two independent unlock render paths. The main application lock screen had been updated, while the existing `auth-ui-clean.js` returning-session owner retained the old label and fallback text.
+
+Version 1.1.56 changes only that existing authentication surface to **Unlock with Face ID or Biometric**, **Waiting for Face ID or biometric…**, and the matching biometric fallback message. The existing WebAuthn credential selection, platform-authenticator requirement, user-verification requirement, six-digit PIN fallback, account E2EE restoration, Firebase/auth lifecycle, messaging, receipts, Outbox, notifications, groups, attachments, Settings ownership and protected configuration are unchanged. The permanent biometric gate now covers both unlock render paths. Shell revision advances to `1.1.56-auth-biometric-label` so the installed PWA receives the corrected module.
