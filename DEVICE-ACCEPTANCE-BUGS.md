@@ -449,3 +449,15 @@ Exit: only the authenticated sender's accepted rows are physically absent everyw
 ### FDA-GROUP-006 follow-up — 1.1.49 exact timestamp repair
 
 The 1.1.48 source-format filter did not clear the device failure. Root cause review found exact Timestamp authority was being weakened by `Timestamp -> Date -> Timestamp` conversion before history grant writes. Firestore rules compare `firstSharedAt` / `sourceCreatedAt` to the retained source message `createdAt` exactly, so lost sub-millisecond precision can produce the observed generic permission denial. 1.1.49 preserves the original Firestore Timestamp for grant and copy writes and uses a derived Date only for local sorting/boundary checks. Status remains FIX CANDIDATE; repeat From beginning on the same real-device group before any selected-date testing.
+
+
+## FDA-BIO-001 — returning-session biometric label missed by 1.1.55
+
+- **Build/device:** FIDUNIO 1.1.55, installed iOS/iPadOS PWA.
+- **Observed:** visible version was 1.1.55, but the remembered-session authentication screen still displayed **Unlock with device**.
+- **Expected:** every biometric unlock surface uses **Unlock with Face ID or Biometric** and matching progress/fallback wording.
+- **Cause:** 1.1.55 updated the main application lock renderer but not the separate existing returning-session renderer in `auth-ui-clean.js`.
+- **Repair allocation:** FIDUNIO 1.1.56 updates only the returning-session biometric wording and extends the permanent biometric regression gate to both render owners. Shell revision changes so the installed PWA receives the corrected file.
+- **Protected boundaries:** no WebAuthn credential semantics, PIN verification/storage, account E2EE restoration, Firebase/auth, message, receipt, Outbox, notification, group, attachment, Settings, backend, rules or protected configuration changes.
+- **Acceptance:** after two complete launches, confirm 1.1.56; background/return to the remembered-session unlock screen; confirm **Unlock with Face ID or Biometric**; tap it and confirm the streamlined Face ID/biometric system flow; cancel once and confirm the six-box PIN fallback remains usable. Repeat on iPhone and iPad. Also confirm iPad Settings → Security still contains **Privacy & Access**.
+- **Status:** 1.1.56 REPOSITORY CANDIDATE; device acceptance pending.
