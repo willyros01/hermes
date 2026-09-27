@@ -103,6 +103,7 @@ jobs:
       - {name: iPad RC stabilization gate, run: npm run test:ipad-rc-stabilization}
       - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}
       - {name: PIN and direct-attachment forward progress, run: npm run test:pin-attachment-forward-progress}
+      - {name: FIDUNIO biometric unlock wording and Security panel, run: node biometric-unlock.test.mjs}
       - {name: LTE optimistic outgoing-message visibility and snapshot retention, run: npm run test:lte-optimistic-message && node optimistic-outgoing-projection.test.mjs}
       - {name: Issue 3 iPhone composer and video source, run: npm run test:issue3-iphone-ui}
       - {name: Audio source chooser and recorder, run: npm run test:audio-source-recorder}
