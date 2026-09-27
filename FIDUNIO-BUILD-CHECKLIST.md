@@ -1063,3 +1063,10 @@ The unlock control now reads **Unlock with Face ID or Biometric**. Enable, disab
 The missing iPad **Privacy & Access** card was caused by FIDUNIO Settings ownership, not biometric capability detection. The Security panel existed, but its group definition did not claim the Privacy & Access card, so the generic Settings fallback moved that card under General. Security now explicitly owns Privacy & Access on all layouts.
 
 No Firebase, E2EE, notification, message, attachment, group, account-vault, or PIN-verification authority changed. Regression coverage is in biometric-unlock.test.mjs.
+
+
+## FIDUNIO 1.1.56 — returning-session biometric label completion
+
+Real-device acceptance of 1.1.55 exposed FDA-BIO-001: the installed PWA showed the correct 1.1.55 version but the remembered-session authentication surface still said **Unlock with device**. Source review found two independent unlock render paths. The main application lock screen had been updated, while the existing `auth-ui-clean.js` returning-session owner retained the old label and fallback text.
+
+Version 1.1.56 changes only that existing authentication surface to **Unlock with Face ID or Biometric**, **Waiting for Face ID or biometric…**, and the matching biometric fallback message. The existing WebAuthn credential selection, platform-authenticator requirement, user-verification requirement, six-digit PIN fallback, account E2EE restoration, Firebase/auth lifecycle, messaging, receipts, Outbox, notifications, groups, attachments, Settings ownership and protected configuration are unchanged. The permanent biometric gate now covers both unlock render paths. Shell revision advances to `1.1.56-auth-biometric-label` so the installed PWA receives the corrected module.
