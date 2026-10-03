@@ -1,0 +1,52 @@
+name: Native iOS branch preflight
+
+on:
+  push:
+    branches: [ios]
+  pull_request:
+    branches: [ios]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-native-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify native architecture files
+        run: |
+          test -f IOS-NATIVE-ARCHITECTURE.md
+          test -f IOS-MIGRATION-CHECKLIST.md
+          test -f ios/README.md
+          grep -q 'main.*production web/PWA' IOS-NATIVE-ARCHITECTURE.md
+          grep -q 'same account E2EE identity' IOS-NATIVE-ARCHITECTURE.md
+
+      - name: Protect Firebase web configuration
+        run: |
+          git fetch origin main --depth=1
+          test ! -e config-firestore.js
+          git diff --exit-code origin/main -- firebase-config.js
+
+      - name: Confirm iOS branch cannot publish Pages through repository workflows
+        run: |
+          if grep -R --include='*.yml' --include='*.yaml' -nE 'branches:[[:space:]]*\[[^]]*ios[^]]*\]' .github/workflows | grep -Ei 'pages|deploy-pages'; then
+            echo 'An iOS-triggered Pages deployment workflow was found.'
+            exit 1
+          fi
+          echo 'No iOS-triggered Pages deployment workflow found.'
+
+      - name: Report preparation state
+        run: |
+          echo 'PASS: native iOS branch preparation boundaries are intact.'
+          echo 'The full Rebuild Baseline Security Gate runs separately on ios.'
