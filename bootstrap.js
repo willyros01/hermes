@@ -1,5 +1,7 @@
+import {shouldUseWebServiceWorker} from "./platform-runtime.js";
 /* FIDUNIO deterministic bootstrap. Account/auth owners run before app.js. */
 export async function ensureFidunioServiceWorker(){
+  if(!shouldUseWebServiceWorker())throw new Error("The web service worker is not used inside the FIDUNIO iOS app.");
   if(!("serviceWorker" in navigator))throw new Error("Service workers are not supported on this device/browser.");
   const registration=await navigator.serviceWorker.register("./service-worker.js",{scope:"./",type:"module"});
   await registration.update().catch(()=>{});
@@ -15,7 +17,7 @@ export function getFidunioServiceWorkerRegistration(){
 /* Start service-worker ownership immediately, but do not block secure app startup.
    Notification registration awaits navigator.serviceWorker.ready after this owner
    has deterministically established the registration. */
-getFidunioServiceWorkerRegistration().catch(err=>console.warn("FIDUNIO service worker registration failed",err));
+if(shouldUseWebServiceWorker())getFidunioServiceWorkerRegistration().catch(err=>console.warn("FIDUNIO service worker registration failed",err));
 
 document.addEventListener("click",event=>{
   const button=event.target.closest?.("button");
