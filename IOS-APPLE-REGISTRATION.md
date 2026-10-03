@@ -1,6 +1,6 @@
 # FIDUNIO iOS Apple Registration Authority
 
-**Status:** Apple App ID and App Store Connect record verified — API credential loading and read-only API verification pending  
+**Status:** Apple registration and read-only API verification PASS — Hermes GitHub secret provisioning pending  
 **Repository:** `willyros01/hermes`  
 **Branch:** `ios`
 
@@ -106,3 +106,16 @@ Verified in Apple Developer and App Store Connect through the authenticated brow
 - Re-read GitHub job results: iOS preflight `37139976180`, Rebuild Baseline Security Gate `37139976192`, and Capacitor Simulator shell `37139976206` all completed successfully. These are existing pre-registration runs, not new Apple API validation.
 
 No build was uploaded. Export compliance remains undetermined for FIDUNIO E2EE. This registration changed no live Firebase backend, App Check enforcement, production web runtime, or `main` branch.
+
+
+### Existing credential verification — 2026-10-03
+
+The user identified the existing iCloud Fairpot Keys folder. The original local private-key file for active key `48475DA2L4` was available. The exact existing `build/asc.mjs check` was fetched from `ios` and executed locally using the bundled modern Node runtime with that key. It exited 0:
+
+- Apple accepted the API key.
+- Exact FIDUNIO Bundle ID and Team ID matched.
+- Enabled capabilities reported `IN_APP_PURCHASE, PUSH_NOTIFICATIONS` only.
+- FIDUNIO app name, SKU `fidunio-ios-001`, and locale `en-US` matched.
+- Result: Phase 2 Apple setup is ready.
+
+No private key was printed, committed, or pasted in chat. Hermes GitHub Actions secrets are not yet verified or provisioned: the browser requires GitHub sign-in. Expected secret names remain `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, and `APPLE_TEAM_ID`. Do not treat API verification as proof of repository-secret readiness.
