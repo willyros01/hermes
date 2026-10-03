@@ -1073,7 +1073,7 @@ Version 1.1.56 changes only that existing authentication surface to **Unlock wit
 ## Native iOS coexistence preparation — 2026-10-03
 
 - **APPROVED:** one repository with `main` for live web/PWA + shared backend authority and `ios` for native development.
-- **APPROVED:** native Swift/SwiftUI client, not Capacitor/webview.
+- **APPROVED:** Scorecard-style **Capacitor + shared HTML/CSS/JavaScript** iOS distribution with minimum code drift; Swift/native code is limited to bounded platform bridges/configuration.
 - **REQUIRED:** same Firebase UID/account and same account E2EE identity/keyId across web and iOS.
 - **REQUIRED:** Rebuild Baseline Security Gate on both `main` and `ios`; GitHub Pages remains `main` only.
 - **REQUIRED:** shared Firebase/rules/Functions/E2EE contract changes must pass web+iOS interoperability validation before reconciliation to `main`.
