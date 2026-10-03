@@ -1,28 +1,31 @@
-# FIDUNIO Native iOS
+# FIDUNIO iOS — Capacitor workspace
 
-This directory is the native iOS client workspace for FIDUNIO.
+This directory is the iOS-specific workspace for the FIDUNIO Capacitor distribution.
 
 ## Branch authority
 
-- Develop native iOS code on the repository `ios` branch.
-- `main` remains the production web/PWA and shared Firebase/backend authority.
-- This client must interoperate with the same Firebase UID/account, message/group/storage contracts and account E2EE identity used by the web client.
-- Do not copy browser-local state as account authority.
+- Develop iOS packaging/native integration on the repository `ios` branch.
+- `main` remains the production web/PWA and shared application/Firebase authority.
+- The established root HTML/CSS/JavaScript application is the primary codebase for both web and iOS.
+- Keep shared JavaScript synchronized with `main`; do not fork messaging, E2EE, Outbox, groups, attachments, recovery or deletion into separate Swift implementations.
 - Do not create a second Firebase backend or alternate message schema.
 
 ## Technology target
 
-- Swift + SwiftUI.
-- Firebase Apple SDKs.
-- CryptoKit / Security / Keychain.
-- LocalAuthentication for Face ID/Touch ID.
-- UserNotifications + Firebase Messaging.
-- App Attest/DeviceCheck for native App Check when activated.
+- Capacitor packages the existing FIDUNIO web application for iOS.
+- JavaScript remains the application/business/security logic wherever practical.
+- Native Swift/Objective-C is limited to narrow Capacitor bridges and required iOS configuration.
+- iOS-only capabilities are hidden behind JavaScript-facing platform adapters:
+  - LocalAuthentication for Face ID/Touch ID.
+  - Keychain/Secure Enclave where native secure storage is required.
+  - APNs/FCM native notification lifecycle.
+  - Native file/share/lifecycle/network integrations where they improve reliability.
+  - App Attest/DeviceCheck for native Firebase App Check when activated.
 
-FIDUNIO native iOS is not planned as a Capacitor or webview wrapper.
+The goal is the same model that has worked well for Scorecard: **one web codebase, minimal branch drift, iOS-specific native integration behind a thin boundary.**
 
 ## Current phase
 
-Phase 0 only: architecture, branch safety and CI preparation.
+Phase 0/early Phase 1 preparation only.
 
-No Xcode project, bundle identifier, Apple signing, Firebase iOS registration or TestFlight upload should be created until the Phase 1 prerequisites in `../IOS-MIGRATION-CHECKLIST.md` are explicitly satisfied.
+Before TestFlight work, follow `../IOS-MIGRATION-CHECKLIST.md`: pin Capacitor versions, define the explicit iOS web-asset allow-list, add the Capacitor config/build pipeline, then establish Apple/Firebase identifiers and signing.
