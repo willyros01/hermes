@@ -35,3 +35,10 @@ Adapt the structure to FIDUNIO owners; do not copy Scorecard application tests/a
 No finite suite catches everything. This suite exercises unauthenticated startup and existing regression/emulator owners; it does not yet prove signed-in real iPhone E2EE continuity, production uploads, biometric/native push, native lifecycle/background behavior or external beta-review acceptance. IOS-STARTUP-001 and IOS-ICON-001 remain device-open until repeated user acceptance on the uploaded build.
 
 Checkpoint: local module/platform/PIN/ownership/Apple-spec gates pass. Local browser process launch is sandbox-blocked; GitHub browser results pending. TestFlight run 37159557103 cancelled before signing/upload on the user's explicit request.
+
+
+### Verified 1.1.57 pre-upload checkpoint — 2026-10-03
+
+All four required workflows succeeded at `19d1a2911441913ad5c048bae839fd5b990d3b2e`: native preflight `37161083339`, complete security baseline `37161083345`, Chromium AND WebKit browser regression suite `37161083342`, and actual Capacitor iOS Simulator startup `37161083343`. Simulator OCR explicitly confirmed FIDUNIO 1.1.57 with Sign In/Email/Password; artifact `11287488574` stores screenshot and screen text. The apparent log stall was a redirected second compilation (23:20:45 → 23:24:33 UTC), not proof of an app hang. The workflow now installs its already-compiled simulator app and prints stage progress; test-only browser harness edits no longer request unnecessary Simulator recompilation. Those workflow changes must still pass the release's exact-commit checks.
+
+The new release marker (revision 3) requests one gated 1.1.57 upload after all four checks at its source commit succeed. Cancelled run 2 submitted nothing. Upload/Apple processing/internal-group distribution results remain pending until verified. IOS-STARTUP-001 and IOS-ICON-001 stay user-device OPEN. This is no new acceptance credit and no change to main/production Firebase/App Check enforcement/E2EE protocols.
