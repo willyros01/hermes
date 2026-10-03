@@ -30,7 +30,7 @@ jobs:
           test -f IOS-MIGRATION-CHECKLIST.md
           test -f ios/README.md
           grep -q 'main.*production web/PWA' IOS-NATIVE-ARCHITECTURE.md
-          grep -q 'same account E2EE identity' IOS-NATIVE-ARCHITECTURE.md
+          grep -q 'one account encryption identity' IOS-NATIVE-ARCHITECTURE.md
 
       - name: Protect Firebase web configuration
         run: |
