@@ -7,3 +7,6 @@ firebase-debug.*.log
 .DS_Store
 /www/
 /ios/
+
+/browser-release-evidence/
+/startup-evidence/

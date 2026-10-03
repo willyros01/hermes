@@ -64,6 +64,8 @@ test "$(pb CFBundleDisplayName)" = FIDUNIO
 test "$(pb CFBundleShortVersionString)" = "$VERSION"
 test "$(pb CFBundleVersion)" = "$BUILD"
 test "$(pb ITSAppUsesNonExemptEncryption)" = false
+test "$(pb CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName)" = AppIcon
+test -s "$APP/Assets.car"
 codesign --verify --deep --strict "$APP"
 codesign -dv "$APP" 2> "$TASK_DIR/signature.txt"
 grep -qx 'TeamIdentifier=VXMLKHF72B' "$TASK_DIR/signature.txt"

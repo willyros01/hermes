@@ -27,7 +27,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           node --input-type=module <<'JS'
-          const required=["ios-native-checks.yml","ios-capacitor-shell.yml","rebuild-baseline-security.yml"];
+          const required=["ios-native-checks.yml","ios-capacitor-shell.yml","rebuild-baseline-security.yml","ios-browser-release.yml"];
           for(let i=0;i<100;i++){
             const res=await fetch("https://api.github.com/repos/"+process.env.REPO+"/actions/runs?head_sha="+process.env.HEAD_SHA+"&per_page=100",{headers:{Authorization:"Bearer "+process.env.GH_TOKEN,Accept:"application/vnd.github+json"}});
             if(!res.ok)throw new Error("GitHub checks API "+res.status);
