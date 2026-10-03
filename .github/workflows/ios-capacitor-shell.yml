@@ -14,6 +14,7 @@ on:
       - '*.png'
       - 'manifest.json'
       - '.github/workflows/ios-capacitor-shell.yml'
+      - 'IOS-EXPORT-COMPLIANCE.md'
   workflow_dispatch:
 
 permissions:
@@ -46,6 +47,8 @@ jobs:
           test -f ios/App/App/public/index.html
           test -f ios/App/App/public/app.js
           test -f ios/App/App/public/firebase.js
+      - name: Apply assessed FIDUNIO export-compliance declaration
+        run: node build/apply-ios-export-compliance.mjs
       - name: Compile unsigned iOS simulator shell
         run: |
           xcodebuild \
