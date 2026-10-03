@@ -1,4 +1,4 @@
-name: Native iOS branch preflight
+name: Capacitor iOS branch preflight
 
 on:
   push:
@@ -30,7 +30,8 @@ jobs:
           test -f IOS-MIGRATION-CHECKLIST.md
           test -f ios/README.md
           grep -q 'main.*production web/PWA' IOS-NATIVE-ARCHITECTURE.md
-          grep -q 'one account encryption identity' IOS-NATIVE-ARCHITECTURE.md
+          grep -q 'Capacitor + shared JavaScript' IOS-MIGRATION-CHECKLIST.md
+grep -q 'minimum code drift' IOS-NATIVE-ARCHITECTURE.md
 
       - name: Protect Firebase web configuration
         run: |
@@ -48,5 +49,5 @@ jobs:
 
       - name: Report preparation state
         run: |
-          echo 'PASS: native iOS branch preparation boundaries are intact.'
+          echo 'PASS: Capacitor iOS branch preparation boundaries are intact.'
           echo 'The full Rebuild Baseline Security Gate runs separately on ios.'
