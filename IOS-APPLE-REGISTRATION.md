@@ -140,3 +140,20 @@ This supersedes the earlier limitation that stored GitHub credentials had not be
 ### Independent export-compliance assessment — 2026-10-03
 
 The earlier export-compliance hold is superseded for the current OS-provided Web Crypto iOS shell by `IOS-EXPORT-COMPLIANCE.md`. This is not a claim that the app lacks E2EE, or that Apple has issued an approval/code. The app-document upload wizard was cancelled because its offered non-OS/proprietary categories did not match the reviewed implementation. No compliance document or legal attestation was submitted. First uploaded-build processing still needs verification.
+
+
+## First signed TestFlight upload — 2026-10-03
+
+- Source commit: `9b5efe5f9db91a80c93e2cd0b67b2bb17b1e8a50`, branch `ios`.
+- Native preflight `37157601961`, Simulator shell `37157601999`, full security baseline `37157601978`: SUCCESS before upload.
+- TestFlight workflow `37157602057` produced and uploaded version `1.1.56`, build `1`.
+- The exported distribution signature, Team ID, provisioning profile application identifier, bundle ID, display name, version/build, and `ITSAppUsesNonExemptEncryption=false` passed the archive audit. All 98 allow-listed shared payload assets matched byte-for-byte.
+- The existing read-only Apple verifier and exact app ID/SKU identity check passed using GitHub secrets.
+- Private key was confined to a temporary runner file with restrictive permissions and EXIT cleanup; no key or signed archive was committed or published as a GitHub artifact.
+- This is a first installation-test shell, using the generated Capacitor icon/splash. FIDUNIO native branding, LocalAuthentication and APNs/FCM integrations remain unfinished; PIN is the shell unlock method. Native camera/microphone purpose descriptions support the existing user-initiated messaging capture features.
+- Existing main head `b485b6252279921f8bf9a7fe2f95dbb0b0af83e2` was inspected. Shared runtime differences remain the documented platform compatibility boundaries; no new main/backend changes were made.
+
+- Apple processing completed `VALID` at 2026-10-03 22:19:07 UTC. Build ID `4273f40c-2550-4016-982e-43b43c4e320f`; Apple reported `usesNonExemptEncryption=false`.
+- TestFlight workflow `37157602057`: SUCCESS. This is processing success, not App Store review or device/interoperability acceptance.
+
+- App Store Connect lists `1.1.56 (1)` as Ready to Submit. No groups or individual testers are assigned; tester invitations and real-device installation remain the next step. FIDUNIO-specific What to Test notes were prepared in App Store Connect.

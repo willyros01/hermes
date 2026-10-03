@@ -39,7 +39,7 @@
 - [ ] Register the iOS app in the existing Firebase project as needed for native integrations.
 - [ ] Handle `GoogleService-Info.plist` safely if required by selected native Firebase plugins.
 - [x] Enable Push Notifications only as the selected initial capability; Apple includes its disabled In-App Purchase default.
-- [x] Existing read-only `build/asc.mjs check` passed locally using the verified credentials; execution from GitHub secrets remains unverified.
+- [x] Existing read-only `build/asc.mjs check` passed locally using the verified credentials; GitHub secret execution passed in runs `37156481701` and `37157602057`.
 
 ## Phase 3 — shared platform-adapter contracts
 
@@ -95,7 +95,7 @@
 
 ## Phase 8 — TestFlight and branch synchronization
 
-- [ ] Add deterministic iOS build/audit/TestFlight workflow modeled on Scorecard.
+- [x] Add deterministic iOS build/audit/TestFlight workflow modeled on Scorecard, with exact-commit required checks and a distribution-signed archive audit.
 - [ ] Before each iOS candidate, synchronize accepted shared `main` changes into `ios`.
 - [ ] Shared fixes found on iOS are reconciled to `main`, gated there, then synchronized back to `ios`.
 - [ ] Keep iOS-only native/plugin/build files isolated.
@@ -148,6 +148,11 @@ See `IOS-APPLE-REGISTRATION.md` for verified Apple identity, capability, credent
 - [x] Consult current Apple documentation and WebKit's native Web Crypto implementation documentation.
 - [x] Record current iOS OS-provided encryption / documentation-exempt self-assessment in `IOS-EXPORT-COMPLIANCE.md`.
 - [x] Apply `ITSAppUsesNonExemptEncryption=false` to generated iOS Info.plist via a dedicated post-sync build script.
-- [ ] Verify first uploaded TestFlight archive declaration and App Store Connect compliance processing.
+- [x] Verify first uploaded TestFlight archive declaration and App Store Connect compliance processing: `1.1.56 (1)`, workflow `37157602057` SUCCESS; Apple `VALID`, `usesNonExemptEncryption=false`.
 
 No non-OS encryption documentation was uploaded and no Apple approval/code is claimed. Reassess if encryption implementations, protocols or runtime change.
+
+
+## First TestFlight build — 2026-10-03
+
+Version `1.1.56`, build `1`, uploaded from `ios` commit `9b5efe5f9db91a80c93e2cd0b67b2bb17b1e8a50`. Exact-commit preflight, Simulator compilation and full security baseline passed before upload. Apple processed build ID `4273f40c-2550-4016-982e-43b43c4e320f` as VALID. Device installation, same-account/E2EE coexistence, native branding, Face ID and APNs/FCM acceptance remain open. Do not count TestFlight upload as feature completion.
