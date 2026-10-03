@@ -1,6 +1,6 @@
 # FIDUNIO iOS Apple Registration Authority
 
-**Status:** Phase 2 registration specification prepared — Apple account mutation pending authenticated Mac/Work session  
+**Status:** Apple App ID and App Store Connect record verified — API credential loading and read-only API verification pending  
 **Repository:** `willyros01/hermes`  
 **Branch:** `ios`
 
@@ -84,3 +84,25 @@ Phase 2 is complete only when all applicable items are verified:
 Before the first uploaded build, Apple allows more flexibility around the app record's Bundle ID, but the Bundle ID becomes fixed after a build is uploaded. The SKU cannot be changed after the app is added. Therefore verify the exact Bundle ID and SKU before creating/uploading the first build.
 
 Apple capabilities can be added later. Keep the initial set minimal rather than pre-enabling speculative services.
+
+
+## Authenticated Apple registration checkpoint — 2026-10-03
+
+Verified in Apple Developer and App Store Connect through the authenticated browser:
+
+- Apple Developer Team ID: `VXMLKHF72B`.
+- Registered explicit App ID description: FIDUNIO.
+- Bundle ID: `io.github.willyros01.fidunio`.
+- Push Notifications selected and enabled at registration. All other selectable capabilities were unchecked; Apple automatically selected its disabled In-App Purchase default. No additional capability was deliberately enabled.
+- App Store Connect app name: FIDUNIO.
+- Apple app ID: `6818880685`.
+- Platform: iOS.
+- Primary language: English (U.S.).
+- Immutable SKU: `fidunio-ios-001`.
+- Existing individual account has one Account Holder/Admin with All Apps access; the new record used the available Full Access option.
+- Issuer ID: `6f5d8bf7-437f-4729-b96a-036729b03ee8`.
+- Existing active team API keys were listed, but their original private-key material has not been verified or loaded into Hermes. Credential readiness is pending.
+- Read existing `build/asc.mjs`: Apple requests are GET-only; authenticated API execution remains pending credentials.
+- Re-read GitHub job results: iOS preflight `37139976180`, Rebuild Baseline Security Gate `37139976192`, and Capacitor Simulator shell `37139976206` all completed successfully. These are existing pre-registration runs, not new Apple API validation.
+
+No build was uploaded. Export compliance remains undetermined for FIDUNIO E2EE. This registration changed no live Firebase backend, App Check enforcement, production web runtime, or `main` branch.
