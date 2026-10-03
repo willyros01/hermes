@@ -32,7 +32,7 @@ import {mountInstallGuidance} from "./install-guidance.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
 import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
-import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {fidunioPublicUrl,isNativeIOSRuntime} from "./platform-runtime.js";
 
 let mutationTail=Promise.resolve();
 let generation=0;
@@ -41,10 +41,10 @@ function initials(name){return String(name||"U").trim().split(/\s+/).filter(Bool
 function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Administrator":"User";}
 function profileStatus(p){if(p?.active===false)return p?.status||"deactivated";return p?.status||"active";}
 function dateText(v){const d=v?.toDate?.()||v;if(!d)return"—";try{return new Date(d).toLocaleString();}catch{return String(d);}}
-function guideUrl(){return new URL("./quick-start.html",location.href).href;}
+function guideUrl(){return fidunioPublicUrl("./quick-start.html").href;}
 function inviteSubject(){return "You're invited to join FIDUNIO";}
 function inviteMessage(invite){const inviter=invite.invitedByName||"A FIDUNIO administrator",role=invite.role==="admin"?"Admin":"User";return `You're invited to FIDUNIO — Private Messaging\n\n${inviter} has invited you to join FIDUNIO, an invitation-only private messaging app for one-to-one and group conversations.\n\nYour role: ${role}\nInvitation expires: ${invite.expiresAt.toLocaleString()}\n\nJOIN FIDUNIO\n${invite.link}\n\nThis invitation is personal and can be used only once. After your account is created, the invitation becomes invalid. Please do not forward the invitation link.\n\nQUICK START GUIDE\n${guideUrl()}\n\nThe guide explains account setup, privacy and security basics, messaging, device identity, and PIN/biometric unlocking.\n\nFIDUNIO • Private Messaging`;}
-function recoveryLink(token){const url=new URL("./account-recovery.html",location.href);url.searchParams.set("recovery",token);return url.href;}
+function recoveryLink(token){const url=fidunioPublicUrl("./account-recovery.html");url.searchParams.set("recovery",token);return url.href;}
 function recoverySubject(){return "FIDUNIO account recovery authorization";}
 function recoveryMessage(result){return `FIDUNIO Account Recovery\n\nAn administrator has authorized account recovery for ${result.targetDisplayName||result.targetEmail||"your FIDUNIO account"}.\n\nThis authorization expires ${new Date(result.expiresAtMs).toLocaleString()} and can be used only once.\n\nRECOVER ACCOUNT\n${recoveryLink(result.token)}\n\nUse the recovery page to reset/sign in with your own account password and enter your existing six-digit FIDUNIO PIN. Your administrator does not receive your password, PIN, encryption key, messages, or attachments.\n\nFIDUNIO • Private Messaging`;}
 
