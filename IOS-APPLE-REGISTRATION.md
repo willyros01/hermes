@@ -157,3 +157,8 @@ The earlier export-compliance hold is superseded for the current OS-provided Web
 - TestFlight workflow `37157602057`: SUCCESS. This is processing success, not App Store review or device/interoperability acceptance.
 
 - App Store Connect lists `1.1.56 (1)` as Ready to Submit. No groups or individual testers are assigned; tester invitations and real-device installation remain the next step. FIDUNIO-specific What to Test notes were prepared in App Store Connect.
+
+
+## Internal tester distribution — 2026-10-03
+
+User explicitly authorized an invitation to their Apple Account email. Created `FIDUNIO Internal Testing`, group ID `2e0a3b20-414a-47eb-b014-f2695a94703e`, automatic distribution OFF. Added only the existing Account Holder/Admin as internal tester; no account role or team-access grant changed. Assigned `1.1.56 (1)`; group build status is `Testing`, and tester status is `Invited` at 2026-10-03 6:25 PM EDT. No device installation/session or interoperability acceptance is claimed. Final documentation checkpoint `73d1e3e964ecf1c2bb493aceda449fae2a6e91e4` passed preflight `37158198686`, Simulator shell `37158198681`, and full security baseline `37158198672`.

@@ -156,3 +156,8 @@ No non-OS encryption documentation was uploaded and no Apple approval/code is cl
 ## First TestFlight build — 2026-10-03
 
 Version `1.1.56`, build `1`, uploaded from `ios` commit `9b5efe5f9db91a80c93e2cd0b67b2bb17b1e8a50`. Exact-commit preflight, Simulator compilation and full security baseline passed before upload. Apple processed build ID `4273f40c-2550-4016-982e-43b43c4e320f` as VALID. Device installation, same-account/E2EE coexistence, native branding, Face ID and APNs/FCM acceptance remain open. Do not count TestFlight upload as feature completion.
+
+
+## Internal tester distribution — 2026-10-03
+
+User explicitly authorized an invitation to their Apple Account email. Created `FIDUNIO Internal Testing`, group ID `2e0a3b20-414a-47eb-b014-f2695a94703e`, automatic distribution OFF. Added only the existing Account Holder/Admin as internal tester; no account role or team-access grant changed. Assigned `1.1.56 (1)`; group build status is `Testing`, and tester status is `Invited` at 2026-10-03 6:25 PM EDT. No device installation/session or interoperability acceptance is claimed. Final documentation checkpoint `73d1e3e964ecf1c2bb493aceda449fae2a6e91e4` passed preflight `37158198686`, Simulator shell `37158198681`, and full security baseline `37158198672`.
