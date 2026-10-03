@@ -607,3 +607,10 @@ Version 1.1.56 changes only that existing authentication surface to **Unlock wit
 ## 2026-10-03 — native iOS coexistence Phase 0
 
 The user approved the Scorecard-style **Capacitor + shared JavaScript** model for FIDUNIO iOS coexistence. The dedicated `ios` branch packages and adapts the same established web application rather than reimplementing it in Swift. `main` remains authoritative for the production web/PWA and shared application/backend contracts. iOS-native security/notification/storage/lifecycle integrations are isolated behind JavaScript-facing platform adapters so shared Firebase/E2EE/Outbox/messaging logic has minimal drift. Shared changes are deliberately synchronized between branches; GitHub Pages remains main-only. `IOS-NATIVE-ARCHITECTURE.md` and `IOS-MIGRATION-CHECKLIST.md` define the migration. This architecture correction changes no runtime version or live backend state.
+
+
+## Capacitor iOS Phase 1 completed — 2026-10-03
+
+The dedicated `ios` branch now has a working deterministic Capacitor shell foundation. Capacitor Core/iOS/CLI are pinned to 8.5.2 with a committed npm lockfile. The configured/proposed native application identifier is `io.github.willyros01.fidunio`; Apple/Firebase registration remains Phase 2 and has not been performed by this checkpoint.
+
+The iOS package is assembled from the root shared FIDUNIO HTML/CSS/JavaScript through an explicit `build/www-files.txt` allow-list and `build/prepare-ios-web.mjs`; there is no second application source tree. The generated `www/` and `ios/` trees are ignored build products. `.github/workflows/ios-capacitor-shell.yml` installs the exact lock, verifies the payload, generates a fresh default Capacitor iOS project, syncs it, and compiles an unsigned iOS Simulator shell on macOS 26. Exact Phase 1 validation head `c5cc8e641b9dcdadab17f579ee1db208076145cf`: Capacitor iOS branch preflight run `37137850059` SUCCESS; Rebuild Baseline Security Gate run `37137850079` SUCCESS; Capacitor iOS shell run `37137850047` SUCCESS. No live web runtime version, Firebase backend/rules/Functions, E2EE, messaging, notification or App Check enforcement changed.
