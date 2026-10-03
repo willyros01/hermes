@@ -8,7 +8,7 @@ For every Message Notification, Firebase Cloud Messaging, Web Push, notification
 
 These rules are part of the project architecture. They are not optional style preferences. Every future code change must be checked against this document before implementation.
 
-**Repository authority:** As of 2026-09-07, all changes are made directly on `main`. `fidunio-complete-rebuild` is a historical checkpoint only. Do not restore a mirror, duplicate branch workflow, or two-branch promotion path without new explicit user approval.
+**Repository authority:** As of 2026-09-07, `main` remains the live web/PWA and shared-backend authority. On 2026-10-03 the user explicitly approved one controlled exception: a dedicated `ios` branch for native iOS development in the same repository. The `ios` branch may contain native-client code and iOS-only workflows, but it must not become a mirror of `main`, must not publish GitHub Pages, and must not silently change shared Firebase/E2EE contracts. Shared backend/schema/rules/authority changes require explicit review and promotion/reconciliation with `main`; validated web behavior stays protected. `fidunio-complete-rebuild` remains historical only.
 
 ## 1. Core rule
 
@@ -235,3 +235,15 @@ A pending notification route may be consumed only after the exact target chat ha
 ## Permanent conversation deletion rule — FIDUNIO 1.1.35
 
 Shared conversation deletion must remain server-only through `deleteConversationForEveryoneV1`. Never grant client Firestore delete authority or add a second cleanup path. The server must revalidate direct membership or group ownership, establish the deletion write barrier, delete attachment objects before the Firestore tree, and use the dedicated deletion service identity. A participant installation may purge its encrypted history and Outbox rows only after its own successful callable response or a full server-backed, non-pending conversation-list snapshot proves authoritative absence. Cache-only absence, timers and UI state are not deletion authority. Archive is installation-local encrypted list state and must never mutate the shared conversation.
+
+
+## Native iOS coexistence branch rule — 2026-10-03
+
+- The approved native-development branch is exactly `ios`.
+- `main` remains the production web/PWA authority and the canonical source for shared Firebase backend contracts.
+- Native implementation may live under a dedicated `ios/` directory; this is an explicit exception to the otherwise-flat repository rule.
+- iOS-only implementation must not modify web runtime owners merely to share code. Shared behavior is synchronized through documented backend/data/crypto contracts, not by creating competing runtime owners.
+- The native client must use the same Firebase project/account identity and preserve the same account E2EE identity/keyId through the established recovery authority. It must never silently create a replacement identity for an existing account.
+- Device-local resources remain device-local: Keychain/Secure Enclave/biometrics, APNs/FCM registration, local cache, installation identifiers and native UI state are not cross-restored from the web client.
+- GitHub Pages deployment remains bound to `main`. The `ios` branch may run validation and future TestFlight workflows only.
+- Before any shared Firebase/rules/schema/Functions change developed during iOS work is promoted, web and iOS compatibility must be tested together and the normal durable documents reconciled.
