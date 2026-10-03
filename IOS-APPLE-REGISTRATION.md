@@ -60,11 +60,11 @@ The working Scorecard pipeline uses the same four names. GitHub repository secre
 
 The first Capacitor/TestFlight shell continues to use the existing shared FIDUNIO web Firebase SDK/config inside WKWebView. A native Firebase Apple app registration and `GoogleService-Info.plist` become mandatory when native Firebase Apple SDK services are introduced (notably native FCM/App Check). Register that Apple app against project `fidunio-fef13` with the same Bundle ID; do not create a second Firebase project.
 
-## Export-compliance hold
+## Export-compliance assessment
 
 Do **not** copy Scorecard's `ITSAppUsesNonExemptEncryption = NO` declaration.
 
-FIDUNIO implements application-level end-to-end encryption in shared JavaScript in addition to HTTPS/OS cryptography. Before the first TestFlight upload, answer Apple's current encryption questionnaire for FIDUNIO and record the resulting exempt/non-exempt determination and any required declaration/code. The build pipeline must reflect that determination; it must not guess.
+FIDUNIO implements application-level end-to-end encryption in shared JavaScript in addition to HTTPS/OS cryptography. The current iOS-specific source review and Apple/WebKit documentation support OS-provided encryption, exempt from Apple's documentation-upload requirement. See `IOS-EXPORT-COMPLIANCE.md` for evidence and limits. `build/apply-ios-export-compliance.mjs` applies Boolean `ITSAppUsesNonExemptEncryption=false` after fresh Capacitor generation/sync. This independently reached value must be re-evaluated when encryption implementations change. First uploaded-build compliance processing remains unverified.
 
 ## Phase 2 completion gate
 
@@ -135,3 +135,8 @@ Apple registration scope is complete. Native Firebase registration remains defer
 Added `.github/workflows/ios-apple-verification.yml` on `ios` at `fe589bb734c2201b9d67635defc3f30a49099f4a`. Run `37156481701` successfully executed the registration specification gate and existing read-only Apple verifier using all four repository secrets. Apple accepted the key and confirmed the exact bundle ID, Team ID consistency, Push Notifications, FIDUNIO app name, SKU and `en-US` locale. Capabilities were `IN_APP_PURCHASE, PUSH_NOTIFICATIONS`.
 
 This supersedes the earlier limitation that stored GitHub credentials had not been exercised. Workflow uses contents-read permission, an `ios` branch guard, no dependency installation, a restrictive temporary key file and exit cleanup. It performs no signing, upload, Apple mutation, Firebase mutation or export-compliance declaration. GitHub masks credential values in the logs.
+
+
+### Independent export-compliance assessment — 2026-10-03
+
+The earlier export-compliance hold is superseded for the current OS-provided Web Crypto iOS shell by `IOS-EXPORT-COMPLIANCE.md`. This is not a claim that the app lacks E2EE, or that Apple has issued an approval/code. The app-document upload wizard was cancelled because its offered non-OS/proprietary categories did not match the reviewed implementation. No compliance document or legal attestation was submitted. First uploaded-build processing still needs verification.
