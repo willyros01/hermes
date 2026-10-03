@@ -241,9 +241,11 @@ Shared conversation deletion must remain server-only through `deleteConversation
 
 - The approved native-development branch is exactly `ios`.
 - `main` remains the production web/PWA authority and the canonical source for shared Firebase backend contracts.
-- Native implementation may live under a dedicated `ios/` directory; this is an explicit exception to the otherwise-flat repository rule.
-- iOS-only implementation must not modify web runtime owners merely to share code. Shared behavior is synchronized through documented backend/data/crypto contracts, not by creating competing runtime owners.
-- The native client must use the same Firebase project/account identity and preserve the same account E2EE identity/keyId through the established recovery authority. It must never silently create a replacement identity for an existing account.
-- Device-local resources remain device-local: Keychain/Secure Enclave/biometrics, APNs/FCM registration, local cache, installation identifiers and native UI state are not cross-restored from the web client.
+- The approved iOS implementation model is **Capacitor + shared FIDUNIO HTML/CSS/JavaScript**, following the Scorecard migration method. Do not rewrite established application owners in Swift merely for iOS packaging.
+- iOS-specific Capacitor/native bridge, plugin, signing and build assets may live under dedicated iOS/build areas; this is an explicit exception to the otherwise-flat repository rule.
+- Shared application logic should remain equivalent across `main` and `ios`. Platform differences must be hidden behind bounded JavaScript-facing platform adapters rather than scattered `isIOS` conditionals or duplicate feature owners.
+- Shared fixes accepted on `main` are synchronized into `ios` before iOS release candidates. Shared fixes discovered during iOS testing are reconciled to `main`, gated there, then synchronized back to `ios`. Do not use automatic branch mirroring.
+- The Capacitor client must use the same Firebase project/account identity and preserve the same account E2EE identity/keyId through the established recovery authority. It must never silently create a replacement identity for an existing account.
+- Device-local resources remain device-local: Keychain/Secure Enclave/biometrics, APNs/FCM registration, native lifecycle state and installation identifiers are not cross-restored from the web client.
 - GitHub Pages deployment remains bound to `main`. The `ios` branch may run validation and future TestFlight workflows only.
-- Before any shared Firebase/rules/schema/Functions change developed during iOS work is promoted, web and iOS compatibility must be tested together and the normal durable documents reconciled.
+- Before any shared Firebase/rules/schema/Functions/E2EE contract change developed during iOS work is promoted, web and iOS compatibility must be tested together and the normal durable documents reconciled.
