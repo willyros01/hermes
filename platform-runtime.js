@@ -5,7 +5,7 @@
  * It owns no Firebase, notification, security, storage, or UI state.
  * Feature owners use this one decision point to select web versus native adapters.
  */
-export const FIDUNIO_PLATFORM=Object.freeze({WEB:"web",IOS_NATIVE:"ios-native"});
+export const FIDUNIO_PLATFORM=Object.freeze({WEB:"web",IOS_NATIVE:"ios-native"});\nexport const FIDUNIO_PUBLIC_WEB_BASE="https://willyros01.github.io/hermes/";
 
 export function detectFidunioPlatform({
   capacitor=globalThis.Capacitor,
@@ -23,6 +23,10 @@ export function isNativeIOSRuntime(options){return detectFidunioPlatform(options
 export function shouldUseWebServiceWorker(options){return !isNativeIOSRuntime(options);}
 export function shouldUseWebPush(options){return !isNativeIOSRuntime(options);}
 export function shouldUseWebAppCheck(options){return !isNativeIOSRuntime(options);}
+export function fidunioPublicUrl(relative="./",{currentHref=globalThis.location?.href||FIDUNIO_PUBLIC_WEB_BASE,...platformOptions}={}){
+  const base=isNativeIOSRuntime(platformOptions)?FIDUNIO_PUBLIC_WEB_BASE:currentHref;
+  return new URL(relative,base);
+}
 
 export const PLATFORM_RUNTIME_AUTHORITY_V1=Object.freeze({
   nativeShell:"capacitor-ios",
