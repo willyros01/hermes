@@ -70,6 +70,7 @@ import {createBulkMessageDeleteProjectionOwner} from "./bulk-message-delete-proj
 import {createAccountVaultOwner} from "./account-vault-owner.js";
 import {reconcileAccountVaultPayload} from "./account-vault-reconciliation.js";
 import {activateVerifiedAccountVault} from "./account-vault-activation.js";
+import {shouldUseWebServiceWorker} from "./platform-runtime.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -2996,7 +2997,7 @@ if(appearanceMedia){
   if(typeof appearanceMedia.addEventListener==="function")appearanceMedia.addEventListener("change",followSystemAppearance);
   else appearanceMedia.addListener?.(followSystemAppearance);
 }
-if("serviceWorker" in navigator){
+if(shouldUseWebServiceWorker()&&"serviceWorker" in navigator){
   navigator.serviceWorker.addEventListener("message",event=>{
     if(event.data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
     const route=normalizeNotificationRoute(event.data?.route);if(!route)return;
