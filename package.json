@@ -89,7 +89,8 @@
     "test:group-reply": "node group-reply-policy.test.mjs",
     "ios:web": "node build/prepare-ios-web.mjs",
     "ios:verify": "node build/verify-ios-foundation.mjs",
-    "ios:prepare": "npm run ios:web && npm run ios:verify"
+    "ios:prepare": "npm run ios:web && npm run ios:verify",
+    "ios:apple-spec": "node build/ios-apple-registration.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
