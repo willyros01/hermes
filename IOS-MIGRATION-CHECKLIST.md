@@ -12,9 +12,9 @@
 - [x] Run the existing Rebuild Baseline Security Gate on both `main` and `ios`.
 - [x] Document shared/web-only/iOS-only ownership.
 - [x] Define same-account/same-E2EE-identity coexistence requirement.
-- [ ] Create `ios` branch from the final validated Phase 0 `main` head.
-- [ ] Add iOS branch-only preflight workflow.
-- [ ] Confirm final Phase 0 `main` and `ios` workflow success.
+- [x] Create `ios` branch from the final validated Phase 0 `main` head.
+- [x] Add iOS branch-only preflight workflow.
+- [x] Confirm final Phase 0 `main` and `ios` workflow success.
 
 ## Phase 1 — Apple/Firebase application setup
 
