@@ -113,3 +113,25 @@ The goal is one application with two distributions, not two implementations. Sha
 - Rebuild Baseline Security Gate `37137850079`: SUCCESS.
 - Capacitor iOS shell `37137850047`: SUCCESS, including fresh project generation and unsigned Simulator compilation.
 - Apple/Firebase registration is intentionally still open in Phase 2.
+
+
+## Pre-TestFlight native-shell compatibility checkpoint — 2026-10-03
+
+Repository implementation is prepared on the `ios` branch before Apple registration:
+
+- Added one bounded `platform-runtime.js` authority for web versus Capacitor iOS selection.
+- Web service-worker registration is disabled only inside the native iOS shell; the accepted web/PWA path remains unchanged.
+- Browser Web Push controls are not exposed in the native shell; APNs/FCM remains a later dedicated native adapter.
+- Browser reCAPTCHA Enterprise App Check initialization is skipped only in the native shell while App Check enforcement remains OFF; native App Attest/DeviceCheck remains a later controlled phase.
+- Browser WebAuthn/passkey biometric enrollment/unlock is not used inside the native shell. PIN remains the first-shell local unlock path until the LocalAuthentication Face ID adapter is implemented.
+- Browser Home Screen installation guidance is replaced by installed-iOS-app guidance inside Capacitor.
+- Invitation, Quick Start, and recovery links created inside the native shell resolve to the public FIDUNIO web origin rather than a private `capacitor://` URL.
+- Firebase Auth/Firestore/Storage, E2EE, Outbox, direct/group messaging, receipts, attachments, recovery authority, deletion authority, and live Firebase configuration were not changed.
+- No web runtime version bump: these changes exist only on the `ios` migration branch.
+
+Validation after correcting an initially caught platform-module newline syntax defect:
+- Capacitor iOS branch preflight: run 37139976180 — SUCCESS.
+- Full Rebuild Baseline Security Gate: run 37139976192 — SUCCESS.
+- Capacitor iOS shell: run 37139976206 — SUCCESS, including fresh Capacitor generation and unsigned simulator compilation.
+
+Apple Phase 2 registration remains the next external-account step.
