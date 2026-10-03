@@ -1,0 +1,59 @@
+name: FIDUNIO TestFlight
+on:
+  push:
+    branches: [ios]
+    paths: ['build/ios-testflight-release.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: fidunio-testflight
+  cancel-in-progress: false
+jobs:
+  gates:
+    if: github.ref == 'refs/heads/ios'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Wait for required checks on this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          node --input-type=module <<'JS'
+          const required=["ios-native-checks.yml","ios-capacitor-shell.yml","rebuild-baseline-security.yml"];
+          for(let i=0;i<100;i++){
+            const res=await fetch("https://api.github.com/repos/"+process.env.REPO+"/actions/runs?head_sha="+process.env.HEAD_SHA+"&per_page=100",{headers:{Authorization:"Bearer "+process.env.GH_TOKEN,Accept:"application/vnd.github+json"}});
+            if(!res.ok)throw new Error("GitHub checks API "+res.status);
+            const runs=(await res.json()).workflow_runs;
+            const found=required.map(name=>runs.filter(r=>r.path===".github/workflows/"+name&&r.event==="push").sort((a,b)=>b.id-a.id)[0]);
+            if(found.some(r=>r?.status==="completed"&&r.conclusion!=="success"))throw new Error("A required check failed; upload blocked");
+            if(found.every(r=>r?.conclusion==="success")){console.log("PASS: exact-commit native preflight, Simulator shell and full security baseline");process.exit(0);}
+            console.log("Waiting for required checks: "+found.map((r,i)=>required[i]+"="+(r?.conclusion||r?.status||"not yet listed")).join(", "));
+            await new Promise(r=>setTimeout(r,15000));
+          }
+          throw new Error("Required checks did not finish; upload blocked");
+          JS
+  testflight:
+    needs: gates
+    runs-on: macos-26
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Archive, verify distribution signature, upload and check Apple processing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: bash build/ios-testflight.sh
