@@ -4,6 +4,7 @@ quick-start.html
 version.js
 password-visibility.js
 bootstrap.js
+platform-runtime.js
 account-guard.js
 auth-ui-clean.js
 app.js
