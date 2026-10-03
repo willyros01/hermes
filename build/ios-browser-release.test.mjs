@@ -75,7 +75,9 @@ try{
  assert.match(await stalled.page.locator('.startup-shell').innerText(),/taking longer than expected/);
  assert.equal(await stalled.page.locator('#loginEmail').count(),0);
  await stalled.page.clock.resume();
- await stalled.page.screenshot({path:path.join(evidence,selected+'-startup-timeout.png')});
+ // WebKit waits for document loading before screenshots; this test deliberately
+ // holds a module request open. Preserve visible text after the assertions instead.
+ await fs.writeFile(path.join(evidence,selected+'-startup-timeout.txt'),await stalled.page.locator('.startup-shell').innerText());
  await stalled.context.close();console.log('PASS: '+selected+' stalled startup is visible and cannot bypass authentication');
 }finally{
  for(const [i,context] of browser.contexts().entries())for(const [j,page] of context.pages().entries())try{await page.screenshot({path:path.join(evidence,selected+'-final-'+i+'-'+j+'.png')});}catch{}
