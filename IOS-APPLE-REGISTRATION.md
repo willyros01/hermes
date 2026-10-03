@@ -1,6 +1,6 @@
 # FIDUNIO iOS Apple Registration Authority
 
-**Status:** Apple registration and read-only API verification PASS — Hermes GitHub secret provisioning pending  
+**Status:** Phase 2 Apple registration COMPLETE — verified API key and Hermes repository secrets provisioned  
 **Repository:** `willyros01/hermes`  
 **Branch:** `ios`
 
@@ -119,3 +119,12 @@ The user identified the existing iCloud Fairpot Keys folder. The original local 
 - Result: Phase 2 Apple setup is ready.
 
 No private key was printed, committed, or pasted in chat. Hermes GitHub Actions secrets are not yet verified or provisioned: the browser requires GitHub sign-in. Expected secret names remain `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, and `APPLE_TEAM_ID`. Do not treat API verification as proof of repository-secret readiness.
+
+
+### Hermes repository secrets provisioned — 2026-10-03
+
+With explicit user approval, reused existing active Apple team Admin API key `48475DA2L4`. GitHub confirmed all four repository secret names in `willyros01/hermes`: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, and `APPLE_TEAM_ID`. The user saved the prepared key ID; the remaining three were saved through the authenticated GitHub secret forms. Private key contents went directly from the original local file into GitHub's secret field and were never printed or committed.
+
+GitHub secret values are write-only. The supplied credential set passed the existing read-only Apple verifier locally before provisioning; a GitHub Actions execution consuming these stored secrets has not yet been verified. No upload or signing workflow was introduced in this registration step.
+
+Apple registration scope is complete. Native Firebase registration remains deferred until native Firebase SDK integration, and the FIDUNIO-specific export-compliance determination remains required before first TestFlight upload. No production web or live Firebase changes were made.
