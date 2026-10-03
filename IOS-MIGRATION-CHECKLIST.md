@@ -139,4 +139,15 @@ Apple Phase 2 registration remains the next external-account step.
 
 ## Apple registration closeout — 2026-10-03
 
-See `IOS-APPLE-REGISTRATION.md` for verified Apple identity, capability, credential and validation facts. Apple setup is complete; Firebase native SDK registration and FIDUNIO E2EE export-compliance determination remain later work. Existing pre-registration GitHub gates were read and passed; no TestFlight build was uploaded and no live Firebase/App Check or `main` change was made.
+See `IOS-APPLE-REGISTRATION.md` for verified Apple identity, capability, credential and validation facts. Apple setup is complete; Firebase native SDK registration remains later work. FIDUNIO's independent current-shell encryption assessment is documented in `IOS-EXPORT-COMPLIANCE.md`; first uploaded-build processing remains to verify. Existing pre-registration GitHub gates were read and passed; no TestFlight build was uploaded and no live Firebase/App Check or `main` change was made.
+
+
+## Current-shell export compliance — 2026-10-03
+
+- [x] Independently inventory FIDUNIO's iOS payload encryption (82 allow-listed JS/HTML files reviewed).
+- [x] Consult current Apple documentation and WebKit's native Web Crypto implementation documentation.
+- [x] Record current iOS OS-provided encryption / documentation-exempt self-assessment in `IOS-EXPORT-COMPLIANCE.md`.
+- [x] Apply `ITSAppUsesNonExemptEncryption=false` to generated iOS Info.plist via a dedicated post-sync build script.
+- [ ] Verify first uploaded TestFlight archive declaration and App Store Connect compliance processing.
+
+No non-OS encryption documentation was uploaded and no Apple approval/code is claimed. Reassess if encryption implementations, protocols or runtime change.
