@@ -24,6 +24,7 @@ rm -rf ios
 npx cap add ios
 npx cap sync ios
 node build/apply-ios-export-compliance.mjs
+node build/apply-ios-icon.mjs
 PLIST=ios/App/App/Info.plist
 /usr/libexec/PlistBuddy -c 'Add :NSCameraUsageDescription string FIDUNIO uses the camera when you choose to capture a photo or video for a message.' "$PLIST"
 /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string FIDUNIO uses the microphone when you choose to record an audio or video message.' "$PLIST"

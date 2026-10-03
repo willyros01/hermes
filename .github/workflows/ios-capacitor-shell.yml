@@ -48,7 +48,9 @@ jobs:
           test -f ios/App/App/public/app.js
           test -f ios/App/App/public/firebase.js
       - name: Apply assessed FIDUNIO export-compliance declaration
-        run: node build/apply-ios-export-compliance.mjs
+        run: |
+          node build/apply-ios-export-compliance.mjs
+          node build/apply-ios-icon.mjs
       - name: Compile unsigned iOS simulator shell
         run: |
           xcodebuild \
@@ -59,6 +61,14 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
             build
+      - name: Verify fresh iOS cold startup reaches sign-in
+        run: bash build/ios-startup-smoke.sh
+      - name: Save native startup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-startup-evidence
+          path: startup-evidence/
       - name: Report shell result
         run: |
           echo "PASS: FIDUNIO shared web payload generated, Capacitor iOS project generated, and unsigned simulator shell compiled."

@@ -437,3 +437,12 @@ The service worker persists the validated opaque route locally before notificati
 
 ### FDA-BIO-001 — returning-session biometric label — 1.1.56
 1.1.55 updated the main lock screen but missed the separate remembered-session authentication renderer, leaving **Unlock with device** visible despite the correct release version. 1.1.56 updates only that existing auth UI wording, advances the shell revision, and extends permanent regression coverage to both unlock paths. Device acceptance is pending; PIN, WebAuthn semantics, E2EE, Firebase, messaging and notification ownership are unchanged.
+
+
+## iOS 1.1.57 startup/icon repair candidate — 2026-10-03
+
+User-device report on TestFlight 1.1.56 (1): IOS-STARTUP-001 (blocking) remains on the initial “Opening your secure local data” screen; IOS-ICON-001 (branding) shows the Capacitor placeholder icon. Device: iPhone 18 Pro Max, iOS 27.0.1 (App Store Connect tester observation). Expected: cold launch reaches Sign In and home-screen icon uses the established FIDUNIO logo. The initial text alone does not identify a storage failure.
+
+1.1.56 → 1.1.57 applies a native-only Firebase auth initialization without the unused browser popup/redirect resolver, preserving IndexedDB/local/session persistence and web getAuth defaults. Bootstrap owns only its original startup host, reports native load failures/30-second stalls, and retries through a full page reload without clearing storage or bypassing authentication/PIN. Firebase remains the sole service initializer; platform-runtime owns platform selection. The user approved resizing the existing opaque logo to 1024×1024 with macOS sips; build tooling installs it in the generated Xcode icon catalog.
+
+Status: repair candidate, NOT device-accepted. A fresh iOS Simulator cold-start gate must visibly reach Sign In/Email/Password before TestFlight upload. Repository tests and signed upload results must be recorded separately after completion. Exit criteria: required checks green, user updates TestFlight and repeatedly reaches sign-in/correct icon, then existing-account/PIN/E2EE acceptance. No completion credit earned. main remains production 1.1.56; no live Firebase/config/rules/Functions/App Check enforcement changes. Native Face ID and push remain later phases. External tester wrosales@cuberoot-systems.com exists in FIDUNIO External Testing; no build access until Apple beta-review prerequisites are supplied and review succeeds.

@@ -1,4 +1,4 @@
-import {shouldUseWebServiceWorker} from "./platform-runtime.js";
+import {shouldUseWebServiceWorker,isNativeIOSRuntime} from "./platform-runtime.js";
 /* FIDUNIO deterministic bootstrap. Account/auth owners run before app.js. */
 export async function ensureFidunioServiceWorker(){
   if(!shouldUseWebServiceWorker())throw new Error("The web service worker is not used inside the FIDUNIO iOS app.");
@@ -34,7 +34,26 @@ document.addEventListener("click",event=>{
     requestAnimationFrame(watch);
   });
 },true);
-const {startAccountGuard}=await import("./account-guard.js");
-await startAccountGuard();
-const {runAuthGate}=await import("./auth-ui-clean.js");
-await runAuthGate();
+// Bootstrap owns only the initial startup host until auth-ui replaces it.
+const startupHost=document.querySelector(".startup-shell");
+function showNativeStartupFailure(message){
+  if(!isNativeIOSRuntime()||!startupHost?.isConnected)return;
+  startupHost.querySelector(".startup-spinner")?.remove();
+  startupHost.querySelector("strong").textContent="FIDUNIO could not finish starting";
+  startupHost.querySelector("span").textContent=message;
+  if(!startupHost.querySelector("button")){
+    const retry=document.createElement("button");retry.className="primary";
+    retry.textContent="Retry Startup";retry.addEventListener("click",()=>location.reload());
+    startupHost.append(retry);
+  }
+}
+const startupTimer=isNativeIOSRuntime()?setTimeout(()=>showNativeStartupFailure("Sign-in is taking longer than expected. Check your connection and retry. Your secure data has not been reset."),30000):null;
+try{
+  const {startAccountGuard}=await import("./account-guard.js");
+  await startAccountGuard();
+  const {runAuthGate}=await import("./auth-ui-clean.js");
+  await runAuthGate();
+}catch(error){
+  console.error("FIDUNIO startup failed",error);
+  showNativeStartupFailure("Sign-in could not be loaded. Check your connection and retry. Your secure data has not been reset.");
+}finally{if(startupTimer!==null)clearTimeout(startupTimer);}

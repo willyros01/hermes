@@ -35,6 +35,7 @@ jobs:
           node build/verify-ios-foundation.mjs
           node build/ios-apple-registration.test.mjs
           node platform-runtime.test.mjs
+          node build/ios-startup-repair.test.mjs
 
       - name: Protect Firebase web configuration
         run: |
