@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import {FIDUNIO_PLATFORM,detectFidunioPlatform,isNativeIOSRuntime,shouldUseWebServiceWorker,shouldUseWebPush,shouldUseWebAppCheck} from "./platform-runtime.js";
 const webCap={isNativePlatform:()=>false,getPlatform:()=>"web"};
 const iosCap={isNativePlatform:()=>true,getPlatform:()=>"ios"};
@@ -12,4 +13,17 @@ assert.equal(shouldUseWebAppCheck({capacitor:iosCap,protocol:"capacitor:"}),fals
 assert.equal(shouldUseWebServiceWorker({capacitor:webCap,protocol:"https:"}),true);
 assert.equal(shouldUseWebPush({capacitor:webCap,protocol:"https:"}),true);
 assert.equal(shouldUseWebAppCheck({capacitor:webCap,protocol:"https:"}),true);
-console.log("PASS: bounded web/Capacitor iOS runtime selection");
+
+const bootstrap=fs.readFileSync("bootstrap.js","utf8");
+const app=fs.readFileSync("app.js","utf8");
+const firebase=fs.readFileSync("firebase.js","utf8");
+const settings=fs.readFileSync("settings-lifecycle.js","utf8");
+const install=fs.readFileSync("install-guidance.js","utf8");
+const payload=fs.readFileSync("build/www-files.txt","utf8");
+assert.match(bootstrap,/shouldUseWebServiceWorker\(\)/);
+assert.match(app,/shouldUseWebServiceWorker\(\).*"serviceWorker" in navigator/s);
+assert.match(firebase,/shouldUseWebAppCheck\(\)\?appCheckSdk\.initializeAppCheck/);
+assert.match(settings,/if\(isNativeIOSRuntime\(\)\).*Native notification setup pending/s);
+assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
+assert.match(payload,/^platform-runtime\.js$/m);
+console.log("PASS: bounded web/Capacitor iOS runtime selection and integration guards");
