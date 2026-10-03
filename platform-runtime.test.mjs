@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import {FIDUNIO_PLATFORM,detectFidunioPlatform,isNativeIOSRuntime,shouldUseWebServiceWorker,shouldUseWebPush,shouldUseWebAppCheck} from "./platform-runtime.js";
+import {FIDUNIO_PLATFORM,detectFidunioPlatform,isNativeIOSRuntime,shouldUseWebServiceWorker,shouldUseWebPush,shouldUseWebAppCheck,fidunioPublicUrl} from "./platform-runtime.js";
 const webCap={isNativePlatform:()=>false,getPlatform:()=>"web"};
 const iosCap={isNativePlatform:()=>true,getPlatform:()=>"ios"};
 assert.equal(detectFidunioPlatform({capacitor:webCap,protocol:"https:"}),FIDUNIO_PLATFORM.WEB);
@@ -13,6 +13,8 @@ assert.equal(shouldUseWebAppCheck({capacitor:iosCap,protocol:"capacitor:"}),fals
 assert.equal(shouldUseWebServiceWorker({capacitor:webCap,protocol:"https:"}),true);
 assert.equal(shouldUseWebPush({capacitor:webCap,protocol:"https:"}),true);
 assert.equal(shouldUseWebAppCheck({capacitor:webCap,protocol:"https:"}),true);
+assert.equal(fidunioPublicUrl("./quick-start.html",{capacitor:iosCap,protocol:"capacitor:",currentHref:"capacitor://localhost/settings"}).href,"https://willyros01.github.io/hermes/quick-start.html");
+assert.equal(fidunioPublicUrl("./quick-start.html",{capacitor:webCap,protocol:"https:",currentHref:"https://example.test/hermes/settings"}).href,"https://example.test/hermes/quick-start.html");
 
 const bootstrap=fs.readFileSync("bootstrap.js","utf8");
 const app=fs.readFileSync("app.js","utf8");
@@ -29,4 +31,7 @@ assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
 assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return false/);
 assert.match(app,/security\.hasBiometric&&!isNativeIOSRuntime\(\)/);
 assert.match(payload,/^platform-runtime\.js$/m);
+assert.match(firebase,/fidunioPublicUrl\("\.\/"\)/);
+assert.match(settings,/fidunioPublicUrl\("\.\/quick-start\.html"\)/);
+assert.match(settings,/fidunioPublicUrl\("\.\/account-recovery\.html"\)/);
 console.log("PASS: bounded web/Capacitor iOS runtime selection and integration guards");
