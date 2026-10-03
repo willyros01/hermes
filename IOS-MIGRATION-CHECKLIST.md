@@ -1,6 +1,6 @@
 # FIDUNIO iOS Capacitor Migration Checklist
 
-**Status:** Phase 0 architecture corrected to Capacitor/shared-JS model — 2026-10-03
+**Status:** Phase 1 Capacitor project foundation COMPLETE — 2026-10-03
 
 ## Phase 0 — repository and architecture preparation
 
@@ -17,19 +17,19 @@
 - [x] Run the existing Rebuild Baseline Security Gate on both `main` and `ios`.
 - [x] Create the `ios` branch.
 - [x] Add iOS branch-only preflight workflow.
-- [ ] Reconcile the corrected Capacitor architecture into both branch heads and verify final workflows.
+- [x] Reconcile the corrected Capacitor architecture into both branch heads and verify final workflows.
 
 ## Phase 1 — Capacitor project foundation
 
-- [ ] Confirm exact Capacitor versions to pin.
-- [ ] Add `@capacitor/core`, `@capacitor/ios`, `@capacitor/cli` and only required plugins.
-- [ ] Commit deterministic package lock.
-- [ ] Add FIDUNIO `capacitor.config.*`.
-- [ ] Define an explicit allow-list of web assets copied into the iOS `webDir`.
-- [ ] Build the iOS web payload from the same root application files; do not fork the application into a second code tree.
-- [ ] Generate/sync the Xcode project deterministically in CI/build, following the Scorecard pattern where practical.
-- [ ] Add Capacitor branch/build verification.
-- [ ] Preserve current web/PWA execution with no Capacitor dependency at runtime.
+- [x] Pin Capacitor Core/iOS/CLI 8.5.2.
+- [x] Add `@capacitor/core`, `@capacitor/ios`, `@capacitor/cli`; no feature plugins added prematurely.
+- [x] Commit deterministic npm package lock.
+- [x] Add `capacitor.config.json` with FIDUNIO / `io.github.willyros01.fidunio` / `www`.
+- [x] Define explicit `build/www-files.txt` allow-list for the iOS `webDir`.
+- [x] Build the iOS web payload from the same root application files; no second application code tree.
+- [x] Generate/sync a fresh default Capacitor Xcode project in CI/build, following the Scorecard pattern.
+- [x] Add Capacitor preflight + macOS shell generation/compile verification.
+- [x] Preserve current web/PWA execution; Capacitor dependencies/build products remain iOS-branch build concerns.
 
 ## Phase 2 — Apple/Firebase application setup
 
@@ -105,3 +105,11 @@
 ## Promotion/synchronization rule
 
 The goal is one application with two distributions, not two implementations. Shared FIDUNIO JavaScript should remain the same whenever possible. A change discovered in iOS that affects shared application behavior must not remain as a hidden iOS-only fork; reconcile it with `main`, validate the web app, and synchronize the accepted shared result back to `ios`. Native plugin/config/build changes may remain iOS-only.
+
+### Phase 1 validation
+
+- iOS validation head: `c5cc8e641b9dcdadab17f579ee1db208076145cf`.
+- Capacitor iOS branch preflight `37137850059`: SUCCESS.
+- Rebuild Baseline Security Gate `37137850079`: SUCCESS.
+- Capacitor iOS shell `37137850047`: SUCCESS, including fresh project generation and unsigned Simulator compilation.
+- Apple/Firebase registration is intentionally still open in Phase 2.
