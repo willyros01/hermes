@@ -33,13 +33,13 @@
 
 ## Phase 2 — Apple/Firebase application setup
 
-- [ ] Select/register FIDUNIO iOS bundle ID.
-- [ ] Confirm Apple Developer team and App Store Connect API credentials.
-- [ ] Create the App Store Connect FIDUNIO app record.
+- [x] Register explicit FIDUNIO iOS bundle ID `io.github.willyros01.fidunio`.
+- [x] Confirm Team ID `VXMLKHF72B`; existing API key verified locally and four Hermes repository secrets provisioned.
+- [x] Create and verify FIDUNIO app record `6818880685`, SKU `fidunio-ios-001`, locale `en-US`.
 - [ ] Register the iOS app in the existing Firebase project as needed for native integrations.
 - [ ] Handle `GoogleService-Info.plist` safely if required by selected native Firebase plugins.
-- [ ] Enable only required capabilities.
-- [ ] Add read-only Apple setup verification before TestFlight uploads.
+- [x] Enable Push Notifications only as the selected initial capability; Apple includes its disabled In-App Purchase default.
+- [x] Existing read-only `build/asc.mjs check` passed locally using the verified credentials; execution from GitHub secrets remains unverified.
 
 ## Phase 3 — shared platform-adapter contracts
 
@@ -135,3 +135,8 @@ Validation after correcting an initially caught platform-module newline syntax d
 - Capacitor iOS shell: run 37139976206 — SUCCESS, including fresh Capacitor generation and unsigned simulator compilation.
 
 Apple Phase 2 registration remains the next external-account step.
+
+
+## Apple registration closeout — 2026-10-03
+
+See `IOS-APPLE-REGISTRATION.md` for verified Apple identity, capability, credential and validation facts. Apple setup is complete; Firebase native SDK registration and FIDUNIO E2EE export-compliance determination remain later work. Existing pre-registration GitHub gates were read and passed; no TestFlight build was uploaded and no live Firebase/App Check or `main` change was made.
