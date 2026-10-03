@@ -58,7 +58,7 @@ jobs:
   shell:
     needs: lockfile
     if: needs.lockfile.outputs.changed == 'false'
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
