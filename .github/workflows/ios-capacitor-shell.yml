@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install --package-lock-only --ignore-scripts
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           if [ -n "$(git status --porcelain -- package-lock.json)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             git config user.name "github-actions[bot]"
