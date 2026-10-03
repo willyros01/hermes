@@ -28,10 +28,11 @@ jobs:
         run: |
           test -f IOS-NATIVE-ARCHITECTURE.md
           test -f IOS-MIGRATION-CHECKLIST.md
-          test -f ios/README.md
+          test -f build/ios/README.md
           grep -q 'main.*production web/PWA' IOS-NATIVE-ARCHITECTURE.md
           grep -q 'Capacitor + shared JavaScript' IOS-MIGRATION-CHECKLIST.md
           grep -q 'minimum code drift' IOS-NATIVE-ARCHITECTURE.md
+          node build/verify-ios-foundation.mjs
 
       - name: Protect Firebase web configuration
         run: |
