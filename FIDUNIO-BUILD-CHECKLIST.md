@@ -1070,3 +1070,12 @@ No Firebase, E2EE, notification, message, attachment, group, account-vault, or P
 Real-device acceptance of 1.1.55 exposed FDA-BIO-001: the installed PWA showed the correct 1.1.55 version but the remembered-session authentication surface still said **Unlock with device**. Source review found two independent unlock render paths. The main application lock screen had been updated, while the existing `auth-ui-clean.js` returning-session owner retained the old label and fallback text.
 
 Version 1.1.56 changes only that existing authentication surface to **Unlock with Face ID or Biometric**, **Waiting for Face ID or biometric…**, and the matching biometric fallback message. The existing WebAuthn credential selection, platform-authenticator requirement, user-verification requirement, six-digit PIN fallback, account E2EE restoration, Firebase/auth lifecycle, messaging, receipts, Outbox, notifications, groups, attachments, Settings ownership and protected configuration are unchanged. The permanent biometric gate now covers both unlock render paths. Shell revision advances to `1.1.56-auth-biometric-label` so the installed PWA receives the corrected module.
+## Native iOS coexistence preparation — 2026-10-03
+
+- **APPROVED:** one repository with `main` for live web/PWA + shared backend authority and `ios` for native development.
+- **APPROVED:** native Swift/SwiftUI client, not Capacitor/webview.
+- **REQUIRED:** same Firebase UID/account and same account E2EE identity/keyId across web and iOS.
+- **REQUIRED:** Rebuild Baseline Security Gate on both `main` and `ios`; GitHub Pages remains `main` only.
+- **REQUIRED:** shared Firebase/rules/Functions/E2EE contract changes must pass web+iOS interoperability validation before reconciliation to `main`.
+- Detailed phase plan: `IOS-NATIVE-ARCHITECTURE.md` and `IOS-MIGRATION-CHECKLIST.md`.
+- This preparation checkpoint changes no runtime version and no live Firebase/backend state.
