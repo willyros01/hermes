@@ -1,186 +1,211 @@
-# FIDUNIO Native iOS Coexistence Architecture
+# FIDUNIO iOS Capacitor Coexistence Architecture
 
-**Status:** Approved preparation baseline — 2026-10-03  
+**Status:** Approved preparation baseline — revised 2026-10-03  
 **Repository:** `willyros01/hermes`  
-**Branches:** `main` = production web/PWA + shared backend authority; `ios` = native iOS development.
+**Branches:** `main` = production web/PWA + shared application/backend authority; `ios` = Capacitor iOS integration and TestFlight development.
 
 ## Goal
 
-Build a genuinely native iOS FIDUNIO client that coexists with the existing web/PWA client. A user signs into the same FIDUNIO account from either client and sees the same authorized conversations, groups, messages, attachments, reactions, deletion state, memberships and receipts.
+Build an iOS FIDUNIO app using the same migration model proven in Scorecard: preserve the established HTML/CSS/JavaScript application and run it inside a Capacitor iOS shell, while hiding iOS-native security, notification, storage and lifecycle capabilities behind narrow JavaScript-facing platform adapters.
 
-The native client is not a wrapper around the web UI and is not a replacement for the PWA. Both clients share the same Firebase backend contracts while keeping platform-local security, notification and cache state separate.
+The web/PWA and iOS app are two distributions of the same FIDUNIO application, not two independently rewritten clients. A user signs into the same account from either client and sees the same authorized conversations, groups, messages, attachments, reactions, deletion state, memberships and receipts.
+
+The primary objective is **minimum code drift**.
+
+## Shared-code rule
+
+The established FIDUNIO JavaScript remains the authoritative application logic wherever the platform permits it. In particular, the existing owners for Firebase, E2EE, Outbox, direct/group messaging, attachments, reactions, receipts, disappearing content, invitations, recovery, deletion and conversation projection remain shared.
+
+Do not rewrite those systems in Swift merely because the iOS build is native-packaged.
+
+Platform differences must be isolated behind a small set of JavaScript-facing contracts. Application code calls the same logical operation; the web implementation uses browser APIs while the iOS implementation may call a Capacitor plugin/native bridge.
+
+Conceptual example:
+
+```text
+FIDUNIO shared JavaScript
+        |
+        +-- biometricUnlock()
+        +-- secureStore()
+        +-- registerNotifications()
+        +-- openExternalFile()
+        +-- getNetworkState()
+        +-- initializeAppProtection()
+                |
+        +-------+--------+
+        |                |
+      web              iOS
+ browser APIs     Capacitor/native bridge
+```
+
+Avoid scattering `if (isIOSNative)` branches throughout `app.js` and feature modules. One resource still has one owner and one bounded platform boundary.
 
 ## Authority split
 
-### Shared account/backend authority
+### Shared application/backend authority
 
 These remain canonical across web and iOS:
 
 - Firebase Authentication account/UID.
+- Existing JavaScript Firebase service ownership.
 - Firestore conversation, direct-message, group, membership, receipt, reaction, invitation, recovery and deletion contracts.
 - Firebase Storage encrypted attachment objects and authorization rules.
 - Cloud Functions recovery, notification, deletion and administration authority.
-- Account E2EE identity/keyId and authoritative wrapper/revision state.
-- Group E2EE membership/epoch/history-boundary rules.
+- Account E2EE identity/keyId and wrapper/revision state.
+- Group E2EE membership/epoch/history-boundary logic.
+- Encrypted Outbox semantics and message-state transitions.
+- Disappearing-content rules.
 - Server-side deletion barriers and authoritative absence.
-- Notification routing identifiers and server fan-out semantics.
 - Recovery authorization and account-vault cryptographic boundaries.
+- Shared HTML/CSS/JavaScript UI unless an iOS-native capability requires a bounded adapter.
 
-The web implementation remains the currently validated reference implementation for these contracts until the native client proves interoperability.
+### Web/PWA platform implementation
 
-### Web/PWA-only resources
-
-The native client must not depend on or copy these as account authority:
+The web distribution owns:
 
 - Service worker/cache lifecycle.
-- IndexedDB/localStorage implementation details.
 - Web Push subscription representation.
 - Browser WebAuthn/passkey UI.
-- PWA install state and browser installation guidance.
-- DOM/render ownership and responsive web layout state.
+- Browser file/install APIs.
+- PWA install state/guidance.
+- Browser network-capability reporting.
+- reCAPTCHA Enterprise provider when web App Check is activated.
 
-### Native iOS-only resources
+### iOS Capacitor platform implementation
 
-The native client owns these locally:
+The iOS distribution may substitute native implementations behind the same JavaScript-facing contracts for:
 
-- SwiftUI/UIKit presentation and navigation.
-- Keychain/Secure Enclave storage.
-- Local Face ID/Touch ID through LocalAuthentication.
-- APNs/FCM iOS device token registration.
-- Native notification presentation/routing.
-- Native local database/cache.
-- Background task/lifecycle integration.
-- App Attest/DeviceCheck App Check provider when App Check is activated.
-- iOS accessibility, Dynamic Type, VoiceOver and platform UI behavior.
+- Face ID/Touch ID via LocalAuthentication.
+- Secrets/device-bound storage via Keychain/Secure Enclave as appropriate.
+- APNs/FCM device registration and notification-open lifecycle.
+- Native file/share/import/export integration.
+- Native foreground/background/app lifecycle signals.
+- More reliable native network-state reporting where available.
+- App Attest/DeviceCheck as the native Firebase App Check provider.
+- Other narrowly approved iOS capabilities that cannot be delivered reliably through the browser.
 
-None of these device-local resources are restored directly from the web installation or portable vault.
+Capacitor is the bridge. Swift/Objective-C should be limited to plugins/native configuration needed for those platform services, not used to duplicate established application logic.
 
 ## E2EE coexistence rule
 
-An existing FIDUNIO account has one account encryption identity. The native client must restore/activate that same account identity and `keyId` through the established authenticated recovery authority. It must never silently generate a replacement account identity when a valid account already exists.
+An existing FIDUNIO account has one account encryption identity. The Capacitor app must activate the same account identity and `keyId`; it must never silently create a replacement identity for an existing valid account.
 
-A new iOS installation therefore follows:
+Because the established E2EE implementation remains JavaScript, the preferred migration path is to preserve its data contracts and algorithms exactly and adapt only the platform-specific secure-storage boundary when needed.
+
+A new iOS installation therefore follows the established account lifecycle:
 
 1. Firebase sign-in establishes the UID.
-2. The client determines whether authoritative E2EE identity already exists.
-3. For an existing account, recovery/bootstrap proves the existing PIN/server recovery authority and restores the same account identity.
-4. The recovered private material is stored using native iOS secure storage under a native owner.
-5. Current cloud membership, deletion and history authority is re-read before projecting conversations.
-6. Device-specific notification/App Check/biometric registration is created fresh for that installation.
+2. UID-local state activates through the same shared application owner.
+3. The application determines whether authoritative E2EE identity already exists.
+4. Existing recovery/bootstrap authority restores the same account identity when required.
+5. iOS-specific device-bound secrets may be stored through the native secure-storage adapter.
+6. Current cloud membership, deletion and history authority is re-read before conversation projection.
+7. Native notification/App Check/biometric registrations are created for that installation.
 
-The portable `.fidunio` vault remains a recovery artifact, not the normal cross-device synchronization transport.
+The portable `.fidunio` vault remains recovery infrastructure, not the normal web/iOS synchronization transport.
 
-## Synchronization contract
+## Branch and synchronization model
 
-Firebase is authoritative for cross-client synchronization. Required interoperability includes:
+- `main` is the live web/PWA and shared-JavaScript/backend authority.
+- `ios` begins from `main` and contains the Capacitor/iOS integration needed for TestFlight.
+- Shared application changes should normally be authored once and kept equivalent across branches.
+- Web fixes accepted on `main` are synchronized into `ios` before the next iOS release candidate.
+- Shared fixes discovered during iOS testing should be promoted/reconciled to `main`, then the resulting shared state synchronized back to `ios`.
+- iOS-only plugin/configuration/build changes remain on `ios` unless a shared file genuinely needs a platform-neutral change.
+- Do not create automatic branch mirroring. Synchronization is controlled and gated.
+- GitHub Pages remains `main` only.
+- The Rebuild Baseline Security Gate runs on both branches to detect drift/regression in the shared application.
 
-- Web send -> native receive/decrypt/project.
-- Native send -> web receive/decrypt/project.
-- Sent/Read convergence across clients.
-- Direct and group reactions.
-- Delete for Me remains installation-local.
-- Delete for Everyone and conversation deletion converge from server authority.
-- Group add/remove/re-add/history boundary and history grants.
-- Attachment upload/download/decrypt from either client.
-- Invitation acceptance and account discovery.
-- Notification tap -> exact conversation/message.
-- Password/recovery/account-key revision changes.
-- Archive remains installation-local unless deliberately redesigned later.
+The intended long-term difference between branches should be small and understandable.
 
-No synchronization path may use one client's local cache as authority for the other.
+## Repository layout target
 
-## Repository and branch policy
+The Scorecard pattern is the reference:
 
-- `main` is the live web/PWA and shared-backend authority.
-- `ios` is the native-development branch.
-- Native source belongs under `ios/`.
-- GitHub Pages must remain deployed from `main` only.
-- Rebuild Baseline Security Gate runs on both `main` and `ios` so native development cannot silently damage the web/shared contract.
-- iOS-specific CI/TestFlight workflows may run from `ios` only.
-- A native-only change does not need promotion into the web runtime.
-- A shared contract change developed during iOS work must be reviewed as a shared change, tested against both clients, and reconciled into `main` before it is considered authoritative.
-- Do not create a mirror/synchronization bot between branches.
+```text
+shared root HTML/CSS/JS          same or intentionally synchronized
+platform adapter contracts      shared
+web adapter implementations     main/shared
+Capacitor configuration         ios branch
+iOS plugin/native glue          ios branch
+iOS build/TestFlight scripts    ios branch
+generated Xcode project         preferably generated during CI/build
+```
 
-## Native technology baseline
+Do not maintain a hand-edited second copy of the whole web application under an iOS directory.
 
-Target implementation:
+## Technology baseline
 
-- Swift + SwiftUI for primary UI.
-- Firebase Apple SDKs for Auth, Firestore, Storage, Functions and Messaging.
-- CryptoKit/Security/Keychain for native cryptographic and secure-storage primitives.
-- LocalAuthentication for Face ID/Touch ID.
-- UserNotifications + Firebase Messaging for notification delivery.
-- App Attest/DeviceCheck for native App Check when activated.
-- Native persistence selected only after its ownership and encryption boundary are documented.
-
-No Capacitor/webview runtime is planned for FIDUNIO native iOS.
+- Existing HTML/CSS/JavaScript application remains primary.
+- Capacitor packages the application for iOS.
+- Firebase Web SDK/application service layer remains shared unless a specific native substitution is explicitly justified.
+- Capacitor/native plugins provide bounded iOS capabilities.
+- Swift/Objective-C is permitted only for narrowly scoped native bridges/configuration.
+- LocalAuthentication provides direct Face ID/Touch ID behavior for the native app.
+- Keychain/Secure Enclave may back native secure-storage adapters.
+- UserNotifications/APNs/FCM may back native notification adapters.
+- App Attest/DeviceCheck may back native App Check.
 
 ## Migration phases
 
 ### Phase 0 — preparation
 
 - Freeze/document shared contracts.
-- Establish `ios` branch from current validated `main`.
+- Establish `ios` branch from validated `main`.
 - Add branch validation.
-- Define native source layout and ownership.
-- Confirm Apple/Firebase identifiers before code that depends on them.
+- Adopt Capacitor/shared-JS architecture.
+- Define platform adapter ownership and branch synchronization rules.
+- Confirm Apple/Firebase identifiers before release-pipeline work.
 
-### Phase 1 — native shell and authentication
+### Phase 1 — Capacitor shell
 
-- Create native Xcode project.
-- Establish bundle ID and Apple signing/TestFlight pipeline.
-- Firebase initialization.
-- Sign in/join UI.
-- UID-local secure storage.
-- Native PIN/Face ID lock owner.
+- Add exact Capacitor dependencies and lockfile.
+- Add `capacitor.config.*`.
+- Define deterministic list/build step for web assets included in the iOS package.
+- Generate the Xcode project from CI/build scripts rather than allowing generated project drift where practical.
+- Establish bundle ID and signing/TestFlight pipeline.
+- Confirm the unchanged shared app launches inside the Capacitor shell.
 
-### Phase 2 — E2EE account bootstrap
+### Phase 2 — platform adapter layer
 
-- Restore existing account identity/keyId.
-- Native secure key persistence.
-- Revision reconciliation.
-- Recovery/fail-closed paths.
-- Prove one account can alternate between web and native without identity replacement.
+- Define shared JavaScript-facing platform interfaces.
+- Keep browser implementations working unchanged on `main`.
+- Add iOS implementations for Face ID, secure storage, notifications, lifecycle, files/network as required.
+- Add permanent contract tests proving feature code calls the adapter rather than platform APIs directly.
 
-### Phase 3 — read-only synchronized messaging
+### Phase 3 — E2EE/account interoperability
 
-- Conversation/group lists.
-- Direct/group message decrypt/projection.
-- Attachments receive.
-- Receipts/reactions projection.
-- History boundaries.
+- Prove the same account/keyId works across PWA and Capacitor app.
+- Preserve recovery/revision behavior.
+- Confirm no platform adapter duplicates or replaces the E2EE owner.
 
-### Phase 4 — native send and mutations
+### Phase 4 — messaging interoperability
 
-- Direct/group text send.
-- Attachments.
-- Reactions.
-- Read receipts.
-- Group membership/history grants.
-- Delete/archive semantics.
-- Invitation flows.
+- Web send -> iOS receive/decrypt/project.
+- iOS send -> web receive/decrypt/project.
+- Receipts, reactions, deletes, groups, attachments, history grants and disappearing content.
 
-### Phase 5 — notifications and background behavior
+### Phase 5 — native notification/security acceptance
 
-- APNs/FCM registration.
-- Exact-message notification routing.
-- PIN/Face ID gate.
-- Background/foreground lifecycle.
-- Multi-device routing and duplicate suppression.
+- Direct Face ID flow without the browser passkey banner.
+- APNs/FCM exact-message routing.
+- Cold/warm/background/foreground lifecycle.
+- Keychain/native storage behavior.
+- Native App Check monitoring when activated.
 
-### Phase 6 — TestFlight interoperability acceptance
+### Phase 6 — TestFlight coexistence acceptance
 
-Run a web <-> native matrix for every shared authority before promotion of any shared-contract changes.
+Run the complete web <-> iOS matrix before treating the iOS build as synchronized with the production web release.
 
-## Non-goals for the preparation phase
+## Non-goals for this preparation phase
 
 This phase does not:
 
+- rewrite FIDUNIO in Swift;
 - change the live Firebase schema/rules/Functions;
 - enable App Check enforcement;
-- change the web runtime version;
+- change the visible web runtime version;
 - change existing E2EE/message/notification behavior;
 - create a new account identity format;
 - add voice calling;
 - retire the PWA.
-
