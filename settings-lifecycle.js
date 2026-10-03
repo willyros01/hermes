@@ -32,6 +32,7 @@ import {mountInstallGuidance} from "./install-guidance.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
 import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
+import {isNativeIOSRuntime} from "./platform-runtime.js";
 
 let mutationTail=Promise.resolve();
 let generation=0;
@@ -250,7 +251,8 @@ const notificationRegistrationOwner=createNotificationRegistrationOwner({
 });
 function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Web Push setup required"})[status]||status;}
 async function renderNotifications(notificationsHost,info){
-  notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note">Loading notification status…</p></div>';
+  if(isNativeIOSRuntime()){notificationsHost.innerHTML=\'<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note"><strong>Status:</strong> Native notification setup pending</p><p class="small-note">This iOS app does not use the browser Web Push/service-worker registration path. APNs/FCM registration will be enabled through the dedicated native notification adapter in the notification migration phase.</p></div>\';return;}
+  notificationsHost.innerHTML=\'<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note">Loading notification status…</p></div>\';
   const card=notificationsHost.querySelector("#fidunioNotificationsCard");
   try{const state=await notificationRegistrationOwner.getStatus(info.user.uid);if(!card.isConnected)return;const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&!state.enabled;card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(notificationStatusText(state.status))}</p><p class="small-note">Private is the default: <strong>FIDUNIO — New message</strong>. You may optionally show only the sender's FIDUNIO display name. Message text, attachment names, email addresses, UIDs, and decrypted content are never placed in the notification.</p>${state.enabled?`<label class="form-label" style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="showNotificationSenderName" ${state.showSenderName?"checked":""}> Show sender's FIDUNIO display name</label><p class="small-note">When enabled on this installation, the card may say <strong>New message from Display Name</strong>.</p>`:""}${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${state.enabled?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
     const enable=card.querySelector("#enableNotificationsBtn"),disable=card.querySelector("#disableNotificationsBtn"),senderToggle=card.querySelector("#showNotificationSenderName"),note=card.querySelector("#notificationNote");
