@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import {FIDUNIO_PLATFORM,detectFidunioPlatform,isNativeIOSRuntime,shouldUseWebServiceWorker,shouldUseWebPush,shouldUseWebAppCheck} from "./platform-runtime.js";
+const webCap={isNativePlatform:()=>false,getPlatform:()=>"web"};
+const iosCap={isNativePlatform:()=>true,getPlatform:()=>"ios"};
+assert.equal(detectFidunioPlatform({capacitor:webCap,protocol:"https:"}),FIDUNIO_PLATFORM.WEB);
+assert.equal(detectFidunioPlatform({capacitor:iosCap,protocol:"capacitor:"}),FIDUNIO_PLATFORM.IOS_NATIVE);
+assert.equal(detectFidunioPlatform({capacitor:undefined,protocol:"capacitor:"}),FIDUNIO_PLATFORM.IOS_NATIVE,"protocol fallback protects early Capacitor startup");
+assert.equal(isNativeIOSRuntime({capacitor:iosCap,protocol:"capacitor:"}),true);
+assert.equal(shouldUseWebServiceWorker({capacitor:iosCap,protocol:"capacitor:"}),false);
+assert.equal(shouldUseWebPush({capacitor:iosCap,protocol:"capacitor:"}),false);
+assert.equal(shouldUseWebAppCheck({capacitor:iosCap,protocol:"capacitor:"}),false);
+assert.equal(shouldUseWebServiceWorker({capacitor:webCap,protocol:"https:"}),true);
+assert.equal(shouldUseWebPush({capacitor:webCap,protocol:"https:"}),true);
+assert.equal(shouldUseWebAppCheck({capacitor:webCap,protocol:"https:"}),true);
+console.log("PASS: bounded web/Capacitor iOS runtime selection");
