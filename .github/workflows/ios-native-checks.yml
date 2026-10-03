@@ -33,6 +33,7 @@ jobs:
           grep -q 'Capacitor + shared JavaScript' IOS-MIGRATION-CHECKLIST.md
           grep -q 'minimum code drift' IOS-NATIVE-ARCHITECTURE.md
           node build/verify-ios-foundation.mjs
+          node build/ios-apple-registration.test.mjs
 
       - name: Protect Firebase web configuration
         run: |
