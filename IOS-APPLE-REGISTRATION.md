@@ -128,3 +128,10 @@ With explicit user approval, reused existing active Apple team Admin API key `48
 GitHub secret values are write-only. The supplied credential set passed the existing read-only Apple verifier locally before provisioning; a GitHub Actions execution consuming these stored secrets has not yet been verified. No upload or signing workflow was introduced in this registration step.
 
 Apple registration scope is complete. Native Firebase registration remains deferred until native Firebase SDK integration, and the FIDUNIO-specific export-compliance determination remains required before first TestFlight upload. No production web or live Firebase changes were made.
+
+
+### GitHub Actions Apple verification PASS — 2026-10-03
+
+Added `.github/workflows/ios-apple-verification.yml` on `ios` at `fe589bb734c2201b9d67635defc3f30a49099f4a`. Run `37156481701` successfully executed the registration specification gate and existing read-only Apple verifier using all four repository secrets. Apple accepted the key and confirmed the exact bundle ID, Team ID consistency, Push Notifications, FIDUNIO app name, SKU and `en-US` locale. Capabilities were `IN_APP_PURCHASE, PUSH_NOTIFICATIONS`.
+
+This supersedes the earlier limitation that stored GitHub credentials had not been exercised. Workflow uses contents-read permission, an `ios` branch guard, no dependency installation, a restrictive temporary key file and exit cleanup. It performs no signing, upload, Apple mutation, Firebase mutation or export-compliance declaration. GitHub masks credential values in the logs.
