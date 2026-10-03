@@ -17,57 +17,24 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ios-capacitor-shell-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lockfile:
-    runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.lock.outputs.changed }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ios
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: package-lock.json
-        continue-on-error: true
-      - id: lock
-        name: Verify or create deterministic npm lockfile
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          if [ -n "$(git status --porcelain -- package-lock.json)" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "Lock Capacitor iOS foundation dependencies"
-            git push origin HEAD:ios
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
   shell:
-    needs: lockfile
-    if: needs.lockfile.outputs.changed == 'false'
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Install pinned dependencies
-        run: npm ci
+      - name: Install exact locked dependencies
+        run: npm ci --no-audit --no-fund
       - name: Prepare and verify shared FIDUNIO web payload
         run: npm run ios:prepare
       - name: Generate fresh Capacitor iOS project
@@ -81,7 +48,14 @@ jobs:
           test -f ios/App/App/public/firebase.js
       - name: Compile unsigned iOS simulator shell
         run: |
-          xcodebuild             -project ios/App/App.xcodeproj             -scheme App             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             build
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
       - name: Report shell result
         run: |
           echo "PASS: FIDUNIO shared web payload generated, Capacitor iOS project generated, and unsigned simulator shell compiled."
