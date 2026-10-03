@@ -74,6 +74,7 @@ try{
  await stalled.page.getByRole('button',{name:'Retry Startup'}).waitFor({state:'visible'});
  assert.match(await stalled.page.locator('.startup-shell').innerText(),/taking longer than expected/);
  assert.equal(await stalled.page.locator('#loginEmail').count(),0);
+ await stalled.page.clock.resume();
  await stalled.page.screenshot({path:path.join(evidence,selected+'-startup-timeout.png')});
  await stalled.context.close();console.log('PASS: '+selected+' stalled startup is visible and cannot bypass authentication');
 }finally{
