@@ -39,6 +39,9 @@ export function deleteCloudDirectMessageForEveryone(conversationId,messageId){re
 export function deleteCloudGroupMessageForEveryone(groupId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(groupId||""),messageId:String(messageId||""),messageKind:"group"});}
 export function deleteCloudMyMessagesForEveryone(conversationId,messageKind="direct"){return callCloudFunction("deleteMyMessagesForEveryoneV1",{conversationId:String(conversationId||""),messageKind:messageKind==="group"?"group":"direct"});}
 export function deleteCloudConversationForEveryone(conversationId,conversationKind="direct"){return callCloudFunction("deleteConversationForEveryoneV1",{conversationId:String(conversationId||""),conversationKind:conversationKind==="group"?"group":"direct"});}
+export function getCloudLegalAcceptance(){return callCloudFunction("getLegalAcceptanceV1",{});}
+export function acceptCloudLegalPolicy(data){return callCloudFunction("acceptLegalPolicyV1",data);}
+export function completeCloudMyAccountDeletion(){return callCloudFunction("completeMyAccountDeletionV1",{});}
 export async function setCloudMessageReaction(conversationId,messageId,messageKind="direct",reaction){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
   const id=String(conversationId||"").trim(),mid=String(messageId||"").trim(),kind=messageKind==="group"?"group":"direct";
