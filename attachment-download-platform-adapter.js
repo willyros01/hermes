@@ -27,18 +27,28 @@ export async function downloadPlatformAttachmentBytes(url,{
     // Call the built-in bridge directly; do not patch global fetch/XHR or route
     // Firebase Auth/Firestore traffic through another networking authority.
     let timer;
+    let abortListener;
+    if(signal?.aborted)throw failure("Attachment download aborted","storage/fetch-aborted");
     try{
-      const response=await Promise.race([
-        http.request({url:safeUrl,method:"GET",responseType:"text",connectTimeout:timeoutMs,readTimeout:timeoutMs,disableRedirects:true,shouldEncodeUrlParams:false}),
+      const pending=[
+        http.request({url:safeUrl,method:"GET",headers:{"Cache-Control":"no-cache, no-store"},responseType:"text",connectTimeout:timeoutMs,readTimeout:timeoutMs,disableRedirects:true,shouldEncodeUrlParams:false}),
         new Promise((_,reject)=>{timer=setTimeout(()=>reject(failure("Attachment download timed out","storage/fetch-timeout")),timeoutMs);}),
-      ]);
+      ];
+      if(signal)pending.push(new Promise((_,reject)=>{
+        abortListener=()=>reject(failure("Attachment download aborted","storage/fetch-aborted"));
+        signal.addEventListener("abort",abortListener,{once:true});
+      }));
+      const response=await Promise.race(pending);
       if(!Number.isInteger(response?.status)||response.status<200||response.status>=300)throw failure(`HTTP ${response?.status||"unknown"}`,`storage/http-${response?.status||"unknown"}`);
       // Capacitor parses application/json even when text was requested. Chunks
       // are application/octet-stream and therefore arrive as JSON text.
       const data=response.data;
       if(typeof data!=="string"&&(!data||typeof data!=="object"||Array.isArray(data)))throw failure("Invalid stored data","attachment/invalid-json");
       buffer=new TextEncoder().encode(typeof data==="string"?data:JSON.stringify(data)).buffer;
-    }finally{clearTimeout(timer);}
+    }finally{
+      clearTimeout(timer);
+      if(signal&&abortListener)signal.removeEventListener("abort",abortListener);
+    }
   }else{
     const response=await fetchImpl(url,{cache:"no-store",signal});
     if(!response.ok)throw failure(`HTTP ${response.status}`,`storage/http-${response.status}`);
