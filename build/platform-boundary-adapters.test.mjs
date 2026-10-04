@@ -13,7 +13,7 @@ assert.doesNotThrow(()=>subscribePlatformBackgroundMessages(()=>{},{platformOpti
 const inert=createPlatformStartupWatchdog({host:null,platformOptions:web});
 assert.equal(typeof inert.fail,"function");assert.equal(typeof inert.clear,"function");
 assert.deepEqual({...getNotificationPlatformCapabilities(web)},{registrationKind:"web-push",webPush:true,nativeRegistration:false});
-assert.deepEqual({...getNotificationPlatformCapabilities(ios)},{registrationKind:"native-pending",webPush:false,nativeRegistration:false});
+assert.deepEqual({...getNotificationPlatformCapabilities(ios)},{registrationKind:"native-fcm",webPush:false,nativeRegistration:true});
 
 const bootstrap=fs.readFileSync("bootstrap.js","utf8");
 const app=fs.readFileSync("app.js","utf8");
