@@ -27,7 +27,8 @@ import {
 } from "./account-storage.js";
 
 const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
-let appStarted=false;\nlet appStartPromise=null;
+let appStarted=false;
+let appStartPromise=null;
 
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function inviteTokenFromUrl(){return new URL(location.href).searchParams.get("invite")||"";}
