@@ -221,7 +221,7 @@ async function enterAfterPasswordSignIn(user,bound,password){
   }
   restoreLocalAccountE2EE(saved);
   markSuccessfulAuthBypass();
-  await startApp();
+  await startAppAfterLegalAcceptance(user);
 }
 
 function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){
