@@ -56,6 +56,27 @@ export async function createFidunioAccount(){throw new Error("FIDUNIO account cr
 export async function updateFidunioProfile(values={}){const s=await ensureServices(),user=s.auth.currentUser;if(!user)throw new Error("Sign in first.");const name=String(values.displayName||"").trim(),mail=String(values.email||"").trim(),phone=String(values.telephone||"").trim(),photo=String(values.photoURL||"").trim();if(!name)throw new Error("Display name is required.");if(mail&&mail!==user.email){if(!values.currentPassword)throw new Error("Enter your current password to change your email address.");const credential=s.authSdk.EmailAuthProvider.credential(user.email,values.currentPassword);await s.authSdk.reauthenticateWithCredential(user,credential);await s.authSdk.updateEmail(user,mail);}await s.authSdk.updateProfile(user,{displayName:name,photoURL:photo||null});authUser=user;await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"users",user.uid),{displayName:name,email:user.email||mail,telephone:phone,photoURL:photo,profileUpdatedAt:s.fsSdk.serverTimestamp()});return{uid:user.uid,displayName:user.displayName||name,email:user.email||mail,photoURL:user.photoURL||photo};}
 export async function changeFidunioPassword(currentPassword,newPassword){const s=await ensureServices(),user=s.auth.currentUser;if(!user)throw new Error("Sign in first.");if(!currentPassword)throw new Error("Enter your current password.");if(String(newPassword||"").length<6)throw new Error("New password must be at least 6 characters.");const credential=s.authSdk.EmailAuthProvider.credential(user.email,currentPassword);await s.authSdk.reauthenticateWithCredential(user,credential);await s.authSdk.updatePassword(user,newPassword);}
 export async function listFidunioUsersForAdmin(){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users"));return snap.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.displayName||a.email||a.uid).localeCompare(String(b.displayName||b.email||b.uid)));}
+export async function listFidunioBlockedUsers(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users",authUser.uid,"blocks"));
+  return snap.docs.map(d=>({blockedUid:d.id,...d.data()}));
+}
+export async function blockFidunioUser(targetUid){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const target=String(targetUid||"").trim();
+  if(!/^[A-Za-z0-9:_-]{1,180}$/.test(target)||target===authUser.uid)throw new Error("Choose another FIDUNIO user to block.");
+  const targetSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",target));
+  if(!targetSnap.exists())throw new Error("That FIDUNIO user was not found.");
+  await s.fsSdk.setDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"blocks",target),{blockedUid:target,createdAt:s.fsSdk.serverTimestamp()});
+  return true;
+}
+export async function unblockFidunioUser(targetUid){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const target=String(targetUid||"").trim();
+  if(!/^[A-Za-z0-9:_-]{1,180}$/.test(target))throw new Error("Blocked user is invalid.");
+  await s.fsSdk.deleteDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"blocks",target));
+  return true;
+}
 export async function submitFidunioAbuseReport({category,targetUid="",details=""}={}){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
   const kind=String(category||"").trim(),target=String(targetUid||"").trim(),note=String(details||"").trim();
