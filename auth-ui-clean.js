@@ -144,16 +144,16 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
         if(!await verifyLocalPin(pinInput.value()))throw new Error("Incorrect PIN.");
         restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();
       }else await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pinInput.value(),{hasIdentity});
-      await startApp();
     }catch(err){
       note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
-      btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();
+      btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();return;
     }
+    await openStartedAppOrOfferRetry(user);
   };
   const deviceBtn=document.querySelector("#sessionDeviceBtn");
   if(deviceBtn)deviceBtn.onclick=async()=>{
     deviceBtn.disabled=true;deviceBtn.textContent="Waiting for Face ID or biometric…";
-    if(await verifyBiometric()){restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();await startApp();return;}
+    if(await verifyBiometric()){restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();await openStartedAppOrOfferRetry(user);return;}
     document.querySelector("#sessionNote").innerHTML='<p class="warning-note">Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.</p>';
     deviceBtn.disabled=false;deviceBtn.textContent="Unlock with Face ID or Biometric";
   };
@@ -246,11 +246,11 @@ async function renderJoin(initialToken=""){
       const user=await redeemInvitationForEnrollment(token,email,password,name);
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
       await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});
-      await startApp();
     }catch(err){
       note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
-      btn.disabled=false;pinInput.setDisabled(false);btn.textContent="Join FIDUNIO";
+      btn.disabled=false;pinInput.setDisabled(false);btn.textContent="Join FIDUNIO";return;
     }
+    await openStartedAppOrOfferRetry(getFirebaseUser());
   };
 }
 
@@ -271,9 +271,9 @@ export async function runAuthGate(){
       const info=await getFidunioAccessInfo();
       if(!info.profile){renderGate("join","This login is not enrolled in FIDUNIO. Use a valid invitation.");return;}
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
-      if(bound.state?.state==="READY")await startApp();
+      if(bound.state?.state==="READY")await openStartedAppOrOfferRetry(user);
       else await renderSessionUnlock(user,bound);
     }
-    catch(err){renderGate("signin",err?.message||String(err));}
+    catch(err){renderAuthenticatedTransitionFailure(user,err,async()=>runAuthGate());}
   }else renderGate();
 }
