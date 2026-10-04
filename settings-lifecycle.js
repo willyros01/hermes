@@ -218,8 +218,8 @@ async function renderAccountDeletion(profileHost,usersHost,info){
 
   const finishDeletion=async(note)=>{
     note.innerHTML='<p class="small-note">Completing account deletion…</p>';
-    await completeSelfAccountDeletion();
-    alert("Your FIDUNIO account has been deleted.");
+    const result=await completeSelfAccountDeletion();
+    alert(result?.localCleanupWarning?("Your FIDUNIO account has been deleted.\n\n"+result.localCleanupWarning):"Your FIDUNIO account has been deleted.");
     location.reload();
   };
 
