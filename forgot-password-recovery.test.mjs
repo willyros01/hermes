@@ -13,7 +13,8 @@ requireTrue(auth.includes("if(await hasPasswordResetPending(user.email))"),"succ
 requireTrue(auth.includes("renderPasswordResetRecovery")&&auth.includes("Existing six-digit FIDUNIO PIN"),"authentication gate must own a visible PIN-gated recovery screen");
 requireTrue(auth.includes("await recoverAccountE2EE({uid:user.uid,newPassword:password,pin})"),"recovery must use the authenticated UID, new Firebase password and existing PIN");
 requireTrue(runtime.includes("await manager.recover")&&runtime.includes("await saveLocalAccountE2EEIdentity(manager.getRuntimeIdentity())"),"successful recovery must persist the same runtime identity and current revision");
-requireTrue(auth.includes("await clearPasswordResetPending();markSuccessfulAuthBypass();")&&auth.includes("await openStartedAppOrOfferRetry(user)"),"the recovery handoff must be consumed only after recovery succeeds, then application startup must use its separate retry-safe boundary");\nrequireTrue(!auth.includes("await clearPasswordResetPending();markSuccessfulAuthBypass();await startApp()"),"application startup must not share the recovery failure boundary");
+requireTrue(auth.includes("await clearPasswordResetPending();markSuccessfulAuthBypass();")&&auth.includes("await openStartedAppOrOfferRetry(user)"),"the recovery handoff must be consumed only after recovery succeeds, then application startup must use its separate retry-safe boundary");
+requireTrue(!auth.includes("await clearPasswordResetPending();markSuccessfulAuthBypass();await startApp()"),"application startup must not share the recovery failure boundary");
 requireTrue(auth.includes('if(bound.hasIdentity){await renderPasswordResetRecovery(user,password,{reason:"missing-local"})'),"an authenticated account with no local identity must be offered cryptographic recovery instead of being stranded");
 
 console.log("Forgot Password Firebase-to-E2EE recovery handoff passed");
