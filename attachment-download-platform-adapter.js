@@ -1,5 +1,6 @@
 /* Transport only. Firebase owns URL lookup; the shared receive owner verifies
- * and decrypts bytes. No auth, plaintext, persistence, or UI ownership here. */
+ * and decrypts bytes. Preserve caller cancellation semantics; no auth, plaintext,
+ * persistence, UI, or global networking ownership lives here. */
 import {isNativeIOSRuntime} from "./platform-runtime.js";
 
 export const ATTACHMENT_OBJECT_MAX_BYTES=1048576;
