@@ -75,6 +75,19 @@ function routeFromNativeEvent(event){
   return normalizeNotificationRoute(data);
 }
 
+export function subscribeNativeMessagingTokens(handler){
+  if(typeof handler!=="function")throw new Error("Native notification token handler is required.");
+  const plugin=nativeMessagingPlugin();
+  if(!plugin?.addListener)return()=>{};
+  let active=true,handle=null;
+  Promise.resolve(plugin.addListener("tokenReceived",event=>{
+    if(!active)return;
+    const token=String(event?.token||"").trim();
+    if(token)handler(token,event);
+  })).then(value=>{handle=value;if(!active)handle?.remove?.();}).catch(error=>console.warn("FIDUNIO native token listener failed",error));
+  return()=>{active=false;try{handle?.remove?.();}catch{}};
+}
+
 export function subscribeNativeNotificationRoutes(handler){
   if(typeof handler!=="function")throw new Error("Native notification route handler is required.");
   const plugin=nativeMessagingPlugin();
