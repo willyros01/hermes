@@ -117,7 +117,8 @@ jobs:
       - {name: "Group membership leave, list and discovery lifecycle", run: node group-membership-lifecycle.test.mjs}
       - {name: Single visible FIDUNIO PIN and hidden-key UX, run: npm run test:user-access-key-ux}
       - {name: Password change E2EE bridge and rollback, run: node password-change-integration.test.mjs}
-      - {name: Forgot Password Firebase-to-E2EE recovery handoff, run: node forgot-password-recovery.test.mjs}\n      - {name: Authentication and recovery transition boundaries, run: node build/auth-transition-boundary.test.mjs}
+      - {name: Forgot Password Firebase-to-E2EE recovery handoff, run: node forgot-password-recovery.test.mjs}
+      - {name: Authentication and recovery transition boundaries, run: node build/auth-transition-boundary.test.mjs}
       - {name: Password visibility presentation owner, run: node password-visibility.test.mjs}
       - {name: Portable encrypted account vault and recovery, run: npm run test:account-vault}
       - {name: Basic direct-message send and receive path, run: node direct-message-basic-path.test.mjs}
