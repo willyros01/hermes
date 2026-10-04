@@ -6,6 +6,7 @@ import { normalizeDisappearSelection } from "./disappearing-content-policy.js";
 import {assertInvitationUsable,normalizeInvitationRole,canIssueInvitation} from "./invitation-policy.js";
 import {createDirectMessageDeliveryOwner} from "./direct-message-delivery-owner.js";
 import {nextMessageReactions} from "./message-reaction-policy.js";
+import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";
 
 // Public reCAPTCHA Enterprise site key registered for FIDUNIO Web / willyros01.github.io.
 // This key is intentionally public and constrained by its Google Cloud configuration.
