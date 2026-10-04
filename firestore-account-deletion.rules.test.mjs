@@ -14,7 +14,7 @@ await env.withSecurityRulesDisabled(async c=>{
  await setDoc(doc(db,"users",B),{displayName:"Other",email:"b@example.test",systemRole:"user",active:true,status:"active"});
 });
 const ref=doc(dbU,"accountDeletionRequests",U);
-const valid={uid:U,status:"pending",contactEmail:"u@example.test",displayName:"User",requestedAt:serverTimestamp(),cancelledAt:null,completedAt:null};
+const valid={uid:U,status:"pending",cleanupStatus:"required",cleanupCompletedAt:null,contactEmail:"u@example.test",displayName:"User",requestedAt:serverTimestamp(),cancelledAt:null,completedAt:null};
 await t("user initiates own deletion",()=>assertSucceeds(setDoc(ref,valid)));
 await t("user reads own deletion request",()=>assertSucceeds(getDoc(ref)));
 await t("other user cannot read deletion request",()=>assertFails(getDoc(doc(dbB,"accountDeletionRequests",U))));
@@ -23,7 +23,9 @@ await t("admin lists deletion requests",()=>assertSucceeds(getDocs(collection(db
 await t("other user cannot create deletion request for target",()=>assertFails(setDoc(doc(dbB,"accountDeletionRequests",U),{...valid})));
 await t("user cannot forge completed request",()=>assertFails(setDoc(doc(dbU,"accountDeletionRequests","forged"),{...valid,uid:"forged",status:"completed",contactEmail:"x@example.test"})));
 await t("user cancels pending request",()=>assertSucceeds(updateDoc(ref,{status:"cancelled",cancelledAt:serverTimestamp()})));
-await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),"accountDeletionRequests",U),{uid:U,status:"pending",contactEmail:"u@example.test",displayName:"User",requestedAt:new Date(),cancelledAt:null,completedAt:null});});
+await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),"accountDeletionRequests",U),{uid:U,status:"pending",cleanupStatus:"required",cleanupCompletedAt:null,contactEmail:"u@example.test",displayName:"User",requestedAt:new Date(),cancelledAt:null,completedAt:null});});
+await t("admin cannot process before client cleanup",()=>assertFails(updateDoc(doc(dbA,"accountDeletionRequests",U),{status:"processing",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:A})));
+await t("requester marks client cleanup complete",()=>assertSucceeds(updateDoc(doc(dbU,"accountDeletionRequests",U),{cleanupStatus:"complete",cleanupCompletedAt:serverTimestamp()})));
 await t("admin marks request processing",()=>assertSucceeds(updateDoc(doc(dbA,"accountDeletionRequests",U),{status:"processing",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:A})));
 await t("requester cannot mark request processing",()=>assertFails(updateDoc(doc(dbU,"accountDeletionRequests",U),{status:"processing",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:U})));
 await t("admin marks processing request complete",()=>assertSucceeds(updateDoc(doc(dbA,"accountDeletionRequests",U),{status:"completed",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:A,completedAt:serverTimestamp()})));
