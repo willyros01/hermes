@@ -36,6 +36,7 @@ jobs:
           node build/ios-apple-registration.test.mjs
           node platform-runtime.test.mjs
           node build/firebase-platform-adapter.test.mjs
+          node build/ios-runtime-syntax.test.mjs
           node build/platform-boundary-adapters.test.mjs
           node build/auth-transition-boundary.test.mjs
           node build/ios-startup-repair.test.mjs
