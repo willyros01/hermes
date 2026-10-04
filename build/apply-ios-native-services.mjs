@@ -59,7 +59,14 @@ setString("NSFaceIDUsageDescription","FIDUNIO uses Face ID to unlock your locall
 
 const project=xcode.project(projectPath).parseSync();
 const target=project.getFirstTarget();
-project.addResourceFile("App/GoogleService-Info.plist",{target:target.uuid});
+const appGroup=project.findPBXGroupKey({path:"App"});
+if(!appGroup)throw new Error("Generated Xcode App group is missing");
+const firebaseFile=project.addFile("GoogleService-Info.plist",appGroup,{target:target.uuid});
+if(!firebaseFile)throw new Error("Firebase plist already exists unexpectedly");
+firebaseFile.target=target.uuid;
+firebaseFile.uuid=project.generateUuid();
+project.addToPbxBuildFileSection(firebaseFile);
+project.addToPbxResourcesBuildPhase(firebaseFile);
 project.updateBuildProperty("CODE_SIGN_ENTITLEMENTS","App/App.entitlements",undefined,"App");
 project.addTargetAttribute("SystemCapabilities",{"com.apple.Push":{enabled:1}},target);
 fs.writeFileSync(projectPath,project.writeSync());
