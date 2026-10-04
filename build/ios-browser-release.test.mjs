@@ -42,6 +42,22 @@ try{
  const {context,page}=await fresh();const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base);await ready(page);
  assert.equal(await page.evaluate(async()=> (await import('/firebase.js')).getFirebaseUser()),null);
+ // Exercise FIDUNIO's exact local E2EE storage primitive in the browser engine:
+ // a P-256 private CryptoKey must survive the IndexedDB structured-clone roundtrip.
+ const cryptoKeyRoundTrip=await page.evaluate(async()=>{
+   const local=await import('/local-security.js');
+   const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);
+   const uid='ios-preflight-crypto-key',keyId='preflight-key',revision=7;
+   try{
+     await local.saveLocalAccountE2EEIdentity({uid,keyId,revision,privateKey:pair.privateKey});
+     const restored=await local.readLocalAccountE2EEIdentity(uid,{keyId,revision});
+     if(!restored?.privateKey||restored.privateKey.type!=='private')return{ok:false,reason:'private key did not round-trip'};
+     await crypto.subtle.deriveBits({name:'ECDH',public:pair.publicKey},restored.privateKey,256);
+     return{ok:true};
+   }catch(error){return{ok:false,reason:error?.message||String(error)};}
+   finally{try{await local.clearLocalAccountE2EEIdentity(uid);}catch{}}
+ });
+ assert.deepEqual(cryptoKeyRoundTrip,{ok:true});
  assert.equal(await page.locator('img[alt="Fidunio logo"]').evaluate(img=>img.complete&&img.naturalWidth>0),true);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
  await page.locator('#loginPassword').focus();await page.locator('#loginPassword-show-password').check();
