@@ -39,6 +39,7 @@ local-security.js
 account-storage.js
 account-recovery.js
 account-deletion-service.js
+account-deletion-finalize-client.js
 admin-recovery-client.js
 account-vault-format.js
 account-vault-owner.js
