@@ -28,7 +28,7 @@ assert.equal(result.pruned,1);
 assert.equal(calls.length,2);
 assert.deepEqual(calls[0].data,{type:"group-message",conversationId:"group-1",messageId:"message-1",notificationBody:"New message"});
 assert.deepEqual(calls[1].data,{type:"group-message",conversationId:"group-1",messageId:"message-1",notificationBody:"New message from Authoritative Alice"});
-for(const payload of calls){assert.equal("notification" in payload,false);assert.deepEqual(payload.webpush,{headers:{Urgency:"high"}});assert.doesNotMatch(JSON.stringify(payload),/PLAINTEXT-MUST-NOT-LEAK|SECRET-CIPHERTEXT|Untrusted Name|u2|u3/);}
+for(const payload of calls){assert.equal("notification" in payload,false);assert.deepEqual(payload.webpush,{headers:{Urgency:"high"}});assert.deepEqual(payload.apns,{headers:{"apns-priority":"10"},payload:{aps:{alert:{title:"FIDUNIO",body:payload.data.notificationBody},sound:"default"}}});assert.doesNotMatch(JSON.stringify(payload),/PLAINTEXT-MUST-NOT-LEAK|SECRET-CIPHERTEXT|Untrusted Name|u2|u3/);}
 assert.deepEqual(deleted,[["u3","u3-named","b".repeat(80)]]);
 
 let sent=false;
