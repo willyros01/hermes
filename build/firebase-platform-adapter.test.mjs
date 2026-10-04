@@ -7,7 +7,16 @@ import {
 } from "../firebase-platform-adapter.js";
 
 const web={capacitor:null,protocol:"https:"};
-const ios={capacitor:{isNativePlatform:()=>true,getPlatform:()=>"ios"},protocol:"capacitor:"};
+const nativeCalls=[];
+const nativePlugin={
+  initialize:async options=>{nativeCalls.push({kind:"initialize",options});},
+  getToken:async options=>{
+    nativeCalls.push({kind:"getToken",options});
+    return{token:"native-app-check-token",expireTimeMillis:Date.now()+60*60*1000};
+  },
+};
+const ios={capacitor:{isNativePlatform:()=>true,getPlatform:()=>"ios",Plugins:{FirebaseAppCheck:nativePlugin}},protocol:"capacitor:"};
+
 assert.equal(getPlatformFirebaseSdkVersion(web),FIDUNIO_FIREBASE_SDK_VERSION.WEB);
 assert.equal(getPlatformFirebaseSdkVersion(ios),FIDUNIO_FIREBASE_SDK_VERSION.IOS_NATIVE);
 assert.equal(FIDUNIO_FIREBASE_SDK_VERSION.WEB,"12.18.0");
@@ -36,15 +45,46 @@ for(const [name,platformOptions] of [["web",web],["ios",ios]]){
 }
 
 const app={};const appCheckCalls=[];
-class Provider{constructor(key){this.key=key;}}
+class EnterpriseProvider{constructor(key){this.key=key;}}
+class CustomProvider{constructor(options){this.options=options;}}
 const appCheckSdk={
-  ReCaptchaEnterpriseProvider:Provider,
-  initializeAppCheck:(a,options)=>{appCheckCalls.push({a,options});return "web-app-check";},
+  ReCaptchaEnterpriseProvider:EnterpriseProvider,
+  CustomProvider,
+  initializeAppCheck:(a,options)=>{appCheckCalls.push({a,options});return a===app?"app-check":"unexpected";},
 };
-assert.equal(createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:"public-key",platformOptions:ios}),null);
-assert.equal(appCheckCalls.length,0);
-assert.equal(createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:"public-key",platformOptions:web}),"web-app-check");
+
+assert.equal(
+  await createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:"public-key",platformOptions:web}),
+  "app-check",
+);
 assert.equal(appCheckCalls.length,1);
 assert.equal(appCheckCalls[0].options.provider.key,"public-key");
+assert.equal(appCheckCalls[0].options.isTokenAutoRefreshEnabled,true);
 
-console.log("PASS: Firebase platform adapter owns web/iOS SDK, Auth persistence and App Check bootstrap differences");
+assert.equal(
+  await createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:"public-key",platformOptions:ios}),
+  "app-check",
+);
+assert.equal(nativeCalls.length,1);
+assert.equal(nativeCalls[0].kind,"initialize");
+assert.equal(nativeCalls[0].options.isTokenAutoRefreshEnabled,true);
+assert.equal(appCheckCalls.length,2);
+assert.ok(appCheckCalls[1].options.provider instanceof CustomProvider);
+const bridged=await appCheckCalls[1].options.provider.options.getToken();
+assert.equal(bridged.token,"native-app-check-token");
+assert.ok(bridged.expireTimeMillis>Date.now());
+assert.equal(nativeCalls.length,2);
+assert.equal(nativeCalls[1].kind,"getToken");
+assert.equal(nativeCalls[1].options.forceRefresh,false);
+
+await assert.rejects(
+  ()=>createPlatformFirebaseAppCheck({
+    app,
+    appCheckSdk,
+    siteKey:"public-key",
+    platformOptions:{capacitor:{isNativePlatform:()=>true,getPlatform:()=>"ios",Plugins:{}},protocol:"capacitor:"},
+  }),
+  /Native Firebase App Check adapter is unavailable/,
+);
+
+console.log("PASS: Firebase platform adapter owns web reCAPTCHA Enterprise and native App Attest/DeviceCheck token bridging");
