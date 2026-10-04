@@ -22,7 +22,8 @@ assert.match(adapterSource,/plugin\.initialize\(\{isTokenAutoRefreshEnabled:true
 assert.match(adapterSource,/plugin\.getToken\(\{forceRefresh:false\}\)/);
 assert.match(adapterSource,/initializeAppCheck/);
 assert.match(adapterSource,/isTokenAutoRefreshEnabled\s*:\s*true/);
-assert.match(adapterSource,/app-attest-devicecheck-native-bridge/);
+assert.match(adapterSource,/app-attest-devicecheck-native-bridge-standby-fail-open/);
+assert.match(adapterSource,/continuing because backend enforcement is OFF/);
 assert.doesNotMatch(adapterSource,/iosAppCheck:"deferred-app-attest-devicecheck"/);
 
 const initializeAppAt=firebaseSource.indexOf("initializeApp(firebaseConfig)");
