@@ -2,6 +2,7 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { getMessaging } from "firebase-admin/messaging";
+import { getAuth } from "firebase-admin/auth";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
@@ -22,6 +23,8 @@ import { createGroupMessageNotificationCore } from "./notification/group-message
 import { createNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
 import { createLegalPolicyCore } from "./legal/legal-policy-core.mjs";
 import { createLegalPolicyFirestoreRepository } from "./legal/legal-policy-firestore-admin-adapter.mjs";
+import { createAccountDeletionCore } from "./account-deletion/account-deletion-core.mjs";
+import { createAccountDeletionAdminRepository } from "./account-deletion/account-deletion-firestore-admin-adapter.mjs";
 
 if (!getApps().length) initializeApp();
 
@@ -42,6 +45,8 @@ const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disa
 const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo}=createNotificationAdminRepositories({db});
 const legalRepo=createLegalPolicyFirestoreRepository({db});
 const legalCore=createLegalPolicyCore({repo:legalRepo,termsVersion:"2026-10-04-v1",privacyVersion:"2026-10-04-v1"});
+const accountDeletionRepo=createAccountDeletionAdminRepository({db,auth:getAuth()});
+const accountDeletionCore=createAccountDeletionCore({repo:accountDeletionRepo});
 const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo,messaging:getMessaging()});
 const groupNotificationCore=createGroupMessageNotificationCore({groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
 
@@ -100,6 +105,7 @@ export const startAdminAuthorizedRecoveryV1=onCall(common,request=>invoke(adminR
 export const completeAdminAuthorizedRecoveryV1=onCall({...common,secrets:[RECOVERY_MASTER]},request=>invoke(adminRecoveryCore.completeAdminAuthorizedRecoveryV1,request));
 export const getLegalAcceptanceV1=onCall(common,request=>invoke(legalCore.getLegalAcceptanceV1,request));
 export const acceptLegalPolicyV1=onCall(common,request=>invoke(legalCore.acceptLegalPolicyV1,request));
+export const completeMyAccountDeletionV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:300,memory:"512MiB",maxInstances:5},request=>invoke(accountDeletionCore.completeMyAccountDeletionV1,request));
 
 export const deleteDirectMessageForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request));
 export const deleteMyMessagesForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:60,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request));
