@@ -23,6 +23,7 @@ npm run ios:prepare
 rm -rf ios
 npx cap add ios
 npx cap sync ios
+node build/apply-ios-native-services.mjs
 node build/apply-ios-export-compliance.mjs
 node build/apply-ios-icon.mjs
 PLIST=ios/App/App/Info.plist
