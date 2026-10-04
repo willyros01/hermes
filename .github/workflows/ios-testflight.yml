@@ -2,7 +2,7 @@ name: FIDUNIO TestFlight
 on:
   push:
     branches: [ios]
-    paths: ['build/ios-testflight-release.json']
+    paths: ['version.js']
   workflow_dispatch:
 permissions:
   contents: read
