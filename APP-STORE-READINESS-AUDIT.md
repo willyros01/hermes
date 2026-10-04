@@ -18,25 +18,29 @@ The next TestFlight is the post-remediation candidate. A build is authorized onl
 - Native App Check implementation is behind `firebase-platform-adapter.js`; web remains reCAPTCHA Enterprise and native iOS uses App Attest/DeviceCheck through the Capacitor native token -> Firebase JS SDK CustomProvider bridge.
 - Firebase App Check enforcement remains OFF by approved policy.
 - Exact-head repository gates after the App Check browser-harness repair passed: native preflight, Chromium/WebKit browser release regressions, and Rebuild Baseline Security Gate.
+- At source head `b31f3a4066e4c92e10d6e2ce632ee60f4aad74b0`, native preflight, Chromium/WebKit browser release regressions, and the complete Rebuild Baseline Security Gate all passed.
 - The former browser startup failure was a test-harness defect: the simulated native runtime did not model the newly required native App Check plugin. The harness now does, and both browser engines pass.
 - The native iOS App Check dependency compiled successfully in the prior macOS shell run. That shell run timed out in simulator startup after an unusually long simulator boot/migration; it did not fail compilation.
 
 ## App Store review blockers discovered
 
-### AS-001 — Self-service account deletion — BLOCKING
+### AS-001 — Self-service account deletion — PARTIAL SOURCE REMEDIATION / COMPLETION STILL BLOCKING
 
-Apple requires an app that supports account creation to let the user initiate deletion from inside the app. FIDUNIO currently has administrator suspend/deactivate controls, but no user-owned Delete My Account implementation.
+The `ios` branch now has **Settings -> Delete My Account** with current-password reauthentication, the existing six-digit FIDUNIO PIN, a user-owned deletion request, cancel-while-pending, and an Admin/Owner request queue.
 
-Required remediation:
-- Settings -> Account -> Delete My Account.
-- Clear irreversible warning and reauthentication.
-- User initiates the request in-app; no email/phone call required to start it.
-- Full account and associated personal data cleanup, subject only to documented legal retention.
-- If completion is asynchronous/manual, show the expected completion period and provide completion confirmation.
-- Preserve E2EE authority: group membership/ownership must be reconciled without silently weakening epoch/rekey invariants.
-- Delete Firebase Auth last, only after server cleanup succeeds or reaches an explicitly recoverable terminal state.
+The shared deletion-preparation owner now:
+- deletes the requesting user's own sent direct and group messages through the existing controlled deletion callable;
+- leaves non-owned groups through the existing E2EE membership/epoch-rotation owner;
+- deliberately refuses to silently delete groups the requester owns; the owner must explicitly delete those groups first;
+- marks the request cleanup-complete only after group membership cleanup succeeds;
+- prevents Admin processing until that cleanup-complete barrier is present.
 
-Do not implement a shortcut that merely deactivates the account; that is not sufficient.
+Still blocking:
+- the final server-side account/personal-data/Firebase-Auth deletion processor is not yet implemented or deployed;
+- completion confirmation is not yet operational;
+- system-owner deletion needs an explicit ownership-transfer/continuity rule.
+
+Do not call deactivation or a pending request "account deleted." Firebase Auth must be deleted last, after controlled server cleanup succeeds.
 
 ### AS-002 — Report Abuse — SOURCE IMPLEMENTED / LIVE DEPLOYMENT REQUIRED
 
@@ -56,24 +60,23 @@ Remaining:
 - verify a real user can submit and an Admin can review it;
 - document response/moderation procedure.
 
-### AS-003 — User blocking — BLOCKING
+### AS-003 — User blocking — SOURCE IMPLEMENTED / LIVE RULE DEPLOYMENT REQUIRED
 
-No end-user Block User capability is currently proven.
+The `ios` branch now has **Settings -> Safety -> Blocked Users**. Users can block/unblock another account. Firestore rules enforce the block in both directions for new direct conversations, direct-message sends, and direct-message reactions; this is not a UI-only block.
 
-Required remediation:
-- Settings -> Safety -> Blocked Users;
-- allow a user to block/unblock another active account;
-- prevent blocked direct contact at Firestore-rule authority, not UI only;
-- preserve existing conversation history for the user who owns it;
-- group behavior must be explicit (for example, group membership/admin moderation remains separate).
+Group membership remains a separate group-admin/moderation concern. Existing conversation history is not silently destroyed.
 
-### AS-004 — Objectionable-content filtering — BLOCKING FOR UGC REVIEW
+Remaining:
+- deploy the updated Firestore rules under the controlled snapshot/check-before-change procedure;
+- verify real-device block/unblock and attempted direct contact in both directions.
 
-No explicit pre-publication objectionable-content filter is currently proven.
+### AS-004 — Objectionable-content filtering — SOURCE IMPLEMENTED CANDIDATE
 
-Because FIDUNIO is end-to-end encrypted, remediation must not create a server plaintext-inspection path. The preferred architecture is a bounded local pre-send safety filter before encryption, with a documented policy and tests. The filter must not become a second message owner.
+The `ios` branch now has a shared web/iOS **pre-encryption on-device message safety policy**. It executes before text enters the Outbox or encryption path, does not send plaintext to a moderation server, and is not user-disableable.
 
-Policy wording/categories must be approved before activation so legitimate private communications are not arbitrarily blocked.
+The first policy is intentionally narrow to reduce false positives. It blocks a bounded set of high-confidence targeted violent/self-harm abuse, sexual-extortion phrasing, and child-sexual-abuse-material terminology. Settings explains that encrypted attachment contents are not inspected; Report Abuse, Block User, and group administration remain available for other cases.
+
+This is a bounded first filter, not a claim that every form of objectionable content can be detected automatically.
 
 ### AS-005 — Published support/contact information — BLOCKING
 
@@ -137,6 +140,8 @@ Source alignment does not prove deployed state. The one-time audit must verify, 
 - no unexpected stale or duplicate function authority.
 
 Perform this as one consolidated read-only audit. Do not turn App Check enforcement on as part of certification.
+
+The repository now contains `fidunio-pretestflight-readonly-audit.txt`. It performs the live checks above without deploy/create/update/delete operations. It still must be executed against the authenticated Firebase project and its output reviewed before certification closes.
 
 ## Remediation order
 
