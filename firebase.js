@@ -66,13 +66,29 @@ export async function requestFidunioAccountDeletion(currentPassword){
   if(!profileSnap.exists())throw new Error("FIDUNIO profile is unavailable.");
   const p=profileSnap.data()||{},ref=s.fsSdk.doc(s.db,"accountDeletionRequests",user.uid),existing=await s.fsSdk.getDoc(ref);
   if(existing.exists()&&["pending","processing"].includes(existing.data()?.status))return{status:existing.data().status,alreadyPending:true};
-  await s.fsSdk.setDoc(ref,{uid:user.uid,status:"pending",contactEmail:user.email||p.email||"",displayName:p.displayName||user.displayName||"",requestedAt:s.fsSdk.serverTimestamp(),cancelledAt:null,completedAt:null});
+  await s.fsSdk.setDoc(ref,{uid:user.uid,status:"pending",cleanupStatus:"required",cleanupCompletedAt:null,contactEmail:user.email||p.email||"",displayName:p.displayName||user.displayName||"",requestedAt:s.fsSdk.serverTimestamp(),cancelledAt:null,completedAt:null});
   return{status:"pending",alreadyPending:false};
 }
 export async function getFidunioAccountDeletionRequest(){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
   const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"accountDeletionRequests",authUser.uid));
   return snap.exists()?{uid:snap.id,...snap.data()}:null;
+}
+export async function markFidunioAccountDeletionCleanupComplete(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const ref=s.fsSdk.doc(s.db,"accountDeletionRequests",authUser.uid),snap=await s.fsSdk.getDoc(ref);
+  if(!snap.exists()||snap.data()?.status!=="pending")throw new Error("There is no pending deletion request.");
+  await s.fsSdk.updateDoc(ref,{cleanupStatus:"complete",cleanupCompletedAt:s.fsSdk.serverTimestamp()});return true;
+}
+export async function listMyCloudGroupsForAccountDeletion(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDocs(s.fsSdk.query(s.fsSdk.collection(s.db,"groups"),s.fsSdk.where("memberUids","array-contains",authUser.uid)));
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+export async function listMyCloudConversationsForAccountDeletion(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDocs(s.fsSdk.query(s.fsSdk.collection(s.db,"conversations"),s.fsSdk.where("members","array-contains",authUser.uid)));
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
 }
 export async function cancelFidunioAccountDeletionRequest(){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
