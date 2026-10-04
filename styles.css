@@ -1497,3 +1497,5 @@ button.primary.is-busy::after,button.send-btn.is-busy::after{border-color:rgba(2
 .sender-label{display:flex;align-items:baseline;gap:7px}
 .sender-label .sender-name{font-weight:700}
 .sender-label .sender-time{font-size:.82em;font-weight:500;opacity:.72;white-space:nowrap}
+
+.message-video{display:block;width:100%;max-width:720px;max-height:70vh;border-radius:12px;object-fit:contain}
