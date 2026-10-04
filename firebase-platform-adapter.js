@@ -38,8 +38,15 @@ export async function createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey,pl
   if(!app||!appCheckSdk)throw new Error("Firebase App Check platform adapter is not initialized.");
   if(isNativeIOSRuntime(platformOptions)){
     const plugin=nativeAppCheckPlugin(platformOptions);
-    if(!plugin?.initialize||!plugin?.getToken)throw new Error("Native Firebase App Check adapter is unavailable.");
-    await plugin.initialize({isTokenAutoRefreshEnabled:true});
+    if(!plugin?.initialize||!plugin?.getToken){
+      console.warn("FIDUNIO App Check standby: native adapter unavailable; continuing because backend enforcement is OFF.");
+      return null;
+    }
+    try{await plugin.initialize({isTokenAutoRefreshEnabled:true});}
+    catch(error){
+      console.warn("FIDUNIO App Check standby: native initialization failed; continuing because backend enforcement is OFF.",error);
+      return null;
+    }
     const provider=new appCheckSdk.CustomProvider({
       getToken:async()=>{
         const result=await plugin.getToken({forceRefresh:false});
@@ -71,5 +78,5 @@ export const FIREBASE_PLATFORM_ADAPTER_V1=Object.freeze({
   webAuth:"getAuth",
   iosAuth:"initializeAuth-browserLocalPersistence",
   webAppCheck:"recaptcha-enterprise",
-  iosAppCheck:"app-attest-devicecheck-native-bridge",
+  iosAppCheck:"app-attest-devicecheck-native-bridge-standby-fail-open",
 });
