@@ -45,3 +45,16 @@ const corrupted=structuredClone(encrypted);corrupted.chunks[0].ciphertext='AAAA'
 const receiver=createAttachmentReceiveService({downloadEncryptedAttachment:async()=>corrupted});
 await assert.rejects(receiver.receive(descriptor),/verification or decryption failed/);
 console.log('PASS: web/native multi-chunk encrypted photo round trip and tamper rejection');
+
+// Native video download regression: exercise enough encrypted chunks to catch
+// transport/truncation failures that a small photo fixture cannot expose.
+const videoBytes=Uint8Array.from({length:3*1024*1024+123},(_,i)=>(i*17)%251);
+const videoEncrypted=await encryptAttachmentBytes({attachmentId:'native-video-fixture',bytes:videoBytes,meta:{name:'fixture.mp4',type:'video/mp4'}});
+const videoObjects=[videoEncrypted.manifest,...videoEncrypted.chunks];
+const videoPaths={manifest:'0',chunks:videoEncrypted.chunks.map((_,i)=>String(i+1))};
+const videoDescriptor={fidunioAttachment:1,attachmentId:'native-video-fixture',key:videoEncrypted.key,kind:'video',type:'video/mp4',storagePaths:videoPaths};
+const videoTransport=async index=>decode(await downloadPlatformAttachmentBytes(url,{...base,capacitor:bridge(Number(index)===0?videoObjects[0]:JSON.stringify(videoObjects[Number(index)]))}));
+const videoReceiver=createAttachmentReceiveService({downloadEncryptedAttachment:async p=>({manifest:await videoTransport(p.manifest),chunks:await Promise.all(p.chunks.map(videoTransport))})});
+const video=await videoReceiver.receive(videoDescriptor);
+assert.equal(video.type,'video/mp4');assert.equal(video.kind,'video');assert.equal(video.size,videoBytes.byteLength);assert.deepEqual(new Uint8Array(await video.blob.arrayBuffer()),videoBytes);videoReceiver.releaseAll();
+console.log('PASS: native encrypted video round trip across multi-megabyte chunk set');
