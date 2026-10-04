@@ -56,6 +56,43 @@ export async function createFidunioAccount(){throw new Error("FIDUNIO account cr
 export async function updateFidunioProfile(values={}){const s=await ensureServices(),user=s.auth.currentUser;if(!user)throw new Error("Sign in first.");const name=String(values.displayName||"").trim(),mail=String(values.email||"").trim(),phone=String(values.telephone||"").trim(),photo=String(values.photoURL||"").trim();if(!name)throw new Error("Display name is required.");if(mail&&mail!==user.email){if(!values.currentPassword)throw new Error("Enter your current password to change your email address.");const credential=s.authSdk.EmailAuthProvider.credential(user.email,values.currentPassword);await s.authSdk.reauthenticateWithCredential(user,credential);await s.authSdk.updateEmail(user,mail);}await s.authSdk.updateProfile(user,{displayName:name,photoURL:photo||null});authUser=user;await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"users",user.uid),{displayName:name,email:user.email||mail,telephone:phone,photoURL:photo,profileUpdatedAt:s.fsSdk.serverTimestamp()});return{uid:user.uid,displayName:user.displayName||name,email:user.email||mail,photoURL:user.photoURL||photo};}
 export async function changeFidunioPassword(currentPassword,newPassword){const s=await ensureServices(),user=s.auth.currentUser;if(!user)throw new Error("Sign in first.");if(!currentPassword)throw new Error("Enter your current password.");if(String(newPassword||"").length<6)throw new Error("New password must be at least 6 characters.");const credential=s.authSdk.EmailAuthProvider.credential(user.email,currentPassword);await s.authSdk.reauthenticateWithCredential(user,credential);await s.authSdk.updatePassword(user,newPassword);}
 export async function listFidunioUsersForAdmin(){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users"));return snap.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.displayName||a.email||a.uid).localeCompare(String(b.displayName||b.email||b.uid)));}
+export async function requestFidunioAccountDeletion(currentPassword){
+  const s=await ensureServices(),user=s.auth.currentUser;if(!user||!authUser||user.uid!==authUser.uid)throw new Error("Sign in first.");
+  const password=String(currentPassword||"");if(!password)throw new Error("Enter your current password.");
+  if(!user.email)throw new Error("This account does not have an email address for reauthentication.");
+  const credential=s.authSdk.EmailAuthProvider.credential(user.email,password);
+  await s.authSdk.reauthenticateWithCredential(user,credential);
+  const profileSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",user.uid));
+  if(!profileSnap.exists())throw new Error("FIDUNIO profile is unavailable.");
+  const p=profileSnap.data()||{},ref=s.fsSdk.doc(s.db,"accountDeletionRequests",user.uid),existing=await s.fsSdk.getDoc(ref);
+  if(existing.exists()&&["pending","processing"].includes(existing.data()?.status))return{status:existing.data().status,alreadyPending:true};
+  await s.fsSdk.setDoc(ref,{uid:user.uid,status:"pending",contactEmail:user.email||p.email||"",displayName:p.displayName||user.displayName||"",requestedAt:s.fsSdk.serverTimestamp(),cancelledAt:null,completedAt:null});
+  return{status:"pending",alreadyPending:false};
+}
+export async function getFidunioAccountDeletionRequest(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"accountDeletionRequests",authUser.uid));
+  return snap.exists()?{uid:snap.id,...snap.data()}:null;
+}
+export async function cancelFidunioAccountDeletionRequest(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const ref=s.fsSdk.doc(s.db,"accountDeletionRequests",authUser.uid),snap=await s.fsSdk.getDoc(ref);
+  if(!snap.exists()||snap.data()?.status!=="pending")throw new Error("There is no pending deletion request to cancel.");
+  await s.fsSdk.updateDoc(ref,{status:"cancelled",cancelledAt:s.fsSdk.serverTimestamp()});return true;
+}
+export async function listFidunioAccountDeletionRequestsForAdmin(){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const snap=await s.fsSdk.getDocs(s.fsSdk.query(s.fsSdk.collection(s.db,"accountDeletionRequests"),s.fsSdk.orderBy("requestedAt","desc"),s.fsSdk.limit(50)));
+  return snap.docs.map(d=>({uid:d.id,...d.data()}));
+}
+export async function updateFidunioAccountDeletionRequestForAdmin(uid,status){
+  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
+  const target=String(uid||"").trim(),next=String(status||"").trim();
+  if(!/^[A-Za-z0-9:_-]{1,180}$/.test(target)||!["processing","completed"].includes(next))throw new Error("Deletion request update is invalid.");
+  const row={status:next,adminUpdatedAt:s.fsSdk.serverTimestamp(),adminUpdatedByUid:authUser.uid};
+  if(next==="completed")row.completedAt=s.fsSdk.serverTimestamp();
+  await s.fsSdk.updateDoc(s.fsSdk.doc(s.db,"accountDeletionRequests",target),row);return true;
+}
 export async function listFidunioBlockedUsers(){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
   const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users",authUser.uid,"blocks"));
