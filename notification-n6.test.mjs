@@ -20,6 +20,7 @@ assert.match(backend,/members\.filter\(uid=>uid!==senderUid\)/);
 assert.match(backend,/deviceRepo\.listActive\(recipientUid\)/);
 assert.match(backend,/MAX_MULTICAST_TOKENS=500/);
 assert.match(backend,/data:\{type:"group-message",conversationId:groupId,messageId,notificationBody\}/);
+assert.match(backend,/apns:\{headers:\{["']apns-priority["']:"10"\},payload:\{aps:\{alert:\{title:"FIDUNIO",body:notificationBody\},sound:"default"\}\}\}/);
 assert.doesNotMatch(backend,/message\.text|message\.ciphertext|message\.senderName|notification:\{title/);
 
 const route=normalizeNotificationRoute({type:"group-message",conversationId:"group-opaque",messageId:"message-opaque"});
