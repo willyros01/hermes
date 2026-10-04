@@ -27,7 +27,7 @@ import {
 } from "./account-storage.js";
 
 const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
-let appStarted=false;
+let appStarted=false;\nlet appStartPromise=null;
 
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function inviteTokenFromUrl(){return new URL(location.href).searchParams.get("invite")||"";}
@@ -71,19 +71,41 @@ async function recoverVerifiedQuarantinedIdentity(userUid){
 
 async function startApp(){
   if(appStarted)return;
-  const user=getFirebaseUser();
-  if(!user)throw new Error("Authenticated account is required before FIDUNIO can start.");
-  const storageStatus=await getAccountStorageStatus();
-  let legacyOwnerUid=null;
-  if(!storageStatus.activeUid){
-    try{legacyOwnerUid=await resolveLegacyOwnerUid();}
-    catch(err){console.warn("FIDUNIO could not uniquely identify legacy local-data ownership; legacy data will be quarantined",err);}
-  }
-  await activateAccountStorage(user.uid,{legacyOwnerUid});
-  // Stable-identity invariant: ordinary startup never overwrites the active E2EE identity from quarantine.
-  appStarted=true;
-  clearInviteFromUrl();
-  await import("./app.js");
+  if(appStartPromise)return appStartPromise;
+  appStartPromise=(async()=>{
+    const user=getFirebaseUser();
+    if(!user)throw new Error("Authenticated account is required before FIDUNIO can start.");
+    const storageStatus=await getAccountStorageStatus();
+    let legacyOwnerUid=null;
+    if(!storageStatus.activeUid){
+      try{legacyOwnerUid=await resolveLegacyOwnerUid();}
+      catch(err){console.warn("FIDUNIO could not uniquely identify legacy local-data ownership; legacy data will be quarantined",err);}
+    }
+    await activateAccountStorage(user.uid,{legacyOwnerUid});
+    // Stable-identity invariant: ordinary startup never overwrites the active E2EE identity from quarantine.
+    // Do not mark startup complete until the complete application module graph has loaded.
+    await import("./app.js");
+    clearInviteFromUrl();
+    appStarted=true;
+  })();
+  try{await appStartPromise;}
+  catch(error){appStartPromise=null;throw error;}
+}
+
+function renderAuthenticatedTransitionFailure(user,error,retry){
+  const message=error?.message||String(error);
+  authShell(`<p class="small-note"><strong>Signed in successfully.</strong></p><p class="small-note">FIDUNIO could not finish opening secure messaging. Your email/password was accepted; this is not being reported as a credential failure.</p><p class="warning-note">${esc(message)}</p><button class="primary" id="authTransitionRetryBtn">Retry Opening FIDUNIO</button><button class="secondary" id="authTransitionSignOutBtn" style="margin-top:10px">Use Another Account</button>`);
+  document.querySelector("#authTransitionRetryBtn").onclick=async()=>{
+    const btn=document.querySelector("#authTransitionRetryBtn");btn.disabled=true;btn.textContent="Retrying…";
+    try{await retry();}
+    catch(nextError){renderAuthenticatedTransitionFailure(user,nextError,retry);}
+  };
+  document.querySelector("#authTransitionSignOutBtn").onclick=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
+}
+
+async function openStartedAppOrOfferRetry(user){
+  try{await startApp();}
+  catch(error){renderAuthenticatedTransitionFailure(user,error,()=>startApp());}
 }
 
 async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
@@ -153,8 +175,9 @@ async function renderPasswordResetRecovery(user,password,{reason="password-reset
       if(security.hasPin&&!await verifyLocalPin(pin))throw new Error("Incorrect PIN.");
       await recoverAccountE2EE({uid:user.uid,newPassword:password,pin});
       if(!security.hasPin)await setLocalPin(pin);
-      await clearPasswordResetPending();markSuccessfulAuthBypass();await startApp();
-    }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Recover Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();}
+      await clearPasswordResetPending();markSuccessfulAuthBypass();
+    }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Recover Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();return;}
+    await openStartedAppOrOfferRetry(user);
   };
   document.querySelector("#recoverySignOutBtn").onclick=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
   setTimeout(()=>pinInput.focus(),0);
@@ -190,12 +213,15 @@ function renderSignIn(){
   document.querySelector("#loginBtn").onclick=async()=>{
     const btn=document.querySelector("#loginBtn");btn.disabled=true;btn.textContent="Signing in…";
     const password=document.querySelector("#loginPassword").value;
-    try{
-      const user=await signInFidunio(document.querySelector("#loginEmail").value.trim(),password);
+    let user;
+    try{user=await signInFidunio(document.querySelector("#loginEmail").value.trim(),password);}
+    catch(err){resetAccountE2EEForSignOut();try{await signOutFidunio();}catch{}renderGate("signin",err?.message||String(err));return;}
+    const continueAfterSignIn=async()=>{
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
       await enterAfterPasswordSignIn(user,bound,password);
-    }
-    catch(err){resetAccountE2EEForSignOut();try{await signOutFidunio();}catch{}renderGate("signin",err?.message||String(err));}
+    };
+    try{await continueAfterSignIn();}
+    catch(err){renderAuthenticatedTransitionFailure(user,err,continueAfterSignIn);}
   };
   document.querySelector("#forgotBtn").onclick=async()=>{
     const email=document.querySelector("#loginEmail").value.trim(),note=document.querySelector("#loginNote"),btn=document.querySelector("#forgotBtn");
