@@ -53,7 +53,17 @@ try{
  await page.locator('#redeemBtn').click();assert.match(await page.locator('#joinNote').innerText(),/six-digit FIDUNIO PIN/);
  await page.getByRole('tab',{name:'Sign In'}).click();await ready(page);
  await page.reload();await ready(page);
- assert.deepEqual(errors,[]);
+ // Recovery hands off to startApp(), which dynamically imports app.js inside the
+ // recovery catch boundary. Parse the complete post-auth application graph in
+ // real WebKit so a JavaScriptCore parser failure cannot masquerade as recovery.
+ const appImport=await page.evaluate(async()=>{
+   try{await import('/app.js');return{ok:true};}
+   catch(error){return{ok:false,name:error?.name||'',message:error?.message||String(error)};}
+ });
+ if(!appImport.ok&&appImport.name==='SyntaxError')throw new Error('Post-auth app module parse failed: '+appImport.message);
+ assert.doesNotMatch(String(appImport.message||''),/Invalid escape in identifier/i);
+ assert.deepEqual(errors.filter(message=>/SyntaxError|Invalid escape in identifier/i.test(message)),[]);
+
  assert.equal(await page.evaluate(async()=> (await navigator.serviceWorker.getRegistrations()).length),0);
  await page.screenshot({path:path.join(evidence,selected+'-sign-in.png')});
  await context.close();console.log('PASS: '+selected+' native cold startup/reload, auth tabs, password visibility, validation and no web service worker');
