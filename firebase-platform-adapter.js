@@ -47,24 +47,31 @@ export async function createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey,pl
       console.warn("FIDUNIO App Check standby: native initialization failed; continuing because backend enforcement is OFF.",error);
       return null;
     }
-    const provider=new appCheckSdk.CustomProvider({
-      getToken:async()=>{
-        const result=await plugin.getToken({forceRefresh:false});
-        const token=String(result?.token||"").trim();
-        if(!token)throw new Error("Native Firebase App Check returned no token.");
-        const nativeExpiry=Number(result?.expireTimeMillis);
-        return{
-          token,
-          expireTimeMillis:Number.isFinite(nativeExpiry)&&nativeExpiry>Date.now()
-            ?nativeExpiry
-            :Date.now()+30*60*1000,
-        };
-      },
-    });
-    return appCheckSdk.initializeAppCheck(app,{
-      provider,
-      isTokenAutoRefreshEnabled:true,
-    });
+    try{
+      const first=await plugin.getToken({forceRefresh:false});
+      const firstToken=String(first?.token||"").trim();
+      if(!firstToken)throw new Error("Native Firebase App Check returned no token.");
+      let cached={token:firstToken,expireTimeMillis:Number(first?.expireTimeMillis)||Date.now()+30*60*1000};
+      let firstRead=true;
+      const provider=new appCheckSdk.CustomProvider({
+        getToken:async()=>{
+          if(firstRead){firstRead=false;return cached;}
+          try{
+            const result=await plugin.getToken({forceRefresh:false});
+            const token=String(result?.token||"").trim();
+            if(!token)throw new Error("Native Firebase App Check returned no token.");
+            cached={token,expireTimeMillis:Number(result?.expireTimeMillis)||Date.now()+30*60*1000};
+          }catch(error){
+            console.warn("FIDUNIO App Check standby: token refresh failed; using the last token because backend enforcement is OFF.",error);
+          }
+          return cached;
+        },
+      });
+      return appCheckSdk.initializeAppCheck(app,{provider,isTokenAutoRefreshEnabled:true});
+    }catch(error){
+      console.warn("FIDUNIO App Check standby: native token bridge failed; continuing because backend enforcement is OFF.",error);
+      return null;
+    }
   }
   if(!siteKey)throw new Error("Firebase App Check web site key is missing.");
   return appCheckSdk.initializeAppCheck(app,{
