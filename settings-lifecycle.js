@@ -27,6 +27,9 @@ import {
   submitFidunioAbuseReport,
   listFidunioAbuseReportsForAdmin,
   resolveFidunioAbuseReport,
+  listFidunioBlockedUsers,
+  blockFidunioUser,
+  unblockFidunioUser,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
@@ -214,6 +217,14 @@ async function renderSafety(safetyHost,info){
     }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
     finally{button.disabled=false;button.textContent="Send Report";}
   };
+  const blockCard=document.createElement("div");blockCard.className="card";blockCard.id="fidunioBlockedUsersCard";blockCard.innerHTML='<h2>Blocked Users</h2><p class="small-note">Blocking stops new direct conversations, direct messages, and direct-message reactions in both directions. Group membership is separate; report abuse or ask a group administrator to remove an abusive member from a group.</p><label class="form-label" for="blockUserSelect">User to block</label><select class="text-input" id="blockUserSelect"><option value="">Choose a user</option></select><button class="secondary" id="blockUserBtn" style="margin-top:12px">Block User</button><div id="blockedUsersList" style="margin-top:14px"><p class="small-note">Loading blocked users…</p></div><div id="blockUserNote" aria-live="polite"></div>';safetyHost.appendChild(blockCard);
+  const blockSelect=blockCard.querySelector("#blockUserSelect"),blockedList=blockCard.querySelector("#blockedUsersList"),blockNote=blockCard.querySelector("#blockUserNote"),blockButton=blockCard.querySelector("#blockUserBtn");
+  let safetyUsers=[];
+  try{safetyUsers=await listCloudUsers();if(blockCard.isConnected)for(const user of safetyUsers){const option=document.createElement("option");option.value=user.uid;option.textContent=user.displayName||user.email||"FIDUNIO user";blockSelect.appendChild(option);}}catch(error){blockNote.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+  const renderBlocks=async()=>{const rows=await listFidunioBlockedUsers();const names=new Map(safetyUsers.map(user=>[user.uid,user.displayName||user.email||"FIDUNIO user"]));blockedList.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(names.get(row.blockedUid)||"Blocked user")}</strong></div><button class="row-action unblockUserBtn" type="button" data-uid="${esc(row.blockedUid)}">Unblock</button></div>`).join(""):'<p class="small-note">No blocked users.</p>';blockedList.querySelectorAll(".unblockUserBtn").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{await serializeSettingsMutation("unblock user",()=>unblockFidunioUser(btn.dataset.uid));await renderBlocks();}catch(err){blockNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;}});};
+  try{await renderBlocks();}catch(error){blockedList.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+  blockButton.onclick=async()=>{const uid=blockSelect.value;if(!uid){blockNote.innerHTML='<p class="warning-note">Choose a FIDUNIO user to block.</p>';return;}if(!confirm("Block this user? New direct contact will be stopped in both directions until you unblock them."))return;blockButton.disabled=true;try{await serializeSettingsMutation("block user",()=>blockFidunioUser(uid));blockSelect.value="";await renderBlocks();blockNote.innerHTML='<p class="small-note">User blocked.</p>';}catch(err){blockNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}finally{blockButton.disabled=false;}};
+
   if(["owner","admin"].includes(info.role)){
     const admin=document.createElement("div");admin.className="card";admin.id="fidunioAbuseAdminCard";admin.innerHTML='<h2>Abuse Reports</h2><p class="small-note">Administrator moderation queue.</p><div id="abuseAdminList"><p class="small-note">Loading reports…</p></div>';safetyHost.appendChild(admin);
     const list=admin.querySelector("#abuseAdminList");
