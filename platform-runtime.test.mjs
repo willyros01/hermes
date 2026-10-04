@@ -22,6 +22,7 @@ const firebase=fs.readFileSync("firebase.js","utf8");
 const firebaseAdapter=fs.readFileSync("firebase-platform-adapter.js","utf8");
 const backgroundAdapter=fs.readFileSync("background-platform-adapter.js","utf8");
 const settings=fs.readFileSync("settings-lifecycle.js","utf8");
+const notificationPlatformAdapter=fs.readFileSync("notification-platform-adapter.js","utf8");
 const install=fs.readFileSync("install-guidance.js","utf8");
 const localSecurity=fs.readFileSync("local-security.js","utf8");
 const payload=fs.readFileSync("build/www-files.txt","utf8");
@@ -41,13 +42,18 @@ assert.doesNotMatch(firebase,/isNativeIOSRuntime|shouldUseWebAppCheck|initialize
 assert.match(firebaseAdapter,/isNativeIOSRuntime/);
 assert.match(firebaseAdapter,/initializeAuth\(app,\{persistence:authSdk\.browserLocalPersistence\}\)/);
 
-assert.match(settings,/if\(isNativeIOSRuntime\(\)\).*Native notification setup pending/s);
+assert.match(settings,/getNotificationPlatformCapabilities\(\)/);
+assert.doesNotMatch(settings,/isNativeIOSRuntime/);
+assert.match(notificationPlatformAdapter,/isNativeIOSRuntime/);
+assert.match(notificationPlatformAdapter,/registrationKind:"native-pending"/);
+assert.match(notificationPlatformAdapter,/registrationKind:"web-push"/);
 assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
 assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return false/);
 assert.match(app,/security\.hasBiometric&&!isNativeIOSRuntime\(\)/);
 assert.match(payload,/^platform-runtime\.js$/m);
 assert.match(payload,/^background-platform-adapter\.js$/m);
 assert.match(payload,/^firebase-platform-adapter\.js$/m);
+assert.match(payload,/^notification-platform-adapter\.js$/m);
 assert.match(firebase,/fidunioPublicUrl\("\.\/"\)/);
 assert.match(settings,/fidunioPublicUrl\("\.\/quick-start\.html"\)/);
 assert.match(settings,/fidunioPublicUrl\("\.\/account-recovery\.html"\)/);
