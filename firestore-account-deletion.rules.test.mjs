@@ -26,6 +26,7 @@ await t("user cancels pending request",()=>assertSucceeds(updateDoc(ref,{status:
 await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),"accountDeletionRequests",U),{uid:U,status:"pending",cleanupStatus:"required",cleanupCompletedAt:null,contactEmail:"u@example.test",displayName:"User",requestedAt:new Date(),cancelledAt:null,completedAt:null});});
 await t("admin cannot process before client cleanup",()=>assertFails(updateDoc(doc(dbA,"accountDeletionRequests",U),{status:"processing",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:A})));
 await t("requester marks client cleanup complete",()=>assertSucceeds(updateDoc(doc(dbU,"accountDeletionRequests",U),{cleanupStatus:"complete",cleanupCompletedAt:serverTimestamp()})));
+await t("requester cannot cancel after destructive cleanup",()=>assertFails(updateDoc(doc(dbU,"accountDeletionRequests",U),{status:"cancelled",cancelledAt:serverTimestamp()})));
 await t("admin marks request processing",()=>assertSucceeds(updateDoc(doc(dbA,"accountDeletionRequests",U),{status:"processing",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:A})));
 await t("requester cannot mark request processing",()=>assertFails(updateDoc(doc(dbU,"accountDeletionRequests",U),{status:"processing",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:U})));
 await t("admin marks processing request complete",()=>assertSucceeds(updateDoc(doc(dbA,"accountDeletionRequests",U),{status:"completed",adminUpdatedAt:serverTimestamp(),adminUpdatedByUid:A,completedAt:serverTimestamp()})));
