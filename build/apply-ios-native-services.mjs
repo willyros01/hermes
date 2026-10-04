@@ -9,14 +9,17 @@ const appDir="ios/App/App";
 const infoPlist=appDir+"/Info.plist";
 const firebaseSource="build/ios/GoogleService-Info.plist";
 const firebaseTarget=appDir+"/GoogleService-Info.plist";
+const privacySource="build/ios/PrivacyInfo.xcprivacy";
+const privacyTarget=appDir+"/PrivacyInfo.xcprivacy";
 const entitlements=appDir+"/App.entitlements";
 const appDelegate=appDir+"/AppDelegate.swift";
 const bundleId="io.github.willyros01.fidunio";
 
-for(const path of [projectPath,infoPlist,appDelegate,firebaseSource])if(!fs.existsSync(path))throw new Error("Missing generated iOS input: "+path);
+for(const path of [projectPath,infoPlist,appDelegate,firebaseSource,privacySource])if(!fs.existsSync(path))throw new Error("Missing generated iOS input: "+path);
 const firebase=fs.readFileSync(firebaseSource,"utf8");
 if(!firebase.includes("<string>"+bundleId+"</string>")||!firebase.includes("<string>fidunio-fef13</string>"))throw new Error("Firebase iOS config does not match FIDUNIO");
 fs.copyFileSync(firebaseSource,firebaseTarget);
+fs.copyFileSync(privacySource,privacyTarget);
 
 fs.writeFileSync(entitlements,`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -69,15 +72,23 @@ firebaseFile.target=target.uuid;
 firebaseFile.uuid=project.generateUuid();
 project.addToPbxBuildFileSection(firebaseFile);
 project.addToPbxResourcesBuildPhase(firebaseFile);
+const privacyFile=project.addFile("PrivacyInfo.xcprivacy",appGroup,{target:target.uuid});
+if(!privacyFile)throw new Error("PrivacyInfo.xcprivacy already exists unexpectedly");
+privacyFile.target=target.uuid;
+privacyFile.uuid=project.generateUuid();
+project.addToPbxBuildFileSection(privacyFile);
+project.addToPbxResourcesBuildPhase(privacyFile);
 project.updateBuildProperty("CODE_SIGN_ENTITLEMENTS","App/App.entitlements",undefined,"App");
 project.addTargetAttribute("SystemCapabilities",{"com.apple.Push":{enabled:1}},target);
 fs.writeFileSync(projectPath,project.writeSync());
 
 execFileSync("/usr/bin/plutil",["-lint",infoPlist]);
 execFileSync("/usr/bin/plutil",["-lint",firebaseTarget]);
+execFileSync("/usr/bin/plutil",["-lint",privacyTarget]);
 execFileSync("/usr/bin/plutil",["-lint",entitlements]);
 const pbx=fs.readFileSync(projectPath,"utf8");
 if(!pbx.includes("GoogleService-Info.plist"))throw new Error("Firebase plist was not added to Xcode resources");
+if(!pbx.includes("PrivacyInfo.xcprivacy"))throw new Error("Privacy manifest was not added to Xcode resources");
 if(!pbx.includes("CODE_SIGN_ENTITLEMENTS"))throw new Error("Push entitlement build setting is missing");
 const entitlementText=fs.readFileSync(entitlements,"utf8");
 if(!entitlementText.includes("com.apple.developer.devicecheck.appattest-environment")||!entitlementText.includes("<string>production</string>"))throw new Error("Production App Attest entitlement is missing");
