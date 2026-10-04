@@ -111,6 +111,7 @@ let conversationDeleteTail=Promise.resolve();
 let reconnectRecoveryTail=Promise.resolve();
 let firebaseReady = false;
 let firebaseError = "";
+let cloudGroupSubscriptionError = "";
 let firebaseUser = null;
 let pendingNotificationRoute=notificationRouteFromUrl(globalThis.location?.href||"");
 let notificationRouteRunning=false;
@@ -855,7 +856,7 @@ function beginCloudGroupSubscription(){
   if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
   if(!firebaseUser)return;
   cloudGroupSyncPending=true;
-  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,(rows,meta={})=>{cloudGroupSyncPending=false;reconcileCloudGroupSnapshot(rows,meta);if(meta.fromCache!==true&&meta.hasPendingWrites!==true)ensureActiveCloudMessageSubscription(false);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});},err=>{cloudGroupSyncPending=false;firebaseError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});});
+  cloudGroupUnsub=subscribeMyGroups(firebaseUser.uid,(rows,meta={})=>{cloudGroupSyncPending=false;cloudGroupSubscriptionError="";reconcileCloudGroupSnapshot(rows,meta);if(meta.fromCache!==true&&meta.hasPendingWrites!==true)ensureActiveCloudMessageSubscription(false);persistSoon();if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});},err=>{cloudGroupSyncPending=false;cloudGroupSubscriptionError=err?.message||String(err);if(state.route==="messages"||state.route==="chat"||state.route==="groupInfo")render({background:true});});
 }
 function stopPeerDisplayNameSubscription(){
   try{peerDisplayNameUnsub();}catch{}
@@ -1806,7 +1807,7 @@ function renderGroupName(){
 }
 
 function chatStatusMarkup(c){
-  const visibleFirebaseError=isGroup(c)?(groupMessageStreamLifecycle.errorFor(c.id)||firebaseError):firebaseError;
+  const visibleFirebaseError=isGroup(c)?(groupMessageStreamLifecycle.errorFor(c.id)||cloudGroupSubscriptionError||firebaseError):firebaseError;
   const waitingForNotifiedMessage=pendingNotificationRoute&&String(pendingNotificationRoute.conversationId)===String(c?.id)&&!notificationMessageHasProjected(pendingNotificationRoute);
   return `${waitingForNotifiedMessage?'<div class="status-banner" role="status">Loading new message…</div>':""}${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${visibleFirebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(visibleFirebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
 }
