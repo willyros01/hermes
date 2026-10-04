@@ -42,7 +42,7 @@ import {
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
-import { mountSettingsLifecycle } from "./settings-lifecycle.js";
+import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
@@ -1299,11 +1299,13 @@ async function initializeFirebaseLayer(){
       firebaseUser=user;
       firebaseReady=true;
       if(user){
+        startNotificationRegistrationMaintenance(user.uid);
         if(getAccountE2EELifecycleState().manager.state!=="READY")bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
         beginCloudGroupSubscription();
       }else{
+        stopNotificationRegistrationMaintenance();
         composerStateByConversation.clear();
         optimisticOutgoingProjection.reset();
         bulkMessageDeleteProjection.reset();
@@ -1323,7 +1325,7 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
-    if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
+    if(firebaseUser){startNotificationRegistrationMaintenance(firebaseUser.uid);publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));}
     void requestAppActivation("firebase-initialize-complete");
   }catch(err){
     firebaseError=err?.message || String(err);
