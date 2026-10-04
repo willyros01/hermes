@@ -6,7 +6,7 @@ const url='https://firebasestorage.googleapis.com/v0/b/fidunio-fef13.firebasesto
 const native={protocol:'capacitor:',capacitor:{getPlatform:()=> 'ios',isNativePlatform:()=>true}};
 const base={storageBucket:'fidunio-fef13.firebasestorage.app',platformOptions:native};
 let calls=0;
-const bridge=data=>({Plugins:{CapacitorHttp:{request:async options=>{calls++;assert.equal(options.method,'GET');assert.equal(options.disableRedirects,true);assert.equal(options.shouldEncodeUrlParams,false);return {status:200,data};}}}});
+const bridge=data=>({Plugins:{CapacitorHttp:{request:async options=>{calls++;assert.equal(options.method,'GET');assert.equal(options.headers?.['Cache-Control'],'no-cache, no-store');assert.equal(options.disableRedirects,true);assert.equal(options.shouldEncodeUrlParams,false);return {status:200,data};}}}});
 const decode=x=>JSON.parse(new TextDecoder().decode(x));
 assert.deepEqual(decode(await downloadPlatformAttachmentBytes(url,{...base,capacitor:bridge({fixture:true}),fetchImpl:()=>{throw Error('WKWebView fetch must not run');}})),{fixture:true});
 assert.deepEqual(decode(await downloadPlatformAttachmentBytes(url,{...base,capacitor:bridge('{"chunk":true}')})),{chunk:true});
@@ -16,7 +16,15 @@ for(const bad of ['http://firebasestorage.googleapis.com/v0/b/fidunio-fef13.fire
 await assert.rejects(downloadPlatformAttachmentBytes(url,{...base,capacitor:{Plugins:{CapacitorHttp:{request:async()=>({status:403,data:'denied'})}}}}),{code:'storage/http-403'});
 await assert.rejects(downloadPlatformAttachmentBytes(url,{...base,capacitor:bridge('oversize'),maxBytes:2}),{code:'storage/object-too-large'});
 await assert.rejects(downloadPlatformAttachmentBytes(url,{...base,capacitor:{Plugins:{CapacitorHttp:{request:()=>new Promise(()=>{})}}},timeoutMs:5}),{code:'storage/fetch-timeout'});
-console.log('PASS: native bridge, unchanged web fetch, URL bounds, errors, size and timeout');
+const beforeAbortCalls=calls;
+const preAborted=new AbortController();preAborted.abort();
+await assert.rejects(downloadPlatformAttachmentBytes(url,{...base,capacitor:bridge({}),signal:preAborted.signal}),{code:'storage/fetch-aborted'});
+assert.equal(calls,beforeAbortCalls);
+const activeAbort=new AbortController();
+const activeAbortPromise=downloadPlatformAttachmentBytes(url,{...base,capacitor:{Plugins:{CapacitorHttp:{request:()=>new Promise(()=>{})}}},signal:activeAbort.signal,timeoutMs:1000});
+activeAbort.abort();
+await assert.rejects(activeAbortPromise,{code:'storage/fetch-aborted'});
+console.log('PASS: native bridge, unchanged web fetch, URL bounds, errors, size, timeout, abort and cache semantics');
 // Pass a multi-chunk encrypted photo through each transport and the unchanged
 // receiver. Verify exact bytes and reject a tampered ciphertext.
 const bytes=Uint8Array.from({length:400000},(_,i)=>i%251);
