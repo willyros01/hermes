@@ -456,3 +456,11 @@ The returned-client message/focus addition is removed. The restored 1.1.17 autho
 - `e2ee-account-group-firebase-adapter.js` delegates retained history directly to that owner and no longer borrows the live conversation subscription.
 - Firestore epoch documents use current-group-member read authority; per-account envelope presence remains enforced by group cryptography, not as a shared transport authorization prerequisite.
 - Direct pre-boundary group-message reads and receipt operations remain constrained by `groupMessageReadable`.
+
+
+## FIDUNIO 1.1.60 iOS attachment-download authority — 2026-10-04
+
+- `firebase.js` remains the sole Firebase Storage URL lookup and encrypted attachment repository owner.
+- `attachment-download-platform-adapter.js` owns only platform byte transport for already-authorized encrypted Storage object URLs: browser fetch on web, bounded CapacitorHttp on native iOS.
+- The adapter does not initialize Firebase, decrypt content, persist attachment state, render UI, patch global fetch/XHR, or change Storage rules.
+- `attachment-receive-service.js` and the established attachment crypto remain the shared integrity/decryption owners on both platforms.
