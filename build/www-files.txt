@@ -5,6 +5,8 @@ version.js
 password-visibility.js
 bootstrap.js
 platform-runtime.js
+background-platform-adapter.js
+startup-platform-adapter.js
 firebase-platform-adapter.js
 account-guard.js
 auth-ui-clean.js
