@@ -44,7 +44,7 @@ const notificationHooks=`
 
 `;
 if(!delegate.includes("didRegisterForRemoteNotificationsWithDeviceToken")){
-  const marker="    func application(_ app: UIApplication, open url: URL";
+  const marker="    func application(_ application: UIApplication,\n                     configurationForConnecting connectingSceneSession: UISceneSession,";
   if(!delegate.includes(marker))throw new Error("Capacitor AppDelegate anchor changed");
   fs.writeFileSync(appDelegate,delegate.replace(marker,notificationHooks+marker));
 }
