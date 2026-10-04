@@ -39,6 +39,7 @@ import {
   requestNativeNotificationPermission,
   getNativeMessagingToken,
   deleteNativeMessagingToken,
+  subscribeNativeMessagingTokens,
 } from "./notification-platform-adapter.js";
 
 let mutationTail=Promise.resolve();
@@ -263,6 +264,24 @@ const notificationRegistrationOwner=createNotificationRegistrationOwner({
   buildTokenOptions:notificationTransport.nativeRegistration?()=>({}):undefined,
   getPlatform:notificationTransport.nativeRegistration?()=>"ios-native":undefined
 });
+let notificationTokenMaintenanceStop=()=>{};
+let notificationTokenMaintenanceGeneration=0;
+export function stopNotificationRegistrationMaintenance(){
+  notificationTokenMaintenanceGeneration++;
+  try{notificationTokenMaintenanceStop();}catch{}
+  notificationTokenMaintenanceStop=()=>{};
+}
+export function startNotificationRegistrationMaintenance(uid){
+  stopNotificationRegistrationMaintenance();
+  if(!notificationTransport.nativeRegistration||!uid)return()=>{};
+  const generation=notificationTokenMaintenanceGeneration;
+  notificationTokenMaintenanceStop=subscribeNativeMessagingTokens(token=>{
+    if(generation!==notificationTokenMaintenanceGeneration)return;
+    void notificationRegistrationOwner.refreshToken({uid,fcmToken:token}).catch(error=>console.warn("FIDUNIO native notification token refresh failed",error));
+  });
+  return()=>{if(generation===notificationTokenMaintenanceGeneration)stopNotificationRegistrationMaintenance();};
+}
+
 function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Notification setup required"})[status]||status;}
 async function renderNotifications(notificationsHost,info){
   const platformNotifications=getNotificationPlatformCapabilities();
