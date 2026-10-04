@@ -1188,3 +1188,27 @@ Cause confidence: the screenshot and source establish a failure before decryptio
 Validation: local adapter tests passed for web/native encrypted multi-chunk round trips, exact byte equality, tamper rejection, URL bounds, HTTP failure, size limit, timeout and unavailable bridge. Existing attachment UI/lifecycle and native bootstrap boundary tests passed. The permanent CI gate includes the adapter test. A disposable Simulator-only app fixture checks the actual built-in native HTTP bridge through the production adapter and shared receive/decrypt owner to image decode; it uses local encrypted fixtures and no live Firebase credentials/requests/writes. The fixture substitutes only its local server URL at the injected test bridge, and its test HTTP allowance and entry page are never packaged in TestFlight. Exact-commit full security, browser, preflight and Simulator gates remain required before upload; live Firebase download and repeated iPhone/iPad acceptance remain required before IOS-ATTACH-001 closes.
 
 Rollback: keep 1.1.59 (8) available in TestFlight. The last accepted source checkpoint is `b0960b8bcb99d4c549f7478e33d6c254089bf0d4`. Revert this isolated transport candidate in ios if rejected; no server/data rollback is necessary because it makes no production configuration or data change. TestFlight build availability and upload are verified separately from repository checks.
+## Post-migration release policy — 2026-10-04
+
+The iOS migration acceptance cycle is complete on the current tested iPhone/iPad build. Native direct/group push, background/cold-start delivery, exact tap routing, current Read-state behavior and the stale-permission-banner recovery have real-device acceptance.
+
+Routine TestFlight builds must now use a **change-aware gate**:
+- always verify exact commit, required repository tests for changed owners, packaged shared-asset identity, bundle/team/signing/profile, production APNs entitlement, Firebase plist identity, IPA integrity and Apple upload/processing;
+- do not repeat full APNs credential, live-backend, recovery, attachment, notification or migration audits when neither their code/configuration nor observed behavior changed;
+- re-open a certified subsystem only after a relevant code/configuration change or a reproduced regression.
+
+### App Check / DoS-abuse protection
+
+Firebase App Check is the approved abuse-prevention control for FIDUNIO Firebase resources. It reduces unauthorized/automated backend access but is not complete DDoS protection.
+
+Current state:
+- web/PWA: reCAPTCHA Enterprise App Check bootstrap is present in the central Firebase initialization owner;
+- native iOS: App Check provider remains deferred in the platform adapter;
+- backend enforcement: remain OFF until both web and native iOS produce valid App Check traffic and monitoring shows legitimate requests are ready.
+
+Required activation order:
+1. implement native Apple attestation behind the existing `appProtection` / Firebase platform-adapter boundary;
+2. prove valid App Check tokens on real iPhone/iPad and the existing web/PWA;
+3. monitor Firebase App Check metrics with enforcement off;
+4. enable enforcement deliberately, one protected Firebase product at a time;
+5. retain rollback instructions and do not combine enforcement activation with unrelated TestFlight feature changes.
