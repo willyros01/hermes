@@ -21,6 +21,7 @@ bulk-message-delete-projection.js
 message-reaction-policy.js
 group-reply-policy.js
 notification-policy.js
+notification-platform-adapter.js
 notification-registration.js
 notification-config.js
 notification-routing.js
