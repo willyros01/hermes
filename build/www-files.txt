@@ -36,6 +36,7 @@ local-pin-verification-boundary.js
 local-security.js
 account-storage.js
 account-recovery.js
+account-deletion-service.js
 admin-recovery-client.js
 account-vault-format.js
 account-vault-owner.js
