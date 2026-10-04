@@ -3,8 +3,8 @@ import fs from "node:fs";
 const src=fs.readFileSync("auth-ui-clean.js","utf8");
 
 assert.match(src,/let appStartPromise=null/);
-assert.match(src,/await import\("\.\/app\.js"\);[\s\S]*appStarted=true/);
-assert.doesNotMatch(src,/appStarted=true;[\s\S]{0,120}await import\("\.\/app\.js"\)/);
+assert.match(src,/const appModule=await import\("\.\/app\.js"\);[\s\S]*await appModule\.FIDUNIO_APP_READY;[\s\S]*appStarted=true/);
+assert.doesNotMatch(src,/appStarted=true;[\s\S]{0,180}await import\("\.\/app\.js"\)/);\nconst app=fs.readFileSync("app.js","utf8");\nassert.match(app,/export const FIDUNIO_APP_READY=initApp\(\);/);
 assert.match(src,/catch\(error\)\{appStartPromise=null;throw error;\}/);
 
 const recovery=src.slice(src.indexOf('async function renderPasswordResetRecovery'),src.indexOf('async function enterAfterPasswordSignIn'));
