@@ -242,7 +242,7 @@ async function renderAccountDeletion(profileHost,usersHost,info){
       const rows=await listFidunioAccountDeletionRequestsForAdmin();
       if(!admin.isConnected)return;
       list.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(row.displayName||row.contactEmail||row.uid)}</strong><span>${esc(row.contactEmail||"")} • ${esc(row.status||"unknown")} • ${esc(dateText(row.requestedAt))}</span></div>${row.status==="pending"?`<button class="row-action startDeletionProcessingBtn" type="button" data-uid="${esc(row.uid)}">Start Processing</button>`:""}</div>`).join(""):'<p class="small-note">No account deletion requests.</p>';
-      list.querySelectorAll(".startDeletionProcessingBtn").forEach(btn=>btn.onclick=async()=>{if(!confirm("Mark this deletion request as processing? This does not itself delete data."))return;btn.disabled=true;try{await serializeSettingsMutation("start deletion processing",()=>updateFidunioAccountDeletionRequestForAdmin(btn.dataset.uid,"processing"));await renderAccountDeletion(profileHost,usersHost,info);}catch(err){alert(err?.message||String(err));btn.disabled=false;}});
+      list.querySelectorAll(".startDeletionProcessingBtn").forEach(btn=>btn.onclick=async()=>{if(!confirm("Mark this deletion request as processing? This does not itself delete data."))return;btn.disabled=true;try{await serializeSettingsMutation("start deletion processing",()=>updateFidunioAccountDeletionRequestForAdmin(btn.dataset.uid,"processing"));mountSettingsLifecycle();}catch(err){alert(err?.message||String(err));btn.disabled=false;}});
     }catch(err){list.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
   }
 }
