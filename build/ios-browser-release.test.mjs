@@ -19,6 +19,7 @@ const server=http.createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 const selected=process.env.TEST_BROWSER||'chromium';
+const authEmulator=process.env.FIDUNIO_AUTH_EMULATOR_URL||'';
 const browser=await ({chromium,webkit}[selected]).launch();
 async function fresh(){
  const context=await browser.newContext({viewport:{width:390,height:844}});
@@ -26,10 +27,35 @@ async function fresh(){
  await context.route('**/*',route=>{
   const url=route.request().url();
   // Protect production: permit only local assets and the public Firebase SDK.
-  if(url.startsWith(base+'/')||url.startsWith('https://www.gstatic.com/firebasejs/'))return route.continue();
+  if(url.startsWith(base+'/')||url.startsWith('https://www.gstatic.com/firebasejs/')||(authEmulator&&url.startsWith(authEmulator+'/')))return route.continue();
   return route.abort();
  });
  return {context,page:await context.newPage()};
+}
+async function nativeAuthPersistence(page,{create=false}={}){
+ if(!authEmulator)return null;
+ return page.evaluate(async({authEmulator,create})=>{
+  const appSdk=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js');
+  const authSdk=await import('https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js');
+  const adapter=await import('/firebase-platform-adapter.js');
+  const app=appSdk.initializeApp({
+   apiKey:'demo-key',
+   authDomain:'demo-fidunio-ios-auth.firebaseapp.com',
+   projectId:'demo-fidunio-ios-auth',
+   appId:'1:123:web:ios-auth-preflight'
+  },'fidunio-ios-auth-persistence-preflight');
+  const auth=adapter.createPlatformFirebaseAuth({app,authSdk});
+  authSdk.connectAuthEmulator(auth,authEmulator,{disableWarnings:true});
+  await auth.authStateReady();
+  if(create){
+   if(auth.currentUser)await authSdk.signOut(auth);
+   const credential=await authSdk.createUserWithEmailAndPassword(auth,'ios-persistence@fidunio.test','Preflight-12345!');
+   return credential.user.uid;
+  }
+  const uid=auth.currentUser?.uid||null;
+  if(uid)await authSdk.signOut(auth);
+  return uid;
+ },{authEmulator,create});
 }
 async function ready(page){
  await page.locator('#loginEmail').waitFor({state:'visible',timeout:45000});
@@ -42,6 +68,13 @@ try{
  const {context,page}=await fresh();const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base);await ready(page);
  assert.equal(await page.evaluate(async()=> (await import('/firebase.js')).getFirebaseUser()),null);
+ if(authEmulator){
+  const persistedUid=await nativeAuthPersistence(page,{create:true});
+  assert.ok(persistedUid);
+  await page.reload();await ready(page);
+  assert.equal(await nativeAuthPersistence(page),persistedUid);
+  console.log('PASS: '+selected+' native Firebase Auth local persistence survives reload against isolated Auth emulator');
+ }
  // Exercise FIDUNIO's exact local E2EE storage primitive in the browser engine:
  // a P-256 private CryptoKey must survive the IndexedDB structured-clone roundtrip.
  const cryptoKeyRoundTrip=await page.evaluate(async()=>{
