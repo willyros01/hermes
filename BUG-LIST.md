@@ -540,6 +540,10 @@ Notification infrastructure evidence: the live direct/group notification Functio
 
 Do not reopen these items merely because a routine TestFlight build is created. Revalidate only when a related component changes or a regression is observed.
 
+### App Store requirement: Report Abuse
+
+Add **Settings → Report Abuse** in the next iOS build. This should let a signed-in user report abusive behavior or objectionable content from inside FIDUNIO with minimal typing. The report should capture the reporting user, optional reported user/conversation/message reference when launched from context, a short reason/category, optional notes, and timestamp, and send it to an admin/moderation queue without exposing unrelated conversation content. This is separate from blocking/suspending users and supports App Store user-generated-content moderation requirements.
+
 ### App Store requirement: Self-service account deletion
 
 Add **Settings → Account → Delete My Account** in the next iOS build. The user must be able to initiate full account deletion from inside FIDUNIO, with reauthentication/confirmation, clear consequences, server-side account/data cleanup through the existing controlled account-cleanup authority, and local sign-out/vault cleanup only after server deletion succeeds. Admin suspend/revoke/delete remains a separate moderation capability and does not replace self-service deletion.
