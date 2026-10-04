@@ -733,3 +733,23 @@ Cause confidence: the screenshot and source establish a failure before decryptio
 Validation: local adapter tests passed for web/native encrypted multi-chunk round trips, exact byte equality, tamper rejection, URL bounds, HTTP failure, size limit, timeout and unavailable bridge. Existing attachment UI/lifecycle and native bootstrap boundary tests passed. The permanent CI gate includes the adapter test. A disposable Simulator-only app fixture checks the actual built-in native HTTP bridge through the production adapter and shared receive/decrypt owner to image decode; it uses local encrypted fixtures and no live Firebase credentials/requests/writes. The fixture substitutes only its local server URL at the injected test bridge, and its test HTTP allowance and entry page are never packaged in TestFlight. Exact-commit full security, browser, preflight and Simulator gates remain required before upload; live Firebase download and repeated iPhone/iPad acceptance remain required before IOS-ATTACH-001 closes.
 
 Rollback: keep 1.1.59 (8) available in TestFlight. The last accepted source checkpoint is `b0960b8bcb99d4c549f7478e33d6c254089bf0d4`. Revert this isolated transport candidate in ios if rejected; no server/data rollback is necessary because it makes no production configuration or data change. TestFlight build availability and upload are verified separately from repository checks.
+## iOS migration certification closeout — 2026-10-04
+
+The current iOS migration functional audit is complete for the tested iPhone/iPad build.
+
+Accepted on real devices:
+- Firebase sign-in and established PIN/recovery flow;
+- Face ID/biometric unlock path;
+- direct and group text messaging;
+- native photo/attachment display path;
+- direct and group native notifications;
+- background and cold-start notification delivery;
+- exact conversation/message routing after notification tap;
+- current Sent -> Read behavior;
+- recovery from the previously stale yellow Firebase/permissions banner.
+
+The notification backend was also reconciled before acceptance. Live direct/group notification Functions were verified against reviewed shared commit `8ce96f85f132da078bbfc237825e78f139deea96`. The remaining push blocker was proven by Firebase Messaging as an invalid APNs credential; after the APNs credential was corrected in Firebase, delivery passed on both iPhone and iPad.
+
+**Release-process correction:** this migration certification is not the template for every routine TestFlight build. Stable external dependencies and already accepted behaviors are baseline evidence. Routine releases use a change-aware gate and re-run only tests relevant to changed ownership boundaries, plus the normal signed-IPA/build checks.
+
+**Separate hardening track — Firebase App Check:** web/PWA already has reCAPTCHA Enterprise App Check bootstrap. Native iOS App Check remains deferred and is the remaining DoS/abuse-prevention hardening item. Implement and validate native Apple attestation first; keep enforcement off until valid web and iOS App Check traffic is proven, then enable enforcement product-by-product after monitoring. This hardening item does not reopen the completed functional iOS migration acceptance.
