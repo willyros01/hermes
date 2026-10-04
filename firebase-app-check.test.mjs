@@ -2,26 +2,31 @@ import fs from "node:fs/promises";
 import assert from "node:assert/strict";
 
 const firebaseSource=await fs.readFile(new URL("./firebase.js",import.meta.url),"utf8");
+const adapterSource=await fs.readFile(new URL("./firebase-platform-adapter.js",import.meta.url),"utf8");
 const authSource=await fs.readFile(new URL("./auth-ui-clean.js",import.meta.url),"utf8");
 
 assert.match(firebaseSource,/firebase-app-check\.js/);
 assert.match(firebaseSource,/firebase-functions\.js/);
 assert.match(firebaseSource,/getFunctions\(app,"us-central1"\)/);
 assert.match(firebaseSource,/httpsCallable\(s\.functions,name\)/);
-assert.match(firebaseSource,/ReCaptchaEnterpriseProvider/);
-assert.match(firebaseSource,/initializeAppCheck/);
-assert.match(firebaseSource,/isTokenAutoRefreshEnabled\s*:\s*true/);
+assert.match(firebaseSource,/createPlatformFirebaseAppCheck/);
 assert.match(firebaseSource,/6LfLaqstAAAAANNkEghVZ26a4vv8hXwC7KDI9rma/);
-assert.doesNotMatch(firebaseSource,/ReCaptchaV3Provider/);
+assert.doesNotMatch(firebaseSource,/ReCaptchaEnterpriseProvider|ReCaptchaV3Provider|initializeAppCheck\(/);
+
+assert.match(adapterSource,/ReCaptchaEnterpriseProvider/);
+assert.match(adapterSource,/initializeAppCheck/);
+assert.match(adapterSource,/isTokenAutoRefreshEnabled\s*:\s*true/);
+assert.doesNotMatch(adapterSource,/ReCaptchaV3Provider/);
+assert.match(adapterSource,/if\(isNativeIOSRuntime\(platformOptions\)\)return null/);
 
 const initializeAppAt=firebaseSource.indexOf("initializeApp(firebaseConfig)");
-const initializeAppCheckAt=firebaseSource.indexOf("initializeAppCheck(app");
-const getAuthAt=firebaseSource.indexOf("getAuth(app)");
+const initializeAppCheckAt=firebaseSource.indexOf("createPlatformFirebaseAppCheck(");
+const getAuthAt=firebaseSource.indexOf("createPlatformFirebaseAuth({app,authSdk})");
 const getFirestoreAt=firebaseSource.indexOf("getFirestore(app)");
 assert.ok(initializeAppAt>=0,"firebase.js must initialize the single Firebase app");
-assert.ok(initializeAppCheckAt>initializeAppAt,"App Check must bind to the initialized central app");
-assert.ok(getAuthAt>initializeAppCheckAt,"App Check must initialize before Auth is exposed");
-assert.ok(getFirestoreAt>initializeAppCheckAt,"App Check must initialize before Firestore is exposed");
+assert.ok(initializeAppCheckAt>initializeAppAt,"platform App Check bootstrap must bind to the initialized central app");
+assert.ok(getAuthAt>initializeAppCheckAt,"App Check bootstrap must occur before Auth is exposed");
+assert.ok(getFirestoreAt>initializeAppCheckAt,"App Check bootstrap must occur before Firestore is exposed");
 assert.match(firebaseSource,/export async function ensureFirebaseAuthSession\(\)/);
 assert.match(firebaseSource,/await user\.getIdToken\(\)/,"Firebase session recovery must use the central Auth owner and allow a valid cached token");
 assert.doesNotMatch(firebaseSource,/getIdToken\(true\)/,"ordinary send recovery must not force a network token refresh");
@@ -37,4 +42,4 @@ try{
   if(err?.code!=="ENOENT")throw err;
 }
 
-console.log("FIDUNIO App Check central-owner integration anchors validated");
+console.log("FIDUNIO App Check central-owner and platform-adapter integration anchors validated");
