@@ -93,7 +93,9 @@
     "ios:apple-spec": "node build/ios-apple-registration.test.mjs",
     "ios:platform": "node platform-runtime.test.mjs",
     "test:abuse-report": "node abuse-report-wiring.test.mjs",
-    "emulator:test:abuse-report-rules": "firebase emulators:exec --only firestore --project demo-fidunio-abuse-report-rules \"node firestore-abuse-report.rules.test.mjs\""
+    "emulator:test:abuse-report-rules": "firebase emulators:exec --only firestore --project demo-fidunio-abuse-report-rules \"node firestore-abuse-report.rules.test.mjs\"",
+    "test:user-block": "node user-block-wiring.test.mjs",
+    "emulator:test:user-block-rules": "firebase emulators:exec --only firestore --project demo-fidunio-user-block-rules \"node firestore-user-block.rules.test.mjs\""
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.2",
