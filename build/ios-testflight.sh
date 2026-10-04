@@ -73,6 +73,9 @@ grep -qx 'TeamIdentifier=VXMLKHF72B' "$TASK_DIR/signature.txt"
 security cms -D -i "$APP/embedded.mobileprovision" > "$TASK_DIR/profile.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$TASK_DIR/profile.plist" | grep -qx 'VXMLKHF72B.io.github.willyros01.fidunio'
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$TASK_DIR/profile.plist" | grep -qx false
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
+codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
+/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
 node --input-type=module - "$APP" <<'JS'
 import fs from "node:fs";
 import path from "node:path";
