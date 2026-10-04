@@ -73,7 +73,7 @@ try{
  // recovery catch boundary. Parse the complete post-auth application graph in
  // real WebKit so a JavaScriptCore parser failure cannot masquerade as recovery.
  const appImport=await page.evaluate(async()=>{
-   try{await import('/app.js');return{ok:true};}
+   try{const appModule=await import('/app.js');await appModule.FIDUNIO_APP_READY;return{ok:true};}
    catch(error){return{ok:false,name:error?.name||'',message:error?.message||String(error)};}
  });
  if(!appImport.ok&&appImport.name==='SyntaxError')throw new Error('Post-auth app module parse failed: '+appImport.message);
