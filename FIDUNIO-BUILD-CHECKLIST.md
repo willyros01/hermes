@@ -1206,9 +1206,11 @@ Current state:
 - native iOS: App Check provider remains deferred in the platform adapter;
 - backend enforcement: remain OFF until both web and native iOS produce valid App Check traffic and monitoring shows legitimate requests are ready.
 
-Required activation order:
+Approved standby / sleep-mode policy:
 1. implement native Apple attestation behind the existing `appProtection` / Firebase platform-adapter boundary;
 2. prove valid App Check tokens on real iPhone/iPad and the existing web/PWA;
-3. monitor Firebase App Check metrics with enforcement off;
-4. enable enforcement deliberately, one protected Firebase product at a time;
-5. retain rollback instructions and do not combine enforcement activation with unrelated TestFlight feature changes.
+3. verify monitoring/diagnostic visibility while enforcement remains OFF;
+4. after validation, leave backend enforcement OFF as the normal steady state;
+5. activate enforcement only if a credible abuse, automated-backend or DoS-related threat appears, and then enable it deliberately one protected Firebase product at a time;
+6. retain rollback instructions and do not combine an enforcement activation with unrelated TestFlight feature changes;
+7. routine TestFlight builds do not repeat App Check validation unless App Check code/configuration changed or enforcement is about to be activated.
