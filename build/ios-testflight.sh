@@ -74,6 +74,13 @@ security cms -D -i "$APP/embedded.mobileprovision" > "$TASK_DIR/profile.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$TASK_DIR/profile.plist" | grep -qx 'VXMLKHF72B.io.github.willyros01.fidunio'
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$TASK_DIR/profile.plist" | grep -qx false
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
+codesign -d --entitlements :- "$APP" > "$TASK_DIR/app-entitlements.plist" 2>/dev/null
+/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/app-entitlements.plist" | grep -qx production
+test -s "$APP/GoogleService-Info.plist"
+/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$APP/GoogleService-Info.plist" | grep -qx 'io.github.willyros01.fidunio'
+/usr/libexec/PlistBuddy -c 'Print :PROJECT_ID' "$APP/GoogleService-Info.plist" | grep -qx 'fidunio-fef13'
+/usr/libexec/PlistBuddy -c 'Print :GOOGLE_APP_ID' "$APP/GoogleService-Info.plist" | grep -qx '1:130339622893:ios:929f4e431c91ef7ed0e1e4'
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
 node --input-type=module - "$APP" <<'JS'
