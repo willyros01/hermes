@@ -68,6 +68,17 @@ jobs:
         env:
           FIDUNIO_SIMULATOR_APP: ${{ runner.temp }}/fidunio-simulator-build/Build/Products/Debug-iphonesimulator/App.app
         run: bash build/ios-startup-smoke.sh
+      - name: Verify native encrypted-photo transport and display
+        timeout-minutes: 8
+        env:
+          FIDUNIO_SIMULATOR_APP: ${{ runner.temp }}/fidunio-simulator-build/Build/Products/Debug-iphonesimulator/App.app
+        run: bash build/ios-attachment-smoke.sh
+      - name: Save native photo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-attachment-evidence
+          path: attachment-evidence/
       - name: Save native startup evidence
         if: always()
         uses: actions/upload-artifact@v4

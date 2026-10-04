@@ -120,6 +120,7 @@ jobs:
       - {name: Forgot Password Firebase-to-E2EE recovery handoff, run: node forgot-password-recovery.test.mjs}
       - {name: Firebase platform adapter contract, run: node build/firebase-platform-adapter.test.mjs}
       - {name: Packaged iOS JavaScript syntax, run: node build/ios-runtime-syntax.test.mjs}
+      - {name: Attachment download platform boundary, run: node build/attachment-download-platform-adapter.test.mjs}
       - {name: Authentication and recovery transition boundaries, run: node build/auth-transition-boundary.test.mjs}
       - {name: Startup and background platform adapter boundaries, run: node build/platform-boundary-adapters.test.mjs}
       - {name: Password visibility presentation owner, run: node password-visibility.test.mjs}
