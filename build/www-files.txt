@@ -5,6 +5,7 @@ version.js
 password-visibility.js
 bootstrap.js
 platform-runtime.js
+biometric-platform-adapter.js
 background-platform-adapter.js
 startup-platform-adapter.js
 firebase-platform-adapter.js
