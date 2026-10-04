@@ -114,7 +114,7 @@ async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
     try{await unlockAccountE2EE({uid:user.uid,password,pin});}
     catch(unlockError){
       try{await recoverAccountE2EE({uid:user.uid,newPassword:password,pin});}
-      catch{throw unlockError;}
+      catch(recoveryError){if(recoveryError&&typeof recoveryError==="object"&&!recoveryError.cause)recoveryError.cause=unlockError;throw recoveryError;}
     }
   }
   else await enrollAccountE2EE({uid:user.uid,password,pin});
@@ -241,16 +241,21 @@ async function renderJoin(initialToken=""){
     const btn=document.querySelector("#redeemBtn"),note=document.querySelector("#joinNote"),token=document.querySelector("#inviteCode").value.trim(),name=document.querySelector("#joinName").value.trim(),email=document.querySelector("#joinEmail").value.trim(),password=document.querySelector("#joinPassword").value,pin=pinInput.value();
     if(!/^\d{6}$/.test(pin)){note.innerHTML='<p class="warning-note">Enter a six-digit FIDUNIO PIN.</p>';pinInput.focus();return;}
     btn.disabled=true;pinInput.setDisabled(true);btn.textContent="Creating account…";
+    let user;
     try{
       await validateFidunioInvitation(token);
-      const user=await redeemInvitationForEnrollment(token,email,password,name);
-      const bound=await bindAuthenticatedAccountE2EE(user.uid);
-      await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});
+      user=await redeemInvitationForEnrollment(token,email,password,name);
     }catch(err){
       note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
       btn.disabled=false;pinInput.setDisabled(false);btn.textContent="Join FIDUNIO";return;
     }
-    await openStartedAppOrOfferRetry(getFirebaseUser());
+    const finishEnrollment=async()=>{
+      const bound=await bindAuthenticatedAccountE2EE(user.uid);
+      await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});
+      await startApp();
+    };
+    try{await finishEnrollment();}
+    catch(err){renderAuthenticatedTransitionFailure(user,err,finishEnrollment);}
   };
 }
 
@@ -267,13 +272,14 @@ export async function runAuthGate(){
   });
   const user=getFirebaseUser();
   if(user){
-    try{
+    const resumeAuthenticatedSession=async()=>{
       const info=await getFidunioAccessInfo();
       if(!info.profile){renderGate("join","This login is not enrolled in FIDUNIO. Use a valid invitation.");return;}
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
-      if(bound.state?.state==="READY")await openStartedAppOrOfferRetry(user);
+      if(bound.state?.state==="READY")await startApp();
       else await renderSessionUnlock(user,bound);
-    }
-    catch(err){renderAuthenticatedTransitionFailure(user,err,async()=>runAuthGate());}
+    };
+    try{await resumeAuthenticatedSession();}
+    catch(err){renderAuthenticatedTransitionFailure(user,err,resumeAuthenticatedSession);}
   }else renderGate();
 }
