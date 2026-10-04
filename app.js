@@ -912,11 +912,35 @@ function beginCloudConversationSubscription(){
     else if(state.route==="messages"||state.route==="chat")render({background:true});
   });
 }
+const directReadReconcilePromises=new Map();
+function reconcileVisibleDirectRead(conversationId,{forceServer=false}={}){
+  const id=String(conversationId||"");
+  if(!id||!firebaseUser||state.route!=="chat"||String(state.selectedId)!==id)return Promise.resolve(false);
+  const hasUnreadIncoming=(state.messages[id]||[]).some(message=>!message.mine&&message.state!=="read");
+  if(!forceServer&&!hasUnreadIncoming)return Promise.resolve(false);
+  const running=directReadReconcilePromises.get(id);
+  if(running)return running;
+  const task=(async()=>{
+    try{
+      await markCloudConversationRead(id);
+      if(firebaseError.startsWith("Read receipt failed:"))firebaseError="";
+      return true;
+    }catch(err){
+      firebaseError=`Read receipt failed: ${err?.message||String(err)}`;
+      return false;
+    }finally{
+      directReadReconcilePromises.delete(id);
+      if(state.route==="chat"&&String(state.selectedId)===id)render({background:true});
+    }
+  })();
+  directReadReconcilePromises.set(id,task);
+  return task;
+}
 function ensureActiveCloudMessageSubscription(force=false){
   if(!firebaseUser || state.route!=="chat") return;
   const c=state.conversations.find(x=>String(x.id)===String(state.selectedId));
   if(c?.cloudGroup){stopCloudMessageSubscription();beginCloudGroupMessageSubscription(c.id);}
-  else if(c?.cloud){stopCloudGroupMessageSubscription();beginCloudMessageSubscription(c.id,{force});}
+  else if(c?.cloud){stopCloudGroupMessageSubscription();beginCloudMessageSubscription(c.id,{force});void reconcileVisibleDirectRead(c.id,{forceServer:true});}
 }
 function beginCloudGroupMessageSubscription(groupId){
   const wanted=String(groupId||"");
@@ -1171,7 +1195,10 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
     !force &&
     cloudMessageUnsub &&
     String(cloudMessageConversationId)===wanted
-  ) return;
+  ){
+    void reconcileVisibleDirectRead(wanted,{forceServer:true});
+    return;
+  }
 
   stopCloudMessageSubscription();
   const c=state.conversations.find(x=>String(x.id)===wanted);
@@ -1243,13 +1270,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
         maintenance:[
           async()=>{await cacheCloudHistory(conversationId,merged);},
           async()=>{await persistState();},
-          async()=>{
-            const unreadIncoming=(state.messages[conversationId]||[]).filter(m=>!m.mine&&m.state!=="read");
-            if(state.route==="chat"&&String(state.selectedId)===String(conversationId)&&unreadIncoming.length){
-              try{await markCloudConversationRead(conversationId);}
-              catch(err){firebaseError=`Read receipt failed: ${err?.message||String(err)}`;}
-            }
-          },
+          async()=>{await reconcileVisibleDirectRead(conversationId);},
           async()=>{if(state.route==="chat"&&String(state.selectedId)===String(conversationId))render({background:true});}
         ]
       };
