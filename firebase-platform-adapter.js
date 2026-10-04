@@ -28,9 +28,38 @@ export function createPlatformFirebaseAuth({app,authSdk,platformOptions}={}){
   return authSdk.getAuth(app);
 }
 
-export function createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey,platformOptions}={}){
-  if(isNativeIOSRuntime(platformOptions))return null;
-  if(!app||!appCheckSdk||!siteKey)throw new Error("Firebase App Check platform adapter is not initialized.");
+function nativeAppCheckPlugin(platformOptions){
+  return platformOptions?.capacitor?.Plugins?.FirebaseAppCheck
+    || globalThis.Capacitor?.Plugins?.FirebaseAppCheck
+    || null;
+}
+
+export async function createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey,platformOptions}={}){
+  if(!app||!appCheckSdk)throw new Error("Firebase App Check platform adapter is not initialized.");
+  if(isNativeIOSRuntime(platformOptions)){
+    const plugin=nativeAppCheckPlugin(platformOptions);
+    if(!plugin?.initialize||!plugin?.getToken)throw new Error("Native Firebase App Check adapter is unavailable.");
+    await plugin.initialize({isTokenAutoRefreshEnabled:true});
+    const provider=new appCheckSdk.CustomProvider({
+      getToken:async()=>{
+        const result=await plugin.getToken({forceRefresh:false});
+        const token=String(result?.token||"").trim();
+        if(!token)throw new Error("Native Firebase App Check returned no token.");
+        const nativeExpiry=Number(result?.expireTimeMillis);
+        return{
+          token,
+          expireTimeMillis:Number.isFinite(nativeExpiry)&&nativeExpiry>Date.now()
+            ?nativeExpiry
+            :Date.now()+30*60*1000,
+        };
+      },
+    });
+    return appCheckSdk.initializeAppCheck(app,{
+      provider,
+      isTokenAutoRefreshEnabled:true,
+    });
+  }
+  if(!siteKey)throw new Error("Firebase App Check web site key is missing.");
   return appCheckSdk.initializeAppCheck(app,{
     provider:new appCheckSdk.ReCaptchaEnterpriseProvider(siteKey),
     isTokenAutoRefreshEnabled:true,
@@ -42,5 +71,5 @@ export const FIREBASE_PLATFORM_ADAPTER_V1=Object.freeze({
   webAuth:"getAuth",
   iosAuth:"initializeAuth-browserLocalPersistence",
   webAppCheck:"recaptcha-enterprise",
-  iosAppCheck:"deferred-app-attest-devicecheck",
+  iosAppCheck:"app-attest-devicecheck-native-bridge",
 });
