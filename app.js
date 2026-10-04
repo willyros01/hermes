@@ -3006,4 +3006,4 @@ if(shouldUseWebServiceWorker()&&"serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js",{type:"module"})
     .catch(err=>console.warn("Service worker registration failed",err)));
 }
-initApp();
+export const FIDUNIO_APP_READY=initApp();
