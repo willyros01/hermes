@@ -282,6 +282,18 @@ export function startNotificationRegistrationMaintenance(uid){
   return()=>{if(generation===notificationTokenMaintenanceGeneration)stopNotificationRegistrationMaintenance();};
 }
 
+export async function removeNotificationRegistrationForSignOut(uid){
+  stopNotificationRegistrationMaintenance();
+  if(!uid)return true;
+  try{
+    await notificationRegistrationOwner.disable({uid});
+    return true;
+  }catch(error){
+    console.warn("FIDUNIO notification sign-out cleanup failed",error);
+    throw new Error("Could not safely sign out because this installation's notification registration could not be removed. Check the connection and try again.");
+  }
+}
+
 function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Notification setup required"})[status]||status;}
 async function renderNotifications(notificationsHost,info){
   const platformNotifications=getNotificationPlatformCapabilities();
