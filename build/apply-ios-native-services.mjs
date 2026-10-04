@@ -24,6 +24,8 @@ fs.writeFileSync(entitlements,`<?xml version="1.0" encoding="UTF-8"?>
 <dict>
   <key>aps-environment</key>
   <string>production</string>
+  <key>com.apple.developer.devicecheck.appattest-environment</key>
+  <string>production</string>
 </dict>
 </plist>
 `);
@@ -77,4 +79,6 @@ execFileSync("/usr/bin/plutil",["-lint",entitlements]);
 const pbx=fs.readFileSync(projectPath,"utf8");
 if(!pbx.includes("GoogleService-Info.plist"))throw new Error("Firebase plist was not added to Xcode resources");
 if(!pbx.includes("CODE_SIGN_ENTITLEMENTS"))throw new Error("Push entitlement build setting is missing");
-console.log("PASS: FIDUNIO native Firebase, Push and Face ID configuration applied");
+const entitlementText=fs.readFileSync(entitlements,"utf8");
+if(!entitlementText.includes("com.apple.developer.devicecheck.appattest-environment")||!entitlementText.includes("<string>production</string>"))throw new Error("Production App Attest entitlement is missing");
+console.log("PASS: FIDUNIO native Firebase, Push, App Attest and Face ID configuration applied");
