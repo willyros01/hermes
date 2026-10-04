@@ -47,6 +47,12 @@ export async function saveLocalAccountE2EEIdentity({uid,keyId,revision,privateKe
 export async function readLocalAccountE2EEIdentity(uid,{keyId,revision}={}){try{const db=await openDb(),row=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid)));if(!row||row.uid!==String(uid)||row.keyId!==String(keyId)||Number(row.revision)!==Number(revision)||row.privateKey?.type!=="private")return null;return row;}catch{return null;}}
 export async function inspectLocalAccountE2EEIdentity(uid,{keyId,revision}={}){try{const db=await openDb(),row=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid)));if(!row||row.uid!==String(uid)||row.privateKey?.type!=="private")return{exists:false,keyMatches:false,revisionMatches:false};return{exists:true,keyMatches:row.keyId===String(keyId),revisionMatches:Number(row.revision)===Number(revision),revision:Number(row.revision)||0};}catch{return{exists:false,keyMatches:false,revisionMatches:false};}}
 export async function clearLocalAccountE2EEIdentity(uid){const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").delete(ACCOUNT_E2EE_LOCAL_PREFIX+String(uid));await txDone(tx);}
+export async function clearLocalSecurityForAccountDeletion(uid){
+  await queueConfigMutation(cfg=>{cfg.pin=null;cfg.biometric=null;});
+  await clearLocalAccountE2EEIdentity(uid);
+  try{sessionStorage.removeItem(AUTH_BYPASS_KEY);}catch{}
+  return true;
+}
 export async function markPasswordResetPending(email){const mail=String(email||"").trim().toLowerCase();if(!mail)throw new Error("Enter your email address first.");const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").put({email:mail,createdAt:Date.now()},PASSWORD_RESET_PENDING_KEY);await txDone(tx);}
 export async function hasPasswordResetPending(email){try{const db=await openDb(),row=await idbRequest(db.transaction("meta","readonly").objectStore("meta").get(PASSWORD_RESET_PENDING_KEY)),mail=String(email||"").trim().toLowerCase();return!!row&&row.email===mail&&Date.now()-Number(row.createdAt||0)<24*60*60*1000;}catch{return false;}}
 export async function clearPasswordResetPending(){const db=await openDb(),tx=db.transaction("meta","readwrite");tx.objectStore("meta").delete(PASSWORD_RESET_PENDING_KEY);await txDone(tx);}
