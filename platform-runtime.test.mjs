@@ -49,7 +49,7 @@ assert.match(notificationPlatformAdapter,/registrationKind:"native-fcm"/);
 assert.match(notificationPlatformAdapter,/registrationKind:"web-push"/);
 assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
 assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return \(await nativeBiometricAvailability\(\)\)\.available/);assert.match(localSecurity,/authenticateNativeBiometric/);
-assert.match(app,/security\.hasBiometric&&!isNativeIOSRuntime\(\)/);
+assert.match(app,/security\.hasBiometric\?\x27<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric<\/button>\x27/);
 assert.match(payload,/^platform-runtime\.js$/m);
 assert.match(payload,/^background-platform-adapter\.js$/m);
 assert.match(payload,/^firebase-platform-adapter\.js$/m);
