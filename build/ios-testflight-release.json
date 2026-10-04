@@ -1,1 +1,1 @@
-{"purpose":"Adapter-corrected native auth recovery candidate with post-auth WebKit parser gate","sourceVersion":"1.1.59","revision":5}
+{"purpose":"Adapter-corrected native auth recovery candidate with preemptive startup/login/recovery transition and WebKit CryptoKey gates","sourceVersion":"1.1.59","revision":6}
