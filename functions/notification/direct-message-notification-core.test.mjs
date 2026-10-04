@@ -42,6 +42,7 @@ assert.deepEqual(calls[0].data,{type:"direct-message",conversationId:"dm-1",mess
 assert.deepEqual(calls[1].data,{type:"direct-message",conversationId:"dm-1",messageId:"m-1",notificationBody:"New message from Authoritative Alice"});
 for(const payload of calls){
   assert.deepEqual(payload.webpush,{headers:{Urgency:"high"}});
+  assert.deepEqual(payload.apns,{headers:{"apns-priority":"10"},payload:{aps:{alert:{title:"FIDUNIO",body:payload.data.notificationBody},sound:"default"}}});
   const serialized=JSON.stringify(payload);
   assert.doesNotMatch(serialized,/PLAINTEXT-MUST-NOT-LEAK|SECRET-CIPHERTEXT|Untrusted Message Name/);
 }
