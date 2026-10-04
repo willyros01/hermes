@@ -16,7 +16,7 @@ const server=http.createServer((req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 const descriptor={fidunioAttachment:1,attachmentId:'native-photo-fixture',key:encrypted.key,kind:'photo',type:'image/png',storagePaths:{manifest:'0',chunks:encrypted.chunks.map((_,i)=>String(i+1))}};
-const html=`<!doctype html><meta name="viewport" content="width=device-width"><body style="font:32px system-ui;background:white;color:black">CHECKING PHOTO<script type="module">
+const html=`<!doctype html><meta name="viewport" content="width=device-width"><body style="margin:0;padding:140px 24px 24px;font:32px system-ui;background:white;color:black">CHECKING PHOTO<script type="module">
 import {downloadPlatformAttachmentBytes} from './attachment-download-platform-adapter.js';
 import {createAttachmentReceiveService} from './attachment-receive-service.js';
 try{
