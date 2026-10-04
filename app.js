@@ -1618,7 +1618,7 @@ function renderUnlock(){
       <section class="unlock-card">
         <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
         <h1>Unlock FIDUNIO</h1>
-        ${security.hasBiometric&&!isNativeIOSRuntime()?'<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric</button>':""}
+        ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric</button>':""}
         <label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label>
         <div id="localUnlockPin"></div>
         <button class="${security.hasBiometric?"secondary":"primary"}" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>
@@ -2813,14 +2813,14 @@ function renderSettings(){
       <section class="content settings">
         <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
           ${(()=>{const security=getLocalSecurityStatus(),nativeIOS=isNativeIOSRuntime();return `
-            <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric&&!nativeIOS?" • Face ID or biometric enabled":""}</span></div>
+            <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Face ID or biometric enabled":""}</span></div>
             <label class="form-label" for="lockTimeoutSelect">Lock after inactivity</label>
             <select class="text-input" id="lockTimeoutSelect">${LOCK_TIMEOUTS.map(x=>`<option value="${x.value}" ${security.timeoutMs===x.value?"selected":""}>${esc(x.label)}</option>`).join("")}</select>
             ${security.hasPin?`
-              ${nativeIOS?'<p class="small-note">Face ID will use the native iOS security adapter after the first TestFlight shell is established. PIN unlock remains available.</p>':`<button class="secondary" id="${security.hasBiometric?"disableBiometricBtn":"enableBiometricBtn"}" style="margin-top:10px">${security.hasBiometric?"Disable Face ID or Biometric":"Enable Face ID or Biometric"}</button>`}
+              <button class="secondary" id="${security.hasBiometric?"disableBiometricBtn":"enableBiometricBtn"}" style="margin-top:10px">${security.hasBiometric?"Disable Face ID or Biometric":"Enable Face ID or Biometric"}</button>
               <button class="secondary" id="lockNowBtn" style="margin-top:10px">Lock Now</button>
             `:'<p class="small-note">Create your one six-digit FIDUNIO PIN in the Security section.</p>'}
-            <p class="small-note">${nativeIOS?"Your PIN remains the active local unlock method until the native Face ID adapter is enabled.":"Your PIN is never stored. Face ID or biometric unlock uses the secure capability provided by your browser and device."}</p>
+            <p class="small-note">${nativeIOS?"Face ID or Touch ID uses the native iOS security adapter. Your FIDUNIO PIN always remains available as fallback.":"Your PIN is never stored. Face ID or biometric unlock uses the secure capability provided by your browser and device."}</p>
             ${localSecurityMessage?`<p class="${localSecurityMessageIsError?"warning-note":"small-note"}">${esc(localSecurityMessage)}</p>`:""}
           `})()}
           ${settingRow("Notification message previews","previews")}
