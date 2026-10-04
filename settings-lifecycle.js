@@ -46,6 +46,7 @@ import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recove
 import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
 import {fidunioPublicUrl} from "./platform-runtime.js";
+import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";
 import {
   getNotificationPlatformCapabilities,
   getNativeNotificationCapability,
@@ -85,9 +86,10 @@ const GROUPS=[
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
   {id:"install",label:"Install",icon:"▣",subtitle:"Optional browser and Home Screen installation guidance."},
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
+  {id:"legal",label:"Legal & Support",icon:"ⓘ",subtitle:"Privacy, terms, support, safety, and account rights."},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","about"];
+const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","legal","about"];
 let activeGroup="profile";
 let mountedAccountVaultOwner=null;
 
@@ -413,6 +415,10 @@ function renderAccountVault(dataHost,info){
   create.onclick=async()=>{if(pin.value().length!==6){note.innerHTML='<p class="warning-note">Enter your six-digit FIDUNIO PIN.</p>';pin.focus();return;}create.disabled=true;choose.disabled=true;pin.setDisabled(true);create.textContent="Creating encrypted file…";try{if(!await verifyLocalPin(pin.value()))throw new Error("Incorrect FIDUNIO PIN.");const result=await mountedAccountVaultOwner.create(pin.value());downloadVault(result.blob,result.filename);note.innerHTML='<p class="small-note">Recovery file created. Keep it in a location you control.</p>';pin.clear();}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}finally{create.disabled=false;choose.disabled=false;pin.setDisabled(false);create.textContent="Create Recovery File";}};
   choose.onclick=()=>{if(pin.value().length!==6){note.innerHTML='<p class="warning-note">Enter your six-digit FIDUNIO PIN first.</p>';pin.focus();return;}fileInput.value="";fileInput.click();};
   fileInput.onchange=async()=>{const file=fileInput.files?.[0];if(!file)return;if(!confirm("Restore this FIDUNIO Recovery File? Current local account data will be replaced only after the file and current cloud authority are verified."))return;create.disabled=true;choose.disabled=true;pin.setDisabled(true);choose.textContent="Verifying and restoring…";try{if(!await verifyLocalPin(pin.value()))throw new Error("Incorrect FIDUNIO PIN.");await mountedAccountVaultOwner.restore(file,pin.value());}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;create.disabled=false;choose.disabled=false;pin.setDisabled(false);choose.textContent="Restore from Recovery File";pin.clear();}};
+}
+
+function renderLegalSupport(legalHost){
+  legalHost.innerHTML=`<div class="card" id="fidunioLegalSupportCard"><h2>Legal & Support</h2><p class="small-note">FIDUNIO requires acceptance of the current Terms of Use and acknowledgement of the Privacy Policy before messaging can open.</p><p><a class="secondary" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${esc(FIDUNIO_LEGAL_POLICY.termsUrl)}" target="_blank" rel="noopener">Terms of Use</a><a class="secondary" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${esc(FIDUNIO_LEGAL_POLICY.privacyUrl)}" target="_blank" rel="noopener">Privacy Policy</a><a class="secondary" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${esc(FIDUNIO_LEGAL_POLICY.supportUrl)}" target="_blank" rel="noopener">Help & Contact Support</a></p><p class="small-note">For abusive behavior, use <strong>Settings → Safety → Report Abuse</strong> or <strong>Blocked Users</strong>. Permanent account deletion is available in your Profile settings.</p><p class="small-note">Terms version: ${esc(FIDUNIO_LEGAL_POLICY.termsVersion)} • Privacy version: ${esc(FIDUNIO_LEGAL_POLICY.privacyVersion)}</p></div>`;
 }
 
 async function hydrateAccountPanels(g,shell){
