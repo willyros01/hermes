@@ -152,3 +152,12 @@ The user's same credentials work in the web app, and the first TestFlight attemp
 
 ### Protected repair direction
 Investigation and any later proposed correction must start at the smallest iOS-specific/platform boundary and preserve the working shared web/PWA login, PIN, recovery authority, E2EE identity/keyId and cryptographic owners. No broad shared-code rewrite, replacement identity, weakened recovery, password reset workaround, production Firebase/App Check change, or native duplicate implementation is acceptable without separate architecture review and explicit authorization. At this checkpoint, documentation only is authorized; corrective application code remains unchanged.
+
+
+## Firebase bootstrap adapter correction — FIDUNIO 1.1.59
+
+The rejected initial 1.1.58 candidate placed native Firebase bootstrap decisions directly in the shared Firebase owner. That pattern is superseded. `firebase-platform-adapter.js` now owns platform-specific Firebase SDK selection, Auth construction, and App Check provider construction. `firebase.js` remains the single Firebase service owner but contains no native-runtime branch.
+
+Web remains Firebase 12.18.0 with `getAuth(app)` and the existing web App Check provider. iOS is isolated behind the adapter with Firebase 12.19.0 and `initializeAuth(app,{persistence:browserLocalPersistence})`, without the browser popup/redirect resolver or web App Check provider. This adapter does not own account lifecycle, PIN, E2EE, recovery, Firestore, Functions, Storage, messaging, or UI state.
+
+The iOS browser release gate now also imports the post-auth `app.js` graph in real WebKit. This closes the prior test gap where the suite stopped at Sign In and therefore could not detect a JavaScriptCore parser failure after recovery handed control to `startApp()`.
