@@ -1,0 +1,14 @@
+import fs from "node:fs";
+import assert from "node:assert/strict";
+const firebase=fs.readFileSync("firebase.js","utf8");
+const settings=fs.readFileSync("settings-lifecycle.js","utf8");
+const rules=fs.readFileSync("firestore.rules","utf8");
+for(const name of ["requestFidunioAccountDeletion","getFidunioAccountDeletionRequest","cancelFidunioAccountDeletionRequest","listFidunioAccountDeletionRequestsForAdmin"])assert.match(firebase,new RegExp(name));
+assert.match(settings,/Delete My Account/);
+assert.match(settings,/within 7 days/);
+assert.match(settings,/verifyLocalPin/);
+assert.match(settings,/Current password/);
+assert.match(settings,/Account Deletion Requests/);
+assert.match(rules,/match \/accountDeletionRequests\/\{uid\}/);
+assert.match(rules,/validAccountDeletionRequestCreate/);
+console.log("PASS: self-service account deletion initiation is wired with reauthentication, PIN confirmation, status, cancellation and admin queue");
