@@ -6,7 +6,9 @@ const group=fs.readFileSync("e2ee-account-group-conversation.js","utf8");
 const directWrites=(app.match(/updateCloudMessageState\(conversationId,m\.id,\"read\"\)/g)||[]).length;
 
 assert.equal(directWrites,0,"app must not race the bulk receipt owner with per-message writes");
-assert.match(app,/unreadIncoming\.length[\s\S]*?markCloudConversationRead\(conversationId\)/,"displayed unread messages must use one bulk receipt owner");
+assert.match(app,/const directReadReconcilePromises=new Map\(\)/,"direct Read reconciliation must be serialized");
+assert.equal((app.match(/await markCloudConversationRead\(id\)/g)||[]).length,1,"direct Read must retain one bulk receipt writer");
+assert.match(app,/reconcileVisibleDirectRead\(wanted,\{forceServer:true\}\)/,"listener reuse must reconcile visible Read state without waiting for another snapshot");
 assert.match(app,/unlockPinAlreadyMounted[\s\S]*?if\(unlockPinAlreadyMounted\)return/,"background callbacks must not remount a PIN entry in progress");
 assert.match(app,/visibilitychange/);
 assert.match(app,/pageshow/);
