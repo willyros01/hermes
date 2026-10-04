@@ -540,6 +540,10 @@ Notification infrastructure evidence: the live direct/group notification Functio
 
 Do not reopen these items merely because a routine TestFlight build is created. Revalidate only when a related component changes or a regression is observed.
 
+### App Store requirement: Self-service account deletion
+
+Add **Settings → Account → Delete My Account** in the next iOS build. The user must be able to initiate full account deletion from inside FIDUNIO, with reauthentication/confirmation, clear consequences, server-side account/data cleanup through the existing controlled account-cleanup authority, and local sign-out/vault cleanup only after server deletion succeeds. Admin suspend/revoke/delete remains a separate moderation capability and does not replace self-service deletion.
+
 ### Remaining security hardening: Firebase App Check
 
 The previously deferred DoS/abuse-prevention control is Firebase App Check. Web/PWA already initializes App Check through reCAPTCHA Enterprise in the central Firebase bootstrap. Native iOS App Check is still deferred in `firebase-platform-adapter.js` and must be implemented with an Apple attestation provider for validation.
