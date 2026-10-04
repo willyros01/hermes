@@ -70,7 +70,8 @@ import {createBulkMessageDeleteProjectionOwner} from "./bulk-message-delete-proj
 import {createAccountVaultOwner} from "./account-vault-owner.js";
 import {reconcileAccountVaultPayload} from "./account-vault-reconciliation.js";
 import {activateVerifiedAccountVault} from "./account-vault-activation.js";
-import {isNativeIOSRuntime,shouldUseWebServiceWorker} from "./platform-runtime.js";
+import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {subscribePlatformBackgroundMessages} from "./background-platform-adapter.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -2997,13 +2998,9 @@ if(appearanceMedia){
   if(typeof appearanceMedia.addEventListener==="function")appearanceMedia.addEventListener("change",followSystemAppearance);
   else appearanceMedia.addListener?.(followSystemAppearance);
 }
-if(shouldUseWebServiceWorker()&&"serviceWorker" in navigator){
-  navigator.serviceWorker.addEventListener("message",event=>{
-    if(event.data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
-    const route=normalizeNotificationRoute(event.data?.route);if(!route)return;
-    pendingNotificationRoute=route;void requestAppActivation("service-worker-message");
-  });
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js",{type:"module"})
-    .catch(err=>console.warn("Service worker registration failed",err)));
-}
+subscribePlatformBackgroundMessages(data=>{
+  if(data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
+  const route=normalizeNotificationRoute(data?.route);if(!route)return;
+  pendingNotificationRoute=route;void requestAppActivation("background-message");
+});
 export const FIDUNIO_APP_READY=initApp();
