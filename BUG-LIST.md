@@ -1,3 +1,18 @@
+## iOS migration blockers — 1.1.59 repair candidate — 2026-10-04
+
+- **IOS-AUTH-002 — OPEN / release blocking until TestFlight acceptance.** Root cause is now source-confirmed in exact 1.1.57 commit: invalid executable quote escapes in `settings-lifecycle.js`, loaded by the post-recovery `app.js` import. Current candidate removes the syntax defect and permanently checks every packaged iOS JavaScript file.
+- **IOS-AUTH-003 — OPEN / release blocking until TestFlight acceptance.** 1.1.57 combined credential success with later E2EE/app startup in one catch and signed out on later failure. Current candidate separates those transitions and regression-tests native Firebase Auth persistence across reload. Device restart proof is still required.
+
+## FIDUNIO 1.1.59 iOS auth/recovery root-cause checkpoint — 2026-10-04
+
+Exact 1.1.57 TestFlight release commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` contains invalid JavaScript in `settings-lifecycle.js`: the native Notifications placeholder used literal escaped quote delimiters (`\'...\'`) in executable source. `app.js` at that same commit imports `./settings-lifecycle.js`, and 1.1.57 recovery called `startApp() -> import("./app.js")` inside the recovery UI catch. This is source-confirmed evidence for IOS-AUTH-002: successful PIN/E2EE recovery could be followed by a JavaScriptCore/WebKit parser failure during post-recovery application startup, then be displayed as though recovery itself failed. The shared recovery protocol and cryptographic owners remain unchanged.
+
+1.1.57 also wrapped successful Firebase sign-in, account-E2EE binding, and later application startup in one sign-in catch that reset/signs out on any later failure. This is a source-confirmed misclassification mechanism relevant to IOS-AUTH-003, but the defect remains OPEN until real-device TestFlight proves persisted native auth/restart behavior.
+
+Current iOS candidate uses the approved adapter architecture: `firebase-platform-adapter.js` owns bounded Firebase SDK/Auth/App Check bootstrap policy; `background-platform-adapter.js` owns web Service Worker vs native no-op background capability; `startup-platform-adapter.js` owns native startup-failure presentation; and `notification-platform-adapter.js` reports web-push vs native-pending notification capability so Settings no longer branches directly on iOS. No fake `navigator.serviceWorker` is introduced. Native APNs/FCM remains a later adapter implementation.
+
+Repository evidence before this documentation commit: commit `c922255516c6ac3697fbc729ace8df8ce4b7276c` passed Capacitor iOS branch preflight, Chromium and WebKit browser release regressions, and the complete Rebuild Baseline Security Gate through all 108 substantive checks. Documentation changes require a fresh exact-head gate cycle before any TestFlight release marker. IOS-AUTH-002 and IOS-AUTH-003 remain OPEN / DEVICE ACCEPTANCE REQUIRED.
+
 ## Disappearing attachments — 0.9.9.19
 
 **Status: REPOSITORY CANDIDATE / LIVE BACKEND HANDOFF REQUIRED.** Photos, files, audio and video now carry disappearing activation metadata and have server Storage-prefix + local object-URL cleanup wiring. Do not mark closed until `att.txt` live deployment succeeds and direct/group attachment expiry, unread protection, reopen, and multi-device absence are device-proven.

@@ -1,3 +1,25 @@
+## iOS platform bootstrap/notification authority addendum — 2026-10-04
+
+- `firebase.js`: sole Firebase app/service acquisition owner; delegates only platform bootstrap policy.
+- `firebase-platform-adapter.js`: Firebase SDK version/Auth persistence/App Check provider bootstrap policy only.
+- `background-platform-adapter.js`: web Service Worker registration/background-message bridge; native iOS no-op until native transport exists; never fakes `navigator.serviceWorker`.
+- `startup-platform-adapter.js`: native startup watchdog/failure presentation only.
+- `notification-platform-adapter.js`: transport-capability reporting only (`web-push` or `native-pending`); no token/message/Firebase ownership.
+- `notification-registration.js`: remains the shared notification registration intent/state owner.
+- `settings-lifecycle.js`: presentation owner consumes notification capability; it no longer contains an iOS notification runtime branch.
+
+The packaged iOS syntax gate is a release authority guard because the exact 1.1.57 post-recovery failure originated from invalid executable syntax in `settings-lifecycle.js`.
+
+## FIDUNIO 1.1.59 iOS auth/recovery root-cause checkpoint — 2026-10-04
+
+Exact 1.1.57 TestFlight release commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` contains invalid JavaScript in `settings-lifecycle.js`: the native Notifications placeholder used literal escaped quote delimiters (`\'...\'`) in executable source. `app.js` at that same commit imports `./settings-lifecycle.js`, and 1.1.57 recovery called `startApp() -> import("./app.js")` inside the recovery UI catch. This is source-confirmed evidence for IOS-AUTH-002: successful PIN/E2EE recovery could be followed by a JavaScriptCore/WebKit parser failure during post-recovery application startup, then be displayed as though recovery itself failed. The shared recovery protocol and cryptographic owners remain unchanged.
+
+1.1.57 also wrapped successful Firebase sign-in, account-E2EE binding, and later application startup in one sign-in catch that reset/signs out on any later failure. This is a source-confirmed misclassification mechanism relevant to IOS-AUTH-003, but the defect remains OPEN until real-device TestFlight proves persisted native auth/restart behavior.
+
+Current iOS candidate uses the approved adapter architecture: `firebase-platform-adapter.js` owns bounded Firebase SDK/Auth/App Check bootstrap policy; `background-platform-adapter.js` owns web Service Worker vs native no-op background capability; `startup-platform-adapter.js` owns native startup-failure presentation; and `notification-platform-adapter.js` reports web-push vs native-pending notification capability so Settings no longer branches directly on iOS. No fake `navigator.serviceWorker` is introduced. Native APNs/FCM remains a later adapter implementation.
+
+Repository evidence before this documentation commit: commit `c922255516c6ac3697fbc729ace8df8ce4b7276c` passed Capacitor iOS branch preflight, Chromium and WebKit browser release regressions, and the complete Rebuild Baseline Security Gate through all 108 substantive checks. Documentation changes require a fresh exact-head gate cycle before any TestFlight release marker. IOS-AUTH-002 and IOS-AUTH-003 remain OPEN / DEVICE ACCEPTANCE REQUIRED.
+
 FCM N3 OWNERSHIP — 1.1.1: firebase.js is sole Firebase Messaging/Firestore notification-device API owner; notification-registration.js is the sole serialized notification intent/registration coordinator; settings-lifecycle.js owns the predefined Notifications Settings host. No second Firebase initializer, message store, receipt owner, or service-worker message authority.
 
 # FIDUNIO Runtime Authority Map

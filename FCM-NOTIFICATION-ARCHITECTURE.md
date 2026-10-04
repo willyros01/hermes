@@ -1,3 +1,17 @@
+## Native iOS adapter checkpoint — 2026-10-04
+
+The iOS migration now includes `notification-platform-adapter.js` as a capability-reporting boundary only. Web reports the existing Web Push/service-worker transport; native iOS currently reports `native-pending`. This does not activate APNs/FCM and does not change `notification-registration.js` ownership, token schema, server send authority, notification routing, Firestore/E2EE authority, or privacy rules. Settings consumes the capability instead of branching directly on `isNativeIOSRuntime()`. Future APNs/FCM work must fill the native implementation behind the same shared contract and must not fake a browser Service Worker.
+
+## FIDUNIO 1.1.59 iOS auth/recovery root-cause checkpoint — 2026-10-04
+
+Exact 1.1.57 TestFlight release commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` contains invalid JavaScript in `settings-lifecycle.js`: the native Notifications placeholder used literal escaped quote delimiters (`\'...\'`) in executable source. `app.js` at that same commit imports `./settings-lifecycle.js`, and 1.1.57 recovery called `startApp() -> import("./app.js")` inside the recovery UI catch. This is source-confirmed evidence for IOS-AUTH-002: successful PIN/E2EE recovery could be followed by a JavaScriptCore/WebKit parser failure during post-recovery application startup, then be displayed as though recovery itself failed. The shared recovery protocol and cryptographic owners remain unchanged.
+
+1.1.57 also wrapped successful Firebase sign-in, account-E2EE binding, and later application startup in one sign-in catch that reset/signs out on any later failure. This is a source-confirmed misclassification mechanism relevant to IOS-AUTH-003, but the defect remains OPEN until real-device TestFlight proves persisted native auth/restart behavior.
+
+Current iOS candidate uses the approved adapter architecture: `firebase-platform-adapter.js` owns bounded Firebase SDK/Auth/App Check bootstrap policy; `background-platform-adapter.js` owns web Service Worker vs native no-op background capability; `startup-platform-adapter.js` owns native startup-failure presentation; and `notification-platform-adapter.js` reports web-push vs native-pending notification capability so Settings no longer branches directly on iOS. No fake `navigator.serviceWorker` is introduced. Native APNs/FCM remains a later adapter implementation.
+
+Repository evidence before this documentation commit: commit `c922255516c6ac3697fbc729ace8df8ce4b7276c` passed Capacitor iOS branch preflight, Chromium and WebKit browser release regressions, and the complete Rebuild Baseline Security Gate through all 108 substantive checks. Documentation changes require a fresh exact-head gate cycle before any TestFlight release marker. IOS-AUTH-002 and IOS-AUTH-003 remain OPEN / DEVICE ACCEPTANCE REQUIRED.
+
 # FIDUNIO Message Notification Architecture — FCM / Web Push
 
 **STATUS: AUTHORITATIVE DESIGN FOR FIDUNIO 1.1**
