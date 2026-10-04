@@ -91,7 +91,9 @@
     "ios:verify": "node build/verify-ios-foundation.mjs",
     "ios:prepare": "npm run ios:web && npm run ios:verify",
     "ios:apple-spec": "node build/ios-apple-registration.test.mjs",
-    "ios:platform": "node platform-runtime.test.mjs"
+    "ios:platform": "node platform-runtime.test.mjs",
+    "test:abuse-report": "node abuse-report-wiring.test.mjs",
+    "emulator:test:abuse-report-rules": "firebase emulators:exec --only firestore --project demo-fidunio-abuse-report-rules \"node firestore-abuse-report.rules.test.mjs\""
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.2",
