@@ -19,19 +19,36 @@ assert.equal(fidunioPublicUrl("./quick-start.html",{capacitor:webCap,protocol:"h
 const bootstrap=fs.readFileSync("bootstrap.js","utf8");
 const app=fs.readFileSync("app.js","utf8");
 const firebase=fs.readFileSync("firebase.js","utf8");
+const firebaseAdapter=fs.readFileSync("firebase-platform-adapter.js","utf8");
+const backgroundAdapter=fs.readFileSync("background-platform-adapter.js","utf8");
 const settings=fs.readFileSync("settings-lifecycle.js","utf8");
 const install=fs.readFileSync("install-guidance.js","utf8");
 const localSecurity=fs.readFileSync("local-security.js","utf8");
 const payload=fs.readFileSync("build/www-files.txt","utf8");
-assert.match(bootstrap,/shouldUseWebServiceWorker\(\)/);
-assert.match(app,/shouldUseWebServiceWorker\(\).*"serviceWorker" in navigator/s);
-assert.match(firebase,/shouldUseWebAppCheck\(\)\?appCheckSdk\.initializeAppCheck/);
+
+assert.match(bootstrap,/from "\.\/background-platform-adapter\.js"/);
+assert.match(bootstrap,/startPlatformBackground\(\)/);
+assert.doesNotMatch(bootstrap,/shouldUseWebServiceWorker|navigator\.serviceWorker|isNativeIOSRuntime/);
+assert.match(app,/subscribePlatformBackgroundMessages/);
+assert.doesNotMatch(app,/shouldUseWebServiceWorker|navigator\.serviceWorker|serviceWorker\.register/);
+assert.match(backgroundAdapter,/navigator\.serviceWorker\.register/);
+assert.match(backgroundAdapter,/isNativeIOSRuntime/);
+
+assert.match(firebase,/from "\.\/firebase-platform-adapter\.js"/);
+assert.match(firebase,/createPlatformFirebaseAuth\(\{app,authSdk\}\)/);
+assert.match(firebase,/createPlatformFirebaseAppCheck\(/);
+assert.doesNotMatch(firebase,/isNativeIOSRuntime|shouldUseWebAppCheck|initializeAuth\(|indexedDBLocalPersistence|browserSessionPersistence/);
+assert.match(firebaseAdapter,/isNativeIOSRuntime/);
+assert.match(firebaseAdapter,/initializeAuth\(app,\{persistence:authSdk\.browserLocalPersistence\}\)/);
+
 assert.match(settings,/if\(isNativeIOSRuntime\(\)\).*Native notification setup pending/s);
 assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
 assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return false/);
 assert.match(app,/security\.hasBiometric&&!isNativeIOSRuntime\(\)/);
 assert.match(payload,/^platform-runtime\.js$/m);
+assert.match(payload,/^background-platform-adapter\.js$/m);
+assert.match(payload,/^firebase-platform-adapter\.js$/m);
 assert.match(firebase,/fidunioPublicUrl\("\.\/"\)/);
 assert.match(settings,/fidunioPublicUrl\("\.\/quick-start\.html"\)/);
 assert.match(settings,/fidunioPublicUrl\("\.\/account-recovery\.html"\)/);
-console.log("PASS: bounded web/Capacitor iOS runtime selection and integration guards");
+console.log("PASS: bounded web/Capacitor iOS runtime selection and platform-adapter integration guards");
