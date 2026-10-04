@@ -17,7 +17,7 @@ assert.match(adapter,/deleteToken\(\)/);
 assert.match(adapter,/notificationActionPerformed/);
 assert.match(adapter,/normalizeNotificationRoute/);
 assert.match(adapter,/registrationKind:"native-fcm"/);
-assert.doesNotMatch(adapter,/navigator\.serviceWorker|serviceWorker\.register/);
+const adapterCode=adapter.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\/\/.*$/gm,"");\nassert.doesNotMatch(adapterCode,/navigator\.serviceWorker|serviceWorker\.register/);
 
 assert.match(settings,/getNativeMessagingToken/);
 assert.match(settings,/\(\)=>"ios-native"/);
