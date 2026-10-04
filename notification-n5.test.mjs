@@ -24,8 +24,10 @@ assert.doesNotMatch(sw,/client\.postMessage\(\{type:"fidunio-notification-route"
 assert.doesNotMatch(sw,/addEventListener\("push"/);
 assert.match(sw,/fidunioNotification/);
 assert.doesNotMatch(sw,/decrypt|markCloudConversationRead|updateCloudMessageState/);
-assert.match(bootstrap,/register\("\.\/service-worker\.js",\{scope:"\.\/",type:"module"\}\)/);
-assert.match(app,/register\("\.\/service-worker\.js",\{type:"module"\}\)/);
+assert.match(background,/register\("\.\/service-worker\.js",\{scope:"\.\/",type:"module"\}\)/);
+assert.match(bootstrap,/startPlatformBackground\(\)/);
+assert.match(app,/subscribePlatformBackgroundMessages/);
+assert.doesNotMatch(app,/navigator\.serviceWorker|serviceWorker\.register/);
 assert.match(app,/notificationRouteFromUrl/);
 assert.match(app,/getCloudConversationFromServer\(route\.conversationId,firebaseUser\.uid\)/);
 assert.match(app,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)/);
