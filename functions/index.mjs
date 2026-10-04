@@ -20,6 +20,8 @@ import { runDisappearingPurgeSweep } from "./disappearing/disappearing-scheduler
 import { createDirectMessageNotificationCore } from "./notification/direct-message-notification-core.mjs";
 import { createGroupMessageNotificationCore } from "./notification/group-message-notification-core.mjs";
 import { createNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
+import { createLegalPolicyCore } from "./legal/legal-policy-core.mjs";
+import { createLegalPolicyFirestoreRepository } from "./legal/legal-policy-firestore-admin-adapter.mjs";
 
 if (!getApps().length) initializeApp();
 
@@ -37,8 +39,10 @@ const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,buck
 const {conversationRepo,attachmentRepo:conversationAttachmentRepo}=createConversationDeleteAdminRepositories({db,bucket:attachmentBucket});
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
-const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo}=createNotificationAdminRepositories({db});
-const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
+const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo}=createNotificationAdminRepositories({db});
+const legalRepo=createLegalPolicyFirestoreRepository({db});
+const legalCore=createLegalPolicyCore({repo:legalRepo,termsVersion:"2026-10-04-v1",privacyVersion:"2026-10-04-v1"});
+const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo,messaging:getMessaging()});
 const groupNotificationCore=createGroupMessageNotificationCore({groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
 
 function decodeMasterSecret() {
@@ -94,6 +98,8 @@ export const listAdminRecoveryAuthorizationsV1=onCall(common,request=>invoke(adm
 export const revokeAdminRecoveryAuthorizationV1=onCall(common,request=>invoke(adminRecoveryCore.revokeAdminRecoveryAuthorizationV1,request));
 export const startAdminAuthorizedRecoveryV1=onCall(common,request=>invoke(adminRecoveryCore.startAdminAuthorizedRecoveryV1,request));
 export const completeAdminAuthorizedRecoveryV1=onCall({...common,secrets:[RECOVERY_MASTER]},request=>invoke(adminRecoveryCore.completeAdminAuthorizedRecoveryV1,request));
+export const getLegalAcceptanceV1=onCall(common,request=>invoke(legalCore.getLegalAcceptanceV1,request));
+export const acceptLegalPolicyV1=onCall(common,request=>invoke(legalCore.acceptLegalPolicyV1,request));
 
 export const deleteDirectMessageForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request));
 export const deleteMyMessagesForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:60,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request));
