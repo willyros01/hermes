@@ -22,11 +22,22 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run ios:prepare
       - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Configure isolated Firebase Auth emulator
+        run: |
+          cat > "$RUNNER_TEMP/fidunio-auth-emulator.json" <<'JSON'
+          {
+            "emulators": {
+              "auth": { "port": 9099 },
+              "ui": { "enabled": false },
+              "singleProjectMode": true
+            }
+          }
+          JSON
       - name: Run isolated real browser release regressions with Auth emulator
         env:
           TEST_BROWSER: ${{ matrix.browser }}
           FIDUNIO_AUTH_EMULATOR_URL: http://127.0.0.1:9099
-        run: npx firebase emulators:exec --only auth --project demo-fidunio-ios-auth "node build/ios-browser-release.test.mjs"
+        run: npx firebase emulators:exec --only auth --project demo-fidunio-ios-auth --config "$RUNNER_TEMP/fidunio-auth-emulator.json" "node build/ios-browser-release.test.mjs"
       - name: Save release regression evidence
         if: always()
         uses: actions/upload-artifact@v4
