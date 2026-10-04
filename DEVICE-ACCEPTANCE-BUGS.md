@@ -484,3 +484,28 @@ TestFlight run `37159557103` was explicitly cancelled by the user before archive
 All four required workflows succeeded at `19d1a2911441913ad5c048bae839fd5b990d3b2e`: native preflight `37161083339`, complete security baseline `37161083345`, Chromium AND WebKit browser regression suite `37161083342`, and actual Capacitor iOS Simulator startup `37161083343`. Simulator OCR explicitly confirmed FIDUNIO 1.1.57 with Sign In/Email/Password; artifact `11287488574` stores screenshot and screen text. The apparent log stall was a redirected second compilation (23:20:45 → 23:24:33 UTC), not proof of an app hang. The workflow now installs its already-compiled simulator app and prints stage progress; test-only browser harness edits no longer request unnecessary Simulator recompilation. Those workflow changes must still pass the release's exact-commit checks.
 
 The new release marker (revision 3) requests one gated 1.1.57 upload after all four checks at its source commit succeed. Cancelled run 2 submitted nothing. Upload/Apple processing/internal-group distribution results remain pending until verified. IOS-STARTUP-001 and IOS-ICON-001 stay user-device OPEN. This is no new acceptance credit and no change to main/production Firebase/App Check enforcement/E2EE protocols.
+
+
+## IOS-AUTH-002 — TestFlight secure-messaging recovery fails with WebKit invalid-escape error
+
+- **Build/device:** FIDUNIO 1.1.57 TestFlight, user device, first sign-in to the native Capacitor installation.
+- **Severity:** Critical / release-blocking authentication and E2EE recovery defect.
+- **Observed:** Valid email/password is accepted and the app reaches **Recover Secure Messaging** because the existing account secure identity is not present locally. After entry of the existing six-digit FIDUNIO PIN, recovery fails and the UI displays the underlying exception: `Invalid escape in identifier: '\\'`.
+- **Expected:** Existing account sign-in followed by the correct PIN restores the same established FIDUNIO E2EE identity/keyId and opens messaging; the native client must not create a replacement identity.
+- **Evidence:** User screenshot and repeat report. Repository inspection confirms the literal error text is not authored by FIDUNIO; `auth-ui-clean.js` displays `err.message` from the failing `recoverAccountE2EE()` path. Exact failing lower-level statement is still under read-only investigation; root cause is **not yet established**.
+- **Architecture constraints:** Preserve existing Firebase account authority, E2EE identity/keyId, recovery authority, PIN semantics and web/PWA behavior. Do not bypass recovery or create a new identity. Any shared recovery fix must follow the iOS coexistence rule and be reconciled/tested with main before promotion.
+- **Repair allocation:** Unassigned pending root-cause investigation. No corrective code authorized yet.
+- **Status:** OPEN / INVESTIGATING. Do not mark fixed from repository simulation alone.
+- **Exit criteria:** exact cause identified; focused regression added; required repository/security/iOS gates green; repeated real-device TestFlight sign-in + PIN recovery restores the established identity and opens the correct messages without the WebKit exception.
+
+## IOS-AUTH-003 — TestFlight restart reports valid web-confirmed credentials as invalid after failed recovery
+
+- **Build/device:** FIDUNIO 1.1.57 TestFlight, user device, immediately after IOS-AUTH-002 and app restart.
+- **Severity:** Critical / release-blocking authentication defect.
+- **Observed:** After the failed secure-messaging recovery, restarting the app and entering the same email/password reports invalid email/password. Reproduced with two accounts. The same user IDs/passwords successfully sign in to the FIDUNIO web app.
+- **Expected:** A failed local E2EE recovery must not corrupt or misreport Firebase authentication. Valid Firebase credentials must remain valid on restart and must either resume the proper recovery flow or enter the normal authenticated state according to existing authority.
+- **Evidence:** User reproduced with two accounts and independently verified the same credentials in the web app. The first native attempt also progressed beyond `signInFidunio()` to the recovery screen, proving that attempt authenticated before the later recovery failure. Current login handler spans Firebase sign-in plus post-auth E2EE binding/entry in one catch boundary, so a displayed login error is not by itself proof Firebase rejected the password. Native 1.1.57 also introduced native-specific Firebase Auth initialization/persistence; causal relationship remains **unproven and under investigation**.
+- **Architecture constraints:** Firebase remains sole account-auth authority. Do not reset passwords, weaken auth, clear secure state as a workaround, bypass PIN/E2EE recovery, or change production Firebase/App Check while investigating.
+- **Repair allocation:** Unassigned pending separation of Firebase-auth result from post-auth/session/E2EE failure and exact persistence-state tracing. No corrective code authorized yet.
+- **Status:** OPEN / INVESTIGATING; linked to IOS-AUTH-002 but tracked separately until causality is proven.
+- **Exit criteria:** exact source of the false/secondary credential failure identified; focused regression added; required gates green; repeated TestFlight restart/sign-in with known-valid credentials succeeds for at least the affected existing-account recovery scenario, followed by successful PIN/E2EE recovery on real device.
