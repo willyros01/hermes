@@ -42,6 +42,7 @@ import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvit
 import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeAdminRecoveryAuthorization} from "./admin-recovery-client.js";
 import {mountInstallGuidance} from "./install-guidance.js";
 import {prepareSelfAccountDeletion} from "./account-deletion-service.js";
+import {completeSelfAccountDeletion} from "./account-deletion-finalize-client.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
 import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
@@ -210,45 +211,72 @@ function openAdmin(info){
   renderAdminModal(modal,info).catch(err=>{if(!modal.isConnected)return;modal.querySelector(".modal").innerHTML=`<h2>User Administration</h2><p class="warning-note">${esc(err?.message||String(err))}</p><button class="secondary" id="adminCloseBtn">Close</button>`;modal.querySelector("#adminCloseBtn").onclick=closeAdminModal;});
 }
 async function renderAccountDeletion(profileHost,usersHost,info){
-  const card=document.createElement("div");card.className="card";card.id="fidunioDeleteAccountCard";card.innerHTML='<h2>Delete My Account</h2><p class="warning-note"><strong>Permanent account deletion.</strong> This is not suspension or sign-out. A deletion request removes your FIDUNIO account and associated personal data after the controlled cleanup process completes.</p><p class="small-note">Deletion is initiated here and is expected to complete within 7 days. You can cancel while the request is still pending. You will receive confirmation at your account email when processing is complete.</p><div id="deleteAccountStatus"><p class="small-note">Checking deletion status…</p></div>';profileHost.appendChild(card);
+  const card=document.createElement("div");card.className="card";card.id="fidunioDeleteAccountCard";
+  card.innerHTML='<h2>Delete My Account</h2><p class="warning-note"><strong>Permanent account deletion.</strong> This is not suspension or sign-out. FIDUNIO verifies your password and PIN, removes your sent messages, safely leaves groups, removes personal account/security records, and deletes the Firebase Authentication account.</p><p class="small-note">Groups you own must be permanently deleted first so FIDUNIO does not silently destroy other members\' shared group history. After cleanup begins it cannot be undone.</p><div id="deleteAccountStatus"><p class="small-note">Checking deletion status…</p></div>';
+  profileHost.appendChild(card);
   const statusHost=card.querySelector("#deleteAccountStatus");
+
+  const finishDeletion=async(note)=>{
+    note.innerHTML='<p class="small-note">Completing account deletion…</p>';
+    await completeSelfAccountDeletion();
+    alert("Your FIDUNIO account has been deleted.");
+    location.reload();
+  };
+
   const paint=async()=>{
     const request=await getFidunioAccountDeletionRequest();
     if(!card.isConnected)return;
-    if(request&&["pending","processing"].includes(request.status)){
-      statusHost.innerHTML=`<p class="small-note"><strong>Status:</strong> ${esc(request.status==="pending"?"Deletion requested":"Deletion processing")}</p>${request.status==="pending"&&request.cleanupStatus!=="complete"?'<p class="small-note">Preparation still needs to remove your sent messages and safely leave groups. Groups you own must be deleted by you first so FIDUNIO does not silently destroy other members\' group history.</p><button class="secondary" id="continueDeletionPreparationBtn">Continue Deletion Preparation</button>':request.status==="pending"?'<p class="small-note">Preparation complete. The administrative deletion step may now proceed.</p>':""}${request.status==="pending"?'<button class="secondary" id="cancelDeletionRequestBtn" style="margin-top:10px">Cancel Deletion Request</button>':""}<div id="deletePreparationNote" aria-live="polite"></div>`;
-      const prep=statusHost.querySelector("#continueDeletionPreparationBtn"),prepNote=statusHost.querySelector("#deletePreparationNote");
-      if(prep)prep.onclick=async()=>{prep.disabled=true;prep.textContent="Preparing…";try{await prepareSelfAccountDeletion({onProgress:step=>{if(prepNote?.isConnected)prepNote.innerHTML=`<p class="small-note">${esc(step.stage==="leave-group"?"Safely leaving group…":step.stage==="messages"||step.stage==="group-messages"||step.stage==="direct-messages"?"Removing your sent messages…":"Preparing account deletion…")}</p>`;}});await paint();}catch(err){prepNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;prep.disabled=false;prep.textContent="Continue Deletion Preparation";}};
-      const cancel=statusHost.querySelector("#cancelDeletionRequestBtn");if(cancel)cancel.onclick=async()=>{if(!confirm("Cancel your pending account deletion request?"))return;cancel.disabled=true;try{await serializeSettingsMutation("cancel account deletion",()=>cancelFidunioAccountDeletionRequest());await paint();}catch(err){alert(err?.message||String(err));cancel.disabled=false;}};
+    if(request?.status==="pending"){
+      const prepared=request.cleanupStatus==="complete";
+      statusHost.innerHTML=`<p class="small-note"><strong>Status:</strong> ${prepared?"Cleanup complete — ready for final deletion":"Deletion requested"}</p>${!prepared?'<p class="small-note">Preparation removes your sent messages and safely leaves groups. This destructive cleanup cannot be reversed.</p><button class="secondary" id="continueDeletionPreparationBtn">Continue Deletion Preparation</button><button class="secondary" id="cancelDeletionRequestBtn" style="margin-top:10px">Cancel Before Cleanup</button>':'<button class="primary" id="finishDeletionBtn">Finish Permanent Account Deletion</button>'}<div id="deletePreparationNote" aria-live="polite"></div>`;
+      const prepNote=statusHost.querySelector("#deletePreparationNote");
+      const prep=statusHost.querySelector("#continueDeletionPreparationBtn");
+      if(prep)prep.onclick=async()=>{
+        if(!confirm("Continue permanent account deletion preparation? Your sent messages will be removed and groups you do not own will be left. This cleanup cannot be undone."))return;
+        prep.disabled=true;prep.textContent="Preparing…";
+        try{
+          await prepareSelfAccountDeletion({onProgress:step=>{if(prepNote?.isConnected)prepNote.innerHTML=`<p class="small-note">${esc(step.stage==="leave-group"?"Safely leaving group…":String(step.stage||"").includes("messages")?"Removing your sent messages…":"Preparing account deletion…")}</p>`;}});
+          await finishDeletion(prepNote);
+        }catch(err){prepNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;prep.disabled=false;prep.textContent="Continue Deletion Preparation";}
+      };
+      const finish=statusHost.querySelector("#finishDeletionBtn");
+      if(finish)finish.onclick=async()=>{if(!confirm("Permanently delete your FIDUNIO account now? This cannot be undone."))return;finish.disabled=true;try{await finishDeletion(prepNote);}catch(err){prepNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;finish.disabled=false;}};
+      const cancel=statusHost.querySelector("#cancelDeletionRequestBtn");
+      if(cancel)cancel.onclick=async()=>{if(!confirm("Cancel the deletion request before destructive cleanup starts?"))return;cancel.disabled=true;try{await serializeSettingsMutation("cancel account deletion",()=>cancelFidunioAccountDeletionRequest());await paint();}catch(err){alert(err?.message||String(err));cancel.disabled=false;}};
       return;
     }
-    statusHost.innerHTML='<label class="form-label" for="deleteAccountPassword">Current password</label><input class="text-input" id="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Current password"><label class="form-label" for="deleteAccountPin">FIDUNIO PIN</label><input class="text-input" id="deleteAccountPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Six-digit PIN"><button class="secondary" id="requestDeletionBtn" style="margin-top:14px">Request Account Deletion</button><div id="deleteAccountNote" aria-live="polite"></div>';
+    if(request?.status==="processing"){
+      statusHost.innerHTML='<p class="warning-note">Account deletion is already processing. Do not create new messages. If this state persists, contact FIDUNIO support.</p>';
+      return;
+    }
+    statusHost.innerHTML='<label class="form-label" for="deleteAccountPassword">Current password</label><input class="text-input" id="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Current password"><label class="form-label" for="deleteAccountPin">FIDUNIO PIN</label><input class="text-input" id="deleteAccountPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Six-digit PIN"><button class="secondary" id="requestDeletionBtn" style="margin-top:14px">Delete My Account</button><div id="deleteAccountNote" aria-live="polite"></div>';
     const button=statusHost.querySelector("#requestDeletionBtn"),note=statusHost.querySelector("#deleteAccountNote");
     button.onclick=async()=>{
       const password=statusHost.querySelector("#deleteAccountPassword").value,pin=statusHost.querySelector("#deleteAccountPin").value;
       if(pin.length!==6){note.innerHTML='<p class="warning-note">Enter your six-digit FIDUNIO PIN.</p>';return;}
-      if(!confirm("Request permanent deletion of your FIDUNIO account? This will enter the controlled deletion process. You may cancel only while the request remains pending."))return;
+      if(!confirm("Request permanent deletion of your FIDUNIO account? You can cancel only before destructive cleanup begins."))return;
       button.disabled=true;button.textContent="Verifying…";
       try{
         if(!await verifyLocalPin(pin))throw new Error("Incorrect FIDUNIO PIN.");
         await serializeSettingsMutation("request account deletion",()=>requestFidunioAccountDeletion(password));
         statusHost.querySelector("#deleteAccountPassword").value="";
         statusHost.querySelector("#deleteAccountPin").value="";
-        try{await prepareSelfAccountDeletion({onProgress:step=>{note.innerHTML=`<p class="small-note">${esc(step.stage==="leave-group"?"Safely leaving group…":String(step.stage||"").includes("messages")?"Removing your sent messages…":"Preparing account deletion…")}</p>`;}});}catch(cleanupError){note.innerHTML=`<p class="warning-note">Deletion was requested, but preparation is incomplete: ${esc(cleanupError?.message||String(cleanupError))}</p>`;}
-        await paint();
-      }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;button.disabled=false;button.textContent="Request Account Deletion";}
+        note.innerHTML='<p class="small-note">Account verified. Starting controlled cleanup…</p>';
+        await prepareSelfAccountDeletion({onProgress:step=>{if(note?.isConnected)note.innerHTML=`<p class="small-note">${esc(step.stage==="leave-group"?"Safely leaving group…":String(step.stage||"").includes("messages")?"Removing your sent messages…":"Preparing account deletion…")}</p>`;}});
+        await finishDeletion(note);
+      }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;button.disabled=false;button.textContent="Delete My Account";}
     };
   };
   try{await paint();}catch(err){statusHost.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
 
   if(["owner","admin"].includes(info.role)&&usersHost){
-    const admin=document.createElement("div");admin.className="card";admin.id="fidunioDeletionAdminCard";admin.innerHTML='<h2>Account Deletion Requests</h2><p class="small-note">Requests initiated by users. Starting processing is administrative bookkeeping only; do not mark a request completed until the controlled cleanup has actually finished.</p><div id="deletionAdminList"><p class="small-note">Loading requests…</p></div>';usersHost.appendChild(admin);
-    const list=admin.querySelector("#deletionAdminList");
+    const admin=document.createElement("div");admin.className="card";admin.id="fidunioDeletionAdminCard";
+    admin.innerHTML='<h2>Account Deletion Requests</h2><p class="small-note">Read-only operational queue for incomplete deletion requests. Users complete their own deletion from Settings; administrators do not mark a request completed manually.</p><div id="deletionAdminList"><p class="small-note">Loading requests…</p></div>';
+    usersHost.appendChild(admin);const list=admin.querySelector("#deletionAdminList");
     try{
       const rows=await listFidunioAccountDeletionRequestsForAdmin();
       if(!admin.isConnected)return;
-      list.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(row.displayName||row.contactEmail||row.uid)}</strong><span>${esc(row.contactEmail||"")} • ${esc(row.status||"unknown")} • ${esc(dateText(row.requestedAt))}</span></div>${row.status==="pending"?`<button class="row-action startDeletionProcessingBtn" type="button" data-uid="${esc(row.uid)}">Start Processing</button>`:""}</div>`).join(""):'<p class="small-note">No account deletion requests.</p>';
-      list.querySelectorAll(".startDeletionProcessingBtn").forEach(btn=>btn.onclick=async()=>{if(!confirm("Mark this deletion request as processing? This does not itself delete data."))return;btn.disabled=true;try{await serializeSettingsMutation("start deletion processing",()=>updateFidunioAccountDeletionRequestForAdmin(btn.dataset.uid,"processing"));mountSettingsLifecycle();}catch(err){alert(err?.message||String(err));btn.disabled=false;}});
+      list.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(row.displayName||row.contactEmail||row.uid)}</strong><span>${esc(row.contactEmail||"")} • ${esc(row.status||"unknown")} • cleanup: ${esc(row.cleanupStatus||"unknown")} • ${esc(dateText(row.requestedAt))}</span></div></div>`).join(""):'<p class="small-note">No account deletion requests.</p>';
     }catch(err){list.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
   }
 }
