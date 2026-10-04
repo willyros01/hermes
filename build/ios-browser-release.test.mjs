@@ -23,7 +23,14 @@ const authEmulator=process.env.FIDUNIO_AUTH_EMULATOR_URL||'';
 const browser=await ({chromium,webkit}[selected]).launch();
 async function fresh(){
  const context=await browser.newContext({viewport:{width:390,height:844}});
- await context.addInitScript(()=>{window.Capacitor={isNativePlatform:()=>true,getPlatform:()=> 'ios'};});
+ await context.addInitScript(()=>{window.Capacitor={
+  isNativePlatform:()=>true,
+  getPlatform:()=> 'ios',
+  Plugins:{FirebaseAppCheck:{
+   initialize:async()=>{},
+   getToken:async()=>({token:"fidunio-preflight-native-app-check-token",expireTimeMillis:Date.now()+60*60*1000})
+  }}
+ };});
  await context.route('**/*',route=>{
   const url=route.request().url();
   // Protect production: permit only local assets and the public Firebase SDK.
