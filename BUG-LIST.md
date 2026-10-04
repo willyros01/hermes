@@ -522,3 +522,24 @@ Cause confidence: the screenshot and source establish a failure before decryptio
 Validation: local adapter tests passed for web/native encrypted multi-chunk round trips, exact byte equality, tamper rejection, URL bounds, HTTP failure, size limit, timeout and unavailable bridge. Existing attachment UI/lifecycle and native bootstrap boundary tests passed. The permanent CI gate includes the adapter test. A disposable Simulator-only app fixture checks the actual built-in native HTTP bridge through the production adapter and shared receive/decrypt owner to image decode; it uses local encrypted fixtures and no live Firebase credentials/requests/writes. The fixture substitutes only its local server URL at the injected test bridge, and its test HTTP allowance and entry page are never packaged in TestFlight. Exact-commit full security, browser, preflight and Simulator gates remain required before upload; live Firebase download and repeated iPhone/iPad acceptance remain required before IOS-ATTACH-001 closes.
 
 Rollback: keep 1.1.59 (8) available in TestFlight. The last accepted source checkpoint is `b0960b8bcb99d4c549f7478e33d6c254089bf0d4`. Revert this isolated transport candidate in ios if rejected; no server/data rollback is necessary because it makes no production configuration or data change. TestFlight build availability and upload are verified separately from repository checks.
+## iOS migration device closeout — 2026-10-04
+
+**Status: ACCEPTED on iPhone and iPad for the current TestFlight build, subject only to the separate App Check hardening rollout below.**
+
+Real-device acceptance completed after the Firebase APNs credential was corrected:
+- direct native notification delivery: PASS in background and cold start;
+- direct notification tap routing: PASS to the exact conversation/message;
+- group native notification delivery: PASS;
+- group notification tap routing: PASS to the exact group/message;
+- iPhone and iPad: PASS for the tested notification paths;
+- delayed direct Sent -> Read refresh is no longer reproducible in current device use and is closed as a non-issue at this checkpoint;
+- the stale yellow Firebase/permissions banner is no longer present on either device and is closed at this checkpoint;
+- native photo/attachment repair, sign-in/PIN recovery, Face ID, direct messaging and group messaging remain accepted from the current device cycle.
+
+Notification infrastructure evidence: the live direct/group notification Functions were aligned to reviewed commit `8ce96f85f132da078bbfc237825e78f139deea96`; the earlier direct FCM diagnostic returned `messaging/third-party-auth-error` / `Invalid APNs credential`; after the APNs credential was corrected in Firebase, real FCM -> APNs delivery and exact-route taps passed on both iPhone and iPad.
+
+Do not reopen these items merely because a routine TestFlight build is created. Revalidate only when a related component changes or a regression is observed.
+
+### Remaining security hardening: Firebase App Check
+
+The previously deferred DoS/abuse-prevention control is Firebase App Check. Web/PWA already initializes App Check through reCAPTCHA Enterprise in the central Firebase bootstrap. Native iOS App Check is still deferred in `firebase-platform-adapter.js` and must be implemented with an Apple attestation provider before enforcement is enabled for shared Firebase resources. App Check is an abuse-reduction control, not a guarantee against all denial-of-service attacks. Rollout remains monitor-first: obtain valid tokens on both web and native iOS, observe metrics, then enable enforcement deliberately for protected Firebase products. No enforcement change is authorized by this documentation closeout.
