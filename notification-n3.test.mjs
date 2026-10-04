@@ -28,7 +28,12 @@ await owner.enableFromUserGesture({uid:'u1',vapidKey:'public-key'});
 assert.equal(permissionCalls,1);assert.equal(writes.length,1);assert.equal(writes[0].enabled,true);
 assert.equal(writes[0].showSenderName,false);assert.equal(writes[0].installationId,'install-12345678');
 await owner.setShowSenderName({uid:'u1',showSenderName:true});assert.equal(writes.at(-1).showSenderName,true);
+const rotated='r'.repeat(80);
+const rotatedResult=await owner.refreshToken({uid:'u1',fcmToken:rotated});
+assert.equal(rotatedResult.updated,true);assert.equal(writes.at(-1).fcmToken,rotated);assert.equal(writes.at(-1).enabled,true);assert.equal(writes.at(-1).showSenderName,true);assert.equal(writes.at(-1).platform,'ios-pwa');
+const unchangedResult=await owner.refreshToken({uid:'u1',fcmToken:rotated});assert.equal(unchangedResult.updated,false);assert.equal(unchangedResult.reason,'unchanged');
 await owner.disable({uid:'u1'});assert.equal(tokenDeleted,true);assert.equal(deleted,true);
+const disabledRefresh=await owner.refreshToken({uid:'u1',fcmToken:'z'.repeat(80)});assert.equal(disabledRefresh.updated,false);assert.equal(disabledRefresh.reason,'disabled');assert.equal(writes.length,0);
 
 const firebase=readFileSync('firebase.js','utf8');
 const settings=readFileSync('settings-lifecycle.js','utf8');
@@ -56,4 +61,4 @@ assert.match(rules,/match \/notificationDevices\/\{installationId\}/);
 assert.match(background,/navigator\.serviceWorker\.register\("\.\/service-worker\.js",\{scope:"\.\/",type:"module"\}\)/);
 assert.match(bootstrap,/startPlatformBackground\(\)/);
 assert.match(sw,/const SHELL_REVISION="[^"]+";/,'service worker must retain an explicit cache revision without pinning FCM N3 to an unrelated release');
-assert.match(notificationPlatform,/nativeRegistration:true/);assert.match(notificationPlatform,/getNativeMessagingToken/);assert.match(background,/subscribeNativeNotificationRoutes/);console.log('FCM N3 web/native registration, deterministic background-adapter ownership, and bounded timeout gate passed');
+assert.match(notificationPlatform,/nativeRegistration:true/);assert.match(notificationPlatform,/getNativeMessagingToken/);assert.match(notificationPlatform,/tokenReceived/);assert.match(settings,/startNotificationRegistrationMaintenance/);assert.match(settings,/refreshToken/);assert.match(background,/subscribeNativeNotificationRoutes/);console.log('FCM N3 web/native registration, token rotation, deterministic background-adapter ownership, and bounded timeout gate passed');
