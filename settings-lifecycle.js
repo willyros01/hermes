@@ -23,6 +23,10 @@ import {
   getCloudNotificationDevice,
   upsertCloudNotificationDevice,
   deleteCloudNotificationDevice,
+  listCloudUsers,
+  submitFidunioAbuseReport,
+  listFidunioAbuseReportsForAdmin,
+  resolveFidunioAbuseReport,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
@@ -66,6 +70,7 @@ const GROUPS=[
   {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
   {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
   {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},
+  {id:"safety",label:"Safety",icon:"!",subtitle:"Report abusive behavior or objectionable content to FIDUNIO administrators."},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
@@ -73,7 +78,7 @@ const GROUPS=[
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","notifications","users","invites","install","data","about"];
+const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","about"];
 let activeGroup="profile";
 let mountedAccountVaultOwner=null;
 
@@ -193,6 +198,36 @@ function openAdmin(info){
   closeAdminModal();const modal=document.createElement("div");modal.id="fidunioAdminModal";modal.className="modal-backdrop";modal.innerHTML='<div class="modal fidunio-admin-modal"><h2>User Administration</h2><p class="small-note">Loading users…</p></div>';document.body.appendChild(modal);
   renderAdminModal(modal,info).catch(err=>{if(!modal.isConnected)return;modal.querySelector(".modal").innerHTML=`<h2>User Administration</h2><p class="warning-note">${esc(err?.message||String(err))}</p><button class="secondary" id="adminCloseBtn">Close</button>`;modal.querySelector("#adminCloseBtn").onclick=closeAdminModal;});
 }
+async function renderSafety(safetyHost,info){
+  safetyHost.innerHTML='<div class="card" id="fidunioAbuseReportCard"><h2>Report Abuse</h2><p class="small-note">Report harassment, objectionable content, scams, impersonation, or other abusive behavior. FIDUNIO administrators receive the report, not the contents of unrelated conversations.</p><label class="form-label" for="abuseReason">Reason</label><select class="text-input" id="abuseReason"><option value="">Choose a reason</option><option value="harassment">Harassment or bullying</option><option value="objectionable-content">Objectionable content</option><option value="spam-scam">Spam or scam</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select><label class="form-label" for="abuseTarget">Person involved (optional)</label><select class="text-input" id="abuseTarget"><option value="">No specific user</option></select><label class="form-label" for="abuseDetails">Details (optional)</label><textarea class="text-input" id="abuseDetails" maxlength="1000" rows="5" placeholder="Briefly describe what happened. Do not paste passwords, PINs, or private recovery information."></textarea><button class="primary" id="submitAbuseReportBtn" style="margin-top:14px">Send Report</button><div id="abuseReportNote" aria-live="polite"></div></div>';
+  const card=safetyHost.querySelector("#fidunioAbuseReportCard"),target=card.querySelector("#abuseTarget"),note=card.querySelector("#abuseReportNote"),button=card.querySelector("#submitAbuseReportBtn");
+  try{
+    const users=await listCloudUsers();
+    if(card.isConnected)for(const user of users){const option=document.createElement("option");option.value=user.uid;option.textContent=user.displayName||user.email||"FIDUNIO user";target.appendChild(option);}
+  }catch(error){console.warn("FIDUNIO abuse-report user list unavailable",error);}
+  button.onclick=async()=>{
+    button.disabled=true;button.textContent="Sending…";note.textContent="";
+    try{
+      const result=await serializeSettingsMutation("report abuse",()=>submitFidunioAbuseReport({category:card.querySelector("#abuseReason").value,targetUid:target.value,details:card.querySelector("#abuseDetails").value}));
+      card.querySelector("#abuseReason").value="";target.value="";card.querySelector("#abuseDetails").value="";
+      note.innerHTML=`<p class="small-note">Report sent. Reference: <strong>${esc(result.id)}</strong>. A FIDUNIO administrator can review it.</p>`;
+    }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+    finally{button.disabled=false;button.textContent="Send Report";}
+  };
+  if(["owner","admin"].includes(info.role)){
+    const admin=document.createElement("div");admin.className="card";admin.id="fidunioAbuseAdminCard";admin.innerHTML='<h2>Abuse Reports</h2><p class="small-note">Administrator moderation queue.</p><div id="abuseAdminList"><p class="small-note">Loading reports…</p></div>';safetyHost.appendChild(admin);
+    const list=admin.querySelector("#abuseAdminList");
+    try{
+      const reports=await listFidunioAbuseReportsForAdmin();
+      if(!admin.isConnected)return;
+      list.innerHTML=reports.length?reports.map(r=>`<div class="admin-invite-row"><div><strong>${esc(r.category||"Report")}</strong><span>${esc(r.reporterUid||"")} ${r.targetUid?`→ ${esc(r.targetUid)}`:""} • ${esc(dateText(r.createdAt))}</span>${r.details?`<p class="small-note" style="margin:6px 0 0">${esc(r.details)}</p>`:""}</div><div>${r.status==="open"?`<button class="row-action abuseResolveBtn" type="button" data-id="${esc(r.id)}">Resolve</button><button class="row-action abuseDismissBtn" type="button" data-id="${esc(r.id)}">Dismiss</button>`:`<span class="small-note">${esc(r.status)}</span>`}</div></div>`).join(""):'<p class="small-note">No abuse reports.</p>';
+      const act=async(btn,status)=>{btn.disabled=true;try{await serializeSettingsMutation("resolve abuse report",()=>resolveFidunioAbuseReport(btn.dataset.id,status,""));await renderSafety(safetyHost,info);}catch(err){alert(err?.message||String(err));btn.disabled=false;}};
+      list.querySelectorAll(".abuseResolveBtn").forEach(btn=>btn.onclick=()=>act(btn,"resolved"));
+      list.querySelectorAll(".abuseDismissBtn").forEach(btn=>btn.onclick=()=>act(btn,"dismissed"));
+    }catch(err){list.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+  }
+}
+
 function renderUserAdmin(usersHost,info){
   if(!["owner","admin"].includes(info.role)){usersHost.innerHTML='<div class="card" id="fidunioUserAdminCard"><h2>User Administration</h2><p class="small-note">Administrator access is required.</p></div>';return;}
   usersHost.innerHTML='<div class="card" id="fidunioUserAdminCard"><h2>User Administration</h2><p class="small-note">Compact user list for access, suspension, restoration, expiration, and account recovery.</p><button class="primary" type="button" id="manageUsersBtn">Manage Users & Access</button></div>';
@@ -320,7 +355,7 @@ function renderAccountVault(dataHost,info){
 }
 
 async function hydrateAccountPanels(g,shell){
-  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications");
+  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications"),safetyHost=host(shell,"safety");
   /* Claim the legacy IDs synchronously so old observer-era modules cannot
      become competing writers while this migration build is being validated. */
   profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="small-note">Loading profile…</p></div>';
@@ -329,7 +364,7 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);
+    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderSafety(safetyHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 
