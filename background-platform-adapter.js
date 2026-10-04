@@ -6,6 +6,7 @@
  * the APNs/FCM adapter supplies the same contract; it never fakes navigator.serviceWorker.
  */
 import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {subscribeNativeNotificationRoutes} from "./notification-platform-adapter.js";
 
 let registrationPromise=null;
 
@@ -33,7 +34,7 @@ export function startPlatformBackground(options){
 
 export function subscribePlatformBackgroundMessages(handler,{platformOptions}={}){
   if(typeof handler!=="function")throw new Error("Background message handler is required.");
-  if(isNativeIOSRuntime(platformOptions))return()=>{};
+  if(isNativeIOSRuntime(platformOptions))return subscribeNativeNotificationRoutes(handler);
   if(!("serviceWorker" in navigator))return()=>{};
   const listener=event=>handler(event.data,event);
   navigator.serviceWorker.addEventListener("message",listener);
@@ -43,6 +44,6 @@ export function subscribePlatformBackgroundMessages(handler,{platformOptions}={}
 export const BACKGROUND_PLATFORM_ADAPTER_V1=Object.freeze({
   sharedContract:"registration-and-background-message",
   webOwner:"service-worker",
-  iosOwner:"future-apns-fcm-adapter",
+  iosOwner:"notification-platform-adapter",
   fakeServiceWorker:false,
 });
