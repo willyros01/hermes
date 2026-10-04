@@ -48,7 +48,7 @@ assert.match(notificationPlatformAdapter,/isNativeIOSRuntime/);
 assert.match(notificationPlatformAdapter,/registrationKind:"native-fcm"/);
 assert.match(notificationPlatformAdapter,/registrationKind:"web-push"/);
 assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
-assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return false/);
+assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return \(await nativeBiometricAvailability\(\)\)\.available/);assert.match(localSecurity,/authenticateNativeBiometric/);
 assert.match(app,/security\.hasBiometric&&!isNativeIOSRuntime\(\)/);
 assert.match(payload,/^platform-runtime\.js$/m);
 assert.match(payload,/^background-platform-adapter\.js$/m);
