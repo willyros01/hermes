@@ -239,3 +239,8 @@ The user's same credentials work in the web app, and the first TestFlight attemp
 
 ### Protected repair direction
 Investigation and any later proposed correction must start at the smallest iOS-specific/platform boundary and preserve the working shared web/PWA login, PIN, recovery authority, E2EE identity/keyId and cryptographic owners. No broad shared-code rewrite, replacement identity, weakened recovery, password reset workaround, production Firebase/App Check change, or native duplicate implementation is acceptable without separate architecture review and explicit authorization. At this checkpoint, documentation only is authorized; corrective application code remains unchanged.
+
+
+## 1.1.59 adapter checkpoint
+
+Platform-specific Firebase bootstrap now belongs to firebase-platform-adapter.js. firebase.js remains the shared Firebase service owner and does not branch on the native runtime. The shared authentication, PIN, recovery, and E2EE owners are unchanged.
