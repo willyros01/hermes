@@ -7,5 +7,25 @@
     "limitsNavigationsToAppBoundDomains": false,
     "preferredContentMode": "mobile",
     "handleApplicationNotifications": true
+  },
+  "plugins": {
+    "FirebaseMessaging": {
+      "presentationOptions": [
+        "alert",
+        "badge",
+        "sound"
+      ]
+    }
+  },
+  "experimental": {
+    "ios": {
+      "spm": {
+        "packageOptions": {
+          "@capacitor-firebase/messaging": {
+            "symlink": true
+          }
+        }
+      }
+    }
   }
 }
