@@ -42,6 +42,7 @@ jobs:
           node build/auth-transition-boundary.test.mjs
           node build/ios-startup-repair.test.mjs
           node build/ios-testflight-apns-gate.test.mjs
+          node build/ios-native-notification-stack.test.mjs
 
       - name: Protect Firebase web configuration
         run: |
