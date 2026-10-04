@@ -30,6 +30,11 @@ import {
   listFidunioBlockedUsers,
   blockFidunioUser,
   unblockFidunioUser,
+  requestFidunioAccountDeletion,
+  getFidunioAccountDeletionRequest,
+  cancelFidunioAccountDeletionRequest,
+  listFidunioAccountDeletionRequestsForAdmin,
+  updateFidunioAccountDeletionRequestForAdmin,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
@@ -201,6 +206,47 @@ function openAdmin(info){
   closeAdminModal();const modal=document.createElement("div");modal.id="fidunioAdminModal";modal.className="modal-backdrop";modal.innerHTML='<div class="modal fidunio-admin-modal"><h2>User Administration</h2><p class="small-note">Loading users…</p></div>';document.body.appendChild(modal);
   renderAdminModal(modal,info).catch(err=>{if(!modal.isConnected)return;modal.querySelector(".modal").innerHTML=`<h2>User Administration</h2><p class="warning-note">${esc(err?.message||String(err))}</p><button class="secondary" id="adminCloseBtn">Close</button>`;modal.querySelector("#adminCloseBtn").onclick=closeAdminModal;});
 }
+async function renderAccountDeletion(profileHost,usersHost,info){
+  const card=document.createElement("div");card.className="card";card.id="fidunioDeleteAccountCard";card.innerHTML='<h2>Delete My Account</h2><p class="warning-note"><strong>Permanent account deletion.</strong> This is not suspension or sign-out. A deletion request removes your FIDUNIO account and associated personal data after the controlled cleanup process completes.</p><p class="small-note">Deletion is initiated here and is expected to complete within 7 days. You can cancel while the request is still pending. You will receive confirmation at your account email when processing is complete.</p><div id="deleteAccountStatus"><p class="small-note">Checking deletion status…</p></div>';profileHost.appendChild(card);
+  const statusHost=card.querySelector("#deleteAccountStatus");
+  const paint=async()=>{
+    const request=await getFidunioAccountDeletionRequest();
+    if(!card.isConnected)return;
+    if(request&&["pending","processing"].includes(request.status)){
+      statusHost.innerHTML=`<p class="small-note"><strong>Status:</strong> ${esc(request.status==="pending"?"Deletion requested":"Deletion processing")}</p>${request.status==="pending"?'<button class="secondary" id="cancelDeletionRequestBtn">Cancel Deletion Request</button>':""}`;
+      const cancel=statusHost.querySelector("#cancelDeletionRequestBtn");if(cancel)cancel.onclick=async()=>{if(!confirm("Cancel your pending account deletion request?"))return;cancel.disabled=true;try{await serializeSettingsMutation("cancel account deletion",()=>cancelFidunioAccountDeletionRequest());await paint();}catch(err){alert(err?.message||String(err));cancel.disabled=false;}};
+      return;
+    }
+    statusHost.innerHTML='<label class="form-label" for="deleteAccountPassword">Current password</label><input class="text-input" id="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Current password"><label class="form-label" for="deleteAccountPin">FIDUNIO PIN</label><input class="text-input" id="deleteAccountPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Six-digit PIN"><button class="secondary" id="requestDeletionBtn" style="margin-top:14px">Request Account Deletion</button><div id="deleteAccountNote" aria-live="polite"></div>';
+    const button=statusHost.querySelector("#requestDeletionBtn"),note=statusHost.querySelector("#deleteAccountNote");
+    button.onclick=async()=>{
+      const password=statusHost.querySelector("#deleteAccountPassword").value,pin=statusHost.querySelector("#deleteAccountPin").value;
+      if(pin.length!==6){note.innerHTML='<p class="warning-note">Enter your six-digit FIDUNIO PIN.</p>';return;}
+      if(!confirm("Request permanent deletion of your FIDUNIO account? This will enter the controlled deletion process. You may cancel only while the request remains pending."))return;
+      button.disabled=true;button.textContent="Verifying…";
+      try{
+        if(!await verifyLocalPin(pin))throw new Error("Incorrect FIDUNIO PIN.");
+        await serializeSettingsMutation("request account deletion",()=>requestFidunioAccountDeletion(password));
+        statusHost.querySelector("#deleteAccountPassword").value="";
+        statusHost.querySelector("#deleteAccountPin").value="";
+        await paint();
+      }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;button.disabled=false;button.textContent="Request Account Deletion";}
+    };
+  };
+  try{await paint();}catch(err){statusHost.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+
+  if(["owner","admin"].includes(info.role)&&usersHost){
+    const admin=document.createElement("div");admin.className="card";admin.id="fidunioDeletionAdminCard";admin.innerHTML='<h2>Account Deletion Requests</h2><p class="small-note">Requests initiated by users. Starting processing is administrative bookkeeping only; do not mark a request completed until the controlled cleanup has actually finished.</p><div id="deletionAdminList"><p class="small-note">Loading requests…</p></div>';usersHost.appendChild(admin);
+    const list=admin.querySelector("#deletionAdminList");
+    try{
+      const rows=await listFidunioAccountDeletionRequestsForAdmin();
+      if(!admin.isConnected)return;
+      list.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(row.displayName||row.contactEmail||row.uid)}</strong><span>${esc(row.contactEmail||"")} • ${esc(row.status||"unknown")} • ${esc(dateText(row.requestedAt))}</span></div>${row.status==="pending"?`<button class="row-action startDeletionProcessingBtn" type="button" data-uid="${esc(row.uid)}">Start Processing</button>`:""}</div>`).join(""):'<p class="small-note">No account deletion requests.</p>';
+      list.querySelectorAll(".startDeletionProcessingBtn").forEach(btn=>btn.onclick=async()=>{if(!confirm("Mark this deletion request as processing? This does not itself delete data."))return;btn.disabled=true;try{await serializeSettingsMutation("start deletion processing",()=>updateFidunioAccountDeletionRequestForAdmin(btn.dataset.uid,"processing"));await renderAccountDeletion(profileHost,usersHost,info);}catch(err){alert(err?.message||String(err));btn.disabled=false;}});
+    }catch(err){list.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+  }
+}
+
 async function renderSafety(safetyHost,info){
   safetyHost.innerHTML='<div class="card" id="fidunioAbuseReportCard"><h2>Report Abuse</h2><p class="small-note">Report harassment, objectionable content, scams, impersonation, or other abusive behavior. FIDUNIO administrators receive the report, not the contents of unrelated conversations.</p><label class="form-label" for="abuseReason">Reason</label><select class="text-input" id="abuseReason"><option value="">Choose a reason</option><option value="harassment">Harassment or bullying</option><option value="objectionable-content">Objectionable content</option><option value="spam-scam">Spam or scam</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select><label class="form-label" for="abuseTarget">Person involved (optional)</label><select class="text-input" id="abuseTarget"><option value="">No specific user</option></select><label class="form-label" for="abuseDetails">Details (optional)</label><textarea class="text-input" id="abuseDetails" maxlength="1000" rows="5" placeholder="Briefly describe what happened. Do not paste passwords, PINs, or private recovery information."></textarea><button class="primary" id="submitAbuseReportBtn" style="margin-top:14px">Send Report</button><div id="abuseReportNote" aria-live="polite"></div></div>';
   const card=safetyHost.querySelector("#fidunioAbuseReportCard"),target=card.querySelector("#abuseTarget"),note=card.querySelector("#abuseReportNote"),button=card.querySelector("#submitAbuseReportBtn");
