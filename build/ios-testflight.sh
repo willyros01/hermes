@@ -78,6 +78,9 @@ security cms -D -i "$APP/embedded.mobileprovision" > "$TASK_DIR/profile.plist"
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
 /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.devicecheck.appattest-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
+test -s "$APP/PrivacyInfo.xcprivacy"
+/usr/bin/plutil -lint "$APP/PrivacyInfo.xcprivacy"
+/usr/libexec/PlistBuddy -c 'Print :NSPrivacyTracking' "$APP/PrivacyInfo.xcprivacy" | grep -qx false
 test -s "$APP/GoogleService-Info.plist"
 /usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$APP/GoogleService-Info.plist" | grep -qx 'io.github.willyros01.fidunio'
 /usr/libexec/PlistBuddy -c 'Print :PROJECT_ID' "$APP/GoogleService-Info.plist" | grep -qx 'fidunio-fef13'
