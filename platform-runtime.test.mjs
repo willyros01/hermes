@@ -45,7 +45,7 @@ assert.match(firebaseAdapter,/initializeAuth\(app,\{persistence:authSdk\.browser
 assert.match(settings,/getNotificationPlatformCapabilities\(\)/);
 assert.doesNotMatch(settings,/isNativeIOSRuntime/);
 assert.match(notificationPlatformAdapter,/isNativeIOSRuntime/);
-assert.match(notificationPlatformAdapter,/registrationKind:"native-pending"/);
+assert.match(notificationPlatformAdapter,/registrationKind:"native-fcm"/);
 assert.match(notificationPlatformAdapter,/registrationKind:"web-push"/);
 assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
 assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return false/);
