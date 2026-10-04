@@ -10,9 +10,10 @@ const infoPlist=appDir+"/Info.plist";
 const firebaseSource="build/ios/GoogleService-Info.plist";
 const firebaseTarget=appDir+"/GoogleService-Info.plist";
 const entitlements=appDir+"/App.entitlements";
+const appDelegate=appDir+"/AppDelegate.swift";
 const bundleId="io.github.willyros01.fidunio";
 
-for(const path of [projectPath,infoPlist,firebaseSource])if(!fs.existsSync(path))throw new Error("Missing generated iOS input: "+path);
+for(const path of [projectPath,infoPlist,appDelegate,firebaseSource])if(!fs.existsSync(path))throw new Error("Missing generated iOS input: "+path);
 const firebase=fs.readFileSync(firebaseSource,"utf8");
 if(!firebase.includes("<string>"+bundleId+"</string>")||!firebase.includes("<string>fidunio-fef13</string>"))throw new Error("Firebase iOS config does not match FIDUNIO");
 fs.copyFileSync(firebaseSource,firebaseTarget);
@@ -26,6 +27,27 @@ fs.writeFileSync(entitlements,`<?xml version="1.0" encoding="UTF-8"?>
 </dict>
 </plist>
 `);
+
+const delegate=fs.readFileSync(appDelegate,"utf8");
+const notificationHooks=`
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        NotificationCenter.default.post(name: Notification.Name.init("didReceiveRemoteNotification"), object: completionHandler, userInfo: userInfo)
+    }
+
+`;
+if(!delegate.includes("didRegisterForRemoteNotificationsWithDeviceToken")){
+  const marker="    func application(_ app: UIApplication, open url: URL";
+  if(!delegate.includes(marker))throw new Error("Capacitor AppDelegate anchor changed");
+  fs.writeFileSync(appDelegate,delegate.replace(marker,notificationHooks+marker));
+}
 
 if(process.platform!=="darwin")throw new Error("Native iOS configuration must run on macOS");
 const buddy="/usr/libexec/PlistBuddy";
