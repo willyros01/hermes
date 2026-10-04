@@ -84,7 +84,8 @@ async function startApp(){
     await activateAccountStorage(user.uid,{legacyOwnerUid});
     // Stable-identity invariant: ordinary startup never overwrites the active E2EE identity from quarantine.
     // Do not mark startup complete until the complete application module graph has loaded.
-    await import("./app.js");
+    const appModule=await import("./app.js");
+    await appModule.FIDUNIO_APP_READY;
     clearInviteFromUrl();
     appStarted=true;
   })();
