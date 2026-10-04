@@ -25,9 +25,11 @@ const subscription=app.slice(subscriptionStart,subscriptionEnd);
 const projected=subscription.indexOf("state.messages[conversationId]=merged;");
 const visible=subscription.indexOf('render({background:true});',projected);
 const cache=subscription.indexOf("await cacheCloudHistory(conversationId,merged);",projected);
-const receipt=subscription.indexOf("await markCloudConversationRead(conversationId);",cache);
+const receipt=subscription.indexOf("await reconcileVisibleDirectRead(conversationId);",cache);
 assert.ok(projected>=0&&visible>projected&&visible<cache&&cache<receipt,
-  "new-message projection must paint before local durability and server receipt work");
+  "new-message projection must paint before local durability and serialized server receipt reconciliation");
+assert.match(app,/function reconcileVisibleDirectRead\(conversationId,\{forceServer=false\}=\{\}\)/,
+  "direct receipt recovery must remain behind the single serialized Read-reconciliation owner");
 assert.match(subscription,/const existingById=new Map[\s\S]*?prior\?\.cloud&&prior\.text[\s\S]*?text=prior\.text/,
   "receipt-only snapshots must reuse previously authenticated plaintext");
 
