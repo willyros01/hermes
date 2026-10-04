@@ -103,6 +103,7 @@
   "description": "FIDUNIO shared web/PWA application and Capacitor iOS build/test tooling.",
   "dependencies": {
     "@capacitor/core": "8.5.2",
-    "@capacitor/ios": "8.5.2"
+    "@capacitor/ios": "8.5.2",
+    "@capacitor-firebase/messaging": "8.5.2"
   }
 }
