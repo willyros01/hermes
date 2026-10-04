@@ -65,17 +65,17 @@ assert.equal(
   await createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:"public-key",platformOptions:ios}),
   "app-check",
 );
-assert.equal(nativeCalls.length,1);
+assert.equal(nativeCalls.length,2);
 assert.equal(nativeCalls[0].kind,"initialize");
 assert.equal(nativeCalls[0].options.isTokenAutoRefreshEnabled,true);
+assert.equal(nativeCalls[1].kind,"getToken");
+assert.equal(nativeCalls[1].options.forceRefresh,false);
 assert.equal(appCheckCalls.length,2);
 assert.ok(appCheckCalls[1].options.provider instanceof CustomProvider);
 const bridged=await appCheckCalls[1].options.provider.options.getToken();
 assert.equal(bridged.token,"native-app-check-token");
 assert.ok(bridged.expireTimeMillis>Date.now());
 assert.equal(nativeCalls.length,2);
-assert.equal(nativeCalls[1].kind,"getToken");
-assert.equal(nativeCalls[1].options.forceRefresh,false);
 
 assert.equal(
   await createPlatformFirebaseAppCheck({
@@ -92,6 +92,16 @@ assert.equal(
     appCheckSdk,
     siteKey:"public-key",
     platformOptions:{capacitor:{isNativePlatform:()=>true,getPlatform:()=>"ios",Plugins:{FirebaseAppCheck:{initialize:async()=>{throw new Error("native unavailable");},getToken:async()=>({token:"unused"})}}},protocol:"capacitor:"},
+  }),
+  null,
+);
+
+assert.equal(
+  await createPlatformFirebaseAppCheck({
+    app,
+    appCheckSdk,
+    siteKey:"public-key",
+    platformOptions:{capacitor:{isNativePlatform:()=>true,getPlatform:()=>"ios",Plugins:{FirebaseAppCheck:{initialize:async()=>{},getToken:async()=>{throw new Error("token unavailable");}}}},protocol:"capacitor:"},
   }),
   null,
 );
