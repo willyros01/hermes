@@ -18,6 +18,12 @@ if(!list.includes("index.html")||!list.includes("bootstrap.js")||!list.includes(
 if(list.some(x=>/\.test\.mjs$|-tests\.(?:js|html)$|diagnostics/i.test(x)))fail("test/diagnostic file leaked into iOS web allow-list");
 if(new Set(list).size!==list.length)fail("duplicate iOS web allow-list entry");
 for(const rel of list)if(!fs.existsSync(rel))fail("allow-listed source is missing: "+rel);
+const privacyManifest="build/ios/PrivacyInfo.xcprivacy";
+if(!fs.existsSync(privacyManifest))fail("FIDUNIO iOS privacy manifest is missing");
+const privacy=fs.readFileSync(privacyManifest,"utf8");
+for(const token of ["NSPrivacyTracking","NSPrivacyCollectedDataTypes","NSPrivacyCollectedDataTypeEmailAddress","NSPrivacyCollectedDataTypeUserID","NSPrivacyCollectedDataTypeOtherUserContent"]){
+  if(!privacy.includes(token))fail("FIDUNIO privacy manifest is incomplete: "+token);
+}
 
 if(fs.existsSync("www")){
   for(const rel of list)if(!fs.existsSync(path.join("www",rel)))fail("prepared www/ is missing: "+rel);
