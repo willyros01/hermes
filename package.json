@@ -95,7 +95,9 @@
     "test:abuse-report": "node abuse-report-wiring.test.mjs",
     "emulator:test:abuse-report-rules": "firebase emulators:exec --only firestore --project demo-fidunio-abuse-report-rules \"node firestore-abuse-report.rules.test.mjs\"",
     "test:user-block": "node user-block-wiring.test.mjs",
-    "emulator:test:user-block-rules": "firebase emulators:exec --only firestore --project demo-fidunio-user-block-rules \"node firestore-user-block.rules.test.mjs\""
+    "emulator:test:user-block-rules": "firebase emulators:exec --only firestore --project demo-fidunio-user-block-rules \"node firestore-user-block.rules.test.mjs\"",
+    "test:account-deletion": "node account-deletion-wiring.test.mjs",
+    "emulator:test:account-deletion-rules": "firebase emulators:exec --only firestore --project demo-fidunio-account-deletion-rules \"node firestore-account-deletion.rules.test.mjs\""
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.2",
