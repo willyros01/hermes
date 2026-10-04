@@ -43,6 +43,7 @@ import {
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
 import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance } from "./settings-lifecycle.js";
+import {assertMessageSafety} from "./message-safety-policy.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
@@ -2122,6 +2123,7 @@ async function sendCurrent(){
   const box=document.querySelector("#messageBox");
   const draftText=box.value.trim();
   if(!draftText) return;
+  assertMessageSafety(draftText);
   messageSendInFlight=true;
   box.value="";
   box.style.height="46px";
