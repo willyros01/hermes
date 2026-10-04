@@ -1,17 +1,10 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import vm from "node:vm";
 const firebase=fs.readFileSync("firebase.js","utf8");
-const expression=firebase.match(/const auth=(.*?),db=fsSdk/)[1];
-for(const native of [true,false]){
- const calls=[];const app={};
- const authSdk={indexedDBLocalPersistence:"idb",browserLocalPersistence:"local",browserSessionPersistence:"session",initializeAuth:(a,options)=>{calls.push({a,options});return "native";},getAuth:a=>{calls.push({a});return "web";}};
- assert.equal(vm.runInNewContext(expression,{app,authSdk,isNativeIOSRuntime:()=>native}),native?"native":"web");
- assert.equal(calls.length,1);assert.equal(calls[0].a,app);
- if(native){assert.equal(calls[0].options.persistence,"local");assert.equal("popupRedirectResolver" in calls[0].options,false);}
- else assert.equal(calls[0].options,undefined);
-}
+assert.match(firebase,/from "\.\/firebase-platform-adapter\.js"/);
+assert.match(firebase,/createPlatformFirebaseAuth\(\{app,authSdk\}\)/);
+assert.match(firebase,/createPlatformFirebaseAppCheck\(/);
+assert.doesNotMatch(firebase,/isNativeIOSRuntime|shouldUseWebAppCheck|indexedDBLocalPersistence|browserSessionPersistence|initializeAuth\(/);
 const icon=fs.readFileSync("build/ios/AppIcon-1024.png");
 assert.equal(icon.readUInt32BE(16),1024);assert.equal(icon.readUInt32BE(20),1024);assert.equal(icon[25],2);
-assert.match(firebase,/const WEB_SDK_VERSION="12\.18\.0"/);assert.match(firebase,/const NATIVE_IOS_SDK_VERSION="12\.19\.0"/);assert.doesNotMatch(expression,/indexedDBLocalPersistence|browserSessionPersistence/);
-console.log("PASS: native Firebase auth uses localStorage-only persistence and iOS-fixed SDK without browser redirect resolver; web defaults/version preserved; opaque app icon validated");
+console.log("PASS: firebase.js delegates platform bootstrap to the bounded adapter; shared Firebase owner has no native branch; opaque app icon validated");
