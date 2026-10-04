@@ -1,23 +1,12 @@
-import {shouldUseWebServiceWorker,isNativeIOSRuntime} from "./platform-runtime.js";
+import {ensurePlatformBackgroundRegistration,getPlatformBackgroundRegistration,startPlatformBackground} from "./background-platform-adapter.js";
+import {createPlatformStartupWatchdog} from "./startup-platform-adapter.js";
 /* FIDUNIO deterministic bootstrap. Account/auth owners run before app.js. */
-export async function ensureFidunioServiceWorker(){
-  if(!shouldUseWebServiceWorker())throw new Error("The web service worker is not used inside the FIDUNIO iOS app.");
-  if(!("serviceWorker" in navigator))throw new Error("Service workers are not supported on this device/browser.");
-  const registration=await navigator.serviceWorker.register("./service-worker.js",{scope:"./",type:"module"});
-  await registration.update().catch(()=>{});
-  return registration;
-}
+export async function ensureFidunioServiceWorker(){return ensurePlatformBackgroundRegistration();}
+export function getFidunioServiceWorkerRegistration(){return getPlatformBackgroundRegistration();}
 
-let serviceWorkerRegistrationPromise=null;
-export function getFidunioServiceWorkerRegistration(){
-  if(!serviceWorkerRegistrationPromise)serviceWorkerRegistrationPromise=ensureFidunioServiceWorker();
-  return serviceWorkerRegistrationPromise;
-}
-
-/* Start service-worker ownership immediately, but do not block secure app startup.
-   Notification registration awaits navigator.serviceWorker.ready after this owner
-   has deterministically established the registration. */
-if(shouldUseWebServiceWorker())getFidunioServiceWorkerRegistration().catch(err=>console.warn("FIDUNIO service worker registration failed",err));
+/* Start the platform background owner immediately, without blocking secure startup.
+   Web uses the real Service Worker; native iOS remains behind the same adapter. */
+startPlatformBackground();
 
 document.addEventListener("click",event=>{
   const button=event.target.closest?.("button");
@@ -34,20 +23,8 @@ document.addEventListener("click",event=>{
     requestAnimationFrame(watch);
   });
 },true);
-// Bootstrap owns only the initial startup host until auth-ui replaces it.
-const startupHost=document.querySelector(".startup-shell");
-function showNativeStartupFailure(message){
-  if(!isNativeIOSRuntime()||!startupHost?.isConnected)return;
-  startupHost.querySelector(".startup-spinner")?.remove();
-  startupHost.querySelector("strong").textContent="FIDUNIO could not finish starting";
-  startupHost.querySelector("span").textContent=message;
-  if(!startupHost.querySelector("button")){
-    const retry=document.createElement("button");retry.className="primary";
-    retry.textContent="Retry Startup";retry.addEventListener("click",()=>location.reload());
-    startupHost.append(retry);
-  }
-}
-const startupTimer=isNativeIOSRuntime()?setTimeout(()=>showNativeStartupFailure("Sign-in is taking longer than expected. Check your connection and retry. Your secure data has not been reset."),30000):null;
+// Bootstrap owns sequencing; the platform adapter owns native startup presentation.
+const startupWatchdog=createPlatformStartupWatchdog({host:document.querySelector(".startup-shell")});
 try{
   const {startAccountGuard}=await import("./account-guard.js");
   await startAccountGuard();
@@ -55,5 +32,5 @@ try{
   await runAuthGate();
 }catch(error){
   console.error("FIDUNIO startup failed",error);
-  showNativeStartupFailure("Sign-in could not be loaded. Check your connection and retry. Your secure data has not been reset.");
-}finally{if(startupTimer!==null)clearTimeout(startupTimer);}
+  startupWatchdog.fail();
+}finally{startupWatchdog.clear();}
