@@ -49,7 +49,8 @@ export function createDirectMessageNotificationCore({conversationRepo,profileRep
       const result=await messaging.sendEachForMulticast({
         tokens:batch.map(row=>row.fcmToken),
         data:{type:"direct-message",conversationId,messageId,notificationBody},
-        webpush:{headers:{Urgency:"high"}}
+        webpush:{headers:{Urgency:"high"}},
+        apns:{headers:{"apns-priority":"10"},payload:{aps:{alert:{title:FIDUNIO_NOTIFICATION_TITLE,body:notificationBody},sound:"default"}}}
       });
       const responses=Array.isArray(result?.responses)?result.responses:[];
       for(let i=0;i<responses.length;i++){
