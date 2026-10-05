@@ -151,6 +151,7 @@ let myRegisteredDevices = [];
 let localSecurityMessage = "";
 let localSecurityMessageIsError = false;
 let unlockError = "";
+let unlockPinFallbackVisible=false;
 let messageSendInFlight=false;
 let attachmentPickerActive=false;
 let pendingLargeAttachmentSend=null;
@@ -219,11 +220,13 @@ function lockLocalApp(reason="manual"){
   state.toolsOpen=false;
   state.modal=null;
   unlockError="";
+  unlockPinFallbackVisible=false;
   render();
 }
 function unlockLocalApp(){
   state.unlocked=true;
   unlockError="";
+  unlockPinFallbackVisible=false;
   noteLocalUnlock();
   render();
   void requestAppActivation("unlock");
@@ -1674,45 +1677,62 @@ function renderUnlock(){
     document.querySelector("#continueBtn").onclick=unlockLocalApp;
     return;
   }
+  const showPinFallback=!security.hasBiometric||unlockPinFallbackVisible;
   app.innerHTML=`
     <main class="app-shell unlock">
       <section class="unlock-card">
         <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
         <h1>Unlock FIDUNIO</h1>
         ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric</button>':""}
-        <label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label>
-        <div id="localUnlockPin"></div>
-        <button class="${security.hasBiometric?"secondary":"primary"}" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>
-        ${unlockError?`<p class="warning-note">${esc(unlockError)}</p>`:""}
+        ${security.hasBiometric&&!showPinFallback?'<button class="secondary" id="showPinFallbackBtn" style="margin-top:10px">Use PIN instead</button>':""}
+        ${showPinFallback?'<label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label><div id="localUnlockPin"></div><button class="primary" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>':""}
+        ${unlockError?`<p class="warning-note" role="alert">${esc(unlockError)}</p>`:""}
         <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} • Local unlock keeps your Firebase session signed in.</div>
       </section>
     </main>`;
+  const showPinButton=document.querySelector("#showPinFallbackBtn");
+  if(showPinButton)showPinButton.onclick=()=>{unlockPinFallbackVisible=true;unlockError="";render();};
   const pinButton=document.querySelector("#localPinUnlockBtn");
-  let pinInput;
-  const tryPin=async()=>{
-    pinButton.disabled=true;
-    pinInput.setDisabled(true);
-    pinButton.textContent="Checking…";
-    try{
-      if(await awaitBoundedLocalPinVerification(verifyLocalPin(pinInput.value()))){unlockLocalApp();return;}
-      unlockError="Incorrect PIN.";
-    }catch(err){
-      console.warn("Local PIN verification did not complete",err);
-      unlockError=err?.message||"PIN check did not finish. Please try again.";
-    }
-    render();
-  };
-  pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
-  pinButton.onclick=tryPin;
+  let pinInput=null;
+  if(pinButton){
+    const tryPin=async()=>{
+      const pin=pinInput.value();
+      if(!/^\d{6}$/.test(pin)){
+        unlockError="Enter your six-digit FIDUNIO PIN.";
+        pinInput.clear();pinInput.focus();
+        const note=document.querySelector(".unlock-card .warning-note");
+        if(note)note.textContent=unlockError;else render();
+        return;
+      }
+      pinButton.disabled=true;
+      pinInput.setDisabled(true);
+      pinButton.textContent="Checking…";
+      try{
+        if(await awaitBoundedLocalPinVerification(verifyLocalPin(pin))){unlockLocalApp();return;}
+        unlockError="Incorrect PIN.";
+      }catch(err){
+        console.warn("Local PIN verification did not complete",err);
+        unlockError=err?.message||"PIN check did not finish. Please try again.";
+      }
+      render();
+    };
+    pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
+    pinButton.onclick=tryPin;
+  }
   const deviceButton=document.querySelector("#deviceUnlockBtn");
   if(deviceButton)deviceButton.onclick=async()=>{
     deviceButton.disabled=true;
     deviceButton.textContent="Waiting for Face ID or biometric…";
-    if(await verifyBiometric()){unlockLocalApp();return;}
-    unlockError="Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.";
+    try{
+      if(await verifyBiometric()){unlockLocalApp();return;}
+      unlockError="Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.";
+    }catch(err){
+      unlockError=err?.message||"Face ID or biometric unlock was unavailable. Use your PIN instead.";
+    }
+    unlockPinFallbackVisible=true;
     render();
   };
-  setTimeout(()=>pinInput.focus(),0);
+  if(pinInput)setTimeout(()=>pinInput.focus(),0);
 }
 
 function renderMessages(){
