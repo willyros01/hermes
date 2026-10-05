@@ -2378,13 +2378,26 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         await removeOutboxMessage(payload.messageId);
         await persistState();
       }catch(err){
-        // Preserve the Outbox. Only work that never crossed the durable
-        // attempt boundary may return to Queued; ambiguous attempted work
-        // remains Failed until authoritative reconciliation resolves it.
-        m.state=(sendAttempted||timeoutRequiresFailedState(err))?"failed":"queued";
-        firebaseError=err?.message || String(err);
-        await persistState();
-        if(notifyUser)alert(firebaseError);
+        const deliveryDenied=err?.code==="fidunio/direct-delivery-denied";
+        if(deliveryDenied){
+          // A policy/security denial is terminal for this queued copy. Keeping
+          // it in the Outbox would create repeated retries and mislabel a
+          // deliberate delivery refusal as a Firebase connectivity problem.
+          m.state="failed";
+          m.failureReason="delivery-denied";
+          firebaseError="";
+          await removeOutboxMessage(payload.messageId);
+          await persistState();
+          if(notifyUser)alert(err?.message||"Message could not be delivered to this conversation.");
+        }else{
+          // Preserve the Outbox. Only work that never crossed the durable
+          // attempt boundary may return to Queued; ambiguous attempted work
+          // remains Failed until authoritative reconciliation resolves it.
+          m.state=(sendAttempted||timeoutRequiresFailedState(err))?"failed":"queued";
+          firebaseError=err?.message || String(err);
+          await persistState();
+          if(notifyUser)alert(firebaseError);
+        }
       }
     }else{
       m.state="failed";
