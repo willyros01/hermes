@@ -246,7 +246,9 @@ async function renderAccountDeletion(profileHost,usersHost,info){
       return;
     }
     if(request?.status==="processing"){
-      statusHost.innerHTML='<p class="warning-note">Account deletion is already processing. Do not create new messages. If this state persists, contact FIDUNIO support.</p>';
+      statusHost.innerHTML='<p class="warning-note">Account deletion processing was interrupted or is still finishing. You can safely retry the final server cleanup.</p><button class="primary" id="retryFinalDeletionBtn">Retry Final Account Deletion</button><div id="deleteProcessingNote" aria-live="polite"></div>';
+      const retry=statusHost.querySelector("#retryFinalDeletionBtn"),retryNote=statusHost.querySelector("#deleteProcessingNote");
+      retry.onclick=async()=>{retry.disabled=true;retry.textContent="Retrying…";try{await finishDeletion(retryNote);}catch(err){retryNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;retry.disabled=false;retry.textContent="Retry Final Account Deletion";}};
       return;
     }
     statusHost.innerHTML='<label class="form-label" for="deleteAccountPassword">Current password</label><input class="text-input" id="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Current password"><label class="form-label" for="deleteAccountPin">FIDUNIO PIN</label><input class="text-input" id="deleteAccountPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Six-digit PIN"><button class="secondary" id="requestDeletionBtn" style="margin-top:14px">Delete My Account</button><div id="deleteAccountNote" aria-live="polite"></div>';
