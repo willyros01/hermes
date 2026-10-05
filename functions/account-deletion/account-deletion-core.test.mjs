@@ -24,6 +24,11 @@ await assert.rejects(()=>core.completeMyAccountDeletionV1({authUid:"u1"}),/syste
 repo=makeRepo({inspectAuthority:async()=>({systemOwner:false,ownedGroups:["g1"],groupMemberships:["g1"]})});
 core=createAccountDeletionCore({repo});
 await assert.rejects(()=>core.completeMyAccountDeletionV1({authUid:"u1"}),/group/);
+repo=makeRepo({readRequest:async()=>({status:"processing",cleanupStatus:"complete"})});
+core=createAccountDeletionCore({repo});
+assert.deepEqual(await core.completeMyAccountDeletionV1({authUid:"u1"}),{deleted:true});
+assert.deepEqual(repo.events,["close-direct","delete-data","delete-auth","delete-request"]);
+console.log("PASS: processing request retries final cleanup without re-marking processing");
 repo=makeRepo({readRequest:async()=>({status:"pending",cleanupStatus:"required"})});
 core=createAccountDeletionCore({repo});
 await assert.rejects(()=>core.completeMyAccountDeletionV1({authUid:"u1"}),/preparation is incomplete/);
