@@ -27,6 +27,10 @@ fs.writeFileSync(entitlements,`<?xml version="1.0" encoding="UTF-8"?>
 <dict>
   <key>aps-environment</key>
   <string>production</string>
+  <key>com.apple.developer.associated-domains</key>
+  <array>
+    <string>applinks:www.cuberoot-systems.com</string>
+  </array>
 </dict>
 </plist>
 `);
@@ -90,4 +94,5 @@ if(!pbx.includes("PrivacyInfo.xcprivacy"))throw new Error("Privacy manifest was 
 if(!pbx.includes("CODE_SIGN_ENTITLEMENTS"))throw new Error("Push entitlement build setting is missing");
 const entitlementText=fs.readFileSync(entitlements,"utf8");
 if(!entitlementText.includes("aps-environment")||!entitlementText.includes("<string>production</string>"))throw new Error("Production APNs entitlement is missing");
-console.log("PASS: FIDUNIO native Firebase, Push and Face ID configuration applied; App Check remains standby/fail-open until Apple App Attest capability is enabled");
+if(!entitlementText.includes("com.apple.developer.associated-domains")||!entitlementText.includes("applinks:www.cuberoot-systems.com"))throw new Error("FIDUNIO Universal Link entitlement is missing");
+console.log("PASS: FIDUNIO native Firebase, Push, Face ID and Universal Link configuration applied; App Check remains standby/fail-open until Apple App Attest capability is enabled");
