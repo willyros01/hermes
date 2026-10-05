@@ -471,7 +471,7 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderSafety(safetyHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);
+    renderProfile(profileHost,info);await renderAccountDeletion(profileHost,usersHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderSafety(safetyHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);renderLegalSupport(host(shell,"legal"));
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 
