@@ -22,6 +22,7 @@ bulk-message-delete-projection.js
 message-reaction-policy.js
 message-safety-policy.js
 legal-policy.js
+legal-startup-gate.js
 legal-acceptance-client.js
 group-reply-policy.js
 notification-policy.js
