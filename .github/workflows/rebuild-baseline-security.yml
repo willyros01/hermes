@@ -87,6 +87,8 @@ jobs:
       - {name: Account direct-message crypto, run: npm run test:e2ee-account-message-crypto}
       - {name: Account direct-message service, run: npm run test:e2ee-account-message-service}
       - {name: Firebase App Check client integration, run: npm run test:firebase-app-check}
+      - {name: User block Firestore rules, run: npx firebase emulators:exec --only firestore --project demo-fidunio-block-rules "node firestore-user-block.rules.test.mjs"}
+      - {name: Critical block and unlock regression, run: node critical-block-unlock-regression.test.mjs}
       - {name: FCM N2 ownership foundation, run: npm run test:notification-n2-foundation}
       - {name: Notification device Firestore rules, run: npm run emulator:test:notification-rules}
       - {name: FCM N3 registration and Settings, run: npm run test:notification-n3}
