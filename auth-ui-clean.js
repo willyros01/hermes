@@ -90,7 +90,9 @@ async function ensureLegalAcceptance(user){
 }
 
 async function startAppAfterLegalAcceptance(user){
-  await ensureLegalAcceptance(user);
+  // First-launch acceptance is device-owned and already completed before Auth.
+  // Keep the server record as best-effort audit only; it must never block login.
+  acceptLegalPolicy().catch(err=>console.warn("Legal acceptance server sync deferred",err));
   return startApp();
 }
 
