@@ -89,6 +89,7 @@ e2ee-account-group-projection.js
 e2ee-account-group-runtime.js
 e2ee-account-group-service.js
 invitation-owner.js
+invitation-platform-adapter.js
 invitation-policy.js
 install-guidance.js
 service-worker.js
