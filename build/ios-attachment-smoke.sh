@@ -23,7 +23,7 @@ request.recognitionLevel = .accurate
 try VNImageRequestHandler(url:URL(fileURLWithPath:CommandLine.arguments[1])).perform([request])
 let text=(request.results ?? []).compactMap{$0.topCandidates(1).first?.string}.joined(separator:"\n")
 print(text)
-exit(text.contains("PASS PHOTO") ? 0 : 1)
+exit(text.contains("PASS PHOTO AUDIO") ? 0 : 1)
 SWIFT
 swiftc "$TASK_DIR/ReadScreen.swift" -o "$TASK_DIR/read-screen"
 mkdir -p attachment-evidence
@@ -32,7 +32,7 @@ for attempt in {1..12}; do
  sleep 3
  xcrun simctl io "$DEVICE" screenshot attachment-evidence/native-photo.png
  if "$TASK_DIR/read-screen" attachment-evidence/native-photo.png > attachment-evidence/screen-text.txt; then
-  echo 'PASS: real CapacitorHttp GET -> adapter -> shared decrypt/integrity -> image decode'
+  echo 'PASS: real CapacitorHttp GET -> adapter -> shared decrypt/integrity -> image + audio WebKit decode'
   exit 0
  fi
 done
