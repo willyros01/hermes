@@ -27,8 +27,6 @@ fs.writeFileSync(entitlements,`<?xml version="1.0" encoding="UTF-8"?>
 <dict>
   <key>aps-environment</key>
   <string>production</string>
-  <key>com.apple.developer.devicecheck.appattest-environment</key>
-  <string>production</string>
 </dict>
 </plist>
 `);
@@ -91,5 +89,5 @@ if(!pbx.includes("GoogleService-Info.plist"))throw new Error("Firebase plist was
 if(!pbx.includes("PrivacyInfo.xcprivacy"))throw new Error("Privacy manifest was not added to Xcode resources");
 if(!pbx.includes("CODE_SIGN_ENTITLEMENTS"))throw new Error("Push entitlement build setting is missing");
 const entitlementText=fs.readFileSync(entitlements,"utf8");
-if(!entitlementText.includes("com.apple.developer.devicecheck.appattest-environment")||!entitlementText.includes("<string>production</string>"))throw new Error("Production App Attest entitlement is missing");
-console.log("PASS: FIDUNIO native Firebase, Push, App Attest and Face ID configuration applied");
+if(!entitlementText.includes("aps-environment")||!entitlementText.includes("<string>production</string>"))throw new Error("Production APNs entitlement is missing");
+console.log("PASS: FIDUNIO native Firebase, Push and Face ID configuration applied; App Check remains standby/fail-open until Apple App Attest capability is enabled");
