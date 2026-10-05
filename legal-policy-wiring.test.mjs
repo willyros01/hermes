@@ -13,6 +13,8 @@ assert.match(policy,/termsVersion:"2026-10-04-v1"/);
 assert.match(policy,/privacyVersion:"2026-10-04-v1"/);
 assert.match(policy,/No liability/);
 assert.match(policy,/To the fullest extent permitted by law/);
+assert.match(policy,/loss, damage, claim, cost, expense or consequence/);
+assert.match(policy,/You assume all risk from using FIDUNIO/);
 assert.match(policy,/You use FIDUNIO entirely at your own risk/);
 assert.match(policy,/Apple and its subsidiaries are third-party beneficiaries/);
 assert.match(policy,/laws of the Province of Ontario/);
