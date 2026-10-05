@@ -86,32 +86,54 @@ EXPECTED_FUNCTIONS=(
  deleteDirectMessageForEveryoneV1 deleteMyMessagesForEveryoneV1 deleteConversationForEveryoneV1
  notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1 purgeDisappearingMessagesV1
 )
+FUNCTION_AUDIT_FAIL=0
 for fn in "${EXPECTED_FUNCTIONS[@]}"; do
-  if jq -e --arg n "$fn" '.[]? | select((.name|split("/")|last)==$n)' "$OUT/functions.json" >/dev/null; then
-    echo "PASS function present: $fn"
+  row="$(jq -c --arg n "$fn" '.[]? | select((.name|split("/")|last)==$n)' "$OUT/functions.json" | head -1)"
+  if [ -z "$row" ]; then
+    echo "FAIL function missing: $fn"
+    FUNCTION_AUDIT_FAIL=1
+    continue
+  fi
+  state="$(printf '%s' "$row" | jq -r '.state // "MISSING"')"
+  if [ "$state" = "ACTIVE" ]; then
+    echo "PASS function ACTIVE: $fn"
   else
-    echo "MISSING function: $fn"
+    echo "FAIL function not ACTIVE: $fn state=$state"
+    FUNCTION_AUDIT_FAIL=1
   fi
 done
 
 say "Function service-account authority"
 jq -r '.[]? | [(.name|split("/")|last),(.serviceConfig.serviceAccountEmail//"MISSING")] | @tsv' "$OUT/functions.json" | tee "$OUT/function-service-accounts.tsv"
 
-ACCOUNT_DELETE_SA="fidunio-message-delete@$PROJECT.iam.gserviceaccount.com"
-ACCOUNT_DELETE_FUNCTIONS=(
- getMyAccountDeletionRequestV1 requestMyAccountDeletionV1 markMyAccountDeletionCleanupCompleteV1
- cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1
-)
-for fn in "${ACCOUNT_DELETE_FUNCTIONS[@]}"; do
+RECOVERY_SA="fidunio-recovery@$PROJECT.iam.gserviceaccount.com"
+MESSAGE_DELETE_SA="fidunio-message-delete@$PROJECT.iam.gserviceaccount.com"
+NOTIFICATION_SA="fidunio-notification@$PROJECT.iam.gserviceaccount.com"
+PURGE_SA="fidunio-disappearing-purge@$PROJECT.iam.gserviceaccount.com"
+
+check_runtime(){
+  local fn="$1" expected="$2" actual
   actual="$(jq -r --arg n "$fn" '.[]? | select((.name|split("/")|last)==$n) | .serviceConfig.serviceAccountEmail // empty' "$OUT/functions.json" | head -1)"
-  if [ "$actual" = "$ACCOUNT_DELETE_SA" ]; then
-    echo "PASS account deletion runtime identity: $fn -> $actual"
-  elif [ -z "$actual" ]; then
-    echo "MISSING account deletion function/runtime identity: $fn"
+  if [ "$actual" = "$expected" ]; then
+    echo "PASS runtime identity: $fn -> $actual"
   else
-    echo "MISMATCH account deletion runtime identity: $fn -> $actual (expected $ACCOUNT_DELETE_SA)"
+    echo "FAIL runtime identity: $fn -> ${actual:-MISSING}; expected $expected"
+    FUNCTION_AUDIT_FAIL=1
   fi
+}
+
+for fn in enrollRecoveryV1 startE2EERecoveryV1 completeE2EERecoveryV1 createAdminRecoveryAuthorizationV1 listAdminRecoveryAuthorizationsV1 revokeAdminRecoveryAuthorizationV1 startAdminAuthorizedRecoveryV1 completeAdminAuthorizedRecoveryV1 getLegalAcceptanceV1 acceptLegalPolicyV1 transferSystemOwnershipV1; do
+  check_runtime "$fn" "$RECOVERY_SA"
 done
+for fn in getMyAccountDeletionRequestV1 requestMyAccountDeletionV1 markMyAccountDeletionCleanupCompleteV1 cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1 deleteDirectMessageForEveryoneV1 deleteMyMessagesForEveryoneV1 deleteConversationForEveryoneV1; do
+  check_runtime "$fn" "$MESSAGE_DELETE_SA"
+done
+for fn in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  check_runtime "$fn" "$NOTIFICATION_SA"
+done
+check_runtime purgeDisappearingMessagesV1 "$PURGE_SA"
+
+[ "$FUNCTION_AUDIT_FAIL" -eq 0 ] || die "Required Cloud Function state/runtime identity audit failed"
 
 say "Account deletion service-account project IAM (read-only)"
 gcloud projects get-iam-policy "$PROJECT" --format=json > "$OUT/project-iam.json"
