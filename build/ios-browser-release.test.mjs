@@ -37,6 +37,10 @@ async function fresh({launchUrl=""}={}){
      if(name==="appUrlOpen")window.__fidunioAppUrlOpen=handler;
      return{remove:async()=>{if(name==="appUrlOpen"&&window.__fidunioAppUrlOpen===handler)delete window.__fidunioAppUrlOpen;}};
     }
+   },
+   BiometricAuthNative:{
+    checkBiometry:async()=>({isAvailable:true,biometryType:"faceId"}),
+    internalAuthenticate:async()=>{if(window.__fidunioBiometricShouldFail)throw new Error("simulated biometric failure");return{};}
    }
   }
  };},{launchUrl});
@@ -190,6 +194,51 @@ try{
  assert.equal(await warmInvite.page.locator('#inviteCode').inputValue(),'warmInviteToken_12345678901234567890');
  await warmInvite.context.close();
  console.log('PASS: '+selected+' warm Universal Link reaches shared Join screen with invitation token');
+
+ // Exercise the actual shared local-lock DOM in native-runtime mode.
+ const unlock=await fresh();
+ await unlock.page.goto(base);await ready(unlock.page);
+ const securitySetup=await unlock.page.evaluate(async()=>{
+   try{
+     const local=await import('/local-security.js');
+     await local.setLocalPin('123456');
+     await local.enrollBiometric();
+     return{ok:true,status:local.getLocalSecurityStatus()};
+   }catch(error){return{ok:false,message:error?.message||String(error)};}
+ });
+ assert.equal(securitySetup.ok,true,securitySetup.message||'native biometric fixture setup failed');
+ assert.equal(securitySetup.status.hasPin,true);
+ assert.equal(securitySetup.status.hasBiometric,true);
+ await unlock.page.evaluate(async()=>{const appModule=await import('/app.js');await appModule.FIDUNIO_APP_READY;});
+ await unlock.page.locator('#deviceUnlockBtn').waitFor({state:'visible',timeout:45000});
+ assert.equal(await unlock.page.locator('#localUnlockPin').count(),0,'PIN must be hidden while Face ID is primary');
+ assert.equal(await unlock.page.locator('#showPinFallbackBtn').isVisible(),true);
+ await unlock.page.locator('#showPinFallbackBtn').click();
+ await unlock.page.locator('#localPinUnlockBtn').waitFor({state:'visible'});
+ assert.equal(await unlock.page.locator('#localUnlockPin').count(),1,'Use PIN instead must reveal the PIN UI');
+ await unlock.page.locator('#localPinUnlockBtn').click();
+ await unlock.page.getByText('Enter your six-digit FIDUNIO PIN.').waitFor({state:'visible'});
+ assert.equal(await unlock.page.locator('#localPinUnlockBtn').isEnabled(),true,'blank PIN must not hang or disable the unlock screen');
+ await unlock.page.screenshot({path:path.join(evidence,selected+'-unlock-pin-fallback.png')});
+ await unlock.context.close();
+ console.log('PASS: '+selected+' Face ID-first unlock hides PIN, reveals fallback, and rejects blank PIN without hanging');
+
+ const biometricFailure=await fresh();
+ await biometricFailure.page.goto(base);await ready(biometricFailure.page);
+ await biometricFailure.page.evaluate(async()=>{
+   const local=await import('/local-security.js');
+   await local.setLocalPin('123456');await local.enrollBiometric();
+   window.__fidunioBiometricShouldFail=true;
+ });
+ await biometricFailure.page.evaluate(async()=>{const appModule=await import('/app.js');await appModule.FIDUNIO_APP_READY;});
+ await biometricFailure.page.locator('#deviceUnlockBtn').waitFor({state:'visible',timeout:45000});
+ assert.equal(await biometricFailure.page.locator('#localUnlockPin').count(),0);
+ await biometricFailure.page.locator('#deviceUnlockBtn').click();
+ await biometricFailure.page.locator('#localPinUnlockBtn').waitFor({state:'visible',timeout:10000});
+ assert.match(await biometricFailure.page.locator('.unlock-card').innerText(),/cancelled or unavailable.*PIN instead/is);
+ assert.equal(await biometricFailure.page.locator('#localPinUnlockBtn').isEnabled(),true);
+ await biometricFailure.context.close();
+ console.log('PASS: '+selected+' simulated Face ID failure exposes a usable PIN fallback');
 
  // A failed SDK load must show an actionable failure, then a full reload recovers.
  const failed=await fresh();await failed.context.route('https://www.gstatic.com/firebasejs/**',route=>route.abort());
