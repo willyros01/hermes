@@ -2,7 +2,7 @@ name: Rebuild Baseline Security Gate
 
 on:
   push:
-    branches: [main, ios]
+    branches: [main, main2, ios]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -62,6 +62,7 @@ jobs:
       - {name: Disappearing restart reconnect recovery, run: npm run test:disappearing-reconnect-recovery}
       - {name: Disappearing multi-device convergence, run: npm run test:disappearing-multi-device-convergence}
       - {name: Disappearing compose policy and UI wiring, run: npm run test:disappearing-compose-policy}
+      - {name: Disappearing conversation preference isolation, run: npm run test:disappearing-conversation-preference}
       - {name: Disappearing text end-to-end closeout, run: npm run test:disappearing-text-closeout}
       - {name: Disappearing text activation, run: npm run test:disappearing-activation}
       - {name: Disappearing attachment activation, run: npm run test:disappearing-attachment-activation}
