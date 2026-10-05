@@ -6,12 +6,17 @@ const apply=readFileSync("build/apply-ios-native-services.mjs","utf8");
 const plist=readFileSync("build/ios/GoogleService-Info.plist","utf8");
 
 assert.match(build,/Print :Entitlements:aps-environment/);
+assert.match(build,/com\.apple\.developer\.associated-domains/);
+assert.match(build,/applinks:www\.cuberoot-systems\.com/);
 assert.match(build,/signed-entitlements\.plist/);
 assert.match(build,/Print :aps-environment/);
+assert.match(build,/Print :com\.apple\.developer\.associated-domains/);
 assert.match(build,/grep -qx production/);
 
 assert.match(apply,/<key>aps-environment<\/key>[\s\S]*?<string>production<\/string>/);
 assert.match(apply,/com\.apple\.Push/);
+assert.match(apply,/com\.apple\.developer\.associated-domains/);
+assert.match(apply,/applinks:www\.cuberoot-systems\.com/);
 assert.match(apply,/didRegisterForRemoteNotificationsWithDeviceToken/);
 assert.match(apply,/capacitorDidRegisterForRemoteNotifications/);
 
@@ -21,4 +26,4 @@ assert.match(plist,/<key>GOOGLE_APP_ID<\/key>\s*<string>1:130339622893:ios:929f4
 assert.match(plist,/<key>GCM_SENDER_ID<\/key>\s*<string>130339622893<\/string>/);
 assert.match(plist,/<key>STORAGE_BUCKET<\/key>\s*<string>fidunio-fef13\.firebasestorage\.app<\/string>/);
 
-console.log("PASS: TestFlight archive and Firebase config require production APNs capability");
+console.log("PASS: TestFlight archive requires production APNs and FIDUNIO Universal Link entitlements");
