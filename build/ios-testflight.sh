@@ -91,7 +91,7 @@ test -s "$APP/GoogleService-Info.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
-test "$(cmp -s fidunio-logo.png www/fidunio-logo.png; echo $?)" = 0
+cmp -s fidunio-logo.png www/fidunio-logo.png
 swift build/recolor-ios-blue.swift fidunio-logo.png "$TASK_DIR/expected-native-fidunio-logo.png"
 cmp -s "$TASK_DIR/expected-native-fidunio-logo.png" "$APP/public/fidunio-logo.png"
 if test -f hermes-logo.png; then
