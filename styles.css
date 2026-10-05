@@ -1498,7 +1498,7 @@ button.primary.is-busy::after,button.send-btn.is-busy::after{border-color:rgba(2
 .sender-label .sender-name{font-weight:700}
 .sender-label .sender-time{font-size:.82em;font-weight:500;opacity:.72;white-space:nowrap}
 
-.message-video{display:block;width:100%;max-width:720px;max-height:70vh;border-radius:12px;object-fit:contain}
+.message-video{display:block;width:100%;max-width:720px;max-height:70vh;border-radius:12px;object-fit:contain}\n.attachment-audio-card{width:min(100%,420px)}\n.message-audio{display:block;width:100%;min-width:240px;max-width:420px}
 
 /* The legal owner keeps its decision controls visible while the terms scroll. */
 .app-shell.unlock.startup-terms{height:100dvh;min-height:0;padding:12px;}
