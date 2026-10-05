@@ -109,6 +109,10 @@ export const startAdminAuthorizedRecoveryV1=onCall(common,request=>invoke(adminR
 export const completeAdminAuthorizedRecoveryV1=onCall({...common,secrets:[RECOVERY_MASTER]},request=>invoke(adminRecoveryCore.completeAdminAuthorizedRecoveryV1,request));
 export const getLegalAcceptanceV1=onCall(common,request=>invoke(legalCore.getLegalAcceptanceV1,request));
 export const acceptLegalPolicyV1=onCall(common,request=>invoke(legalCore.acceptLegalPolicyV1,request));
+export const getMyAccountDeletionRequestV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.getMyAccountDeletionRequestV1,request));
+export const requestMyAccountDeletionV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.requestMyAccountDeletionV1,request));
+export const markMyAccountDeletionCleanupCompleteV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.markMyAccountDeletionCleanupCompleteV1,request));
+export const cancelMyAccountDeletionRequestV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.cancelMyAccountDeletionRequestV1,request));
 export const completeMyAccountDeletionV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:300,memory:"512MiB",maxInstances:5},request=>invoke(accountDeletionCore.completeMyAccountDeletionV1,request));
 export const transferSystemOwnershipV1=onCall(common,request=>invoke(systemOwnershipCore.transferSystemOwnershipV1,request));
 
