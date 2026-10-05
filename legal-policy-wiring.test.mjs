@@ -34,6 +34,9 @@ assert.doesNotMatch(startup,/getCloudLegalAcceptance/);
 assert.match(auth,/acceptLegalPolicy\(\)\.catch/);
 assert.doesNotMatch(auth,/ensureLegalAcceptance/);
 assert.match(settings,/Legal & Support/);
+assert.match(settings,/renderAccountDeletion\(profileHost,usersHost,info\)/);
+assert.match(settings,/renderLegalSupport\(host\(shell,"legal"\)\)/);
+assert.match(settings,/Delete My Account/);
 assert.match(settings,/Privacy Policy/);
 assert.match(settings,/Help & Contact Support/);
 
