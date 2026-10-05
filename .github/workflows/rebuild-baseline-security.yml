@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: rebuild-baseline-security-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   security-baseline:
     runs-on: ubuntu-latest
