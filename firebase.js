@@ -41,6 +41,10 @@ export function deleteCloudMyMessagesForEveryone(conversationId,messageKind="dir
 export function deleteCloudConversationForEveryone(conversationId,conversationKind="direct"){return callCloudFunction("deleteConversationForEveryoneV1",{conversationId:String(conversationId||""),conversationKind:conversationKind==="group"?"group":"direct"});}
 export function getCloudLegalAcceptance(){return callCloudFunction("getLegalAcceptanceV1",{});}
 export function acceptCloudLegalPolicy(data){return callCloudFunction("acceptLegalPolicyV1",data);}
+export function getCloudMyAccountDeletionRequest(){return callCloudFunction("getMyAccountDeletionRequestV1",{});}
+export function requestCloudMyAccountDeletion(){return callCloudFunction("requestMyAccountDeletionV1",{});}
+export function markCloudMyAccountDeletionCleanupComplete(){return callCloudFunction("markMyAccountDeletionCleanupCompleteV1",{});}
+export function cancelCloudMyAccountDeletionRequest(){return callCloudFunction("cancelMyAccountDeletionRequestV1",{});}
 export function completeCloudMyAccountDeletion(){return callCloudFunction("completeMyAccountDeletionV1",{});}
 export function transferCloudSystemOwnership(targetUid){return callCloudFunction("transferSystemOwnershipV1",{targetUid:String(targetUid||"")});}
 export async function setCloudMessageReaction(conversationId,messageId,messageKind="direct",reaction){
@@ -67,23 +71,15 @@ export async function requestFidunioAccountDeletion(currentPassword){
   if(!user.email)throw new Error("This account does not have an email address for reauthentication.");
   const credential=s.authSdk.EmailAuthProvider.credential(user.email,password);
   await s.authSdk.reauthenticateWithCredential(user,credential);
-  const profileSnap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",user.uid));
-  if(!profileSnap.exists())throw new Error("FIDUNIO profile is unavailable.");
-  const p=profileSnap.data()||{},ref=s.fsSdk.doc(s.db,"accountDeletionRequests",user.uid),existing=await s.fsSdk.getDoc(ref);
-  if(existing.exists()&&["pending","processing"].includes(existing.data()?.status))return{status:existing.data().status,alreadyPending:true};
-  await s.fsSdk.setDoc(ref,{uid:user.uid,status:"pending",cleanupStatus:"required",cleanupCompletedAt:null,contactEmail:user.email||p.email||"",displayName:p.displayName||user.displayName||"",requestedAt:s.fsSdk.serverTimestamp(),cancelledAt:null,completedAt:null});
-  return{status:"pending",alreadyPending:false};
+  return requestCloudMyAccountDeletion();
 }
 export async function getFidunioAccountDeletionRequest(){
-  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
-  const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"accountDeletionRequests",authUser.uid));
-  return snap.exists()?{uid:snap.id,...snap.data()}:null;
+  if(!authUser)throw new Error("Sign in first.");
+  return getCloudMyAccountDeletionRequest();
 }
 export async function markFidunioAccountDeletionCleanupComplete(){
-  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
-  const ref=s.fsSdk.doc(s.db,"accountDeletionRequests",authUser.uid),snap=await s.fsSdk.getDoc(ref);
-  if(!snap.exists()||snap.data()?.status!=="pending")throw new Error("There is no pending deletion request.");
-  await s.fsSdk.updateDoc(ref,{cleanupStatus:"complete",cleanupCompletedAt:s.fsSdk.serverTimestamp()});return true;
+  if(!authUser)throw new Error("Sign in first.");
+  return markCloudMyAccountDeletionCleanupComplete();
 }
 export async function listMyCloudGroupsForAccountDeletion(){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
@@ -96,10 +92,8 @@ export async function listMyCloudConversationsForAccountDeletion(){
   return snap.docs.map(d=>({id:d.id,...d.data()}));
 }
 export async function cancelFidunioAccountDeletionRequest(){
-  const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
-  const ref=s.fsSdk.doc(s.db,"accountDeletionRequests",authUser.uid),snap=await s.fsSdk.getDoc(ref);
-  if(!snap.exists()||snap.data()?.status!=="pending")throw new Error("There is no pending deletion request to cancel.");
-  await s.fsSdk.updateDoc(ref,{status:"cancelled",cancelledAt:s.fsSdk.serverTimestamp()});return true;
+  if(!authUser)throw new Error("Sign in first.");
+  return cancelCloudMyAccountDeletionRequest();
 }
 export async function listFidunioAccountDeletionRequestsForAdmin(){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
