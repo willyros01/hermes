@@ -24,7 +24,7 @@ The next TestFlight is the post-remediation candidate. A build is authorized onl
 
 ## App Store review blockers discovered
 
-### AS-001 — Self-service account deletion — PARTIAL SOURCE REMEDIATION / COMPLETION STILL BLOCKING
+### AS-001 — Self-service account deletion — SOURCE IMPLEMENTED / LIVE DEPLOYMENT + DEVICE ACCEPTANCE UNVERIFIED
 
 The `ios` branch now has **Settings -> Delete My Account** with current-password reauthentication, the existing six-digit FIDUNIO PIN, a user-owned deletion request, cancel-while-pending, and an Admin/Owner request queue.
 
@@ -35,10 +35,16 @@ The shared deletion-preparation owner now:
 - marks the request cleanup-complete only after group membership cleanup succeeds;
 - prevents Admin processing until that cleanup-complete barrier is present.
 
+Current source now also contains the final server-side account/personal-data/Firebase-Auth deletion processor, the five callable entry points, and an explicit system-ownership transfer barrier. Source presence is not deployment proof.
+
 Still blocking:
-- the final server-side account/personal-data/Firebase-Auth deletion processor is not yet implemented or deployed;
-- completion confirmation is not yet operational;
-- system-owner deletion needs an explicit ownership-transfer/continuity rule.
+- verify all five account-deletion callables are actually deployed and ACTIVE in `fidunio-fef13`;
+- verify each deletion callable runs as `fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com`;
+- verify that runtime identity has the minimum Firestore and Firebase Authentication permissions needed by the Admin adapter;
+- prove the real Settings -> Profile -> Delete My Account journey with a disposable account through Auth deletion and local cleanup;
+- add journey-level automated coverage; the current `account-deletion-wiring.test.mjs` is source-wiring coverage, not an end-user navigation/runtime proof.
+
+The 1.1.72 commit `e45ecafdfadbf0cbc75434b846283f664fdf1e38` fixes only the account-deletion callable unit-test setup. It does not alter account-deletion runtime code, Firestore rules, Cloud Functions deployment, or IAM.
 
 Do not call deactivation or a pending request "account deleted." Firebase Auth must be deleted last, after controlled server cleanup succeeds.
 
