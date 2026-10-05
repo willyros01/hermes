@@ -18,8 +18,7 @@ import {validateFidunioInvitation,redeemInvitationForEnrollment} from "./invitat
 import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity,inspectLocalAccountE2EEIdentity,markPasswordResetPending,hasPasswordResetPending,clearPasswordResetPending} from "./local-security.js";
 import {bindAuthenticatedAccountE2EE,unlockAccountE2EE,enrollAccountE2EE,recoverAccountE2EE,restoreLocalAccountE2EE,getAccountE2EERuntimeIdentity,resetAccountE2EEForSignOut} from "./e2ee-account-runtime.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
-import {readLegalAcceptance,acceptLegalPolicy} from "./legal-acceptance-client.js";
-import {FIDUNIO_LEGAL_POLICY,FIDUNIO_FIRST_USE_NOTICE,legalAcceptanceIsCurrent} from "./legal-policy.js";
+import {acceptLegalPolicy} from "./legal-acceptance-client.js";
 import {
   getAccountStorageStatus,
   inspectLegacyAccountIdentity,
@@ -70,23 +69,6 @@ async function recoverVerifiedQuarantinedIdentity(userUid){
   const ownerUid=await resolveIdentityOwnerUid(legacy);
   if(ownerUid!==userUid)return{recovered:false,reason:ownerUid?"belongs-to-other-account":"ownership-ambiguous"};
   return recoverQuarantinedE2EEIdentity(userUid,{legacyOwnerUid:ownerUid});
-}
-
-async function ensureLegalAcceptance(user){
-  if(!user?.uid)throw new Error("Authenticated account is required before reviewing FIDUNIO terms.");
-  const current=await readLegalAcceptance();
-  if(current?.accepted===true||legalAcceptanceIsCurrent(current))return true;
-  return new Promise((resolve,reject)=>{
-    const paragraphs=FIDUNIO_FIRST_USE_NOTICE.paragraphs.map(p=>`<p class="small-note">${esc(p)}</p>`).join("");
-    authShell(`<h2>${esc(FIDUNIO_FIRST_USE_NOTICE.title)}</h2>${paragraphs}<p class="small-note"><a href="${esc(FIDUNIO_LEGAL_POLICY.termsUrl)}" target="_blank" rel="noopener">Terms of Use</a> • <a href="${esc(FIDUNIO_LEGAL_POLICY.privacyUrl)}" target="_blank" rel="noopener">Privacy Policy</a> • <a href="${esc(FIDUNIO_LEGAL_POLICY.supportUrl)}" target="_blank" rel="noopener">Support</a></p><label class="form-label" style="display:flex;gap:10px;align-items:flex-start;margin-top:14px"><input type="checkbox" id="legalAcceptCheck" style="margin-top:4px"> <span>I have read and agree to the FIDUNIO Terms of Use and acknowledge the Privacy Policy.</span></label><button class="primary" id="legalAcceptBtn" style="margin-top:14px" disabled>Accept and Continue</button><button class="secondary" id="legalDeclineBtn" style="margin-top:10px">Decline</button><div id="legalNote" aria-live="polite"></div>`);
-    const check=document.querySelector("#legalAcceptCheck"),accept=document.querySelector("#legalAcceptBtn"),decline=document.querySelector("#legalDeclineBtn"),note=document.querySelector("#legalNote");
-    check.onchange=()=>{accept.disabled=!check.checked;};
-    accept.onclick=async()=>{accept.disabled=true;decline.disabled=true;accept.textContent="Saving…";try{await acceptLegalPolicy();resolve(true);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;accept.disabled=!check.checked;decline.disabled=false;accept.textContent="Accept and Continue";}};
-    decline.onclick=()=>{
-      authShell('<h2>Terms declined</h2><p class="warning-note">FIDUNIO messaging is unavailable unless you accept the current Terms of Use and acknowledge the Privacy Policy.</p><p class="small-note">You may review the documents again later by signing in. No messaging content is opened while acceptance is declined.</p><button class="primary" id="declinedSignOutBtn">Sign Out</button>');
-      document.querySelector("#declinedSignOutBtn").onclick=async()=>{try{await signOutFidunio();location.reload();}catch(err){reject(err);}};
-    };
-  });
 }
 
 async function startAppAfterLegalAcceptance(user){
