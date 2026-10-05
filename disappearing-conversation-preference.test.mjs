@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import {readConversationDisappearSelection,writeConversationDisappearSelection} from "./disappearing-conversation-preference.js";
+let map=writeConversationDisappearSelection({},"a",300);
+assert.equal(readConversationDisappearSelection(map,"a"),300);
+assert.equal(readConversationDisappearSelection(map,"b"),null);
+map=writeConversationDisappearSelection(map,"b",3600);
+assert.equal(readConversationDisappearSelection(map,"a"),300);
+assert.equal(readConversationDisappearSelection(map,"b"),3600);
+map=writeConversationDisappearSelection(map,"a",null);
+assert.equal(readConversationDisappearSelection(map,"a"),null);
+assert.equal(readConversationDisappearSelection(map,"b"),3600);
+console.log("PASS: web disappearing-message preference is isolated per conversation");
