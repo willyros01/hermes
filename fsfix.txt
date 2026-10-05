@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# FIDUNIO consolidated Firestore rules reconciliation
+#
+# ONE COMMAND, NO PARAMETERS:
+#   bash fsfix.txt
+#
+# PURPOSE
+# - Preserve the already-live Block/Unblock + Report Abuse rules.
+# - Add the remaining tested iOS Firestore authority, especially
+#   accountDeletionRequests for the visible Owner/Admin deletion queue.
+# - Run the complete Firestore rule regression suite before deployment.
+#
+# SAFETY
+# - Explicitly switches to fidunio-fef13 first.
+# - Verifies project number 130339622893.
+# - Captures exact live rules and creates rollback before deployment.
+# - Refuses to continue unless live rules exactly match the last approved
+#   safety rules candidate.
+# - Deploys Firestore rules only.
+# - Does not change Functions, IAM, App Check, Storage rules, indexes, Auth users,
+#   application data, main/main2, or TestFlight.
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+PROJECT_NUMBER_EXPECTED="130339622893"
+REPO="willyros01/hermes"
+REGION="us-central1"
+LIVE_BASE_COMMIT="2d290e8fb193140469e6bd250691e6ff270f22ec"
+LIVE_BASE_PATH="build/firestore-safety-rules-candidate.rules"
+CANDIDATE_COMMIT="a36ba8fafbe39bf6a09ba037e252c9e386c3b5db"
+CANDIDATE_PATH="firestore.rules"
+RULES_API="https://firebaserules.googleapis.com/v1"
+
+say(){ printf '\n==== %s ====\n' "$*"; }
+stop(){ echo "STOP: $*" >&2; exit 1; }
+
+for cmd in gcloud curl jq python3 diff tar npm; do
+  command -v "$cmd" >/dev/null 2>&1 || stop "$cmd is required"
+done
+
+say "FIDUNIO project safety switch"
+BEFORE="$(gcloud config get-value project 2>/dev/null || true)"
+echo "Project before switch: ${BEFORE:-<none>}"
+echo "Switching explicitly to: $PROJECT"
+gcloud config set project "$PROJECT" >/dev/null
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "Project switch failed; active project is '$ACTIVE'."
+NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Wrong project number '$NUMBER'."
+echo "PASS: target project is $PROJECT ($NUMBER)."
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_DIR="$HOME/fidunio-firestore-reconcile-$STAMP"
+WORK="$(mktemp -d)"
+mkdir -p "$BACKUP_DIR"
+trap 'rm -rf "$WORK"' EXIT
+
+say "Capture exact current live Firestore rules"
+TOKEN="$(gcloud auth print-access-token)"
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/projects/$PROJECT/releases/cloud.firestore"   -o "$BACKUP_DIR/release-before.json"
+
+RULESET_NAME="$(jq -r '.rulesetName // empty' "$BACKUP_DIR/release-before.json")"
+[[ "$RULESET_NAME" == projects/*/rulesets/* ]] || stop "Could not determine current Firestore ruleset."
+echo "$RULESET_NAME" > "$BACKUP_DIR/ruleset-before.txt"
+echo "Current ruleset: $RULESET_NAME"
+
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/$RULESET_NAME"   -o "$BACKUP_DIR/ruleset-before.json"
+
+python3 - "$BACKUP_DIR/ruleset-before.json" "$BACKUP_DIR/firestore-before.rules" <<'PY'
+import json,sys
+src=json.load(open(sys.argv[1],encoding="utf-8"))
+files=src.get("source",{}).get("files",[])
+if len(files)!=1:
+    raise SystemExit(f"STOP: expected one live Firestore rules source file, found {len(files)}")
+content=files[0].get("content")
+if not isinstance(content,str) or not content.strip():
+    raise SystemExit("STOP: live Firestore rules source is empty")
+open(sys.argv[2],"w",encoding="utf-8",newline="").write(content)
+print("Saved live rules:",sys.argv[2])
+PY
+
+say "Download exact approved live base and full iOS candidate"
+BASE_URL="https://raw.githubusercontent.com/$REPO/$LIVE_BASE_COMMIT/$LIVE_BASE_PATH"
+CANDIDATE_URL="https://raw.githubusercontent.com/$REPO/$CANDIDATE_COMMIT/$CANDIDATE_PATH"
+curl --retry 3 --retry-delay 2 -fsSL "$BASE_URL" -o "$WORK/base.rules"
+curl --retry 3 --retry-delay 2 -fsSL "$CANDIDATE_URL" -o "$WORK/candidate.rules"
+
+say "Safety check: current live rules must match last approved safety candidate"
+if ! cmp -s "$BACKUP_DIR/firestore-before.rules" "$WORK/base.rules"; then
+  diff -u "$WORK/base.rules" "$BACKUP_DIR/firestore-before.rules" > "$BACKUP_DIR/live-vs-expected.diff" || true
+  echo "NO DEPLOYMENT WAS PERFORMED."
+  echo "Difference saved at: $BACKUP_DIR/live-vs-expected.diff"
+  stop "Live Firestore rules changed unexpectedly. Refusing to overwrite."
+fi
+echo "PASS: live rules exactly match the approved Block/Unblock + Report Abuse safety candidate."
+
+say "Verify intended reconciliation scope"
+grep -Fq 'match /blocks/{blockedUid}' "$WORK/candidate.rules" || stop "Candidate lost Block/Unblock authority."
+grep -Fq 'match /abuseReports/{reportId}' "$WORK/candidate.rules" || stop "Candidate lost Report Abuse authority."
+grep -Fq 'match /accountDeletionRequests/{uid}' "$WORK/candidate.rules" || stop "Candidate missing account deletion request authority."
+grep -Fq 'function validAccountDeletionRequestCreate(uid,d)' "$WORK/candidate.rules" || stop "Candidate missing account deletion request validator."
+grep -Fq 'directPairUnblocked' "$WORK/candidate.rules" || stop "Candidate lost blocked direct-send enforcement."
+echo "PASS: candidate preserves existing safety rules and adds account deletion request authority."
+
+say "Prepare exact candidate test workspace"
+ARCHIVE="$WORK/repo.tar.gz"
+curl --retry 3 --retry-delay 2 -fsSL   "https://github.com/$REPO/archive/$CANDIDATE_COMMIT.tar.gz"   -o "$ARCHIVE"
+tar -xzf "$ARCHIVE" -C "$WORK"
+ROOT="$WORK/hermes-$CANDIDATE_COMMIT"
+[[ -d "$ROOT" ]] || stop "Pinned workspace did not unpack."
+
+if ! command -v firebase >/dev/null 2>&1; then
+  echo "Firebase CLI not found; installing firebase-tools..."
+  npm install -g firebase-tools
+fi
+
+say "Install pinned test dependencies"
+(
+  cd "$ROOT"
+  npm ci --ignore-scripts --no-audit --no-fund >/dev/null
+)
+
+say "Run complete Firestore rule regression suite"
+(
+  cd "$ROOT"
+  npm run emulator:test:e2ee-rules
+  npm run emulator:test:account-message-rules
+  npm run emulator:test:group-e2ee-rules
+  npm run emulator:test:invitation-rules
+  npm run emulator:test:notification-rules
+  npm run emulator:test:user-block-rules
+  npm run emulator:test:abuse-report-rules
+  npm run emulator:test:account-deletion-rules
+)
+
+say "Re-confirm project immediately before deployment"
+gcloud config set project "$PROJECT" >/dev/null
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "Active project changed unexpectedly."
+[[ "$NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Project number changed unexpectedly."
+echo "PASS: deployment target is $PROJECT ($NUMBER)."
+
+say "Prepare rollback before deployment"
+cp "$BACKUP_DIR/firestore-before.rules" "$BACKUP_DIR/firestore.rules"
+cat > "$BACKUP_DIR/firebase.json" <<'JSON'
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
+JSON
+
+cat > "$BACKUP_DIR/rollback.sh" <<ROLLBACK
+#!/usr/bin/env bash
+set -euo pipefail
+PROJECT="$PROJECT"
+EXPECTED="$PROJECT_NUMBER_EXPECTED"
+DIR="$BACKUP_DIR"
+
+gcloud config set project "\$PROJECT" >/dev/null
+ACTIVE="\$(gcloud config get-value project 2>/dev/null)"
+NUMBER="\$(gcloud projects describe "\$PROJECT" --format='value(projectNumber)')"
+[[ "\$ACTIVE" == "\$PROJECT" ]] || { echo "STOP: wrong project"; exit 1; }
+[[ "\$NUMBER" == "\$EXPECTED" ]] || { echo "STOP: wrong project number"; exit 1; }
+
+cd "\$DIR"
+firebase deploy --only firestore:rules --project "\$PROJECT" --non-interactive
+echo "ROLLBACK COMPLETE: exact pre-change Firestore rules restored."
+ROLLBACK
+chmod +x "$BACKUP_DIR/rollback.sh"
+echo "Rollback prepared: $BACKUP_DIR/rollback.sh"
+
+say "Deploy ONLY the fully tested Firestore rules"
+DEPLOY="$WORK/deploy"
+mkdir -p "$DEPLOY"
+cp "$WORK/candidate.rules" "$DEPLOY/firestore.rules"
+cat > "$DEPLOY/firebase.json" <<'JSON'
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
+JSON
+(
+  cd "$DEPLOY"
+  firebase deploy --only firestore:rules --project "$PROJECT" --non-interactive
+)
+
+say "Verify exact candidate is now live"
+sleep 3
+TOKEN="$(gcloud auth print-access-token)"
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/projects/$PROJECT/releases/cloud.firestore"   -o "$BACKUP_DIR/release-after.json"
+NEW_RULESET="$(jq -r '.rulesetName // empty' "$BACKUP_DIR/release-after.json")"
+[[ "$NEW_RULESET" == projects/*/rulesets/* ]] || stop "Could not determine post-deploy Firestore ruleset."
+
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/$NEW_RULESET"   -o "$BACKUP_DIR/ruleset-after.json"
+
+python3 - "$BACKUP_DIR/ruleset-after.json" "$BACKUP_DIR/firestore-after.rules" <<'PY'
+import json,sys
+src=json.load(open(sys.argv[1],encoding="utf-8"))
+files=src.get("source",{}).get("files",[])
+if len(files)!=1:
+    raise SystemExit(f"STOP: expected one deployed rules source file, found {len(files)}")
+open(sys.argv[2],"w",encoding="utf-8",newline="").write(files[0].get("content",""))
+PY
+
+cmp -s "$BACKUP_DIR/firestore-after.rules" "$WORK/candidate.rules" ||
+  stop "Live rules do not exactly match the fully tested candidate. Rollback: $BACKUP_DIR/rollback.sh"
+
+echo "PASS: exact fully tested Firestore candidate is live."
+echo "New ruleset: $NEW_RULESET"
+
+say "SUCCESS"
+echo "FIDUNIO consolidated Firestore reconciliation completed."
+echo "Project: $PROJECT ($PROJECT_NUMBER_EXPECTED)"
+echo "Previous ruleset: $RULESET_NAME"
+echo "New ruleset: $NEW_RULESET"
+echo "Rollback directory: $BACKUP_DIR"
+echo
+echo "No Functions, IAM, App Check, Storage rules, indexes, application data, or TestFlight build were changed."
