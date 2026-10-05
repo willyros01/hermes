@@ -204,7 +204,8 @@
       "packaged": [
         "invitation-owner.js",
         "invitation-policy.js",
-        "auth-ui-clean.js"
+        "auth-ui-clean.js",
+        "invitation-platform-adapter.js"
       ],
       "rules": [
         "match /invitations/{inviteId}"
@@ -212,7 +213,8 @@
       "tests": [
         "invitation-policy.test.mjs",
         "firestore-invitation.rules.test.mjs",
-        "invitation-install-closeout.test.mjs"
+        "invitation-install-closeout.test.mjs",
+        "build/invitation-universal-link.test.mjs"
       ],
       "device": true
     },
