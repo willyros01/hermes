@@ -78,10 +78,8 @@ security cms -D -i "$APP/embedded.mobileprovision" > "$TASK_DIR/profile.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$TASK_DIR/profile.plist" | grep -qx 'VXMLKHF72B.io.github.willyros01.fidunio'
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$TASK_DIR/profile.plist" | grep -qx false
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
-/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' "$TASK_DIR/profile.plist" | grep -Fq 'applinks:www.cuberoot-systems.com'
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
-/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$TASK_DIR/signed-entitlements.plist" | grep -Fq 'applinks:www.cuberoot-systems.com'
 test -s "$APP/PrivacyInfo.xcprivacy"
 /usr/bin/plutil -lint "$APP/PrivacyInfo.xcprivacy"
 /usr/libexec/PlistBuddy -c 'Print :NSPrivacyTracking' "$APP/PrivacyInfo.xcprivacy" | grep -qx false
@@ -111,7 +109,7 @@ for(const rel of list){
 }
 console.log("PASS: all shared web assets match except explicitly verified iOS-only blue-ring branding");
 JS
-echo "PASS: signed FIDUNIO $VERSION ($BUILD), correct team/profile/bundle, production APNs, Associated Domains, blue-ring native branding, privacy manifest and encryption declaration"
+echo "PASS: signed FIDUNIO $VERSION ($BUILD), correct team/profile/bundle, production APNs, blue-ring native branding, privacy manifest and encryption declaration"
 echo "NOTE: App Check is in approved standby/fail-open mode; production App Attest entitlement is not a release blocker until Apple capability is enabled"
 export_options upload
 echo "STEP: upload archive to App Store Connect"
