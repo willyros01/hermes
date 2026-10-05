@@ -6,6 +6,9 @@ function makeRepo(overrides={}){
   return{
     events,
     readRequest:async()=>({status:"pending",cleanupStatus:"complete"}),
+    createRequest:async()=>events.push("create-request"),
+    markCleanupComplete:async()=>events.push("cleanup-complete"),
+    cancelRequest:async()=>events.push("cancel-request"),
     inspectAuthority:async()=>({systemOwner:false,ownedGroups:[],groupMemberships:[]}),
     markProcessing:async()=>events.push("processing"),
     closeDirectConversations:async()=>events.push("close-direct"),
@@ -15,6 +18,22 @@ function makeRepo(overrides={}){
     ...overrides
   };
 }
+repo=makeRepo({readRequest:async()=>null});
+core=createAccountDeletionCore({repo});
+assert.equal(await core.getMyAccountDeletionRequestV1({authUid:"u1"}),null);
+assert.deepEqual(await core.requestMyAccountDeletionV1({authUid:"u1"}),{status:"pending",alreadyPending:false});
+assert.deepEqual(repo.events,["create-request"]);
+
+repo=makeRepo({readRequest:async()=>({status:"pending",cleanupStatus:"required"})});
+core=createAccountDeletionCore({repo});
+assert.deepEqual(await core.markMyAccountDeletionCleanupCompleteV1({authUid:"u1"}),{status:"pending",cleanupStatus:"complete"});
+assert.deepEqual(repo.events,["cleanup-complete"]);
+
+repo=makeRepo({readRequest:async()=>({status:"pending",cleanupStatus:"required"})});
+core=createAccountDeletionCore({repo});
+assert.deepEqual(await core.cancelMyAccountDeletionRequestV1({authUid:"u1"}),{status:"cancelled"});
+assert.deepEqual(repo.events,["cancel-request"]);
+
 let repo=makeRepo(),core=createAccountDeletionCore({repo});
 assert.deepEqual(await core.completeMyAccountDeletionV1({authUid:"u1"}),{deleted:true});
 assert.deepEqual(repo.events,["processing","close-direct","delete-data","delete-auth","delete-request"]);
