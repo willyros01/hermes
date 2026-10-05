@@ -10,11 +10,13 @@ const list=fs.readFileSync("build/www-files.txt","utf8").split(/\r?\n/).map(x=>x
 for(const name of ["@capacitor/core","@capacitor/ios","@capacitor-firebase/app-check"]){
   if(pkg.dependencies?.[name]!=="8.5.2")fail(name+" must be pinned to 8.5.2");
 }
+if(pkg.dependencies?.["@capacitor/app"]!=="8.1.1")fail("@capacitor/app must be pinned to 8.1.1");
 if(pkg.devDependencies?.["@capacitor/cli"]!=="8.5.2")fail("@capacitor/cli must be pinned to 8.5.2");
 if(cap.appId!=="io.github.willyros01.fidunio")fail("unexpected Capacitor appId");
 if(cap.appName!=="FIDUNIO"||cap.webDir!=="www")fail("unexpected Capacitor appName/webDir");
 if(cap.experimental?.ios?.spm?.packageOptions?.["@capacitor-firebase/app-check"]?.symlink!==true)fail("Capacitor App Check SwiftPM symlink option is required");
 if(!list.includes("index.html")||!list.includes("bootstrap.js")||!list.includes("app.js")||!list.includes("firebase.js"))fail("core FIDUNIO runtime missing from iOS web allow-list");
+if(!list.includes("invitation-platform-adapter.js"))fail("native invitation-link adapter missing from iOS web allow-list");
 if(list.some(x=>/\.test\.mjs$|-tests\.(?:js|html)$|diagnostics/i.test(x)))fail("test/diagnostic file leaked into iOS web allow-list");
 if(new Set(list).size!==list.length)fail("duplicate iOS web allow-list entry");
 for(const rel of list)if(!fs.existsSync(rel))fail("allow-listed source is missing: "+rel);
