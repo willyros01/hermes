@@ -80,7 +80,9 @@ EXPECTED_FUNCTIONS=(
  enrollRecoveryV1 startE2EERecoveryV1 completeE2EERecoveryV1
  createAdminRecoveryAuthorizationV1 listAdminRecoveryAuthorizationsV1 revokeAdminRecoveryAuthorizationV1
  startAdminAuthorizedRecoveryV1 completeAdminAuthorizedRecoveryV1
- getLegalAcceptanceV1 acceptLegalPolicyV1 completeMyAccountDeletionV1 transferSystemOwnershipV1
+ getLegalAcceptanceV1 acceptLegalPolicyV1
+ getMyAccountDeletionRequestV1 requestMyAccountDeletionV1 markMyAccountDeletionCleanupCompleteV1
+ cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1 transferSystemOwnershipV1
  deleteDirectMessageForEveryoneV1 deleteMyMessagesForEveryoneV1 deleteConversationForEveryoneV1
  notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1 purgeDisappearingMessagesV1
 )
@@ -94,6 +96,31 @@ done
 
 say "Function service-account authority"
 jq -r '.[]? | [(.name|split("/")|last),(.serviceConfig.serviceAccountEmail//"MISSING")] | @tsv' "$OUT/functions.json" | tee "$OUT/function-service-accounts.tsv"
+
+ACCOUNT_DELETE_SA="fidunio-message-delete@$PROJECT.iam.gserviceaccount.com"
+ACCOUNT_DELETE_FUNCTIONS=(
+ getMyAccountDeletionRequestV1 requestMyAccountDeletionV1 markMyAccountDeletionCleanupCompleteV1
+ cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1
+)
+for fn in "${ACCOUNT_DELETE_FUNCTIONS[@]}"; do
+  actual="$(jq -r --arg n "$fn" '.[]? | select((.name|split("/")|last)==$n) | .serviceConfig.serviceAccountEmail // empty' "$OUT/functions.json" | head -1)"
+  if [ "$actual" = "$ACCOUNT_DELETE_SA" ]; then
+    echo "PASS account deletion runtime identity: $fn -> $actual"
+  elif [ -z "$actual" ]; then
+    echo "MISSING account deletion function/runtime identity: $fn"
+  else
+    echo "MISMATCH account deletion runtime identity: $fn -> $actual (expected $ACCOUNT_DELETE_SA)"
+  fi
+done
+
+say "Account deletion service-account project IAM (read-only)"
+gcloud projects get-iam-policy "$PROJECT" --format=json > "$OUT/project-iam.json"
+jq -r --arg member "serviceAccount:$ACCOUNT_DELETE_SA" '
+  .bindings[]? | select(any(.members[]?; . == $member)) | .role
+' "$OUT/project-iam.json" | sort -u | tee "$OUT/account-delete-service-account-project-roles.txt"
+if [ ! -s "$OUT/account-delete-service-account-project-roles.txt" ]; then
+  echo "ATTENTION: no project-level IAM role binding found for $ACCOUNT_DELETE_SA. Resource-level bindings may still exist; deployment/permission readiness is NOT proven."
+fi
 
 say "Firebase App Check iOS App Attest registration"
 if api_get "https://firebaseappcheck.googleapis.com/v1/projects/$PROJECT_NUMBER/apps/$IOS_APP_ID/appAttestConfig" "$OUT/appcheck-ios-appattest.json"; then
