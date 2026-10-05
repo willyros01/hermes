@@ -114,6 +114,19 @@ export async function listFidunioBlockedUsers(){
   const snap=await s.fsSdk.getDocs(s.fsSdk.collection(s.db,"users",authUser.uid,"blocks"));
   return snap.docs.map(d=>({blockedUid:d.id,...d.data()}));
 }
+export function subscribeFidunioBlockedUsers(uid,onRows,onError){
+  let active=true,unsub=()=>{};
+  ensureServices().then(s=>{
+    if(!active)return;
+    if(!authUser||authUser.uid!==uid)throw new Error("Sign in first.");
+    const ref=s.fsSdk.collection(s.db,"users",uid,"blocks");
+    unsub=s.fsSdk.onSnapshot(ref,snap=>{
+      if(!active)return;
+      onRows?.(snap.docs.map(d=>({blockedUid:d.id,...d.data()})),{fromCache:!!snap.metadata?.fromCache,hasPendingWrites:!!snap.metadata?.hasPendingWrites});
+    },err=>{if(active)onError?.(err);});
+  }).catch(err=>{if(active)onError?.(err);});
+  return()=>{active=false;unsub();};
+}
 export async function blockFidunioUser(targetUid){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
   const target=String(targetUid||"").trim();
