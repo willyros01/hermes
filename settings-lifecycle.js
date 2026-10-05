@@ -23,6 +23,10 @@ import {
   getCloudNotificationDevice,
   upsertCloudNotificationDevice,
   deleteCloudNotificationDevice,
+  listCloudUsers,
+  listFidunioBlockedUsers,
+  blockFidunioUser,
+  unblockFidunioUser,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
@@ -57,6 +61,7 @@ const GROUPS=[
   {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
   {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
   {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},
+  {id:"safety",label:"Safety",icon:"!",subtitle:"Block or unblock FIDUNIO users."},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
@@ -64,7 +69,7 @@ const GROUPS=[
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","notifications","users","invites","install","data","about"];
+const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","about"];
 let activeGroup="profile";
 let mountedAccountVaultOwner=null;
 
@@ -184,6 +189,28 @@ function openAdmin(info){
   closeAdminModal();const modal=document.createElement("div");modal.id="fidunioAdminModal";modal.className="modal-backdrop";modal.innerHTML='<div class="modal fidunio-admin-modal"><h2>User Administration</h2><p class="small-note">Loading users…</p></div>';document.body.appendChild(modal);
   renderAdminModal(modal,info).catch(err=>{if(!modal.isConnected)return;modal.querySelector(".modal").innerHTML=`<h2>User Administration</h2><p class="warning-note">${esc(err?.message||String(err))}</p><button class="secondary" id="adminCloseBtn">Close</button>`;modal.querySelector("#adminCloseBtn").onclick=closeAdminModal;});
 }
+async function renderSafety(safetyHost){
+  safetyHost.innerHTML='<div class="card" id="fidunioBlockedUsersCard"><h2>Blocked Users</h2><p class="small-note">Blocking stops new direct conversations, direct messages, direct-message reactions, and read receipts in both directions. Group membership is separate.</p><label class="form-label" for="blockUserSelect">User to block</label><select class="text-input" id="blockUserSelect"><option value="">Choose a user</option></select><button class="secondary" id="blockUserBtn" style="margin-top:12px">Block User</button><div id="blockedUsersList" style="margin-top:14px"><p class="small-note">Loading blocked users…</p></div><div id="blockUserNote" aria-live="polite"></div></div>';
+  const card=safetyHost.querySelector("#fidunioBlockedUsersCard"),select=card.querySelector("#blockUserSelect"),list=card.querySelector("#blockedUsersList"),note=card.querySelector("#blockUserNote"),button=card.querySelector("#blockUserBtn");
+  let users=[];
+  try{users=await listCloudUsers();for(const user of users){const option=document.createElement("option");option.value=user.uid;option.textContent=user.displayName||user.email||"FIDUNIO user";select.appendChild(option);}}
+  catch(error){note.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+  const paint=async()=>{
+    const rows=await listFidunioBlockedUsers(),names=new Map(users.map(user=>[user.uid,user.displayName||user.email||"FIDUNIO user"]));
+    list.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(names.get(row.blockedUid)||"Blocked user")}</strong></div><button class="row-action unblockUserBtn" type="button" data-uid="${esc(row.blockedUid)}">Unblock</button></div>`).join(""):'<p class="small-note">No blocked users.</p>';
+    list.querySelectorAll(".unblockUserBtn").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{await serializeSettingsMutation("unblock user",()=>unblockFidunioUser(btn.dataset.uid));await paint();note.innerHTML='<p class="small-note">User unblocked.</p>';}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;}});
+  };
+  try{await paint();}catch(error){list.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+  button.onclick=async()=>{
+    const uid=select.value;if(!uid){note.innerHTML='<p class="warning-note">Choose a FIDUNIO user to block.</p>';return;}
+    if(!confirm("Block this user? New direct contact will be stopped in both directions until you unblock them."))return;
+    button.disabled=true;
+    try{await serializeSettingsMutation("block user",()=>blockFidunioUser(uid));select.value="";await paint();note.innerHTML='<p class="small-note">User blocked.</p>';}
+    catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+    finally{button.disabled=false;}
+  };
+}
+
 function renderUserAdmin(usersHost,info){
   if(!["owner","admin"].includes(info.role)){usersHost.innerHTML='<div class="card" id="fidunioUserAdminCard"><h2>User Administration</h2><p class="small-note">Administrator access is required.</p></div>';return;}
   usersHost.innerHTML='<div class="card" id="fidunioUserAdminCard"><h2>User Administration</h2><p class="small-note">Compact user list for access, suspension, restoration, expiration, and account recovery.</p><button class="primary" type="button" id="manageUsersBtn">Manage Users & Access</button></div>';
@@ -272,7 +299,7 @@ function renderAccountVault(dataHost,info){
 }
 
 async function hydrateAccountPanels(g,shell){
-  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications");
+  const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications"),safetyHost=host(shell,"safety");
   /* Claim the legacy IDs synchronously so old observer-era modules cannot
      become competing writers while this migration build is being validated. */
   profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="small-note">Loading profile…</p></div>';
@@ -281,7 +308,7 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);
+    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);await renderSafety(safetyHost);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 
