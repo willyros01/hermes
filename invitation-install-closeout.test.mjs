@@ -8,6 +8,7 @@ ok('settings uses invitation owner',settings.includes('./invitation-owner.js'));
 ok('invitation mutations have no competing Settings queue',!settings.includes('serializeSettingsMutation("create invitation"')&&!settings.includes('serializeSettingsMutation("revoke invitation"'));
 ok('Firebase remains repository not second SDK owner',!owner.includes('gstatic.com/firebasejs')&&firebase.includes('export async function createFidunioInvitation'));
 ok('firebase delegates lifecycle validation to pure policy',firebase.includes('assertInvitationUsable')&&firebase.includes('normalizeInvitationRole')&&firebase.includes('canIssueInvitation'));
+ok('invitation links use cross-platform Cuberoot route',firebase.includes('https://www.cuberoot-systems.com/fidunio/join/')&&firebase.includes('new URL(FIDUNIO_INVITATION_WEB_LINK_BASE)'));
 for(const anchor of ["status!=='pending'",'already been used','expired',"['owner','admin']","['user','admin']"])ok('invite policy guard '+anchor,policy.includes(anchor));
 ok('redeem atomically associates profile to invitation',firebase.includes('joinedByInviteId:invite.id')&&firebase.includes('acceptedUid:cred.user.uid')&&firebase.includes('batch.commit()'));
 ok('joined active profiles are discoverable',firebase.includes('listCloudUsers')&&firebase.includes('x.active!==false')&&fs.readFileSync('new-message-owner.js','utf8').includes('listCloudUsers'));
