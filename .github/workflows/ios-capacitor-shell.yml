@@ -64,8 +64,8 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/fidunio-simulator-build" \
             CODE_SIGNING_ALLOWED=NO \
             build
-      - name: Verify fresh iOS cold startup reaches sign-in
-        timeout-minutes: 12
+      - name: Verify fresh iOS cold startup reaches Terms
+        timeout-minutes: 20
         env:
           FIDUNIO_SIMULATOR_APP: ${{ runner.temp }}/fidunio-simulator-build/Build/Products/Debug-iphonesimulator/App.app
         run: bash build/ios-startup-smoke.sh

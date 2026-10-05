@@ -1499,3 +1499,16 @@ button.primary.is-busy::after,button.send-btn.is-busy::after{border-color:rgba(2
 .sender-label .sender-time{font-size:.82em;font-weight:500;opacity:.72;white-space:nowrap}
 
 .message-video{display:block;width:100%;max-width:720px;max-height:70vh;border-radius:12px;object-fit:contain}
+
+/* The legal owner keeps its decision controls visible while the terms scroll. */
+.app-shell.unlock.startup-terms{height:100dvh;min-height:0;padding:12px;}
+.startup-terms .unlock-card{display:flex;flex-direction:column;max-height:100%;overflow:auto;padding:16px;}
+.startup-terms .unlock-card>*{flex-shrink:0;}
+.startup-terms .unlock-brand{margin-bottom:0;}
+.startup-terms .brand-logo{width:42px;height:42px;border-radius:10px;}
+.startup-terms h1{margin:4px 0;font-size:22px;}
+.startup-terms h2{margin:8px 0;}
+.startup-terms p{margin:6px 0;}
+.startup-terms .startup-terms-body{flex:1 1 auto;min-height:72px;overflow:auto;text-align:left;padding-right:6px;}
+.startup-terms-actions{display:flex;gap:10px;}
+.startup-terms-actions button{flex:1;margin-top:8px!important;}

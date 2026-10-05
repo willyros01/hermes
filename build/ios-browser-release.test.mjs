@@ -65,6 +65,8 @@ async function nativeAuthPersistence(page,{create=false}={}){
  },{authEmulator,create});
 }
 async function acceptStartupTermsIfNeeded(page){
+ // A count() probe races the asynchronous legal-module import.
+ await page.locator('#startupTermsTick, #loginEmail').first().waitFor({state:'visible',timeout:45000});
  const tick=page.locator('#startupTermsTick');
  if(await tick.count()){
   await tick.waitFor({state:'visible',timeout:45000});
@@ -82,7 +84,30 @@ async function ready(page){
 try{
  // Actual module initialization, auth callback, browser storage, DOM and reload.
  const {context,page}=await fresh();const errors=[];page.on('pageerror',error=>errors.push(error.message));
- await page.goto(base);await ready(page);
+ await page.clock.install();
+ let accountRequested=false;
+ page.on('request',request=>{if(request.url().endsWith('/account-guard.js'))accountRequested=true;});
+ await page.goto(base);
+ await page.locator('#startupTermsTick').waitFor({state:'visible',timeout:45000});
+ assert.equal(await page.locator('#startupTermsAccept').isDisabled(),true);
+ assert.equal(await page.locator('#loginEmail').count(),0);
+ await page.clock.fastForward(45000);
+ assert.equal(accountRequested,false,'auth must not start while reading Terms');
+ assert.equal(await page.getByRole('button',{name:'Retry Startup'}).count(),0);
+ for(const id of ['startupTermsTick','startupTermsAccept','startupTermsDecline']){
+  const bounds=await page.locator('#'+id).boundingBox();
+  assert.ok(bounds&&bounds.y>=0&&bounds.y+bounds.height<=844,id+' must fit the initial iPhone viewport');
+ }
+ await page.screenshot({path:path.join(evidence,selected+'-terms.png')});
+ await page.locator('#startupTermsDecline').click();
+ assert.equal(await page.locator('#loginEmail').count(),0);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('fidunio:terms')),null);
+ await page.locator('#startupTermsAgain').click();
+ assert.equal(await page.locator('#startupTermsAccept').isDisabled(),true);
+ await page.clock.resume();
+ await ready(page);
+ assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('fidunio:terms')).acceptedAt));
+ console.log('PASS: '+selected+' fresh Terms, disabled Accept, decline lock, read again, visible controls and acceptance before auth');
  assert.equal(await page.evaluate(async()=> (await import('/firebase.js')).getFirebaseUser()),null);
  if(authEmulator){
   const persistedUid=await nativeAuthPersistence(page,{create:true});

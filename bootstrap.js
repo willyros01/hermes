@@ -24,11 +24,17 @@ document.addEventListener("click",event=>{
   });
 },true);
 // Bootstrap owns sequencing; the platform adapter owns native startup presentation.
-const startupWatchdog=createPlatformStartupWatchdog({host:document.querySelector(".startup-shell")});
+const startupHost=document.querySelector(".startup-shell");
+let startupWatchdog=createPlatformStartupWatchdog({host:startupHost});
 try{
   // App-family contract: first launch shows Terms before account/auth startup.
   const {ensureStartupTermsAccepted}=await import("./legal-startup-gate.js");
+  // Reading/declining Terms is user time, not an authentication timeout.
+  startupWatchdog.clear();
   await ensureStartupTermsAccepted();
+  // Bootstrap explicitly restores its own host after the legal screen yields.
+  if(startupHost&&!startupHost.isConnected)document.querySelector("#app").replaceChildren(startupHost);
+  startupWatchdog=createPlatformStartupWatchdog({host:startupHost});
   const {startAccountGuard}=await import("./account-guard.js");
   await startAccountGuard();
   const {runAuthGate}=await import("./auth-ui-clean.js");

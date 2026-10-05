@@ -17,7 +17,7 @@ assert.match(policy,/loss, damage, claim, cost, expense or consequence/);
 assert.match(policy,/You assume all risk from using FIDUNIO/);
 assert.match(policy,/Apple and its subsidiaries are third-party beneficiaries/);
 assert.match(policy,/laws of the Province of Ontario/);
-assert.match(policy,/No warranty/);
+assert.match(policy,/without any warranty or condition of any kind/);
 assert.match(policy,/not an emergency service/i);
 
 assert.match(bootstrap,/ensureStartupTermsAccepted/);
