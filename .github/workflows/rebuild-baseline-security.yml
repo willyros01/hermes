@@ -109,6 +109,7 @@ jobs:
       - {name: Cloud Functions recovery scaffold, run: npm run test:functions-scaffold}
       - {name: Runtime transform anchor gate, run: npm run test:runtime-transform-anchors}
       - {name: Runtime authority gate, run: npm run test:runtime-authority}
+      - {name: Release readiness feature/backend manifest, run: node build/release-readiness-gate.test.mjs}
       - {name: 1.0 candidate UI and lifecycle gate, run: npm run test:release-candidate-ui}
       - {name: iPad RC stabilization gate, run: npm run test:ipad-rc-stabilization}
       - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}
