@@ -8,6 +8,7 @@ import {
   getFirebaseUser,
   startDirectConversation,
   subscribeMyConversations,
+  subscribeFidunioBlockedUsers,
   subscribeUserDisplayNames,
   subscribeConversationMessages,
   prioritizeConversationMessage,
@@ -127,6 +128,8 @@ const bulkMessageDeleteProjection=createBulkMessageDeleteProjectionOwner();
 let pendingChatViewport=null;
 let chatRenderGeneration=0;
 let cloudConversationUnsub = null;
+let blockedUsersUnsub = null;
+let blockedUserIds = new Set();
 let cloudConversationSyncPending = false;
 let peerDisplayNameUnsub = ()=>{};
 let peerDisplayNameKey = "";
@@ -145,6 +148,7 @@ let myRegisteredDevices = [];
 let localSecurityMessage = "";
 let localSecurityMessageIsError = false;
 let unlockError = "";
+let unlockPinFallbackVisible=false;
 let messageSendInFlight=false;
 let attachmentPickerActive=false;
 let pendingLargeAttachmentSend=null;
@@ -210,11 +214,13 @@ function lockLocalApp(reason="manual"){
   state.toolsOpen=false;
   state.modal=null;
   unlockError="";
+  unlockPinFallbackVisible=false;
   render();
 }
 function unlockLocalApp(){
   state.unlocked=true;
   unlockError="";
+  unlockPinFallbackVisible=false;
   noteLocalUnlock();
   render();
   void requestAppActivation("unlock");
@@ -916,10 +922,32 @@ function beginCloudConversationSubscription(){
     else if(state.route==="messages"||state.route==="chat")render({background:true});
   });
 }
+function stopBlockedUsersSubscription(){
+  if(blockedUsersUnsub){blockedUsersUnsub();blockedUsersUnsub=null;}
+  blockedUserIds=new Set();
+}
+function beginBlockedUsersSubscription(){
+  stopBlockedUsersSubscription();
+  if(!firebaseUser)return;
+  blockedUsersUnsub=subscribeFidunioBlockedUsers(firebaseUser.uid,rows=>{
+    blockedUserIds=new Set((rows||[]).map(row=>String(row.blockedUid||"")).filter(Boolean));
+    const active=currentConversation();
+    if(active?.cloud&&!active?.cloudGroup&&blockedUserIds.has(String(active.peerUid||"")))state.toolsOpen=false;
+    if(state.route==="chat"||state.route==="messages")render({background:true});
+  },err=>console.warn("FIDUNIO blocked-user sync unavailable",err));
+}
+function directConversationBlockedByMe(conversation){
+  return !!(conversation?.cloud&&!conversation?.cloudGroup&&conversation?.peerUid&&blockedUserIds.has(String(conversation.peerUid)));
+}
+function blockedDirectMessage(){
+  return "You blocked this user. Unblock them in Settings → Safety to send direct messages.";
+}
+
 const directReadReconcilePromises=new Map();
 function reconcileVisibleDirectRead(conversationId,{forceServer=false}={}){
   const id=String(conversationId||"");
   if(!id||!firebaseUser||state.route!=="chat"||String(state.selectedId)!==id)return Promise.resolve(false);
+  const visibleConversation=state.conversations.find(row=>String(row.id)===id);if(directConversationBlockedByMe(visibleConversation))return Promise.resolve(false);
   const hasUnreadIncoming=(state.messages[id]||[]).some(message=>!message.mine&&message.state!=="read");
   if(!forceServer&&!hasUnreadIncoming)return Promise.resolve(false);
   const running=directReadReconcilePromises.get(id);
@@ -1304,6 +1332,7 @@ async function initializeFirebaseLayer(){
         if(getAccountE2EELifecycleState().manager.state!=="READY")bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
+        beginBlockedUsersSubscription();
         beginCloudGroupSubscription();
       }else{
         composerStateByConversation.clear();
@@ -1317,6 +1346,7 @@ async function initializeFirebaseLayer(){
         cloudGroupMessageConversationId=null;
         resetAccountE2EEForSignOut();
         if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
+        stopBlockedUsersSubscription();
         stopPeerDisplayNameSubscription();
         if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
         stopCloudMessageSubscription();
@@ -1325,7 +1355,7 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
-    if(firebaseUser) publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
+    if(firebaseUser){publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
     void requestAppActivation("firebase-initialize-complete");
   }catch(err){
     firebaseError=err?.message || String(err);
@@ -1637,45 +1667,49 @@ function renderUnlock(){
     document.querySelector("#continueBtn").onclick=unlockLocalApp;
     return;
   }
+  const showPinFallback=!security.hasBiometric||unlockPinFallbackVisible;
   app.innerHTML=`
     <main class="app-shell unlock">
       <section class="unlock-card">
         <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
         <h1>Unlock FIDUNIO</h1>
         ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric</button>':""}
-        <label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label>
-        <div id="localUnlockPin"></div>
-        <button class="${security.hasBiometric?"secondary":"primary"}" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>
-        ${unlockError?`<p class="warning-note">${esc(unlockError)}</p>`:""}
+        ${security.hasBiometric&&!showPinFallback?'<button class="secondary" id="showPinFallbackBtn" style="margin-top:10px">Use PIN instead</button>':""}
+        ${showPinFallback?'<label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label><div id="localUnlockPin"></div><button class="primary" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>':""}
+        ${unlockError?`<p class="warning-note" role="alert">${esc(unlockError)}</p>`:""}
         <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} • Local unlock keeps your Firebase session signed in.</div>
       </section>
     </main>`;
+  const showPinButton=document.querySelector("#showPinFallbackBtn");
+  if(showPinButton)showPinButton.onclick=()=>{unlockPinFallbackVisible=true;unlockError="";render();};
   const pinButton=document.querySelector("#localPinUnlockBtn");
-  let pinInput;
-  const tryPin=async()=>{
-    pinButton.disabled=true;
-    pinInput.setDisabled(true);
-    pinButton.textContent="Checking…";
-    try{
-      if(await awaitBoundedLocalPinVerification(verifyLocalPin(pinInput.value()))){unlockLocalApp();return;}
-      unlockError="Incorrect PIN.";
-    }catch(err){
-      console.warn("Local PIN verification did not complete",err);
-      unlockError=err?.message||"PIN check did not finish. Please try again.";
-    }
-    render();
-  };
-  pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
-  pinButton.onclick=tryPin;
+  let pinInput=null;
+  if(pinButton){
+    const tryPin=async()=>{
+      const pin=pinInput.value();
+      if(!/^\d{6}$/.test(pin)){unlockError="Enter your six-digit FIDUNIO PIN.";render();return;}
+      pinButton.disabled=true;pinInput.setDisabled(true);pinButton.textContent="Checking…";
+      try{
+        if(await awaitBoundedLocalPinVerification(verifyLocalPin(pin))){unlockLocalApp();return;}
+        unlockError="Incorrect PIN.";
+      }catch(err){
+        console.warn("Local PIN verification did not complete",err);
+        unlockError=err?.message||"PIN check did not finish. Please try again.";
+      }
+      render();
+    };
+    pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
+    pinButton.onclick=tryPin;
+  }
   const deviceButton=document.querySelector("#deviceUnlockBtn");
   if(deviceButton)deviceButton.onclick=async()=>{
-    deviceButton.disabled=true;
-    deviceButton.textContent="Waiting for Face ID or biometric…";
-    if(await verifyBiometric()){unlockLocalApp();return;}
+    deviceButton.disabled=true;deviceButton.textContent="Waiting for Face ID or biometric…";
+    try{if(await verifyBiometric()){unlockLocalApp();return;}}catch{}
     unlockError="Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.";
+    unlockPinFallbackVisible=true;
     render();
   };
-  setTimeout(()=>pinInput.focus(),0);
+  if(pinInput)setTimeout(()=>pinInput.focus(),0);
 }
 
 function renderMessages(){
@@ -1800,6 +1834,7 @@ function renderNewConversation(){
     const peerUid=document.querySelector("#peerUid").value.trim();
     if(!peerUid)return alert("Choose a FIDUNIO user first.");
     if(peerUid===firebaseUser.uid)return alert("Choose another FIDUNIO user.");
+    if(blockedUserIds.has(String(peerUid)))return alert("You blocked this user. Unblock them in Settings → Safety before starting a direct conversation.");
     cloudBtn.disabled=true;cloudBtn.textContent="Connecting…";
     try{
       const remote=await startDirectConversation(peerUid);
@@ -1833,13 +1868,15 @@ function renderGroupName(){
 
 function chatStatusMarkup(c){
   const visibleFirebaseError=isGroup(c)?(groupMessageStreamLifecycle.errorFor(c.id)||cloudGroupSubscriptionError||firebaseError):firebaseError;
+  const blockedByMe=directConversationBlockedByMe(c);
   const waitingForNotifiedMessage=pendingNotificationRoute&&String(pendingNotificationRoute.conversationId)===String(c?.id)&&!notificationMessageHasProjected(pendingNotificationRoute);
-  return `${waitingForNotifiedMessage?'<div class="status-banner" role="status">Loading new message…</div>':""}${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${visibleFirebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(visibleFirebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
+  return `${waitingForNotifiedMessage?'<div class="status-banner" role="status">Loading new message…</div>':""}${blockedByMe?'<div class="info-banner" role="status">You blocked this user. Direct sending, attachments, reactions, and read receipts are disabled until you unblock them in Settings → Safety.</div>':""}${state.online?"":'<div class="status-banner">Offline — messages will be queued and sent automatically when connection returns.</div>'}${visibleFirebaseError?`<div class="status-banner" role="alert">Firebase connection problem: ${esc(visibleFirebaseError)}</div>`:""}${isGroup(c)?'<div class="info-banner">New members see conversation only from their join time unless an admin explicitly grants earlier history.</div>':""}`;
 }
 function renderChat(){
   const c=currentConversation();
   if(!c){state.selectedId=null;state.route="messages";return renderMessages();}
   const msgs=state.messages[state.selectedId]||[];
+  const blockedByMe=directConversationBlockedByMe(c);
   const existingComposerState=composerStateByConversation.get(String(c.id));
   const viewport=String(pendingChatViewport?.conversationId||"")===String(c.id)
     ?pendingChatViewport
@@ -1858,13 +1895,13 @@ function renderChat(){
       <div id="chatStatusRegion">${chatStatusMarkup(c)}</div>
       <section class="chat" id="chatArea">${renderConversationMessages(msgs,c)}</section>
       <section class="composer-wrap">
-        <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(readConversationDisappearSelection(state.disappearingByConversation,c.id)??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(readConversationDisappearSelection(state.disappearingByConversation,c.id)))}</span></div>
+        <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}" ${blockedByMe?"disabled":""}>${esc(q)}</button>`).join("")}</div>
+        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration" ${blockedByMe?"disabled":""}>${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(readConversationDisappearSelection(state.disappearingByConversation,c.id)??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(readConversationDisappearSelection(state.disappearingByConversation,c.id)))}</span></div>
         ${c.cloudGroup&&existingComposerState?.replyTo?`<div class="card" style="margin:0 4px 8px;padding:9px 11px;border-left:4px solid currentColor;display:flex;gap:10px;align-items:center"><div style="min-width:0;flex:1"><strong>Replying to ${existingComposerState.replyTo.isSelf?"yourself":esc(existingComposerState.replyTo.sender)}</strong><div class="small-note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(existingComposerState.replyTo.preview)}</div></div><button class="icon-btn" id="replyCancelBtn" type="button" aria-label="Cancel reply">×</button></div>`:""}
         <div class="compose-line">
-          <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
-          <textarea id="messageBox" data-conversation-id="${esc(c.id)}" rows="1" placeholder="Type a message…">${esc(existingComposerState?.draft||"")}</textarea>
-          <button class="send-btn icon-2d" id="sendBtn" aria-label="Send">${icon2d("send",24)}</button>
+          <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools" ${blockedByMe?"disabled":""}>${icon2d("plus",24)}</button>
+          <textarea id="messageBox" data-conversation-id="${esc(c.id)}" rows="1" placeholder="${blockedByMe?"Blocked — unblock in Settings → Safety":"Type a message…"}" ${blockedByMe?"disabled":""}>${esc(existingComposerState?.draft||"")}</textarea>
+          <button class="send-btn icon-2d" id="sendBtn" aria-label="Send" ${blockedByMe?"disabled":""}>${icon2d("send",24)}</button>
         </div>
         <div class="tool-panel ${state.toolsOpen?"open":""}" id="toolPanel">
           ${toolButton("photo","Photo")}${toolButton("file","File")}
@@ -2108,6 +2145,7 @@ async function sendSelectedAttachmentFile(kind,file){
 
 async function chooseAndSendAttachment(kind,accept,capture){
   const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
+  if(directConversationBlockedByMe(c))return alert(blockedDirectMessage());
   const input=document.createElement("input");input.type="file";input.accept=accept;if(capture)input.setAttribute("capture","environment");
   const closePicker=()=>{attachmentPickerActive=false;input.remove();};
   input.oncancel=closePicker;
@@ -2120,6 +2158,8 @@ async function sendCurrent(){
   const box=document.querySelector("#messageBox");
   const draftText=box.value.trim();
   if(!draftText) return;
+  const activeConversation=currentConversation();
+  if(directConversationBlockedByMe(activeConversation))throw new Error(blockedDirectMessage());
   messageSendInFlight=true;
   box.value="";
   box.style.height="46px";
@@ -2365,6 +2405,8 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         await removeOutboxMessage(payload.messageId);
         await persistState();
       }catch(err){
+        if(err?.code==="fidunio/direct-delivery-denied"){m.state="failed";m.failureReason="delivery-denied";firebaseError="";await removeOutboxMessage(payload.messageId);await persistState();if(notifyUser)alert(err?.message||"Message could not be delivered to this conversation.");continue;}
+
         // Preserve the Outbox. Only work that never crossed the durable
         // attempt boundary may return to Queued; ambiguous attempted work
         // remains Failed until authoritative reconciliation resolves it.
@@ -2598,7 +2640,7 @@ function renderModal(){
     const isPending=message&&["queued","sending","failed"].includes(message.state);
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
-    const canReact=!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false;
+    const canReact=!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false&&!directConversationBlockedByMe(conversation);
     const canReply=!!conversation?.cloudGroup&&!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&message.authoritativeSource!==false&&!(Number(message.disappearAfterSeconds)>0);
     const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
     const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
