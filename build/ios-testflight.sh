@@ -77,8 +77,10 @@ security cms -D -i "$APP/embedded.mobileprovision" > "$TASK_DIR/profile.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$TASK_DIR/profile.plist" | grep -qx 'VXMLKHF72B.io.github.willyros01.fidunio'
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$TASK_DIR/profile.plist" | grep -qx false
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' "$TASK_DIR/profile.plist" | grep -Fq 'applinks:www.cuberoot-systems.com'
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
+/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$TASK_DIR/signed-entitlements.plist" | grep -Fq 'applinks:www.cuberoot-systems.com'
 test -s "$APP/PrivacyInfo.xcprivacy"
 /usr/bin/plutil -lint "$APP/PrivacyInfo.xcprivacy"
 /usr/libexec/PlistBuddy -c 'Print :NSPrivacyTracking' "$APP/PrivacyInfo.xcprivacy" | grep -qx false
@@ -89,17 +91,26 @@ test -s "$APP/GoogleService-Info.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
+test "$(cmp -s fidunio-logo.png www/fidunio-logo.png; echo $?)" = 0
+swift build/recolor-ios-blue.swift fidunio-logo.png "$TASK_DIR/expected-native-fidunio-logo.png"
+cmp -s "$TASK_DIR/expected-native-fidunio-logo.png" "$APP/public/fidunio-logo.png"
+if test -f hermes-logo.png; then
+  swift build/recolor-ios-blue.swift hermes-logo.png "$TASK_DIR/expected-native-hermes-logo.png"
+  cmp -s "$TASK_DIR/expected-native-hermes-logo.png" "$APP/public/hermes-logo.png"
+fi
 node --input-type=module - "$APP" <<'JS'
 import fs from "node:fs";
 import path from "node:path";
 const app=process.argv[2],list=fs.readFileSync("build/www-files.txt","utf8").split(/\r?\n/).map(x=>x.replace(/#.*$/,"").trim()).filter(Boolean);
+const approvedNativeBranding=new Set(["fidunio-logo.png","hermes-logo.png"]);
 for(const rel of list){
+ if(approvedNativeBranding.has(rel))continue;
  const source=fs.readFileSync(path.join("www",rel)),packaged=fs.readFileSync(path.join(app,"public",rel));
  if(!source.equals(packaged))throw new Error("Packaged asset differs: "+rel);
 }
-console.log("PASS: all "+list.length+" shared web assets match the prepared payload");
+console.log("PASS: all shared web assets match except explicitly verified iOS-only blue-ring branding");
 JS
-echo "PASS: signed FIDUNIO $VERSION ($BUILD), correct team/profile/bundle, production APNs, privacy manifest and encryption declaration"
+echo "PASS: signed FIDUNIO $VERSION ($BUILD), correct team/profile/bundle, production APNs, Associated Domains, blue-ring native branding, privacy manifest and encryption declaration"
 echo "NOTE: App Check is in approved standby/fail-open mode; production App Attest entitlement is not a release blocker until Apple capability is enabled"
 export_options upload
 echo "STEP: upload archive to App Store Connect"
