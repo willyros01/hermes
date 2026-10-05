@@ -4,6 +4,32 @@ const clean=value=>String(value||"").trim();
 export function createAccountDeletionCore({repo}={}){
   if(!repo)throw new Error("Account deletion repository is required.");
   return Object.freeze({
+    async getMyAccountDeletionRequestV1({authUid}={}){
+      const uid=clean(authUid);if(!uid)fail("AUTH_REQUIRED","Authentication is required.");
+      const request=await repo.readRequest(uid);
+      return request?Object.freeze({uid,...request}):null;
+    },
+    async requestMyAccountDeletionV1({authUid}={}){
+      const uid=clean(authUid);if(!uid)fail("AUTH_REQUIRED","Authentication is required.");
+      const existing=await repo.readRequest(uid);
+      if(existing&&["pending","processing"].includes(existing.status))return Object.freeze({status:existing.status,alreadyPending:true});
+      await repo.createRequest(uid);
+      return Object.freeze({status:"pending",alreadyPending:false});
+    },
+    async markMyAccountDeletionCleanupCompleteV1({authUid}={}){
+      const uid=clean(authUid);if(!uid)fail("AUTH_REQUIRED","Authentication is required.");
+      const request=await repo.readRequest(uid);
+      if(!request||request.status!=="pending"||request.cleanupStatus!=="required")fail("DELETE_DENIED","There is no pending deletion request requiring cleanup.");
+      await repo.markCleanupComplete(uid);
+      return Object.freeze({status:"pending",cleanupStatus:"complete"});
+    },
+    async cancelMyAccountDeletionRequestV1({authUid}={}){
+      const uid=clean(authUid);if(!uid)fail("AUTH_REQUIRED","Authentication is required.");
+      const request=await repo.readRequest(uid);
+      if(!request||request.status!=="pending"||request.cleanupStatus!=="required")fail("DELETE_DENIED","This deletion request can no longer be cancelled.");
+      await repo.cancelRequest(uid);
+      return Object.freeze({status:"cancelled"});
+    },
     async completeMyAccountDeletionV1({authUid}={}){
       const uid=clean(authUid);if(!uid)fail("AUTH_REQUIRED","Authentication is required.");
       const request=await repo.readRequest(uid);
