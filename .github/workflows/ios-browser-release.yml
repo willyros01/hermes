@@ -5,6 +5,11 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+
+concurrency:
+  group: ios-browser-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   browsers:
     runs-on: ubuntu-24.04
