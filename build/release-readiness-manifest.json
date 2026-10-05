@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "policy": "A visible feature is not releasable from ios until its packaged client owner, automated gate, and declared backend authority are all represented. Live deployment is verified separately by the pre-TestFlight Cloud Shell audit.",
+  "expectedLiveFirestoreRules": "firestore.rules",
+  "expectedLiveStorageRules": "storage.rules",
+  "requiredFunctions": [
+    "enrollRecoveryV1",
+    "startE2EERecoveryV1",
+    "completeE2EERecoveryV1",
+    "createAdminRecoveryAuthorizationV1",
+    "listAdminRecoveryAuthorizationsV1",
+    "revokeAdminRecoveryAuthorizationV1",
+    "startAdminAuthorizedRecoveryV1",
+    "completeAdminAuthorizedRecoveryV1",
+    "getLegalAcceptanceV1",
+    "acceptLegalPolicyV1",
+    "getMyAccountDeletionRequestV1",
+    "requestMyAccountDeletionV1",
+    "markMyAccountDeletionCleanupCompleteV1",
+    "cancelMyAccountDeletionRequestV1",
+    "completeMyAccountDeletionV1",
+    "transferSystemOwnershipV1",
+    "deleteDirectMessageForEveryoneV1",
+    "deleteMyMessagesForEveryoneV1",
+    "deleteConversationForEveryoneV1",
+    "notifyDirectMessageCreatedV1",
+    "notifyGroupMessageCreatedV1",
+    "purgeDisappearingMessagesV1"
+  ],
+  "features": [
+    {
+      "id": "auth-startup",
+      "ui": "Terms -> Sign In / Join -> PIN / recovery",
+      "packaged": [
+        "auth-ui-clean.js",
+        "legal-startup-gate.js",
+        "firebase-platform-adapter.js"
+      ],
+      "tests": [
+        "build/auth-transition-boundary.test.mjs",
+        "startup-auth-resilience.test.mjs",
+        "forgot-password-recovery.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "direct-messaging",
+      "ui": "Messages -> direct conversation -> send/receive/read/reaction",
+      "packaged": [
+        "app.js",
+        "firebase.js",
+        "e2ee-account-message-runtime.js"
+      ],
+      "rules": [
+        "match /conversations/{conversationId}",
+        "match /messages/{messageId}"
+      ],
+      "tests": [
+        "direct-message-basic-path.test.mjs",
+        "receipt-lifecycle-stabilization.test.mjs",
+        "message-reaction-wiring.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "attachments",
+      "ui": "Chat + -> photo/file/audio/video",
+      "packaged": [
+        "attachment-send-service.js",
+        "attachment-receive-service.js",
+        "attachment-download-platform-adapter.js"
+      ],
+      "storage": [
+        "match /attachments/{senderUid}/{conversationId}/{messageId}/{attachmentId}/{rest=**}"
+      ],
+      "tests": [
+        "attachment-ui-wiring.test.mjs",
+        "attachment-phase-closeout.test.mjs",
+        "build/attachment-download-platform-adapter.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "disappearing",
+      "ui": "Conversation -> Disappearing",
+      "packaged": [
+        "disappearing-conversation-preference.js",
+        "disappearing-purge-policy.js"
+      ],
+      "functions": [
+        "purgeDisappearingMessagesV1"
+      ],
+      "tests": [
+        "disappearing-conversation-preference.test.mjs",
+        "disappearing-text-e2e-closeout.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "groups",
+      "ui": "Groups -> create/info/add/remove/leave/history",
+      "packaged": [
+        "e2ee-account-group-service.js",
+        "e2ee-account-group-app-integration.js"
+      ],
+      "rules": [
+        "match /groups/{groupId}",
+        "match /members/{uid}",
+        "match /historyGrants/{grantId}"
+      ],
+      "tests": [
+        "e2ee-account-group-service.test.mjs",
+        "group-history-admin-ui.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "notifications",
+      "ui": "Settings -> Notifications + push routing",
+      "packaged": [
+        "notification-platform-adapter.js",
+        "notification-registration.js",
+        "notification-routing.js"
+      ],
+      "functions": [
+        "notifyDirectMessageCreatedV1",
+        "notifyGroupMessageCreatedV1"
+      ],
+      "rules": [
+        "match /notificationDevices/{installationId}"
+      ],
+      "tests": [
+        "notification-n3.test.mjs",
+        "notification-n5.test.mjs",
+        "notification-n6.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "block-unblock",
+      "ui": "Settings -> Safety -> Blocked Users -> Block / Unblock",
+      "packaged": [
+        "settings-lifecycle.js",
+        "firebase.js"
+      ],
+      "rules": [
+        "match /blocks/{blockedUid}",
+        "directPairUnblocked",
+        "directCreatePairUnblocked"
+      ],
+      "tests": [
+        "user-block-wiring.test.mjs",
+        "firestore-user-block.rules.test.mjs",
+        "blocked-direct-delivery-ux.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "report-abuse",
+      "ui": "Settings -> Safety -> Report Abuse + moderation queue",
+      "packaged": [
+        "settings-lifecycle.js",
+        "firebase.js"
+      ],
+      "rules": [
+        "match /abuseReports/{reportId}",
+        "validAbuseReportCreate"
+      ],
+      "tests": [
+        "abuse-report-wiring.test.mjs",
+        "firestore-abuse-report.rules.test.mjs",
+        "abuse-report-display.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "account-delete",
+      "ui": "Settings -> Profile -> Delete My Account + Admin queue",
+      "packaged": [
+        "settings-lifecycle.js",
+        "account-deletion-service.js",
+        "account-deletion-finalize-client.js"
+      ],
+      "functions": [
+        "getMyAccountDeletionRequestV1",
+        "requestMyAccountDeletionV1",
+        "markMyAccountDeletionCleanupCompleteV1",
+        "cancelMyAccountDeletionRequestV1",
+        "completeMyAccountDeletionV1"
+      ],
+      "rules": [
+        "match /accountDeletionRequests/{uid}"
+      ],
+      "tests": [
+        "account-deletion-wiring.test.mjs",
+        "firestore-account-deletion.rules.test.mjs",
+        "functions/account-deletion/account-deletion-core.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "invitations",
+      "ui": "Settings -> Invitations -> Create/Revoke -> Join",
+      "packaged": [
+        "invitation-owner.js",
+        "invitation-policy.js",
+        "auth-ui-clean.js"
+      ],
+      "rules": [
+        "match /invitations/{inviteId}"
+      ],
+      "tests": [
+        "invitation-policy.test.mjs",
+        "firestore-invitation.rules.test.mjs",
+        "invitation-install-closeout.test.mjs"
+      ],
+      "device": true
+    },
+    {
+      "id": "recovery-vault",
+      "ui": "Settings -> Data -> recovery/export",
+      "packaged": [
+        "account-vault-owner.js",
+        "account-vault-reconciliation.js",
+        "account-recovery.js"
+      ],
+      "tests": [
+        "account-vault.test.mjs",
+        "account-vault-wiring.test.mjs"
+      ],
+      "device": true
+    }
+  ]
+}
