@@ -1,4 +1,5 @@
 name: Capacitor iOS shell
+# Exact-head release validation trigger; no application code or release version change.
 
 on:
   push:
