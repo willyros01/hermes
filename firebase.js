@@ -42,6 +42,7 @@ export function deleteCloudConversationForEveryone(conversationId,conversationKi
 export function getCloudLegalAcceptance(){return callCloudFunction("getLegalAcceptanceV1",{});}
 export function acceptCloudLegalPolicy(data){return callCloudFunction("acceptLegalPolicyV1",data);}
 export function completeCloudMyAccountDeletion(){return callCloudFunction("completeMyAccountDeletionV1",{});}
+export function transferCloudSystemOwnership(targetUid){return callCloudFunction("transferSystemOwnershipV1",{targetUid:String(targetUid||"")});}
 export async function setCloudMessageReaction(conversationId,messageId,messageKind="direct",reaction){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
   const id=String(conversationId||"").trim(),mid=String(messageId||"").trim(),kind=messageKind==="group"?"group":"direct";
