@@ -9,6 +9,9 @@ const target="ios/App/App/Assets.xcassets/AppIcon.appiconset";
 fs.mkdirSync(target,{recursive:true});
 const targetIcon=target+"/AppIcon-1024.png";
 execFileSync("/usr/bin/swift",["build/recolor-ios-blue.swift",source,targetIcon],{stdio:"inherit"});
+const nativeIcon=fs.readFileSync(targetIcon);
+if(nativeIcon.readUInt32BE(16)!==1024||nativeIcon.readUInt32BE(20)!==1024)throw new Error("Transformed iOS App icon lost 1024×1024 dimensions");
+if([4,6].includes(nativeIcon[25]))throw new Error("Transformed iOS App icon unexpectedly contains alpha");
 
 const nativeLogo="ios/App/App/public/fidunio-logo.png";
 if(!fs.existsSync(nativeLogo))throw new Error("Prepared native FIDUNIO logo is missing");
