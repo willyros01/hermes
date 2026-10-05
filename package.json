@@ -114,6 +114,7 @@
     "@capacitor/ios": "8.5.2",
     "@capacitor-firebase/messaging": "8.5.2",
     "@capacitor-firebase/app-check": "8.5.2",
-    "@aparajita/capacitor-biometric-auth": "10.0.0"
+    "@aparajita/capacitor-biometric-auth": "10.0.0",
+    "@capacitor/app": "8.1.1"
   }
 }
