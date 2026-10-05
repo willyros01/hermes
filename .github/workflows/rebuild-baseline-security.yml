@@ -92,6 +92,7 @@ jobs:
       - {name: Abuse report Firestore rules, run: npm run emulator:test:abuse-report-rules}
       - {name: User block Settings wiring, run: npm run test:user-block}
       - {name: User block Firestore rules, run: npm run emulator:test:user-block-rules}
+      - {name: Blocked direct-message delivery UX boundary, run: node blocked-direct-delivery-ux.test.mjs}
       - {name: Account deletion Settings wiring, run: npm run test:account-deletion}
       - {name: Account deletion request Firestore rules, run: npm run emulator:test:account-deletion-rules}
       - {name: FCM N2 ownership foundation, run: npm run test:notification-n2-foundation}
