@@ -35,6 +35,7 @@ import {
   cancelFidunioAccountDeletionRequest,
   listFidunioAccountDeletionRequestsForAdmin,
   updateFidunioAccountDeletionRequestForAdmin,
+  transferCloudSystemOwnership,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
@@ -197,6 +198,15 @@ async function renderAdminModal(modal,info){
   const users=await listUsers();if(!modal.isConnected)return;
   const body=modal.querySelector(".modal");
   body.innerHTML=`<div class="admin-modal-head"><div><h2>User Administration</h2><p class="small-note">Manage user access, status, expiration, and administrator-authorized account recovery. Invitation management is kept separately under Invitations.</p></div><button class="secondary" id="adminRefreshBtn" style="width:auto">Refresh</button></div><div class="admin-section-label">Users (${users.length})</div><div class="admin-user-table"><div class="admin-user-header"><span>User</span><span>Role</span><span>Status</span><span>Expires</span><span></span></div>${users.map(u=>userRow(u,info)).join("")}</div><p class="small-note" style="margin-top:10px">Recovery authorization never exposes a user's password, PIN, encryption key, messages, or attachments to the administrator.</p><div class="modal-actions"><button class="modal-cancel" id="adminCloseBtn">Close</button></div>`;
+  if(info.role==="owner"){
+    const targets=users.filter(u=>u.uid!==info.user.uid&&u.systemRole==="admin"&&u.active!==false&&!["suspended","deactivated"].includes(String(u.status||"active")));
+    const box=document.createElement("div");box.className="permission-box";box.id="fidunioOwnershipTransferBox";box.style.marginBottom="14px";
+    box.innerHTML='<strong>System Ownership</strong><p class="small-note">Transfer the FIDUNIO Owner role before deleting the current Owner account.</p><select class="text-input" id="ownershipTarget"><option value="">Choose an active Administrator</option></select><button class="secondary" id="transferOwnershipBtn" style="margin-top:10px">Transfer System Ownership</button>';
+    const select=box.querySelector("#ownershipTarget");for(const u of targets){const option=document.createElement("option");option.value=u.uid;option.textContent=u.displayName||u.email||u.uid;select.appendChild(option);}
+    const transfer=box.querySelector("#transferOwnershipBtn");transfer.disabled=targets.length===0;
+    transfer.onclick=async()=>{const target=select.value;if(!target)return;if(!confirm("Transfer FIDUNIO system ownership to this Administrator? Your account will become an Administrator."))return;transfer.disabled=true;transfer.textContent="Transferring…";try{await serializeSettingsMutation("transfer system ownership",()=>transferCloudSystemOwnership(target));closeAdminModal();mountSettingsLifecycle();}catch(err){alert(err?.message||String(err));transfer.disabled=false;transfer.textContent="Transfer System Ownership";}};
+    body.querySelector(".admin-section-label")?.before(box);
+  }
   body.querySelector("#adminCloseBtn").onclick=closeAdminModal;
   body.querySelector("#adminRefreshBtn").onclick=()=>renderAdminModal(modal,info);
   const closeMenus=()=>body.querySelectorAll(".admin-menu.open").forEach(m=>m.classList.remove("open"));
