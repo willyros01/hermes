@@ -7,6 +7,7 @@
  */
 export const FIDUNIO_PLATFORM=Object.freeze({WEB:"web",IOS_NATIVE:"ios-native"});
 export const FIDUNIO_PUBLIC_WEB_BASE="https://willyros01.github.io/hermes/";
+export const FIDUNIO_INVITATION_WEB_LINK_BASE="https://www.cuberoot-systems.com/fidunio/join/";
 
 export function detectFidunioPlatform({
   capacitor=globalThis.Capacitor,
