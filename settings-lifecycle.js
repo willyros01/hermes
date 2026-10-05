@@ -24,6 +24,7 @@ import {
   upsertCloudNotificationDevice,
   deleteCloudNotificationDevice,
   listCloudUsers,
+  getCloudUserProfile,
   submitFidunioAbuseReport,
   listFidunioAbuseReportsForAdmin,
   resolveFidunioAbuseReport,
@@ -63,6 +64,7 @@ let generation=0;
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function initials(name){return String(name||"U").trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("")||"U";}
 function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Administrator":"User";}
+function prettyAbuseCategory(category){return({"harassment":"Harassment or bullying","objectionable-content":"Objectionable content","spam-scam":"Spam or scam","impersonation":"Impersonation","other":"Other"})[String(category||"")]||"Report";}
 function profileStatus(p){if(p?.active===false)return p?.status||"deactivated";return p?.status||"active";}
 function dateText(v){const d=v?.toDate?.()||v;if(!d)return"—";try{return new Date(d).toLocaleString();}catch{return String(d);}}
 function guideUrl(){return fidunioPublicUrl("./quick-start.html").href;}
@@ -323,7 +325,14 @@ async function renderSafety(safetyHost,info){
     try{
       const reports=await listFidunioAbuseReportsForAdmin();
       if(!admin.isConnected)return;
-      list.innerHTML=reports.length?reports.map(r=>`<div class="admin-invite-row"><div><strong>${esc(r.category||"Report")}</strong><span>${esc(r.reporterUid||"")} ${r.targetUid?`→ ${esc(r.targetUid)}`:""} • ${esc(dateText(r.createdAt))}</span>${r.details?`<p class="small-note" style="margin:6px 0 0">${esc(r.details)}</p>`:""}</div><div>${r.status==="open"?`<button class="row-action abuseResolveBtn" type="button" data-id="${esc(r.id)}">Resolve</button><button class="row-action abuseDismissBtn" type="button" data-id="${esc(r.id)}">Dismiss</button>`:`<span class="small-note">${esc(r.status)}</span>`}</div></div>`).join(""):'<p class="small-note">No abuse reports.</p>';
+      const participantUids=[...new Set(reports.flatMap(r=>[r.reporterUid,r.targetUid]).map(x=>String(x||"").trim()).filter(Boolean))];
+      const participantProfiles=new Map();
+      await Promise.all(participantUids.map(async uid=>{
+        try{const profile=await getCloudUserProfile(uid);participantProfiles.set(uid,profile?.displayName||profile?.email||"FIDUNIO user");}
+        catch{participantProfiles.set(uid,"FIDUNIO user");}
+      }));
+      const displayName=uid=>participantProfiles.get(String(uid||""))||"FIDUNIO user";
+      list.innerHTML=reports.length?reports.map(r=>`<div class="admin-invite-row"><div><strong>${esc(prettyAbuseCategory(r.category))}</strong><span>${esc(displayName(r.reporterUid))} ${r.targetUid?`→ ${esc(displayName(r.targetUid))}`:""} • ${esc(dateText(r.createdAt))}</span>${r.details?`<p class="small-note" style="margin:6px 0 0">${esc(r.details)}</p>`:""}</div><div>${r.status==="open"?`<button class="row-action abuseResolveBtn" type="button" data-id="${esc(r.id)}">Resolve</button><button class="row-action abuseDismissBtn" type="button" data-id="${esc(r.id)}">Dismiss</button>`:`<span class="small-note">${esc(r.status)}</span>`}</div></div>`).join(""):'<p class="small-note">No abuse reports.</p>';
       const act=async(btn,status)=>{btn.disabled=true;try{await serializeSettingsMutation("resolve abuse report",()=>resolveFidunioAbuseReport(btn.dataset.id,status,""));await renderSafety(safetyHost,info);}catch(err){alert(err?.message||String(err));btn.disabled=false;}};
       list.querySelectorAll(".abuseResolveBtn").forEach(btn=>btn.onclick=()=>act(btn,"resolved"));
       list.querySelectorAll(".abuseDismissBtn").forEach(btn=>btn.onclick=()=>act(btn,"dismissed"));
