@@ -1686,7 +1686,7 @@ function renderUnlock(){
         ${security.hasBiometric?'<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric</button>':""}
         ${security.hasBiometric&&!showPinFallback?'<button class="secondary" id="showPinFallbackBtn" style="margin-top:10px">Use PIN instead</button>':""}
         ${showPinFallback?'<label class="form-label" id="localUnlockPinLabel">FIDUNIO PIN</label><div id="localUnlockPin"></div><button class="primary" id="localPinUnlockBtn" style="margin-top:12px">Unlock with PIN</button>':""}
-        ${unlockError?`<p class="warning-note" role="alert">${esc(unlockError)}</p>`:""}
+        <p class="warning-note" id="localUnlockNote" role="alert" ${unlockError?"":"hidden"}>${esc(unlockError)}</p>
         <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)} • Local unlock keeps your Firebase session signed in.</div>
       </section>
     </main>`;
@@ -1695,26 +1695,24 @@ function renderUnlock(){
   const pinButton=document.querySelector("#localPinUnlockBtn");
   let pinInput=null;
   if(pinButton){
+    const showPinError=message=>{
+      unlockError=String(message||"PIN check did not finish. Please try again.");
+      const note=document.querySelector("#localUnlockNote");
+      if(note){note.textContent=unlockError;note.hidden=false;}
+      pinButton.disabled=false;pinButton.textContent="Unlock with PIN";
+      pinInput.setDisabled(false);pinInput.clear();pinInput.focus();
+    };
     const tryPin=async()=>{
       const pin=pinInput.value();
-      if(!/^\d{6}$/.test(pin)){
-        unlockError="Enter your six-digit FIDUNIO PIN.";
-        pinInput.clear();pinInput.focus();
-        const note=document.querySelector(".unlock-card .warning-note");
-        if(note)note.textContent=unlockError;else render();
-        return;
-      }
-      pinButton.disabled=true;
-      pinInput.setDisabled(true);
-      pinButton.textContent="Checking…";
+      if(!/^\d{6}$/.test(pin)){showPinError("Enter your six-digit FIDUNIO PIN.");return;}
+      pinButton.disabled=true;pinInput.setDisabled(true);pinButton.textContent="Checking…";
       try{
         if(await awaitBoundedLocalPinVerification(verifyLocalPin(pin))){unlockLocalApp();return;}
-        unlockError="Incorrect PIN.";
+        showPinError("Incorrect PIN.");return;
       }catch(err){
         console.warn("Local PIN verification did not complete",err);
-        unlockError=err?.message||"PIN check did not finish. Please try again.";
+        showPinError(err?.message||"PIN check did not finish. Please try again.");return;
       }
-      render();
     };
     pinInput=mountSixDigitPinInput(document.querySelector("#localUnlockPin"),{onComplete:tryPin});
     pinButton.onclick=tryPin;
