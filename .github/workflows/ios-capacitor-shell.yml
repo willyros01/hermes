@@ -17,6 +17,7 @@ on:
       - '*.png'
       - 'manifest.json'
       - '.github/workflows/ios-capacitor-shell.yml'
+      - '.github/workflows/ios-testflight.yml'
       - 'IOS-EXPORT-COMPLIANCE.md'
   workflow_dispatch:
 
