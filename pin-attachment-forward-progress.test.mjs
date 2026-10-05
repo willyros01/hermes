@@ -26,7 +26,7 @@ const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
 const worker=readFileSync(new URL("./service-worker.js",import.meta.url),"utf8");
 assert.match(app,/if\(!\/\^\\d\{6\}\$\/\.test\(pin\)\)[\s\S]*?awaitBoundedLocalPinVerification\(verifyLocalPin\(pin\)\)/,"PIN unlock must reject incomplete input before bounded verification");
 assert.match(app,/function unlockLocalApp\(\)\{[\s\S]*?noteLocalUnlock\(\);\s*render\(\);\s*void requestAppActivation\("unlock"\)/,"successful local PIN unlock must render before cloud activation work");
-assert.match(app,/catch\(err\)[\s\S]*?unlockError=err\?\.message[\s\S]*?render\(\)/,"a stalled PIN check must restore an interactive unlock screen");
+assert.match(app,/function showPinError\(message\)\{[\s\S]*?pinButton\.disabled=false;[\s\S]*?pinInput\.setDisabled\(false\);[\s\S]*?pinInput\.clear\(\);pinInput\.focus\(\);[\s\S]*?catch\(err\)[\s\S]*?showPinError\(err\?\.message/,"a stalled PIN check must restore an interactive PIN fallback without a full-screen hang");
 assert.match(app,/if\(!c\.cloudGroup\)await scheduleAttachmentOutboxRetryIfPending\(\{messageId:row\.messageId,readOutboxMessage:getOutboxMessage,scheduleRetry:scheduleReconnectRecovery\}\)/,"only a direct attachment still in Outbox may schedule existing recovery");
 assert.match(worker,/\.\/local-pin-verification-boundary\.js/);
 assert.match(worker,/const SHELL_REVISION="[^"]+";/,"PIN/attachment forward-progress must remain in an explicitly revisioned PWA shell without pinning this gate to an unrelated historical build");
