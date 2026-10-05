@@ -58,6 +58,7 @@ import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan
 import { planAuthoritativeMessageProjection } from "./disappearing-authoritative-projection.js";
 import { planReconnectOutboxConvergence } from "./disappearing-reconnect-recovery.js";
 import { DISAPPEARING_COMPOSE_PRESETS, composeDisappearLabel, stampOutgoingDisappearSelection } from "./disappearing-compose-policy.js";
+import {readConversationDisappearSelection,writeConversationDisappearSelection} from "./disappearing-conversation-preference.js";
 import { createAttachmentSendService } from "./attachment-send-service.js";
 import { createAttachmentReceiveService } from "./attachment-receive-service.js";
 import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-transport-policy.js";
@@ -97,6 +98,7 @@ let state = {
   messages:{},
   hiddenMessages:{},
   settings:{previews:false,autoLock:true,textSize:"normal",wifiAttachments:true,appearance:"auto",disappearingTextSeconds:null},
+  disappearingByConversation:{},
   peerTrust:{}
 };
 
@@ -162,7 +164,10 @@ function messagePreview(text){
   if(reply)return reply.text;
   const descriptor=parseAttachmentDescriptor(text);
   if(!descriptor)return text||"";
-  return descriptor.kind==="photo"||String(descriptor.type||"").startsWith("image/")?"📷 Photo":`📎 ${descriptor.name||"Attachment"}`;
+  if(descriptor.kind==="photo"||String(descriptor.type||"").startsWith("image/"))return "📷 Photo";
+  if(descriptor.kind==="audio"||String(descriptor.type||"").startsWith("audio/"))return `🔊 ${descriptor.name||"Audio"}`;
+  if(descriptor.kind==="video"||String(descriptor.type||"").startsWith("video/"))return `🎬 ${descriptor.name||"Video"}`;
+  return `📎 ${descriptor.name||"Attachment"}`;
 }
 function groupReplyTargetPreview(message){
   const reply=parseGroupReplyDescriptor(message?.text);
@@ -295,6 +300,7 @@ function serializableState(){
     messages:Object.fromEntries(Object.entries(state.messages).map(([conversationId,messages])=>[conversationId,(Array.isArray(messages)?messages:[]).filter(message=>!message?.ephemeralAttachmentWait)])),
     hiddenMessages:state.hiddenMessages,
     settings:state.settings,
+    disappearingByConversation:state.disappearingByConversation,
     peerTrust:state.peerTrust,
     quickPhrases:state.quickPhrases,
     selectedId:state.selectedId
@@ -332,6 +338,7 @@ async function loadPersistedState(){
     if(saved.archivedConversations&&typeof saved.archivedConversations==="object")state.archivedConversations=saved.archivedConversations;
     if(saved.messages) state.messages=saved.messages;
     if(saved.hiddenMessages&&typeof saved.hiddenMessages==="object")state.hiddenMessages=saved.hiddenMessages;
+    if(saved.disappearingByConversation&&typeof saved.disappearingByConversation==="object"&&!Array.isArray(saved.disappearingByConversation))state.disappearingByConversation=saved.disappearingByConversation;
     if(saved.settings) state.settings={...state.settings,...saved.settings};
     if(saved.peerTrust && typeof saved.peerTrust==="object") state.peerTrust=saved.peerTrust;
     if(saved.quickPhrases) state.quickPhrases=saved.quickPhrases;
@@ -1860,7 +1867,7 @@ function renderChat(){
       <section class="chat" id="chatArea">${renderConversationMessages(msgs,c)}</section>
       <section class="composer-wrap">
         <div class="quick-row">${state.quickPhrases.map(q=>`<button class="quick-chip" data-quick="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(state.settings.disappearingTextSeconds??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(state.settings.disappearingTextSeconds))}</span></div>
+        <div class="small-note" style="display:flex;align-items:center;gap:8px;margin:0 4px 6px"><label for="disappearSelect">Disappearing:</label><select id="disappearSelect" aria-label="Disappearing message duration">${DISAPPEARING_COMPOSE_PRESETS.map(p=>`<option value="${p.value??"off"}" ${(readConversationDisappearSelection(state.disappearingByConversation,c.id)??null)===p.value?"selected":""}>${esc(p.label)}</option>`).join("")}</select><span>${esc(composeDisappearLabel(readConversationDisappearSelection(state.disappearingByConversation,c.id)))}</span></div>
         ${c.cloudGroup&&existingComposerState?.replyTo?`<div class="card" style="margin:0 4px 8px;padding:9px 11px;border-left:4px solid currentColor;display:flex;gap:10px;align-items:center"><div style="min-width:0;flex:1"><strong>Replying to ${existingComposerState.replyTo.isSelf?"yourself":esc(existingComposerState.replyTo.sender)}</strong><div class="small-note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(existingComposerState.replyTo.preview)}</div></div><button class="icon-btn" id="replyCancelBtn" type="button" aria-label="Cancel reply">×</button></div>`:""}
         <div class="compose-line">
           <button class="more-btn icon-2d" id="moreBtn" aria-label="More tools">${icon2d("plus",24)}</button>
@@ -1896,7 +1903,7 @@ function renderChat(){
   document.querySelector("#moreBtn").onclick=()=>{state.toolsOpen=!state.toolsOpen;render()};
   const replyCancelBtn=document.querySelector("#replyCancelBtn");if(replyCancelBtn)replyCancelBtn.onclick=()=>clearGroupReplyComposer(c.id);
   const disappearSelect=document.querySelector("#disappearSelect");
-  if(disappearSelect)disappearSelect.onchange=()=>{state.settings.disappearingTextSeconds=disappearSelect.value==="off"?null:Number(disappearSelect.value);persistSoon();render();};
+  if(disappearSelect)disappearSelect.onchange=()=>{state.disappearingByConversation=writeConversationDisappearSelection(state.disappearingByConversation,c.id,disappearSelect.value==="off"?null:Number(disappearSelect.value));persistSoon();render();};
   document.querySelectorAll(".quick-chip").forEach(btn=>btn.onclick=()=>{
     const box=document.querySelector("#messageBox");box.value=btn.dataset.quick;box.focus();
   });
@@ -1984,12 +1991,14 @@ function renderBubble(m,c){
     }else{
       if(!runtime)queueMicrotask(()=>loadAttachment(c.id,m,descriptor));
       if(runtime?.status==="ready"){
-        const result=runtime.result,isImage=result.kind==="photo"||String(result.type||"").startsWith("image/"),isVideo=result.kind==="video"||String(result.type||"").startsWith("video/");
+        const result=runtime.result,isImage=result.kind==="photo"||String(result.type||"").startsWith("image/"),isVideo=result.kind==="video"||String(result.type||"").startsWith("video/"),isAudio=result.kind==="audio"||String(result.type||"").startsWith("audio/");
         messageContent=isImage
           ?`<a class="attachment-image-link" href="${esc(result.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(result.name)}"><img class="message-photo" src="${esc(result.url)}" alt="${esc(result.name)}"></a>`
           :isVideo
             ?`<video class="message-video" src="${esc(result.url)}" controls playsinline preload="metadata" aria-label="${esc(result.name)}"></video>`
-            :`<a class="attachment-card attachment-file" href="${esc(result.url)}" download="${esc(result.name)}">📎 ${esc(result.name)}</a>`;
+            :isAudio
+              ?`<div class="attachment-audio-card"><audio class="message-audio" src="${esc(result.url)}" controls preload="metadata" aria-label="${esc(result.name)}"></audio><div class="small-note">${esc(result.name)}</div></div>`
+              :`<a class="attachment-card attachment-file" href="${esc(result.url)}" download="${esc(result.name)}">📎 ${esc(result.name)}</a>`;
       }else if(runtime?.status==="error"){
         messageContent=`<div class="attachment-card attachment-error">${descriptor.kind==="photo"?"Photo":"Attachment"} could not be opened.<span class="attachment-error-detail">${esc(runtime.error?.message||"Unknown attachment error")}</span><button class="attachment-retry" type="button" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}">Try Again</button></div>`;
       }else messageContent=`<div class="attachment-card attachment-loading">Loading ${descriptor.kind==="photo"?"photo":"attachment"}…</div>`;
@@ -2050,7 +2059,7 @@ function projectSelectedAttachmentRecord(record,messageState){
 function createSelectedAttachmentRecord(kind,file,c){
   const messageId=crypto.randomUUID(),attachmentId=crypto.randomUUID(),originalName=file.name||`${kind}-${Date.now()}`,originalType=file.type||"application/octet-stream";
   const previewText=JSON.stringify({fidunioAttachment:1,attachmentId,kind,name:originalName,type:originalType,size:file.size});
-  const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),createdAt:new Date(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},state.settings.disappearingTextSeconds??null);
+  const stagedMessage=stampOutgoingDisappearSelection({id:messageId,mine:true,text:previewText,time:nowTime(),createdAt:new Date(),state:"sending",cloud:true,attachment:{kind,name:originalName,type:originalType,size:file.size}},readConversationDisappearSelection(state.disappearingByConversation,c.id));
   return{kind,file,conversationId:String(c.id),messageId,attachmentId,originalName,originalType,previewText,stagedMessage,projected:false};
 }
 function attachLocalSelectedFilePreview(record){
@@ -2070,7 +2079,7 @@ async function continueSelectedAttachmentSend(record){
   const {file,messageId,attachmentId,kind,originalName,originalType,stagedMessage}=record;
   try{
     const bytes=new Uint8Array(await file.arrayBuffer());
-    const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:state.settings.disappearingTextSeconds??null};
+    const descriptor={attachmentId,messageId,kind,name:originalName,type:originalType,size:file.size,bytes,uid:firebaseUser.uid,conversationId:String(c.id),recipientUid:c.peerUid||null,groupId:c.cloudGroup?String(c.id):null,disappearAfterSeconds:readConversationDisappearSelection(state.disappearingByConversation,c.id)};
     const svc=createAttachmentSendService({stageEncryptedOutbox:async row=>{stagedMessage.text=JSON.stringify({fidunioAttachment:1,attachmentId:row.attachmentId,kind:row.attachmentKind,name:row.manifest.name,type:row.manifest.type,size:row.manifest.size,key:row.attachmentKey,storagePaths:row.storagePaths});stagedMessage.disappearAfterSeconds=row.disappearAfterSeconds;await persistState();render({background:true});},uploadEncryptedAttachment,commitAttachmentMessage:async row=>{if(c.cloudGroup)await queueGroupTextForApp({groupId:c.id,messageId:row.messageId,text:stagedMessage.text,time:stagedMessage.time,disappearAfterSeconds:row.disappearAfterSeconds,persistEncryptedOutbox:persistGroupOutboxPayload});else await queueOutboxMessage(c.id,stagedMessage);await flushQueuedAfterAuthoritativeReconcile();if(!c.cloudGroup)await scheduleAttachmentOutboxRetryIfPending({messageId:row.messageId,readOutboxMessage:getOutboxMessage,scheduleRetry:scheduleReconnectRecovery});},removeEncryptedOutbox:async()=>{}});
     await svc.send(descriptor);
   }catch(err){stagedMessage.ephemeralAttachmentWait=false;stagedMessage.state="failed";await persistState();render({background:true});alert("Attachment could not be sent: "+(err?.message||err));}
@@ -2147,7 +2156,7 @@ async function sendCurrent(){
     createdAt:new Date(),
     state:(state.online && (!cloud || firebaseUser))?"sending":"queued",
     cloud
-  },state.settings.disappearingTextSeconds);
+  },readConversationDisappearSelection(state.disappearingByConversation,conversationId));
 
   if(!state.messages[conversationId]) state.messages[conversationId]=[];
   if(cloudGroup)optimisticOutgoingProjection.stage(conversationId,m);
