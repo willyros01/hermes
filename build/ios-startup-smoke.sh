@@ -20,10 +20,11 @@ request.recognitionLevel = .accurate
 try VNImageRequestHandler(url:image).perform([request])
 let text=(request.results ?? []).compactMap{$0.topCandidates(1).first?.string}.joined(separator:"\n")
 print(text)
-exit(text.localizedCaseInsensitiveContains("Sign In") && text.localizedCaseInsensitiveContains("Email") && text.localizedCaseInsensitiveContains("Password") ? 0 : 1)
+let ok = text.localizedCaseInsensitiveContains("Terms of Use") && text.localizedCaseInsensitiveContains("I have read and agree") && text.localizedCaseInsensitiveContains("Accept") && text.localizedCaseInsensitiveContains("Decline")
+exit(ok ? 0 : 1)
 SWIFT
 swiftc "$TASK_DIR/ReadScreen.swift" -o "$TASK_DIR/read-screen"
-echo 'Launching FIDUNIO and checking for the sign-in form'
+echo 'Launching FIDUNIO and checking for the required pre-auth Terms screen'
 xcrun simctl launch "$DEVICE" io.github.willyros01.fidunio
 mkdir -p startup-evidence
 for attempt in {1..12}; do
@@ -32,7 +33,7 @@ for attempt in {1..12}; do
   xcrun simctl io "$DEVICE" screenshot startup-evidence/ios-startup.png
   if "$TASK_DIR/read-screen" startup-evidence/ios-startup.png > startup-evidence/screen-text.txt; then
     cat startup-evidence/screen-text.txt
-    echo 'PASS: real iOS Simulator Capacitor cold launch reached the unauthenticated sign-in form'
+    echo 'PASS: real iOS Simulator Capacitor cold launch reached the required pre-auth Terms screen'
     exit 0
   fi
 done
