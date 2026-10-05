@@ -64,7 +64,16 @@ async function nativeAuthPersistence(page,{create=false}={}){
   return uid;
  },{authEmulator,create});
 }
+async function acceptStartupTermsIfNeeded(page){
+ const tick=page.locator('#startupTermsTick');
+ if(await tick.count()){
+  await tick.waitFor({state:'visible',timeout:45000});
+  await tick.check();
+  await page.locator('#startupTermsAccept').click();
+ }
+}
 async function ready(page){
+ await acceptStartupTermsIfNeeded(page);
  await page.locator('#loginEmail').waitFor({state:'visible',timeout:45000});
  assert.equal(await page.locator('#loginPassword').getAttribute('type'),'password');
  assert.equal(await page.locator('.startup-shell').count(),0);
@@ -125,7 +134,7 @@ try{
  await context.close();console.log('PASS: '+selected+' native cold startup/reload, auth tabs, password visibility, validation and no web service worker');
  // A failed SDK load must show an actionable failure, then a full reload recovers.
  const failed=await fresh();await failed.context.route('https://www.gstatic.com/firebasejs/**',route=>route.abort());
- await failed.page.goto(base);await failed.page.getByRole('button',{name:'Retry Startup'}).waitFor({state:'visible'});
+ await failed.page.goto(base);await acceptStartupTermsIfNeeded(failed.page);await failed.page.getByRole('button',{name:'Retry Startup'}).waitFor({state:'visible'});
  assert.match(await failed.page.locator('.startup-shell').innerText(),/has not been reset/);
  await failed.page.screenshot({path:path.join(evidence,selected+'-load-failure.png')});
  await failed.context.unroute('https://www.gstatic.com/firebasejs/**');
@@ -135,7 +144,7 @@ try{
  const stalled=await fresh();await stalled.page.clock.install();
  await stalled.context.route('**/account-guard.js',()=>{});
  const pendingImport=stalled.page.waitForRequest('**/account-guard.js');
- await stalled.page.goto(base,{waitUntil:'commit'});await pendingImport;
+ await stalled.page.goto(base,{waitUntil:'commit'});await acceptStartupTermsIfNeeded(stalled.page);await pendingImport;
  await stalled.page.clock.fastForward(31000);
  await stalled.page.getByRole('button',{name:'Retry Startup'}).waitFor({state:'visible'});
  assert.match(await stalled.page.locator('.startup-shell').innerText(),/taking longer than expected/);
