@@ -21,16 +21,25 @@ const base=`http://127.0.0.1:${server.address().port}`;
 const selected=process.env.TEST_BROWSER||'chromium';
 const authEmulator=process.env.FIDUNIO_AUTH_EMULATOR_URL||'';
 const browser=await ({chromium,webkit}[selected]).launch();
-async function fresh(){
+async function fresh({launchUrl=""}={}){
  const context=await browser.newContext({viewport:{width:390,height:844}});
- await context.addInitScript(()=>{window.Capacitor={
+ await context.addInitScript(({launchUrl})=>{window.Capacitor={
   isNativePlatform:()=>true,
   getPlatform:()=> 'ios',
-  Plugins:{FirebaseAppCheck:{
-   initialize:async()=>{},
-   getToken:async()=>({token:"fidunio-preflight-native-app-check-token",expireTimeMillis:Date.now()+60*60*1000})
-  }}
- };});
+  Plugins:{
+   FirebaseAppCheck:{
+    initialize:async()=>{},
+    getToken:async()=>({token:"fidunio-preflight-native-app-check-token",expireTimeMillis:Date.now()+60*60*1000})
+   },
+   App:{
+    getLaunchUrl:async()=>launchUrl?{url:launchUrl}:undefined,
+    addListener:async(name,handler)=>{
+     if(name==="appUrlOpen")window.__fidunioAppUrlOpen=handler;
+     return{remove:async()=>{if(name==="appUrlOpen"&&window.__fidunioAppUrlOpen===handler)delete window.__fidunioAppUrlOpen;}};
+    }
+   }
+  }
+ };},{launchUrl});
  await context.route('**/*',route=>{
   const url=route.request().url();
   // Protect production: permit only local assets and the public Firebase SDK.
@@ -157,6 +166,31 @@ try{
  assert.equal(await page.evaluate(async()=> (await navigator.serviceWorker.getRegistrations()).length),0);
  await page.screenshot({path:path.join(evidence,selected+'-sign-in.png')});
  await context.close();console.log('PASS: '+selected+' native cold startup/reload, auth tabs, password visibility, validation and no web service worker');
+
+ // Universal Link cold launch must reach the actual shared Join screen with the
+ // invitation token already entered. No native invitation business logic exists.
+ const coldToken='coldInviteToken_12345678901234567890';
+ const coldInvite=await fresh({launchUrl:'https://www.cuberoot-systems.com/fidunio/join/?invite='+coldToken});
+ await coldInvite.page.goto(base);
+ await acceptStartupTermsIfNeeded(coldInvite.page);
+ await coldInvite.page.locator('#inviteCode').waitFor({state:'visible',timeout:45000});
+ assert.equal(await coldInvite.page.locator('#inviteCode').inputValue(),coldToken);
+ assert.equal(await coldInvite.page.getByRole('tab',{name:'Join FIDUNIO'}).getAttribute('aria-selected'),'true');
+ await coldInvite.context.close();
+ console.log('PASS: '+selected+' cold Universal Link reaches shared Join screen with invitation token');
+
+ // Warm app URL delivery must use the same Join path and token field.
+ const warmInvite=await fresh();
+ await warmInvite.page.goto(base);await ready(warmInvite.page);
+ await warmInvite.page.evaluate(async token=>{
+   if(typeof window.__fidunioAppUrlOpen!=='function')throw new Error('native appUrlOpen listener was not registered');
+   await window.__fidunioAppUrlOpen({url:'https://www.cuberoot-systems.com/fidunio/join/?invite='+token});
+ },'warmInviteToken_12345678901234567890');
+ await warmInvite.page.locator('#inviteCode').waitFor({state:'visible',timeout:45000});
+ assert.equal(await warmInvite.page.locator('#inviteCode').inputValue(),'warmInviteToken_12345678901234567890');
+ await warmInvite.context.close();
+ console.log('PASS: '+selected+' warm Universal Link reaches shared Join screen with invitation token');
+
  // A failed SDK load must show an actionable failure, then a full reload recovers.
  const failed=await fresh();await failed.context.route('https://www.gstatic.com/firebasejs/**',route=>route.abort());
  await failed.page.goto(base);await acceptStartupTermsIfNeeded(failed.page);await failed.page.getByRole('button',{name:'Retry Startup'}).waitFor({state:'visible'});
