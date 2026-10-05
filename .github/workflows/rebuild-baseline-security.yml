@@ -89,6 +89,7 @@ jobs:
       - {name: Account direct-message service, run: npm run test:e2ee-account-message-service}
       - {name: Firebase App Check client integration, run: npm run test:firebase-app-check}
       - {name: Abuse report Settings wiring, run: npm run test:abuse-report}
+      - {name: Abuse report readable moderation display, run: node abuse-report-display.test.mjs}
       - {name: Abuse report Firestore rules, run: npm run emulator:test:abuse-report-rules}
       - {name: User block Settings wiring, run: npm run test:user-block}
       - {name: User block Firestore rules, run: npm run emulator:test:user-block-rules}
