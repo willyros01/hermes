@@ -130,6 +130,7 @@ jobs:
       - {name: First-use legal acceptance wiring, run: node legal-policy-wiring.test.mjs}
       - {name: Legal acceptance callable core, run: node functions/legal/legal-policy-core.test.mjs}
       - {name: Final account deletion callable core, run: node functions/account-deletion/account-deletion-core.test.mjs}
+      - {name: System ownership transfer core, run: node functions/access/system-ownership-core.test.mjs}
       - {name: Native App Check release wiring, run: node build/ios-app-check-gate.test.mjs}
       - {name: Packaged iOS JavaScript syntax, run: node build/ios-runtime-syntax.test.mjs}
       - {name: Attachment download platform boundary, run: node build/attachment-download-platform-adapter.test.mjs}
