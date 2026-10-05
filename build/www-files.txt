@@ -48,6 +48,7 @@ account-vault-reconciliation.js
 account-vault-activation.js
 disappearing-content-policy.js
 disappearing-compose-policy.js
+disappearing-conversation-preference.js
 disappearing-local-storage-plan.js
 disappearing-authoritative-projection.js
 disappearing-local-convergence.js
