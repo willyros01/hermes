@@ -26,14 +26,26 @@ import {
   recoverQuarantinedE2EEIdentity,
   activateAccountStorage
 } from "./account-storage.js";
+import {readInitialNativeInvitationToken,subscribeNativeInvitationLinks} from "./invitation-platform-adapter.js";
 
 const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
 let appStarted=false;
 let appStartPromise=null;
+let pendingNativeInviteToken="";
+let invitationLinkSubscriptionStarted=false;
 
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function inviteTokenFromUrl(){return new URL(location.href).searchParams.get("invite")||"";}
-function clearInviteFromUrl(){const u=new URL(location.href);if(!u.searchParams.has("invite"))return;u.searchParams.delete("invite");history.replaceState(null,"",u.pathname+(u.search||"")+u.hash);}
+function inviteTokenFromUrl(){return pendingNativeInviteToken||new URL(location.href).searchParams.get("invite")||"";}
+function clearInviteFromUrl(){pendingNativeInviteToken="";const u=new URL(location.href);if(!u.searchParams.has("invite"))return;u.searchParams.delete("invite");history.replaceState(null,"",u.pathname+(u.search||"")+u.hash);}
+async function initializeInvitationLinkRouting(){
+  if(invitationLinkSubscriptionStarted)return;
+  invitationLinkSubscriptionStarted=true;
+  pendingNativeInviteToken=await readInitialNativeInvitationToken();
+  subscribeNativeInvitationLinks(token=>{
+    pendingNativeInviteToken=token;
+    if(!getFirebaseUser()&&!appStarted)renderGate("join");
+  });
+}
 function authShell(inner){document.querySelector("#app").innerHTML=`<main class="app-shell unlock"><section class="unlock-card" style="max-width:520px"><div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div><h1>FIDUNIO</h1><p>Private Messaging</p>${inner}<div class="small-note">FIDUNIO ${esc(VERSION)} • Invite-only access</div></section></main>`;}
 
 async function sendPasswordReset(email){return sendFidunioPasswordReset(email);}
@@ -270,6 +282,7 @@ async function renderJoin(initialToken=""){
 }
 
 export async function runAuthGate(){
+  await initializeInvitationLinkRouting();
   if(!isFirebaseConfigured()){authShell('<p class="warning-note">FIDUNIO cannot start because Firebase is not configured.</p>');return;}
   // firebase.js owns the complete Firebase startup lifecycle. App Check is
   // initialized there before Auth/Firestore services are exposed.
