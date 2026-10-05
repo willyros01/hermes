@@ -107,40 +107,61 @@ async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
 async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   const saved=identity?await readLocalAccountE2EEIdentity(user.uid,identity):null;
   const security=getLocalSecurityStatus();
+  const signOut=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
+
   if(saved){
-    authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with Face ID or Biometric</button>':""}<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="${security.hasBiometric?"secondary":"primary"}" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
-  }else{
-    const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
-    authShell(`<p class="small-note">${hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
+    let showPinFallback=!security.hasBiometric;
+    const paint=(message="")=>{
+      authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with Face ID or Biometric</button>':""}${security.hasBiometric&&!showPinFallback?'<button class="secondary" id="sessionShowPinBtn" style="margin-top:10px">Use PIN instead</button>':""}${showPinFallback?'<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button>':""}<button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote">${message?`<p class="warning-note" role="alert">${esc(message)}</p>`:""}</div>`);
+      document.querySelector("#sessionSignOutBtn").onclick=signOut;
+      const reveal=document.querySelector("#sessionShowPinBtn");
+      if(reveal)reveal.onclick=()=>{showPinFallback=true;paint();};
+
+      const deviceBtn=document.querySelector("#sessionDeviceBtn");
+      if(deviceBtn)deviceBtn.onclick=async()=>{
+        deviceBtn.disabled=true;deviceBtn.textContent="Waiting for Face ID or biometric…";
+        try{if(await verifyBiometric()){restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();await openStartedAppOrOfferRetry(user);return;}}catch{}
+        showPinFallback=true;
+        paint("Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.");
+      };
+
+      const pinHost=document.querySelector("#sessionPinHost"),unlockBtn=document.querySelector("#sessionUnlockBtn");
+      if(pinHost&&unlockBtn){
+        const pinInput=mountSixDigitPinInput(pinHost,{onComplete:()=>unlockBtn.click()});
+        unlockBtn.onclick=async()=>{
+          const pin=pinInput.value();
+          if(!/^\d{6}$/.test(pin)){paint("Enter your six-digit FIDUNIO PIN.");return;}
+          unlockBtn.disabled=true;unlockBtn.textContent="Unlocking…";pinInput.setDisabled(true);
+          try{
+            if(!await verifyLocalPin(pin))throw new Error("Incorrect PIN.");
+            restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();
+          }catch(err){paint(err?.message||String(err));return;}
+          await openStartedAppOrOfferRetry(user);
+        };
+        setTimeout(()=>pinInput.focus(),0);
+      }
+    };
+    paint();
+    return;
   }
+
+  const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
+  authShell(`<p class="small-note">${hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   const pinInput=mountSixDigitPinInput(document.querySelector("#sessionPinHost"),{onComplete:()=>document.querySelector("#sessionUnlockBtn")?.click()});
   document.querySelector("#sessionUnlockBtn").onclick=async()=>{
-    const btn=document.querySelector("#sessionUnlockBtn"),note=document.querySelector("#sessionNote");
+    const btn=document.querySelector("#sessionUnlockBtn"),note=document.querySelector("#sessionNote"),pin=pinInput.value();
+    if(!/^\d{6}$/.test(pin)){note.innerHTML='<p class="warning-note" role="alert">Enter your six-digit FIDUNIO PIN.</p>';pinInput.clear();pinInput.focus();return;}
     btn.disabled=true;btn.textContent="Unlocking…";pinInput.setDisabled(true);
     try{
-      if(saved){
-        if(!await verifyLocalPin(pinInput.value()))throw new Error("Incorrect PIN.");
-        restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();
-      }else await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pinInput.value(),{hasIdentity});
-      await startApp();
+      await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pin,{hasIdentity});
     }catch(err){
-      note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
-      btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();
+      note.innerHTML=`<p class="warning-note" role="alert">${esc(err?.message||String(err))}</p>`;
+      btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();return;
     }
+    await openStartedAppOrOfferRetry(user);
   };
-  const deviceBtn=document.querySelector("#sessionDeviceBtn");
-  if(deviceBtn)deviceBtn.onclick=async()=>{
-    deviceBtn.disabled=true;deviceBtn.textContent="Waiting for Face ID or biometric…";
-    if(await verifyBiometric()){restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();await startApp();return;}
-    document.querySelector("#sessionNote").innerHTML='<p class="warning-note">Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.</p>';
-    deviceBtn.disabled=false;deviceBtn.textContent="Unlock with Face ID or Biometric";
-  };
-  document.querySelector("#sessionSignOutBtn").onclick=async()=>{
-    resetAccountE2EEForSignOut();
-    await signOutFidunio();
-    renderGate("signin");
-  };
-  setTimeout(()=>saved||password?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
+  document.querySelector("#sessionSignOutBtn").onclick=signOut;
+  setTimeout(()=>password?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
 }
 
 async function renderPasswordResetRecovery(user,password,{reason="password-reset"}={}){
