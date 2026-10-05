@@ -30,6 +30,7 @@ PLIST=ios/App/App/Info.plist
 /usr/libexec/PlistBuddy -c 'Add :NSCameraUsageDescription string FIDUNIO uses the camera when you choose to capture a photo or video for a message.' "$PLIST"
 /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string FIDUNIO uses the microphone when you choose to record an audio or video message.' "$PLIST"
 AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+echo "STEP: archive signed FIDUNIO iOS app"
 xcodebuild archive -project ios/App/App.xcodeproj -scheme App -configuration Release \
   -destination 'generic/platform=iOS' -archivePath "$TASK_DIR/App.xcarchive" "${AUTH[@]}" \
   DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="-" \
@@ -50,11 +51,13 @@ cat > "$TASK_DIR/ExportOptions-$1.plist" <<PLIST
 PLIST
 }
 export_options export
+echo "STEP: export signed IPA"
 xcodebuild -exportArchive -archivePath "$TASK_DIR/App.xcarchive" \
   -exportOptionsPlist "$TASK_DIR/ExportOptions-export.plist" -exportPath "$TASK_DIR/export" \
   "${AUTH[@]}" >> "$TASK_DIR/xcodebuild.log" 2>&1 || { tail -n 70 "$TASK_DIR/xcodebuild.log"; exit 1; }
 IPA="$(find "$TASK_DIR/export" -name '*.ipa' -print -quit)"
 test -n "$IPA"
+echo "STEP: audit signed IPA"
 mkdir "$TASK_DIR/audit"
 unzip -q "$IPA" -d "$TASK_DIR/audit"
 APP="$(find "$TASK_DIR/audit/Payload" -maxdepth 1 -name '*.app' -print -quit)"
@@ -74,10 +77,8 @@ security cms -D -i "$APP/embedded.mobileprovision" > "$TASK_DIR/profile.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$TASK_DIR/profile.plist" | grep -qx 'VXMLKHF72B.io.github.willyros01.fidunio'
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$TASK_DIR/profile.plist" | grep -qx false
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
-/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.devicecheck.appattest-environment' "$TASK_DIR/profile.plist" | grep -qx production
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
-/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.devicecheck.appattest-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
 test -s "$APP/PrivacyInfo.xcprivacy"
 /usr/bin/plutil -lint "$APP/PrivacyInfo.xcprivacy"
 /usr/libexec/PlistBuddy -c 'Print :NSPrivacyTracking' "$APP/PrivacyInfo.xcprivacy" | grep -qx false
@@ -98,8 +99,10 @@ for(const rel of list){
 }
 console.log("PASS: all "+list.length+" shared web assets match the prepared payload");
 JS
-echo "PASS: signed FIDUNIO $VERSION ($BUILD), correct team/profile/bundle and encryption declaration"
+echo "PASS: signed FIDUNIO $VERSION ($BUILD), correct team/profile/bundle, production APNs, privacy manifest and encryption declaration"
+echo "NOTE: App Check is in approved standby/fail-open mode; production App Attest entitlement is not a release blocker until Apple capability is enabled"
 export_options upload
+echo "STEP: upload archive to App Store Connect"
 xcodebuild -exportArchive -archivePath "$TASK_DIR/App.xcarchive" \
   -exportOptionsPlist "$TASK_DIR/ExportOptions-upload.plist" -exportPath "$TASK_DIR/upload" \
   "${AUTH[@]}" >> "$TASK_DIR/xcodebuild.log" 2>&1 || { tail -n 70 "$TASK_DIR/xcodebuild.log"; exit 1; }
