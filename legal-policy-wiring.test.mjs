@@ -11,7 +11,11 @@ const allow=fs.readFileSync("build/www-files.txt","utf8");
 
 assert.match(policy,/termsVersion:"2026-10-04-v1"/);
 assert.match(policy,/privacyVersion:"2026-10-04-v1"/);
-assert.match(policy,/Limitation of liability/);
+assert.match(policy,/No liability/);
+assert.match(policy,/To the fullest extent permitted by law/);
+assert.match(policy,/You use FIDUNIO entirely at your own risk/);
+assert.match(policy,/Apple and its subsidiaries are third-party beneficiaries/);
+assert.match(policy,/laws of the Province of Ontario/);
 assert.match(policy,/No warranty/);
 assert.match(policy,/not an emergency service/i);
 
