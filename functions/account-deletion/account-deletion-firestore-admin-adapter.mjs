@@ -8,6 +8,18 @@ export function createAccountDeletionAdminRepository({db,auth}={}){
   if(!db?.doc||!db?.collection||typeof db.recursiveDelete!=="function"||!auth?.deleteUser)throw new Error("Account deletion Admin dependencies are required.");
   return Object.freeze({
     async readRequest(uid){const snap=await db.doc(`accountDeletionRequests/${uid}`).get();return snap.exists?snap.data():null;},
+    async createRequest(uid){
+      const [userRecord,profileSnap]=await Promise.all([auth.getUser(uid),db.doc(`users/${uid}`).get()]);
+      const profile=profileSnap.exists?(profileSnap.data()||{}):{};
+      await db.doc(`accountDeletionRequests/${uid}`).set({
+        uid,status:"pending",cleanupStatus:"required",cleanupCompletedAt:null,
+        contactEmail:String(userRecord.email||profile.email||""),
+        displayName:String(profile.displayName||userRecord.displayName||""),
+        requestedAt:FieldValue.serverTimestamp(),cancelledAt:null,completedAt:null
+      });
+    },
+    async markCleanupComplete(uid){await db.doc(`accountDeletionRequests/${uid}`).update({cleanupStatus:"complete",cleanupCompletedAt:FieldValue.serverTimestamp()});},
+    async cancelRequest(uid){await db.doc(`accountDeletionRequests/${uid}`).update({status:"cancelled",cancelledAt:FieldValue.serverTimestamp()});},
     async inspectAuthority(uid){
       const [access,owned,memberships]=await Promise.all([
         db.doc("system/access").get(),
