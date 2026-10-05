@@ -18,6 +18,7 @@ function makeRepo(overrides={}){
     ...overrides
   };
 }
+let repo,core;
 repo=makeRepo({readRequest:async()=>null});
 core=createAccountDeletionCore({repo});
 assert.equal(await core.getMyAccountDeletionRequestV1({authUid:"u1"}),null);
@@ -34,7 +35,7 @@ core=createAccountDeletionCore({repo});
 assert.deepEqual(await core.cancelMyAccountDeletionRequestV1({authUid:"u1"}),{status:"cancelled"});
 assert.deepEqual(repo.events,["cancel-request"]);
 
-let repo=makeRepo(),core=createAccountDeletionCore({repo});
+repo=makeRepo();core=createAccountDeletionCore({repo});
 assert.deepEqual(await core.completeMyAccountDeletionV1({authUid:"u1"}),{deleted:true});
 assert.deepEqual(repo.events,["processing","close-direct","delete-data","delete-auth","delete-request"]);
 repo=makeRepo({inspectAuthority:async()=>({systemOwner:true,ownedGroups:[],groupMemberships:[]})});
