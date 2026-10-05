@@ -10,6 +10,14 @@ assert.match(firebase,/safe\.code="fidunio\/direct-delivery-denied"/,
   "direct send must translate the raw permission denial into a bounded delivery error");
 assert.match(firebase,/Message could not be delivered to this conversation\./,
   "blocked delivery must use privacy-safe user text");
+assert.match(firebase,/safe\.code="fidunio\/direct-start-denied"/,
+  "blocked direct conversation creation must map permission denial to a privacy-safe error");
+assert.match(firebase,/Conversation could not be started\./,
+  "blocked conversation creation must not expose raw Firestore permission text");
+assert.match(firebase,/safe\.code="fidunio\/direct-action-denied"/,
+  "blocked direct reaction must map permission denial to a privacy-safe error");
+assert.match(firebase,/This action could not be completed for this conversation\./,
+  "blocked direct reaction must not expose raw Firestore permission text");
 
 assert.match(app,/const deliveryDenied=err\?\.code==="fidunio\/direct-delivery-denied"/,
   "Outbox must recognize terminal blocked delivery");
@@ -22,4 +30,4 @@ assert.match(app,/firebaseError="";/,
 assert.doesNotMatch(app,/alert\("Missing or insufficient permissions\."/,
   "raw Firestore permission text must not be hard-coded into the user path");
 
-console.log("PASS: blocked direct delivery is terminal, privacy-safe, and not mislabeled as connectivity failure");
+console.log("PASS: blocked direct conversation, delivery and reaction denials are privacy-safe; rejected sends are terminal and not mislabeled as connectivity failures");
