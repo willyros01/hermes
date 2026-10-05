@@ -219,9 +219,14 @@ try{
  await unlock.page.locator('#localPinUnlockBtn').click();
  await unlock.page.getByText('Enter your six-digit FIDUNIO PIN.').waitFor({state:'visible'});
  assert.equal(await unlock.page.locator('#localPinUnlockBtn').isEnabled(),true,'blank PIN must not hang or disable the unlock screen');
+ const slots=unlock.page.locator('.pin-code-slot');
+ for(let i=0;i<6;i++)await slots.nth(i).fill('0');
+ await unlock.page.getByText('Incorrect PIN.').waitFor({state:'visible',timeout:15000});
+ assert.equal(await unlock.page.locator('#localPinUnlockBtn').isEnabled(),true,'wrong PIN must restore the unlock button');
+ for(let i=0;i<6;i++)assert.equal(await slots.nth(i).isEnabled(),true,'wrong PIN must restore all PIN slots');
  await unlock.page.screenshot({path:path.join(evidence,selected+'-unlock-pin-fallback.png')});
  await unlock.context.close();
- console.log('PASS: '+selected+' Face ID-first unlock hides PIN, reveals fallback, and rejects blank PIN without hanging');
+ console.log('PASS: '+selected+' Face ID-first unlock hides PIN and keeps blank/wrong PIN failures interactive');
 
  const biometricFailure=await fresh();
  await biometricFailure.page.goto(base);await ready(biometricFailure.page);
