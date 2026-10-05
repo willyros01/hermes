@@ -2,7 +2,7 @@
 
 ## Authority and release order
 
-Only `ios` may upload. The release marker starts TestFlight, which waits for all four required push workflows at the identical source commit. Failure, cancellation, absence or timeout blocks archive/upload. TestFlight secrets exist only in the signing/upload job. Test changes can run without changing the marker.
+Only `ios` may upload. Release-relevant pushes on `ios` automatically start the TestFlight workflow, which waits for all four required push workflows at the identical source commit. Failure, cancellation, absence or timeout blocks archive/upload. TestFlight secrets exist only in the signing/upload job. Manual dispatch is fallback/recovery rather than the normal release path.
 
 | Required workflow | Proof |
 | --- | --- |
