@@ -23,7 +23,7 @@ REGION="us-central1"
 CODEBASE="recovery"
 SERVICE_ACCOUNT="fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com"
 COMMIT="71104cc7499dc51143a0a3dda00cd6b1fc680825"
-SCRIPT_VERSION="account-delete-preflight-1"
+SCRIPT_VERSION="account-delete-preflight-2"
 APPROVE_DEPLOY="${APPROVE_DEPLOY:-NO}"
 
 FUNCTIONS=(
@@ -42,8 +42,12 @@ command -v curl >/dev/null 2>&1 || stop "curl is required"
 command -v jq >/dev/null 2>&1 || stop "jq is required"
 
 say "Project identity"
+ACTIVE_PROJECT_BEFORE="$(gcloud config get-value project 2>/dev/null || true)"
+echo "Cloud Shell project before switch: ${ACTIVE_PROJECT_BEFORE:-<none>}"
+echo "Switching Cloud Shell to required FIDUNIO project: $PROJECT"
+gcloud config set project "$PROJECT" >/dev/null
 ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
-[[ "$ACTIVE_PROJECT" == "$PROJECT" ]] || stop "Cloud Shell project is '$ACTIVE_PROJECT', expected '$PROJECT'."
+[[ "$ACTIVE_PROJECT" == "$PROJECT" ]] || stop "Project switch failed; active project is '$ACTIVE_PROJECT', expected '$PROJECT'."
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
 [[ "$PROJECT_NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Unexpected project number '$PROJECT_NUMBER'."
 echo "Project: $PROJECT ($PROJECT_NUMBER)"
