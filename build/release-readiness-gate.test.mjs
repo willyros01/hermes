@@ -7,6 +7,14 @@ const fn=fs.readFileSync("functions/index.mjs","utf8");
 const rules=fs.readFileSync(manifest.expectedLiveFirestoreRules,"utf8");
 const storage=fs.readFileSync(manifest.expectedLiveStorageRules,"utf8");
 const workflow=fs.readFileSync(".github/workflows/rebuild-baseline-security.yml","utf8");
+const pkg=JSON.parse(fs.readFileSync("package.json","utf8"));
+function testIsReleaseGated(file){
+  if(workflow.includes(file)||workflow.includes(file.replace(/\\.test\\.mjs$/,"")))return true;
+  for(const [name,command] of Object.entries(pkg.scripts||{})){
+    if(String(command).includes(file)&&workflow.includes(`npm run ${name}`))return true;
+  }
+  return false;
+}
 
 assert.equal(manifest.schemaVersion,1);
 assert.ok(Array.isArray(manifest.features)&&manifest.features.length>=10,"release manifest must cover major visible feature families");
@@ -22,7 +30,7 @@ for(const feature of manifest.features){
   for(const name of feature.functions||[])assert.match(fn,new RegExp(`export const ${name}\\s*=`),`${feature.id}: function export missing ${name}`);
   for(const file of feature.tests||[]){
     assert.ok(fs.existsSync(file),`${feature.id}: declared test file missing ${file}`);
-    assert.ok(workflow.includes(file)||workflow.includes(file.replace(/\.test\.mjs$/,"")),`${feature.id}: declared test is not release-gated: ${file}`);
+    assert.ok(testIsReleaseGated(file),`${feature.id}: declared test is not release-gated: ${file}`);
   }
 }
 console.log(`PASS: release-readiness manifest covers ${manifest.features.length} visible feature families and their packaged/backend/test authorities`);
