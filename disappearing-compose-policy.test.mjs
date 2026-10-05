@@ -12,6 +12,8 @@ if(!DISAPPEARING_COMPOSE_POLICY_V1.selectionAppliesOnlyToFutureMessages||!DISAPP
 const attachment=stampOutgoingDisappearSelection({id:'att',text:JSON.stringify({fidunioAttachment:1,attachmentId:'a'})},300);
 if(attachment.disappearAfterSeconds!==300||attachment.disappearingPurgeVersion!==1)throw new Error('attachment selection is not stamped by the sole disappearing compose owner');
 const app=fs.readFileSync('./app.js','utf8');
-for(const anchor of ['stampOutgoingDisappearSelection','disappearingTextSeconds','id="disappearSelect"','Disappearing:','disappearAfterSeconds:m.disappearAfterSeconds??null'])if(!app.includes(anchor))throw new Error('app disappearing UI/send anchor missing: '+anchor);
+for(const anchor of ['stampOutgoingDisappearSelection','disappearingByConversation','readConversationDisappearSelection','writeConversationDisappearSelection','id="disappearSelect"','Disappearing:','disappearAfterSeconds:m.disappearAfterSeconds??null'])if(!app.includes(anchor))throw new Error('app disappearing UI/send anchor missing: '+anchor);
+if(app.includes('},state.settings.disappearingTextSeconds);'))throw new Error('global disappearing-message preference still controls text sends');
+if(app.includes('disappearAfterSeconds:state.settings.disappearingTextSeconds'))throw new Error('global disappearing-message preference still controls attachment sends');
 if(!/queueGroupTextForApp\(\{groupId:conversationId,messageId:m\.id,text,time:m\.time,disappearAfterSeconds:m\.disappearAfterSeconds\?\?null/.test(app))throw new Error('group send path does not receive selected immutable duration');
 console.log('Disappearing compose policy/UI wiring gate passed');
