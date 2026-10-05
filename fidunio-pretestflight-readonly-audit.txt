@@ -50,19 +50,20 @@ compare_rule(){
   local ruleset
   ruleset="$(jq -r --arg suffix "$release_suffix" '.releases[]? | select(.name|endswith($suffix)) | .rulesetName' "$OUT/rules-releases.json" | head -1)"
   if [ -z "$ruleset" ] || [ "$ruleset" = "null" ]; then
-    echo "WARN: no $label release matched suffix $release_suffix"
-    return 0
+    die "No $label release matched suffix $release_suffix"
   fi
   local id="${ruleset##*/}" json="$OUT/$label-ruleset.json" live="$OUT/$label-live.rules"
   api_get "https://firebaserules.googleapis.com/v1/projects/$PROJECT/rulesets/$id" "$json"
   jq -r '.source.files[0].content // empty' "$json" > "$live"
   echo "$label ruleset: $ruleset"
   echo "$label live SHA256: $(sha256 "$live")"
-  if [ -f "$local_file" ]; then
-    echo "$label local SHA256: $(sha256 "$local_file")"
-    if cmp -s "$local_file" "$live"; then echo "PASS: $label live rules exactly match $local_file"; else echo "DIFF: $label live rules do not exactly match $local_file"; fi
+  [ -f "$local_file" ] || die "Required local authority file missing: $local_file"
+  echo "$label local SHA256: $(sha256 "$local_file")"
+  if cmp -s "$local_file" "$live"; then
+    echo "PASS: $label live rules exactly match $local_file"
   else
-    echo "NOTE: local file $local_file not present in current Cloud Shell directory; live copy saved for later comparison."
+    diff -u "$local_file" "$live" > "$OUT/$label-live-vs-local.diff" || true
+    die "$label live rules differ from $local_file; see $OUT/$label-live-vs-local.diff"
   fi
 }
 compare_rule "/cloud.firestore" "firestore.rules" "firestore"
