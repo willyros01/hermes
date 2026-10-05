@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Owns one ephemeral generated Xcode project, key file, archive and export per CI run.
+# CI retrigger: no functional change
 set -Eeuo pipefail
 trap 'rc=$?; echo "ERROR: ios-testflight.sh line $LINENO: $BASH_COMMAND (exit $rc)" >&2; exit $rc' ERR
 cd "$(dirname "$0")/.."
