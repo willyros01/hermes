@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Owns one ephemeral generated Xcode project, key file, archive and export per CI run.
 set -Eeuo pipefail
+trap 'rc=$?; echo "ERROR: ios-testflight.sh line $LINENO: $BASH_COMMAND (exit $rc)" >&2; exit $rc' ERR
 cd "$(dirname "$0")/.."
 for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 APPLE_TEAM_ID RUNNER_TEMP GITHUB_RUN_NUMBER; do
   test -n "${!name:-}" || { echo "Missing $name"; exit 1; }
