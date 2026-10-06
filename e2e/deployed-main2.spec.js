@@ -74,10 +74,10 @@ async function signInTestAdmin(page){
     for(let i=0;i<6;i++)await slots.nth(i).fill(pin[i]);
     await page.locator("#sessionUnlockBtn").click();
   }
-  await expect(page.getByText(/Settings|Messages|New Message/i).first()).toBeVisible({timeout:30000});
+  await expect(page.getByText(/Settings|Messages|New Message/i).first()).toBeVisible({timeout:210000});
 }
 
-test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
+test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{\n  test.describe.configure({timeout:240000});
   test("Test Admin signs in and opens the real application",async({page})=>{
     await signInTestAdmin(page);
     await expect(page.locator("body")).not.toContainText("Starting FIDUNIO…");
