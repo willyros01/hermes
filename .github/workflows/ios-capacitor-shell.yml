@@ -1,5 +1,5 @@
 name: Capacitor iOS shell
-# Exact-head release validation retry after hosted-runner failure, 2026-10-05.
+# Exact-head release validation trigger, 2026-10-06. No gate or application change.
 # No application code, release version, runner selection or gate change.
 
 on:
