@@ -3,12 +3,15 @@ import {test,expect} from "@playwright/test";
 async function reachAccountAccess(page){
   await page.goto("/",{waitUntil:"domcontentloaded"});
   const terms=page.getByText("Terms of Use",{exact:true});
+  const signIn=page.getByRole("tab",{name:/Sign In/i});
+  await expect(terms.or(signIn)).toBeVisible({timeout:30000});
   if(await terms.isVisible().catch(()=>false)){
     const box=page.locator('input[type="checkbox"]').first();
     await box.check();
     await page.getByRole("button",{name:"Accept",exact:true}).click();
+    await page.screenshot({path:"test-results/remote-hand-after-terms.png",fullPage:true});
   }
-  await expect(page.getByRole("tab",{name:/Sign In/i})).toBeVisible({timeout:30000});
+  await expect(signIn).toBeVisible({timeout:30000});
 }
 
 test.describe("FIDUNIO deployed main2 screen gate",()=>{
