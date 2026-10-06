@@ -94,11 +94,13 @@
     "emulator:test:user-block-rules": "firebase emulators:exec --only firestore --project demo-fidunio-user-block-rules \"node firestore-user-block.rules.test.mjs\"",
     "test:account-deletion": "node account-deletion-wiring.test.mjs",
     "emulator:test:account-deletion-rules": "firebase emulators:exec --only firestore --project demo-fidunio-account-deletion-rules \"node firestore-account-deletion.rules.test.mjs\"",
-    "test:message-safety": "node message-safety-policy.test.mjs"
+    "test:message-safety": "node message-safety-policy.test.mjs",
+    "test:e2e:deployed": "playwright test"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
     "firebase": "^12.0.0",
-    "firebase-tools": "^14.0.0"
+    "firebase-tools": "^14.0.0",
+    "@playwright/test": "^1.56.1"
   }
 }
