@@ -155,6 +155,43 @@ test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
     const invitesNav=page.locator('.fidunio-settings-nav-btn[data-group="invites"]');
     await invitesNav.scrollIntoViewIfNeeded();
     await invitesNav.click({timeout:30000});
-    await expect(page.locator("#createInviteBtn")).toBeVisible({timeout:120000});
+    const createInvite=page.locator("#createInviteBtn");
+    await expect(createInvite).toBeVisible({timeout:120000});
+    await createInvite.click();
+    await expect(page.locator("#fidunioInviteModal")).toBeVisible({timeout:30000});
+    await page.locator("#modalInviteRole").selectOption("user");
+    await page.locator("#inviteModalCreate").click();
+    const inviteLinkBox=page.locator("#inviteResult .uid-box");
+    await expect(inviteLinkBox).toBeVisible({timeout:120000});
+    const inviteLink=(await inviteLinkBox.textContent())?.trim();
+    expect(inviteLink).toMatch(/^https?:\/\//);
+
+    // Consume the invitation in a fresh browser context. Reuse the already
+    // protected E2E password/PIN secrets rather than writing credentials to
+    // source, logs, screenshots, or artifacts.
+    const invited=await page.context().browser().newContext();
+    const joinPage=await invited.newPage();
+    await joinPage.goto(inviteLink,{waitUntil:"domcontentloaded"});
+    const terms=joinPage.getByText("Terms of Use",{exact:true});
+    if(await terms.isVisible({timeout:15000}).catch(()=>false)){
+      await joinPage.locator('input[type="checkbox"]').first().check();
+      await joinPage.getByRole("button",{name:"Accept",exact:true}).click();
+    }
+    const joinTab=joinPage.getByRole("tab",{name:/Join FIDUNIO/i});
+    if(await joinTab.isVisible({timeout:15000}).catch(()=>false))await joinTab.click();
+
+    const runId=process.env.GITHUB_RUN_ID||String(Date.now());
+    const newUserEmail=`fidunio.e2e.user+${runId}@example.com`;
+    const newUserPassword=process.env.FIDUNIO_E2E_ADMIN_PASSWORD;
+    const newUserPin=process.env.FIDUNIO_E2E_ADMIN_PIN||"641927";
+    await expect(joinPage.locator("#joinName")).toBeVisible({timeout:60000});
+    await joinPage.locator("#joinName").fill("FIDUNIO Automated Test User");
+    await joinPage.locator("#joinEmail").fill(newUserEmail);
+    await joinPage.locator("#joinPassword").fill(newUserPassword);
+    await fillSixDigitPin(joinPage,"#joinPinHost",newUserPin);
+    await joinPage.locator("#redeemBtn").click();
+    await expect(joinPage.getByText(/Settings|Messages|New Message/i).first()).toBeVisible({timeout:240000});
+    await joinPage.screenshot({path:"test-results/invited-user-created.png",fullPage:true});
+    await invited.close();
   });
 });
