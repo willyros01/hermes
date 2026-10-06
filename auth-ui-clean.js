@@ -126,8 +126,16 @@ function renderAuthenticatedTransitionFailure(user,error,retry){
 }
 
 async function openStartedAppOrOfferRetry(user){
-  try{await startAppAfterLegalAcceptance(user);}
-  catch(error){renderAuthenticatedTransitionFailure(user,error,()=>startAppAfterLegalAcceptance(user));}
+  const STARTUP_TIMEOUT_MS=20000;
+  let timer;
+  try{
+    await Promise.race([
+      startAppAfterLegalAcceptance(user),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("FIDUNIO took too long to open after unlock. Please retry.")),STARTUP_TIMEOUT_MS);})
+    ]);
+  }
+  catch(error){renderAuthenticatedTransitionFailure(user,error,()=>openStartedAppOrOfferRetry(user));}
+  finally{if(timer)clearTimeout(timer);}
 }
 
 async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
