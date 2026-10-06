@@ -55,3 +55,41 @@ test.describe("FIDUNIO deployed main2 screen gate",()=>{
   });
 });
 
+
+async function signInTestAdmin(page){
+  const email=process.env.FIDUNIO_E2E_ADMIN_EMAIL;
+  const password=process.env.FIDUNIO_E2E_ADMIN_PASSWORD;
+  const pin=process.env.FIDUNIO_E2E_ADMIN_PIN||"641927";
+  test.skip(!email||!password,"Recovered Test Admin credentials are not configured in the workflow environment.");
+  await reachAccountAccess(page);
+  await page.locator("#loginEmail").fill(email);
+  await page.locator("#loginPassword").fill(password);
+  await page.locator("#loginBtn").click();
+  const pinHost=page.locator("#sessionPinHost");
+  if(await pinHost.isVisible({timeout:15000}).catch(()=>false)){
+    const passwordField=page.locator("#sessionPassword");
+    if(await passwordField.isVisible().catch(()=>false))await passwordField.fill(password);
+    const slots=page.locator("#sessionPinHost .pin-code-slot");
+    await expect(slots).toHaveCount(6);
+    for(let i=0;i<6;i++)await slots.nth(i).fill(pin[i]);
+    await page.locator("#sessionUnlockBtn").click();
+  }
+  await expect(page.getByText(/Settings|Messages|New Message/i).first()).toBeVisible({timeout:30000});
+}
+
+test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
+  test("Test Admin signs in and opens the real application",async({page})=>{
+    await signInTestAdmin(page);
+    await expect(page.locator("body")).not.toContainText("Starting FIDUNIO…");
+  });
+
+  test("Test Admin can open Settings and account identity",async({page})=>{
+    await signInTestAdmin(page);
+    const settings=page.getByRole("button",{name:/Settings/i}).first();
+    await expect(settings).toBeVisible({timeout:15000});
+    await settings.click();
+    await expect(page.getByText("Privacy & Access",{exact:true})).toBeVisible();
+    await expect(page.getByText("Account",{exact:true})).toBeVisible();
+    await expect(page.getByText(process.env.FIDUNIO_E2E_ADMIN_EMAIL,{exact:true})).toBeVisible();
+  });
+});
