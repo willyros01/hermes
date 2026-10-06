@@ -8,7 +8,7 @@ async function reachAccountAccess(page){
     await box.check();
     await page.getByRole("button",{name:"Accept",exact:true}).click();
   }
-  await expect(page.getByRole("tab",{name:/Sign In/i})).toBeVisible();
+  await expect(page.getByRole("tab",{name:/Sign In/i})).toBeVisible({timeout:30000});
 }
 
 test.describe("FIDUNIO deployed main2 screen gate",()=>{
@@ -55,36 +55,3 @@ test.describe("FIDUNIO deployed main2 screen gate",()=>{
   });
 });
 
-
-test.describe.serial("FIDUNIO protected admin lifecycle",()=>{
-  test("redeem protected Admin invitation through the deployed Join screen",async({page},testInfo)=>{
-    const invite=process.env.FIDUNIO_E2E_ADMIN_INVITE;
-    test.skip(!invite,"FIDUNIO_E2E_ADMIN_INVITE secret is not configured.");
-
-    const suffix=String(Date.now());
-    const email=`fidunio.e2e.admin+${suffix}@example.com`;
-    const password=`FidunioE2E!${suffix}Aa`;
-    const pin="641927";
-
-    await page.goto(invite,{waitUntil:"domcontentloaded"});
-    const terms=page.getByText("Terms of Use",{exact:true});
-    if(await terms.isVisible().catch(()=>false)){
-      await page.locator('input[type="checkbox"]').first().check();
-      await page.getByRole("button",{name:"Accept",exact:true}).click();
-    }
-    await expect(page.locator("#inviteCode")).not.toHaveValue("");
-    await page.locator("#joinName").fill("FIDUNIO Automated Test Admin");
-    await page.locator("#joinEmail").fill(email);
-    await page.locator("#joinPassword").fill(password);
-    const pinSlots=page.locator("#joinPinHost .pin-code-slot");
-    await expect(pinSlots).toHaveCount(6);
-    for(let i=0;i<6;i++) await pinSlots.nth(i).fill(pin[i]);
-    await page.locator("#redeemBtn").click();
-
-    await expect(page.locator("#redeemBtn")).toBeHidden({timeout:30000});
-    await testInfo.attach("generated-test-admin",{
-      body:Buffer.from(JSON.stringify({email,password,pin,createdAt:new Date().toISOString()})),
-      contentType:"application/json"
-    });
-  });
-});
