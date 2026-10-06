@@ -30,7 +30,10 @@ jobs:
           FIDUNIO_E2E_USER_A: ${{ secrets.FIDUNIO_E2E_USER_A }}
           FIDUNIO_E2E_PASSWORD_A: ${{ secrets.FIDUNIO_E2E_PASSWORD_A }}
           FIDUNIO_E2E_USER_B: ${{ secrets.FIDUNIO_E2E_USER_B }}
-          FIDUNIO_E2E_PASSWORD_B: ${{ secrets.FIDUNIO_E2E_PASSWORD_B }}\n          FIDUNIO_E2E_ADMIN_EMAIL: ${{ secrets.FIDUNIO_E2E_ADMIN_EMAIL }}\n          FIDUNIO_E2E_ADMIN_PASSWORD: ${{ secrets.FIDUNIO_E2E_ADMIN_PASSWORD }}\n          FIDUNIO_E2E_ADMIN_PIN: ${{ secrets.FIDUNIO_E2E_ADMIN_PIN }}
+          FIDUNIO_E2E_PASSWORD_B: ${{ secrets.FIDUNIO_E2E_PASSWORD_B }}
+          FIDUNIO_E2E_ADMIN_EMAIL: ${{ secrets.FIDUNIO_E2E_ADMIN_EMAIL }}
+          FIDUNIO_E2E_ADMIN_PASSWORD: ${{ secrets.FIDUNIO_E2E_ADMIN_PASSWORD }}
+          FIDUNIO_E2E_ADMIN_PIN: ${{ secrets.FIDUNIO_E2E_ADMIN_PIN }}
         run: npm run test:e2e:deployed
       - name: Upload browser evidence
         if: always()
