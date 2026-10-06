@@ -56,6 +56,12 @@ test.describe("FIDUNIO deployed main2 screen gate",()=>{
 });
 
 
+async function fillSixDigitPin(page,hostSelector,pin){
+  const slots=page.locator(`${hostSelector} .pin-code-slot`);
+  await expect(slots).toHaveCount(6);
+  for(let i=0;i<6;i++)await slots.nth(i).fill(pin[i]);
+}
+
 async function signInTestAdmin(page){
   const email=process.env.FIDUNIO_E2E_ADMIN_EMAIL;
   const password=process.env.FIDUNIO_E2E_ADMIN_PASSWORD;
@@ -65,16 +71,23 @@ async function signInTestAdmin(page){
   await page.locator("#loginEmail").fill(email);
   await page.locator("#loginPassword").fill(password);
   await page.locator("#loginBtn").click();
-  const pinHost=page.locator("#sessionPinHost");
-  if(await pinHost.isVisible({timeout:15000}).catch(()=>false)){
+
+  const recoveryPinHost=page.locator("#recoveryPinHost");
+  const sessionPinHost=page.locator("#sessionPinHost");
+  const appReady=page.getByText(/Settings|Messages|New Message/i).first();
+
+  await expect(recoveryPinHost.or(sessionPinHost).or(appReady)).toBeVisible({timeout:60000});
+
+  if(await recoveryPinHost.isVisible().catch(()=>false)){
+    await fillSixDigitPin(page,"#recoveryPinHost",pin);
+    await expect(page.locator("#recoverMessagingBtn")).toHaveText(/Recovering|Recover Messaging/);
+  }else if(await sessionPinHost.isVisible().catch(()=>false)){
     const passwordField=page.locator("#sessionPassword");
     if(await passwordField.isVisible().catch(()=>false))await passwordField.fill(password);
-    const slots=page.locator("#sessionPinHost .pin-code-slot");
-    await expect(slots).toHaveCount(6);
-    for(let i=0;i<6;i++)await slots.nth(i).fill(pin[i]);
-    await page.locator("#sessionUnlockBtn").click();
+    await fillSixDigitPin(page,"#sessionPinHost",pin);
   }
-  await expect(page.getByText(/Settings|Messages|New Message/i).first()).toBeVisible({timeout:210000});
+
+  await expect(appReady).toBeVisible({timeout:210000});
 }
 
 test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
