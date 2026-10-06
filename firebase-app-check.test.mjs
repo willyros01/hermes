@@ -4,8 +4,9 @@ import assert from "node:assert/strict";
 const firebaseSource=await fs.readFile(new URL("./firebase.js",import.meta.url),"utf8");
 const adapterSource=await fs.readFile(new URL("./firebase-platform-adapter.js",import.meta.url),"utf8");
 const authSource=await fs.readFile(new URL("./auth-ui-clean.js",import.meta.url),"utf8");
-const capacitor=JSON.parse(await fs.readFile(new URL("./capacitor.config.json",import.meta.url),"utf8"));
 const pkg=JSON.parse(await fs.readFile(new URL("./package.json",import.meta.url),"utf8"));
+let capacitor=null;
+try{capacitor=JSON.parse(await fs.readFile(new URL("./capacitor.config.json",import.meta.url),"utf8"));}catch(err){if(err?.code!=="ENOENT")throw err;}
 
 assert.match(firebaseSource,/firebase-app-check\.js/);
 assert.match(firebaseSource,/firebase-functions\.js/);
@@ -38,8 +39,12 @@ assert.match(firebaseSource,/export async function ensureFirebaseAuthSession\(\)
 assert.match(firebaseSource,/await user\.getIdToken\(\)/);
 assert.doesNotMatch(firebaseSource,/getIdToken\(true\)/);
 
-assert.equal(pkg.dependencies?.["@capacitor-firebase/app-check"],"8.5.2");
-assert.equal(capacitor.experimental?.ios?.spm?.packageOptions?.["@capacitor-firebase/app-check"]?.symlink,true);
+if(capacitor){
+  assert.equal(pkg.dependencies?.["@capacitor-firebase/app-check"],"8.5.2");
+  assert.equal(capacitor.experimental?.ios?.spm?.packageOptions?.["@capacitor-firebase/app-check"]?.symlink,true);
+}else{
+  assert.equal(pkg.dependencies?.["@capacitor-firebase/app-check"],undefined);
+}
 
 assert.doesNotMatch(authSource,/firebase-app-check\.js/);
 assert.doesNotMatch(authSource,/initializeFidunioAppCheck/);
