@@ -26,6 +26,7 @@ jobs:
       - name: Test deployed main2 screens
         env:
           FIDUNIO_E2E_BASE_URL: ${{ github.event.deployment_status.target_url || 'https://fidunio-main2.vercel.app' }}
+          FIDUNIO_E2E_ADMIN_INVITE: ${{ secrets.FIDUNIO_E2E_ADMIN_INVITE }}
           FIDUNIO_E2E_USER_A: ${{ secrets.FIDUNIO_E2E_USER_A }}
           FIDUNIO_E2E_PASSWORD_A: ${{ secrets.FIDUNIO_E2E_PASSWORD_A }}
           FIDUNIO_E2E_USER_B: ${{ secrets.FIDUNIO_E2E_USER_B }}
