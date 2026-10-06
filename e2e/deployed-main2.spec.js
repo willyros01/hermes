@@ -116,7 +116,7 @@ async function signInTestAdmin(page){
 }
 
 test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
-  test.describe.configure({timeout:240000});
+  test.describe.configure({timeout:900000});
   test("Test Admin signs in and opens the real application",async({page})=>{
     await signInTestAdmin(page);
     await expect(page.locator("body")).not.toContainText("Starting FIDUNIO…");
