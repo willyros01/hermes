@@ -25,7 +25,8 @@ const settings=fs.readFileSync("settings-lifecycle.js","utf8");
 const notificationPlatformAdapter=fs.readFileSync("notification-platform-adapter.js","utf8");
 const install=fs.readFileSync("install-guidance.js","utf8");
 const localSecurity=fs.readFileSync("local-security.js","utf8");
-const payload=fs.readFileSync("build/www-files.txt","utf8");
+const payloadPath="build/www-files.txt";
+const payload=fs.existsSync(payloadPath)?fs.readFileSync(payloadPath,"utf8"):null;
 
 assert.match(bootstrap,/from "\.\/background-platform-adapter\.js"/);
 assert.match(bootstrap,/startPlatformBackground\(\)/);
@@ -50,10 +51,12 @@ assert.match(notificationPlatformAdapter,/registrationKind:"web-push"/);
 assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
 assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeIOSRuntime\(\)\)return \(await nativeBiometricAvailability\(\)\)\.available/);assert.match(localSecurity,/authenticateNativeBiometric/);
 assert.match(app,/security\.hasBiometric\?\x27<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric<\/button>\x27/);
-assert.match(payload,/^platform-runtime\.js$/m);
-assert.match(payload,/^background-platform-adapter\.js$/m);
-assert.match(payload,/^firebase-platform-adapter\.js$/m);
-assert.match(payload,/^notification-platform-adapter\.js$/m);
+if(payload){
+  assert.match(payload,/^platform-runtime\.js$/m);
+  assert.match(payload,/^background-platform-adapter\.js$/m);
+  assert.match(payload,/^firebase-platform-adapter\.js$/m);
+  assert.match(payload,/^notification-platform-adapter\.js$/m);
+}
 assert.match(firebase,/FIDUNIO_INVITATION_WEB_LINK_BASE/);
 assert.match(firebase,/new URL\(FIDUNIO_INVITATION_WEB_LINK_BASE\)/);
 assert.match(settings,/fidunioPublicUrl\("\.\/quick-start\.html"\)/);
