@@ -204,3 +204,28 @@ export function activateAccountStorage(uid,{legacyOwnerUid=null}={}){
     }
   });
 }
+
+
+export function eraseAccountStorageForDeletion(uid){
+  const targetUid=String(uid||"").trim();
+  if(!targetUid)return Promise.reject(new Error("Account UID is required for deletion cleanup."));
+  return serializeStorage(async()=>{
+    const live=await openLive();
+    try{
+      const activeUid=String(await readMeta(live,ACTIVE_UID_KEY)||"");
+      if(activeUid===targetUid){
+        await clearLiveAccountData(live);
+        await deleteMeta(live,ACTIVE_UID_KEY);
+        await deleteMeta(live,TRANSITION_KEY);
+      }
+    }finally{live.close();}
+    const vault=await openVault();
+    try{
+      const tx=vault.transaction("snapshots","readwrite"),store=tx.objectStore("snapshots");
+      store.delete(targetUid);
+      store.delete(`__pre-e2ee-recovery:${targetUid}`);
+      await txDone(tx);
+    }finally{vault.close();}
+    return{erased:true,uid:targetUid};
+  });
+}

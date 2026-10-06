@@ -24,30 +24,53 @@ import {
   upsertCloudNotificationDevice,
   deleteCloudNotificationDevice,
   listCloudUsers,
+  getCloudUserProfile,
+  submitFidunioAbuseReport,
+  listFidunioAbuseReportsForAdmin,
+  resolveFidunioAbuseReport,
   listFidunioBlockedUsers,
   blockFidunioUser,
   unblockFidunioUser,
+  requestFidunioAccountDeletion,
+  getFidunioAccountDeletionRequest,
+  cancelFidunioAccountDeletionRequest,
+  listFidunioAccountDeletionRequestsForAdmin,
+  updateFidunioAccountDeletionRequestForAdmin,
+  transferCloudSystemOwnership,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
 import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";
 import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeAdminRecoveryAuthorization} from "./admin-recovery-client.js";
 import {mountInstallGuidance} from "./install-guidance.js";
+import {prepareSelfAccountDeletion} from "./account-deletion-service.js";
+import {completeSelfAccountDeletion} from "./account-deletion-finalize-client.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
 import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
+import {fidunioPublicUrl} from "./platform-runtime.js";
+import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";
+import {
+  getNotificationPlatformCapabilities,
+  getNativeNotificationCapability,
+  requestNativeNotificationPermission,
+  getNativeMessagingToken,
+  deleteNativeMessagingToken,
+  subscribeNativeMessagingTokens,
+} from "./notification-platform-adapter.js";
 
 let mutationTail=Promise.resolve();
 let generation=0;
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function initials(name){return String(name||"U").trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("")||"U";}
 function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Administrator":"User";}
+function prettyAbuseCategory(category){return({"harassment":"Harassment or bullying","objectionable-content":"Objectionable content","spam-scam":"Spam or scam","impersonation":"Impersonation","other":"Other"})[String(category||"")]||"Report";}
 function profileStatus(p){if(p?.active===false)return p?.status||"deactivated";return p?.status||"active";}
 function dateText(v){const d=v?.toDate?.()||v;if(!d)return"—";try{return new Date(d).toLocaleString();}catch{return String(d);}}
-function guideUrl(){return new URL("./quick-start.html",location.href).href;}
+function guideUrl(){return fidunioPublicUrl("./quick-start.html").href;}
 function inviteSubject(){return "You're invited to join FIDUNIO";}
 function inviteMessage(invite){const inviter=invite.invitedByName||"A FIDUNIO administrator",role=invite.role==="admin"?"Admin":"User";return `You're invited to FIDUNIO — Private Messaging\n\n${inviter} has invited you to join FIDUNIO, an invitation-only private messaging app for one-to-one and group conversations.\n\nYour role: ${role}\nInvitation expires: ${invite.expiresAt.toLocaleString()}\n\nJOIN FIDUNIO\n${invite.link}\n\nThis invitation is personal and can be used only once. After your account is created, the invitation becomes invalid. Please do not forward the invitation link.\n\nQUICK START GUIDE\n${guideUrl()}\n\nThe guide explains account setup, privacy and security basics, messaging, device identity, and PIN/biometric unlocking.\n\nFIDUNIO • Private Messaging`;}
-function recoveryLink(token){const url=new URL("./account-recovery.html",location.href);url.searchParams.set("recovery",token);return url.href;}
+function recoveryLink(token){const url=fidunioPublicUrl("./account-recovery.html");url.searchParams.set("recovery",token);return url.href;}
 function recoverySubject(){return "FIDUNIO account recovery authorization";}
 function recoveryMessage(result){return `FIDUNIO Account Recovery\n\nAn administrator has authorized account recovery for ${result.targetDisplayName||result.targetEmail||"your FIDUNIO account"}.\n\nThis authorization expires ${new Date(result.expiresAtMs).toLocaleString()} and can be used only once.\n\nRECOVER ACCOUNT\n${recoveryLink(result.token)}\n\nUse the recovery page to reset/sign in with your own account password and enter your existing six-digit FIDUNIO PIN. Your administrator does not receive your password, PIN, encryption key, messages, or attachments.\n\nFIDUNIO • Private Messaging`;}
 
@@ -61,15 +84,16 @@ const GROUPS=[
   {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
   {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
   {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},
-  {id:"safety",label:"Safety",icon:"!",subtitle:"Block or unblock FIDUNIO users."},
+  {id:"safety",label:"Safety",icon:"!",subtitle:"Report abusive behavior or objectionable content to FIDUNIO administrators."},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
   {id:"install",label:"Install",icon:"▣",subtitle:"Optional browser and Home Screen installation guidance."},
   {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
+  {id:"legal",label:"Legal & Support",icon:"ⓘ",subtitle:"Privacy, terms, support, safety, and account rights."},
   {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","about"];
+const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","legal","about"];
 let activeGroup="profile";
 let mountedAccountVaultOwner=null;
 
@@ -176,6 +200,15 @@ async function renderAdminModal(modal,info){
   const users=await listUsers();if(!modal.isConnected)return;
   const body=modal.querySelector(".modal");
   body.innerHTML=`<div class="admin-modal-head"><div><h2>User Administration</h2><p class="small-note">Manage user access, status, expiration, and administrator-authorized account recovery. Invitation management is kept separately under Invitations.</p></div><button class="secondary" id="adminRefreshBtn" style="width:auto">Refresh</button></div><div class="admin-section-label">Users (${users.length})</div><div class="admin-user-table"><div class="admin-user-header"><span>User</span><span>Role</span><span>Status</span><span>Expires</span><span></span></div>${users.map(u=>userRow(u,info)).join("")}</div><p class="small-note" style="margin-top:10px">Recovery authorization never exposes a user's password, PIN, encryption key, messages, or attachments to the administrator.</p><div class="modal-actions"><button class="modal-cancel" id="adminCloseBtn">Close</button></div>`;
+  if(info.role==="owner"){
+    const targets=users.filter(u=>u.uid!==info.user.uid&&u.systemRole==="admin"&&u.active!==false&&!["suspended","deactivated"].includes(String(u.status||"active")));
+    const box=document.createElement("div");box.className="permission-box";box.id="fidunioOwnershipTransferBox";box.style.marginBottom="14px";
+    box.innerHTML='<strong>System Ownership</strong><p class="small-note">Transfer the FIDUNIO Owner role before deleting the current Owner account.</p><select class="text-input" id="ownershipTarget"><option value="">Choose an active Administrator</option></select><button class="secondary" id="transferOwnershipBtn" style="margin-top:10px">Transfer System Ownership</button>';
+    const select=box.querySelector("#ownershipTarget");for(const u of targets){const option=document.createElement("option");option.value=u.uid;option.textContent=u.displayName||u.email||u.uid;select.appendChild(option);}
+    const transfer=box.querySelector("#transferOwnershipBtn");transfer.disabled=targets.length===0;
+    transfer.onclick=async()=>{const target=select.value;if(!target)return;if(!confirm("Transfer FIDUNIO system ownership to this Administrator? Your account will become an Administrator."))return;transfer.disabled=true;transfer.textContent="Transferring…";try{await serializeSettingsMutation("transfer system ownership",()=>transferCloudSystemOwnership(target));closeAdminModal();mountSettingsLifecycle();}catch(err){alert(err?.message||String(err));transfer.disabled=false;transfer.textContent="Transfer System Ownership";}};
+    body.querySelector(".admin-section-label")?.before(box);
+  }
   body.querySelector("#adminCloseBtn").onclick=closeAdminModal;
   body.querySelector("#adminRefreshBtn").onclick=()=>renderAdminModal(modal,info);
   const closeMenus=()=>body.querySelectorAll(".admin-menu.open").forEach(m=>m.classList.remove("open"));
@@ -189,26 +222,122 @@ function openAdmin(info){
   closeAdminModal();const modal=document.createElement("div");modal.id="fidunioAdminModal";modal.className="modal-backdrop";modal.innerHTML='<div class="modal fidunio-admin-modal"><h2>User Administration</h2><p class="small-note">Loading users…</p></div>';document.body.appendChild(modal);
   renderAdminModal(modal,info).catch(err=>{if(!modal.isConnected)return;modal.querySelector(".modal").innerHTML=`<h2>User Administration</h2><p class="warning-note">${esc(err?.message||String(err))}</p><button class="secondary" id="adminCloseBtn">Close</button>`;modal.querySelector("#adminCloseBtn").onclick=closeAdminModal;});
 }
-async function renderSafety(safetyHost){
-  safetyHost.innerHTML='<div class="card" id="fidunioBlockedUsersCard"><h2>Blocked Users</h2><p class="small-note">Blocking stops new direct conversations, direct messages, direct-message reactions, and read receipts in both directions. Group membership is separate.</p><label class="form-label" for="blockUserSelect">User to block</label><select class="text-input" id="blockUserSelect"><option value="">Choose a user</option></select><button class="secondary" id="blockUserBtn" style="margin-top:12px">Block User</button><div id="blockedUsersList" style="margin-top:14px"><p class="small-note">Loading blocked users…</p></div><div id="blockUserNote" aria-live="polite"></div></div>';
-  const card=safetyHost.querySelector("#fidunioBlockedUsersCard"),select=card.querySelector("#blockUserSelect"),list=card.querySelector("#blockedUsersList"),note=card.querySelector("#blockUserNote"),button=card.querySelector("#blockUserBtn");
-  let users=[];
-  try{users=await listCloudUsers();for(const user of users){const option=document.createElement("option");option.value=user.uid;option.textContent=user.displayName||user.email||"FIDUNIO user";select.appendChild(option);}}
-  catch(error){note.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+async function renderAccountDeletion(profileHost,usersHost,info){
+  const card=document.createElement("div");card.className="card";card.id="fidunioDeleteAccountCard";
+  card.innerHTML='<h2>Delete My Account</h2><p class="warning-note"><strong>Permanent account deletion.</strong> This is not suspension or sign-out. FIDUNIO verifies your password and PIN, removes your sent messages, safely leaves groups, removes personal account/security records, and deletes the Firebase Authentication account.</p><p class="small-note">Groups you own must be permanently deleted first so FIDUNIO does not silently destroy other members\' shared group history. After cleanup begins it cannot be undone.</p><div id="deleteAccountStatus"><p class="small-note">Checking deletion status…</p></div>';
+  profileHost.appendChild(card);
+  const statusHost=card.querySelector("#deleteAccountStatus");
+
+  const finishDeletion=async(note)=>{
+    note.innerHTML='<p class="small-note">Completing account deletion…</p>';
+    const result=await completeSelfAccountDeletion();
+    alert(result?.localCleanupWarning?("Your FIDUNIO account has been deleted.\n\n"+result.localCleanupWarning):"Your FIDUNIO account has been deleted.");
+    location.reload();
+  };
+
   const paint=async()=>{
-    const rows=await listFidunioBlockedUsers(),names=new Map(users.map(user=>[user.uid,user.displayName||user.email||"FIDUNIO user"]));
-    list.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(names.get(row.blockedUid)||"Blocked user")}</strong></div><button class="row-action unblockUserBtn" type="button" data-uid="${esc(row.blockedUid)}">Unblock</button></div>`).join(""):'<p class="small-note">No blocked users.</p>';
-    list.querySelectorAll(".unblockUserBtn").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{await serializeSettingsMutation("unblock user",()=>unblockFidunioUser(btn.dataset.uid));await paint();note.innerHTML='<p class="small-note">User unblocked.</p>';}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;}});
+    const request=await getFidunioAccountDeletionRequest();
+    if(!card.isConnected)return;
+    if(request?.status==="pending"){
+      const prepared=request.cleanupStatus==="complete";
+      statusHost.innerHTML=`<p class="small-note"><strong>Status:</strong> ${prepared?"Cleanup complete — ready for final deletion":"Deletion requested"}</p>${!prepared?'<p class="small-note">Preparation removes your sent messages and safely leaves groups. This destructive cleanup cannot be reversed.</p><button class="secondary" id="continueDeletionPreparationBtn">Continue Deletion Preparation</button><button class="secondary" id="cancelDeletionRequestBtn" style="margin-top:10px">Cancel Before Cleanup</button>':'<button class="primary" id="finishDeletionBtn">Finish Permanent Account Deletion</button>'}<div id="deletePreparationNote" aria-live="polite"></div>`;
+      const prepNote=statusHost.querySelector("#deletePreparationNote");
+      const prep=statusHost.querySelector("#continueDeletionPreparationBtn");
+      if(prep)prep.onclick=async()=>{
+        if(!confirm("Continue permanent account deletion preparation? Your sent messages will be removed and groups you do not own will be left. This cleanup cannot be undone."))return;
+        prep.disabled=true;prep.textContent="Preparing…";
+        try{
+          await prepareSelfAccountDeletion({onProgress:step=>{if(prepNote?.isConnected)prepNote.innerHTML=`<p class="small-note">${esc(step.stage==="leave-group"?"Safely leaving group…":String(step.stage||"").includes("messages")?"Removing your sent messages…":"Preparing account deletion…")}</p>`;}});
+          await finishDeletion(prepNote);
+        }catch(err){prepNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;prep.disabled=false;prep.textContent="Continue Deletion Preparation";}
+      };
+      const finish=statusHost.querySelector("#finishDeletionBtn");
+      if(finish)finish.onclick=async()=>{if(!confirm("Permanently delete your FIDUNIO account now? This cannot be undone."))return;finish.disabled=true;try{await finishDeletion(prepNote);}catch(err){prepNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;finish.disabled=false;}};
+      const cancel=statusHost.querySelector("#cancelDeletionRequestBtn");
+      if(cancel)cancel.onclick=async()=>{if(!confirm("Cancel the deletion request before destructive cleanup starts?"))return;cancel.disabled=true;try{await serializeSettingsMutation("cancel account deletion",()=>cancelFidunioAccountDeletionRequest());await paint();}catch(err){alert(err?.message||String(err));cancel.disabled=false;}};
+      return;
+    }
+    if(request?.status==="processing"){
+      statusHost.innerHTML='<p class="warning-note">Account deletion processing was interrupted or is still finishing. You can safely retry the final server cleanup.</p><button class="primary" id="retryFinalDeletionBtn">Retry Final Account Deletion</button><div id="deleteProcessingNote" aria-live="polite"></div>';
+      const retry=statusHost.querySelector("#retryFinalDeletionBtn"),retryNote=statusHost.querySelector("#deleteProcessingNote");
+      retry.onclick=async()=>{retry.disabled=true;retry.textContent="Retrying…";try{await finishDeletion(retryNote);}catch(err){retryNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;retry.disabled=false;retry.textContent="Retry Final Account Deletion";}};
+      return;
+    }
+    statusHost.innerHTML='<label class="form-label" for="deleteAccountPassword">Current password</label><input class="text-input" id="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Current password"><label class="form-label" for="deleteAccountPin">FIDUNIO PIN</label><input class="text-input" id="deleteAccountPin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="Six-digit PIN"><button class="secondary" id="requestDeletionBtn" style="margin-top:14px">Delete My Account</button><div id="deleteAccountNote" aria-live="polite"></div>';
+    const button=statusHost.querySelector("#requestDeletionBtn"),note=statusHost.querySelector("#deleteAccountNote");
+    button.onclick=async()=>{
+      const password=statusHost.querySelector("#deleteAccountPassword").value,pin=statusHost.querySelector("#deleteAccountPin").value;
+      if(pin.length!==6){note.innerHTML='<p class="warning-note">Enter your six-digit FIDUNIO PIN.</p>';return;}
+      if(!confirm("Request permanent deletion of your FIDUNIO account? You can cancel only before destructive cleanup begins."))return;
+      button.disabled=true;button.textContent="Verifying…";
+      try{
+        if(!await verifyLocalPin(pin))throw new Error("Incorrect FIDUNIO PIN.");
+        await serializeSettingsMutation("request account deletion",()=>requestFidunioAccountDeletion(password));
+        statusHost.querySelector("#deleteAccountPassword").value="";
+        statusHost.querySelector("#deleteAccountPin").value="";
+        note.innerHTML='<p class="small-note">Account verified. Starting controlled cleanup…</p>';
+        await prepareSelfAccountDeletion({onProgress:step=>{if(note?.isConnected)note.innerHTML=`<p class="small-note">${esc(step.stage==="leave-group"?"Safely leaving group…":String(step.stage||"").includes("messages")?"Removing your sent messages…":"Preparing account deletion…")}</p>`;}});
+        await finishDeletion(note);
+      }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;button.disabled=false;button.textContent="Delete My Account";}
+    };
   };
-  try{await paint();}catch(error){list.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+  try{await paint();}catch(err){statusHost.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+
+  if(["owner","admin"].includes(info.role)&&usersHost){
+    const admin=document.createElement("div");admin.className="card";admin.id="fidunioDeletionAdminCard";
+    admin.innerHTML='<h2>Account Deletion Requests</h2><p class="small-note">Read-only operational queue for incomplete deletion requests. Users complete their own deletion from Settings; administrators do not mark a request completed manually.</p><div id="deletionAdminList"><p class="small-note">Loading requests…</p></div>';
+    usersHost.appendChild(admin);const list=admin.querySelector("#deletionAdminList");
+    try{
+      const rows=await listFidunioAccountDeletionRequestsForAdmin();
+      if(!admin.isConnected)return;
+      list.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(row.displayName||row.contactEmail||row.uid)}</strong><span>${esc(row.contactEmail||"")} • ${esc(row.status||"unknown")} • cleanup: ${esc(row.cleanupStatus||"unknown")} • ${esc(dateText(row.requestedAt))}</span></div></div>`).join(""):'<p class="small-note">No account deletion requests.</p>';
+    }catch(err){list.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+  }
+}
+
+async function renderSafety(safetyHost,info){
+  safetyHost.innerHTML='<div class="card" id="fidunioSafetyFilterCard"><h2>Message Safety Filter</h2><p class="small-note"><strong>On.</strong> FIDUNIO checks outgoing text on this device before encryption for a narrow set of high-confidence abusive or threatening phrases. Message text is not sent to a moderation service. The filter cannot inspect encrypted attachment contents, so Report Abuse and Blocked Users remain available for other cases.</p></div><div class="card" id="fidunioAbuseReportCard"><h2>Report Abuse</h2><p class="small-note">Report harassment, objectionable content, scams, impersonation, or other abusive behavior. FIDUNIO administrators receive the report, not the contents of unrelated conversations.</p><label class="form-label" for="abuseReason">Reason</label><select class="text-input" id="abuseReason"><option value="">Choose a reason</option><option value="harassment">Harassment or bullying</option><option value="objectionable-content">Objectionable content</option><option value="spam-scam">Spam or scam</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select><label class="form-label" for="abuseTarget">Person involved (optional)</label><select class="text-input" id="abuseTarget"><option value="">No specific user</option></select><label class="form-label" for="abuseDetails">Details (optional)</label><textarea class="text-input" id="abuseDetails" maxlength="1000" rows="5" placeholder="Briefly describe what happened. Do not paste passwords, PINs, or private recovery information."></textarea><button class="primary" id="submitAbuseReportBtn" style="margin-top:14px">Send Report</button><div id="abuseReportNote" aria-live="polite"></div></div>';
+  const card=safetyHost.querySelector("#fidunioAbuseReportCard"),target=card.querySelector("#abuseTarget"),note=card.querySelector("#abuseReportNote"),button=card.querySelector("#submitAbuseReportBtn");
+  try{
+    const users=await listCloudUsers();
+    if(card.isConnected)for(const user of users){const option=document.createElement("option");option.value=user.uid;option.textContent=user.displayName||user.email||"FIDUNIO user";target.appendChild(option);}
+  }catch(error){console.warn("FIDUNIO abuse-report user list unavailable",error);}
   button.onclick=async()=>{
-    const uid=select.value;if(!uid){note.innerHTML='<p class="warning-note">Choose a FIDUNIO user to block.</p>';return;}
-    if(!confirm("Block this user? New direct contact will be stopped in both directions until you unblock them."))return;
-    button.disabled=true;
-    try{await serializeSettingsMutation("block user",()=>blockFidunioUser(uid));select.value="";await paint();note.innerHTML='<p class="small-note">User blocked.</p>';}
-    catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
-    finally{button.disabled=false;}
+    button.disabled=true;button.textContent="Sending…";note.textContent="";
+    try{
+      const result=await serializeSettingsMutation("report abuse",()=>submitFidunioAbuseReport({category:card.querySelector("#abuseReason").value,targetUid:target.value,details:card.querySelector("#abuseDetails").value}));
+      card.querySelector("#abuseReason").value="";target.value="";card.querySelector("#abuseDetails").value="";
+      note.innerHTML=`<p class="small-note">Report sent. Reference: <strong>${esc(result.id)}</strong>. A FIDUNIO administrator can review it.</p>`;
+    }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+    finally{button.disabled=false;button.textContent="Send Report";}
   };
+  const blockCard=document.createElement("div");blockCard.className="card";blockCard.id="fidunioBlockedUsersCard";blockCard.innerHTML='<h2>Blocked Users</h2><p class="small-note">Blocking stops new direct conversations, direct messages, and direct-message reactions in both directions. Group membership is separate; report abuse or ask a group administrator to remove an abusive member from a group.</p><label class="form-label" for="blockUserSelect">User to block</label><select class="text-input" id="blockUserSelect"><option value="">Choose a user</option></select><button class="secondary" id="blockUserBtn" style="margin-top:12px">Block User</button><div id="blockedUsersList" style="margin-top:14px"><p class="small-note">Loading blocked users…</p></div><div id="blockUserNote" aria-live="polite"></div>';safetyHost.appendChild(blockCard);
+  const blockSelect=blockCard.querySelector("#blockUserSelect"),blockedList=blockCard.querySelector("#blockedUsersList"),blockNote=blockCard.querySelector("#blockUserNote"),blockButton=blockCard.querySelector("#blockUserBtn");
+  let safetyUsers=[];
+  try{safetyUsers=await listCloudUsers();if(blockCard.isConnected)for(const user of safetyUsers){const option=document.createElement("option");option.value=user.uid;option.textContent=user.displayName||user.email||"FIDUNIO user";blockSelect.appendChild(option);}}catch(error){blockNote.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+  const renderBlocks=async()=>{const rows=await listFidunioBlockedUsers();const names=new Map(safetyUsers.map(user=>[user.uid,user.displayName||user.email||"FIDUNIO user"]));blockedList.innerHTML=rows.length?rows.map(row=>`<div class="admin-invite-row"><div><strong>${esc(names.get(row.blockedUid)||"Blocked user")}</strong></div><button class="row-action unblockUserBtn" type="button" data-uid="${esc(row.blockedUid)}">Unblock</button></div>`).join(""):'<p class="small-note">No blocked users.</p>';blockedList.querySelectorAll(".unblockUserBtn").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{await serializeSettingsMutation("unblock user",()=>unblockFidunioUser(btn.dataset.uid));await renderBlocks();}catch(err){blockNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;}});};
+  try{await renderBlocks();}catch(error){blockedList.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
+  blockButton.onclick=async()=>{const uid=blockSelect.value;if(!uid){blockNote.innerHTML='<p class="warning-note">Choose a FIDUNIO user to block.</p>';return;}if(!confirm("Block this user? New direct contact will be stopped in both directions until you unblock them."))return;blockButton.disabled=true;try{await serializeSettingsMutation("block user",()=>blockFidunioUser(uid));blockSelect.value="";await renderBlocks();blockNote.innerHTML='<p class="small-note">User blocked.</p>';}catch(err){blockNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}finally{blockButton.disabled=false;}};
+
+  if(["owner","admin"].includes(info.role)){
+    const admin=document.createElement("div");admin.className="card";admin.id="fidunioAbuseAdminCard";admin.innerHTML='<h2>Abuse Reports</h2><p class="small-note">Administrator moderation queue.</p><div id="abuseAdminList"><p class="small-note">Loading reports…</p></div>';safetyHost.appendChild(admin);
+    const list=admin.querySelector("#abuseAdminList");
+    try{
+      const reports=await listFidunioAbuseReportsForAdmin();
+      if(!admin.isConnected)return;
+      const participantUids=[...new Set(reports.flatMap(r=>[r.reporterUid,r.targetUid]).map(x=>String(x||"").trim()).filter(Boolean))];
+      const participantProfiles=new Map();
+      await Promise.all(participantUids.map(async uid=>{
+        try{const profile=await getCloudUserProfile(uid);participantProfiles.set(uid,profile?.displayName||profile?.email||"FIDUNIO user");}
+        catch{participantProfiles.set(uid,"FIDUNIO user");}
+      }));
+      const displayName=uid=>participantProfiles.get(String(uid||""))||"FIDUNIO user";
+      list.innerHTML=reports.length?reports.map(r=>`<div class="admin-invite-row"><div><strong>${esc(prettyAbuseCategory(r.category))}</strong><span>${esc(displayName(r.reporterUid))} ${r.targetUid?`→ ${esc(displayName(r.targetUid))}`:""} • ${esc(dateText(r.createdAt))}</span>${r.details?`<p class="small-note" style="margin:6px 0 0">${esc(r.details)}</p>`:""}</div><div>${r.status==="open"?`<button class="row-action abuseResolveBtn" type="button" data-id="${esc(r.id)}">Resolve</button><button class="row-action abuseDismissBtn" type="button" data-id="${esc(r.id)}">Dismiss</button>`:`<span class="small-note">${esc(r.status)}</span>`}</div></div>`).join(""):'<p class="small-note">No abuse reports.</p>';
+      const act=async(btn,status)=>{btn.disabled=true;try{await serializeSettingsMutation("resolve abuse report",()=>resolveFidunioAbuseReport(btn.dataset.id,status,""));await renderSafety(safetyHost,info);}catch(err){alert(err?.message||String(err));btn.disabled=false;}};
+      list.querySelectorAll(".abuseResolveBtn").forEach(btn=>btn.onclick=()=>act(btn,"resolved"));
+      list.querySelectorAll(".abuseDismissBtn").forEach(btn=>btn.onclick=()=>act(btn,"dismissed"));
+    }catch(err){list.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
+  }
 }
 
 function renderUserAdmin(usersHost,info){
@@ -270,13 +399,52 @@ function renderAccountEncryption(encryptionHost,info){
   const recover=card.querySelector("#accountE2EERecoverBtn");if(recover)recover.onclick=async()=>{const newPassword=card.querySelector("#accountE2EEPassword").value,pin=card.querySelector("#accountE2EEPin").value;if(!confirm("Use recovery only after the Firebase password has been reset. Continue with the existing six-digit account E2EE PIN?"))return;recover.disabled=true;recover.textContent="Recovering…";try{await recoverAccountE2EE({uid,newPassword,pin});renderAccountEncryption(encryptionHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;recover.disabled=false;recover.textContent="Recover After Password Reset";}};
 }
 
+const notificationTransport=getNotificationPlatformCapabilities();
 const notificationRegistrationOwner=createNotificationRegistrationOwner({
-  getCapability:getFidunioNotificationCapability,getToken:getFidunioMessagingToken,deleteToken:deleteFidunioMessagingToken,
+  getCapability:notificationTransport.nativeRegistration?getNativeNotificationCapability:getFidunioNotificationCapability,
+  getToken:notificationTransport.nativeRegistration?getNativeMessagingToken:getFidunioMessagingToken,
+  deleteToken:notificationTransport.nativeRegistration?deleteNativeMessagingToken:deleteFidunioMessagingToken,
   readRegistration:getCloudNotificationDevice,writeRegistration:upsertCloudNotificationDevice,deleteRegistration:deleteCloudNotificationDevice,
-  getConfigured:()=>String(FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY||"").trim().length>0
+  getConfigured:()=>notificationTransport.nativeRegistration||String(FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY||"").trim().length>0,
+  requestPermission:notificationTransport.nativeRegistration?requestNativeNotificationPermission:undefined,
+  getRegistrationContext:notificationTransport.nativeRegistration?async()=>null:null,
+  buildTokenOptions:notificationTransport.nativeRegistration?()=>({}):undefined,
+  getPlatform:notificationTransport.nativeRegistration?()=>"ios-native":undefined
 });
-function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Web Push setup required"})[status]||status;}
+let notificationTokenMaintenanceStop=()=>{};
+let notificationTokenMaintenanceGeneration=0;
+export function stopNotificationRegistrationMaintenance(){
+  notificationTokenMaintenanceGeneration++;
+  try{notificationTokenMaintenanceStop();}catch{}
+  notificationTokenMaintenanceStop=()=>{};
+}
+export function startNotificationRegistrationMaintenance(uid){
+  stopNotificationRegistrationMaintenance();
+  if(!notificationTransport.nativeRegistration||!uid)return()=>{};
+  const generation=notificationTokenMaintenanceGeneration;
+  notificationTokenMaintenanceStop=subscribeNativeMessagingTokens(token=>{
+    if(generation!==notificationTokenMaintenanceGeneration)return;
+    void notificationRegistrationOwner.refreshToken({uid,fcmToken:token}).catch(error=>console.warn("FIDUNIO native notification token refresh failed",error));
+  });
+  return()=>{if(generation===notificationTokenMaintenanceGeneration)stopNotificationRegistrationMaintenance();};
+}
+
+export async function removeNotificationRegistrationForSignOut(uid){
+  stopNotificationRegistrationMaintenance();
+  if(!uid)return true;
+  try{
+    await notificationRegistrationOwner.disable({uid});
+    return true;
+  }catch(error){
+    console.warn("FIDUNIO notification sign-out cleanup failed",error);
+    throw new Error("Could not safely sign out because this installation's notification registration could not be removed. Check the connection and try again.");
+  }
+}
+
+function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Notification setup required"})[status]||status;}
 async function renderNotifications(notificationsHost,info){
+  const platformNotifications=getNotificationPlatformCapabilities();
+  if(!platformNotifications.webPush&&!platformNotifications.nativeRegistration){notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note"><strong>Status:</strong> Unsupported on this installation</p></div>';return;}
   notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note">Loading notification status…</p></div>';
   const card=notificationsHost.querySelector("#fidunioNotificationsCard");
   try{const state=await notificationRegistrationOwner.getStatus(info.user.uid);if(!card.isConnected)return;const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&!state.enabled;card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(notificationStatusText(state.status))}</p><p class="small-note">Private is the default: <strong>FIDUNIO — New message</strong>. You may optionally show only the sender's FIDUNIO display name. Message text, attachment names, email addresses, UIDs, and decrypted content are never placed in the notification.</p>${state.enabled?`<label class="form-label" style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="showNotificationSenderName" ${state.showSenderName?"checked":""}> Show sender's FIDUNIO display name</label><p class="small-note">When enabled on this installation, the card may say <strong>New message from Display Name</strong>.</p>`:""}${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${state.enabled?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
@@ -298,6 +466,10 @@ function renderAccountVault(dataHost,info){
   fileInput.onchange=async()=>{const file=fileInput.files?.[0];if(!file)return;if(!confirm("Restore this FIDUNIO Recovery File? Current local account data will be replaced only after the file and current cloud authority are verified."))return;create.disabled=true;choose.disabled=true;pin.setDisabled(true);choose.textContent="Verifying and restoring…";try{if(!await verifyLocalPin(pin.value()))throw new Error("Incorrect FIDUNIO PIN.");await mountedAccountVaultOwner.restore(file,pin.value());}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;create.disabled=false;choose.disabled=false;pin.setDisabled(false);choose.textContent="Restore from Recovery File";pin.clear();}};
 }
 
+function renderLegalSupport(legalHost){
+  legalHost.innerHTML=`<div class="card" id="fidunioLegalSupportCard"><h2>Legal & Support</h2><p class="small-note">FIDUNIO requires acceptance of the current Terms of Use and acknowledgement of the Privacy Policy before messaging can open.</p><p><a class="secondary" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${esc(FIDUNIO_LEGAL_POLICY.termsUrl)}" target="_blank" rel="noopener">Terms of Use</a><a class="secondary" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${esc(FIDUNIO_LEGAL_POLICY.privacyUrl)}" target="_blank" rel="noopener">Privacy Policy</a><a class="secondary" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="${esc(FIDUNIO_LEGAL_POLICY.supportUrl)}" target="_blank" rel="noopener">Help & Contact Support</a></p><p class="small-note">For abusive behavior, use <strong>Settings → Safety → Report Abuse</strong> or <strong>Blocked Users</strong>. Permanent account deletion is available in your Profile settings.</p><p class="small-note">Terms version: ${esc(FIDUNIO_LEGAL_POLICY.termsVersion)} • Privacy version: ${esc(FIDUNIO_LEGAL_POLICY.privacyVersion)}</p></div>`;
+}
+
 async function hydrateAccountPanels(g,shell){
   const profileHost=host(shell,"profile"),usersHost=host(shell,"users"),invitesHost=host(shell,"invites"),encryptionHost=host(shell,"privacy"),notificationsHost=host(shell,"notifications"),safetyHost=host(shell,"safety");
   /* Claim the legacy IDs synchronously so old observer-era modules cannot
@@ -308,7 +480,7 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);await renderSafety(safetyHost);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);
+    renderProfile(profileHost,info);await renderAccountDeletion(profileHost,usersHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderSafety(safetyHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);renderLegalSupport(host(shell,"legal"));
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 

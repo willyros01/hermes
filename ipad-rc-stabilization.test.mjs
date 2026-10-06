@@ -30,7 +30,7 @@ for(const selector of ["tablet-brand-name","tablet-brand-sub","tablet-nav-item"]
 assert.doesNotMatch(app,/MutationObserver/);
 assert.doesNotMatch(app,/orientationchange/);
 assert.equal(existsSync(mirrorUrl),false,"the retired rebuild-to-main document mirror must remain absent");
-assert.match(baseline,/push:\s*\n\s*branches:\s*\[main,\s*main2,\s*ios\]/,"the permanent baseline must cover the approved main web authority and ios native-development branch");
+assert.match(baseline,/push:\s*\n\s*branches:\s*\[main,\s*ios\]/,"the permanent baseline must cover the approved main web authority and ios native-development branch");
 assert.match(css,/#app\s*\{\s*flex:1 1 100%/s,"the established app owner must fill the iPad standalone viewport");
 assert.match(css,/\.tablet-shell\s*\{\s*width:100%;\s*max-width:none;/s,"tablet shell must fill its owner instead of retaining a standalone 100vw gap");
 assert.match(css,/\.tablet-brand-row\s*\{\s*padding-top:max\(26px,calc\(14px \+ env\(safe-area-inset-top\)\)\)/s,"tablet sidebar must clear the iPad status bar even when the reported inset is zero");

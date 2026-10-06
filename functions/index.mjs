@@ -2,6 +2,7 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { getMessaging } from "firebase-admin/messaging";
+import { getAuth } from "firebase-admin/auth";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
@@ -20,6 +21,12 @@ import { runDisappearingPurgeSweep } from "./disappearing/disappearing-scheduler
 import { createDirectMessageNotificationCore } from "./notification/direct-message-notification-core.mjs";
 import { createGroupMessageNotificationCore } from "./notification/group-message-notification-core.mjs";
 import { createNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
+import { createLegalPolicyCore } from "./legal/legal-policy-core.mjs";
+import { createLegalPolicyFirestoreRepository } from "./legal/legal-policy-firestore-admin-adapter.mjs";
+import { createAccountDeletionCore } from "./account-deletion/account-deletion-core.mjs";
+import { createAccountDeletionAdminRepository } from "./account-deletion/account-deletion-firestore-admin-adapter.mjs";
+import { createSystemOwnershipCore } from "./access/system-ownership-core.mjs";
+import { createSystemOwnershipFirestoreRepository } from "./access/system-ownership-firestore-admin-adapter.mjs";
 
 if (!getApps().length) initializeApp();
 
@@ -37,8 +44,14 @@ const {messageRepo,attachmentRepo}=createMessageDeleteAdminRepositories({db,buck
 const {conversationRepo,attachmentRepo:conversationAttachmentRepo}=createConversationDeleteAdminRepositories({db,bucket:attachmentBucket});
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
-const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo}=createNotificationAdminRepositories({db});
-const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
+const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo}=createNotificationAdminRepositories({db});
+const legalRepo=createLegalPolicyFirestoreRepository({db});
+const legalCore=createLegalPolicyCore({repo:legalRepo,termsVersion:"2026-10-04-v1",privacyVersion:"2026-10-04-v1"});
+const accountDeletionRepo=createAccountDeletionAdminRepository({db,auth:getAuth()});
+const accountDeletionCore=createAccountDeletionCore({repo:accountDeletionRepo});
+const systemOwnershipRepo=createSystemOwnershipFirestoreRepository({db});
+const systemOwnershipCore=createSystemOwnershipCore({repo:systemOwnershipRepo});
+const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo,messaging:getMessaging()});
 const groupNotificationCore=createGroupMessageNotificationCore({groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
 
 function decodeMasterSecret() {
@@ -94,6 +107,14 @@ export const listAdminRecoveryAuthorizationsV1=onCall(common,request=>invoke(adm
 export const revokeAdminRecoveryAuthorizationV1=onCall(common,request=>invoke(adminRecoveryCore.revokeAdminRecoveryAuthorizationV1,request));
 export const startAdminAuthorizedRecoveryV1=onCall(common,request=>invoke(adminRecoveryCore.startAdminAuthorizedRecoveryV1,request));
 export const completeAdminAuthorizedRecoveryV1=onCall({...common,secrets:[RECOVERY_MASTER]},request=>invoke(adminRecoveryCore.completeAdminAuthorizedRecoveryV1,request));
+export const getLegalAcceptanceV1=onCall(common,request=>invoke(legalCore.getLegalAcceptanceV1,request));
+export const acceptLegalPolicyV1=onCall(common,request=>invoke(legalCore.acceptLegalPolicyV1,request));
+export const getMyAccountDeletionRequestV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.getMyAccountDeletionRequestV1,request));
+export const requestMyAccountDeletionV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.requestMyAccountDeletionV1,request));
+export const markMyAccountDeletionCleanupCompleteV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.markMyAccountDeletionCleanupCompleteV1,request));
+export const cancelMyAccountDeletionRequestV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(accountDeletionCore.cancelMyAccountDeletionRequestV1,request));
+export const completeMyAccountDeletionV1=onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:300,memory:"512MiB",maxInstances:5},request=>invoke(accountDeletionCore.completeMyAccountDeletionV1,request));
+export const transferSystemOwnershipV1=onCall(common,request=>invoke(systemOwnershipCore.transferSystemOwnershipV1,request));
 
 export const deleteDirectMessageForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:30,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteDirectMessageForEveryoneV1,request));
 export const deleteMyMessagesForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:60,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request));

@@ -11,7 +11,7 @@ assert.match(app,/\.finally\(\(\)=>\{[\s\S]*?appActivationPromise=null;[\s\S]*?i
   "a signal queued at owner release must synchronously start the next serialized drain");
 assert.doesNotMatch(app,/appActivationFollowUp/,"activation serialization must not use a follow-up busy flag");
 assert.equal((app.match(/applyPendingNotificationRoute\(\)/g)||[]).length,2,"notification routing must have one definition and one activation-owner caller");
-for(const reason of ["unlock","firebase-auth-ready","firebase-auth-signed-out","initial-hydration","foreground","online","offline","service-worker-message"]){
+for(const reason of ["unlock","firebase-auth-ready","firebase-auth-signed-out","initial-hydration","foreground","online","offline","background-message"]){
   assert.ok(app.includes(`"${reason}"`),`${reason} must signal the activation owner`);
 }
 assert.doesNotMatch(app,/notificationInboxLoaded/,"the installation inbox must be re-read on each eligible activation");

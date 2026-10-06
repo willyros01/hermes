@@ -43,7 +43,8 @@ import {
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
-import { mountSettingsLifecycle } from "./settings-lifecycle.js";
+import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance } from "./settings-lifecycle.js";
+import {assertMessageSafety} from "./message-safety-policy.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
@@ -72,6 +73,8 @@ import {createBulkMessageDeleteProjectionOwner} from "./bulk-message-delete-proj
 import {createAccountVaultOwner} from "./account-vault-owner.js";
 import {reconcileAccountVaultPayload} from "./account-vault-reconciliation.js";
 import {activateVerifiedAccountVault} from "./account-vault-activation.js";
+import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {subscribePlatformBackgroundMessages} from "./background-platform-adapter.js";
 
 /* FIDUNIO single-authority local lock integration */
 const app = document.querySelector("#app");
@@ -165,7 +168,10 @@ function messagePreview(text){
   if(reply)return reply.text;
   const descriptor=parseAttachmentDescriptor(text);
   if(!descriptor)return text||"";
-  return descriptor.kind==="photo"||String(descriptor.type||"").startsWith("image/")?"📷 Photo":`📎 ${descriptor.name||"Attachment"}`;
+  if(descriptor.kind==="photo"||String(descriptor.type||"").startsWith("image/"))return "📷 Photo";
+  if(descriptor.kind==="audio"||String(descriptor.type||"").startsWith("audio/"))return `🔊 ${descriptor.name||"Audio"}`;
+  if(descriptor.kind==="video"||String(descriptor.type||"").startsWith("video/"))return `🎬 ${descriptor.name||"Video"}`;
+  return `📎 ${descriptor.name||"Attachment"}`;
 }
 function groupReplyTargetPreview(message){
   const reply=parseGroupReplyDescriptor(message?.text);
@@ -932,7 +938,10 @@ function beginBlockedUsersSubscription(){
   blockedUsersUnsub=subscribeFidunioBlockedUsers(firebaseUser.uid,rows=>{
     blockedUserIds=new Set((rows||[]).map(row=>String(row.blockedUid||"")).filter(Boolean));
     const active=currentConversation();
-    if(active?.cloud&&!active?.cloudGroup&&blockedUserIds.has(String(active.peerUid||"")))state.toolsOpen=false;
+    if(active?.cloud&&!active?.cloudGroup&&blockedUserIds.has(String(active.peerUid||""))){
+      state.toolsOpen=false;
+      void reconcileVisibleDirectRead(active.id,{forceServer:false});
+    }
     if(state.route==="chat"||state.route==="messages")render({background:true});
   },err=>console.warn("FIDUNIO blocked-user sync unavailable",err));
 }
@@ -942,7 +951,6 @@ function directConversationBlockedByMe(conversation){
 function blockedDirectMessage(){
   return "You blocked this user. Unblock them in Settings → Safety to send direct messages.";
 }
-
 const directReadReconcilePromises=new Map();
 function reconcileVisibleDirectRead(conversationId,{forceServer=false}={}){
   const id=String(conversationId||"");
@@ -1329,12 +1337,14 @@ async function initializeFirebaseLayer(){
       firebaseUser=user;
       firebaseReady=true;
       if(user){
+        startNotificationRegistrationMaintenance(user.uid);
         if(getAccountE2EELifecycleState().manager.state!=="READY")bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
         beginBlockedUsersSubscription();
         beginCloudGroupSubscription();
       }else{
+        stopNotificationRegistrationMaintenance();
         composerStateByConversation.clear();
         optimisticOutgoingProjection.reset();
         bulkMessageDeleteProjection.reset();
@@ -1355,7 +1365,7 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
-    if(firebaseUser){publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
+    if(firebaseUser){startNotificationRegistrationMaintenance(firebaseUser.uid);publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
     void requestAppActivation("firebase-initialize-complete");
   }catch(err){
     firebaseError=err?.message || String(err);
@@ -1582,6 +1592,14 @@ function scheduleChatViewportRestore(conversationId,viewport,generation){
 }
 function bindChatMessageProjectionActions(){
   bindPendingMessageActions();
+  document.querySelectorAll(".attachment-media-open").forEach(button=>button.onclick=event=>{
+    event.preventDefault();event.stopPropagation();
+    const conversationId=button.dataset.conversationId,messageId=button.dataset.messageId;
+    const runtime=attachmentRuntime.get(attachmentRuntimeKey(conversationId,messageId));
+    if(runtime?.status!=="ready"||!runtime.result?.url)return;
+    state.modal={type:"attachmentMedia",conversationId,messageId};
+    render();
+  });
   document.querySelectorAll(".attachment-retry").forEach(btn=>btn.onclick=event=>{
     event.preventDefault();event.stopPropagation();
     const message=(state.messages[btn.dataset.conversationId]||[]).find(row=>String(row.id)===String(btn.dataset.messageId));
@@ -1709,9 +1727,14 @@ function renderUnlock(){
   }
   const deviceButton=document.querySelector("#deviceUnlockBtn");
   if(deviceButton)deviceButton.onclick=async()=>{
-    deviceButton.disabled=true;deviceButton.textContent="Waiting for Face ID or biometric…";
-    try{if(await verifyBiometric()){unlockLocalApp();return;}}catch{}
-    unlockError="Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.";
+    deviceButton.disabled=true;
+    deviceButton.textContent="Waiting for Face ID or biometric…";
+    try{
+      if(await verifyBiometric()){unlockLocalApp();return;}
+      unlockError="Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.";
+    }catch(err){
+      unlockError=err?.message||"Face ID or biometric unlock was unavailable. Use your PIN instead.";
+    }
     unlockPinFallbackVisible=true;
     render();
   };
@@ -2026,10 +2049,14 @@ function renderBubble(m,c){
     }else{
       if(!runtime)queueMicrotask(()=>loadAttachment(c.id,m,descriptor));
       if(runtime?.status==="ready"){
-        const result=runtime.result,isImage=result.kind==="photo"||String(result.type||"").startsWith("image/");
+        const result=runtime.result,isImage=result.kind==="photo"||String(result.type||"").startsWith("image/"),isVideo=result.kind==="video"||String(result.type||"").startsWith("video/"),isAudio=result.kind==="audio"||String(result.type||"").startsWith("audio/");
         messageContent=isImage
-          ?`<a class="attachment-image-link" href="${esc(result.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(result.name)}"><img class="message-photo" src="${esc(result.url)}" alt="${esc(result.name)}"></a>`
-          :`<a class="attachment-card attachment-file" href="${esc(result.url)}" download="${esc(result.name)}">📎 ${esc(result.name)}</a>`;
+          ?`<button class="attachment-image-link attachment-media-open" type="button" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}" aria-label="View ${esc(result.name)} larger"><img class="message-photo" src="${esc(result.url)}" alt="${esc(result.name)}"></button>`
+          :isVideo
+            ?`<div class="attachment-video-card"><video class="message-video" src="${esc(result.url)}" controls playsinline preload="metadata" aria-label="${esc(result.name)}"></video><button class="attachment-media-open attachment-view-larger" type="button" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}">View larger</button></div>`
+            :isAudio
+              ?`<div class="attachment-audio-card"><audio class="message-audio" src="${esc(result.url)}" controls preload="metadata" aria-label="${esc(result.name)}"></audio><div class="small-note">${esc(result.name)}</div></div>`
+              :`<a class="attachment-card attachment-file" href="${esc(result.url)}" download="${esc(result.name)}">📎 ${esc(result.name)}</a>`;
       }else if(runtime?.status==="error"){
         messageContent=`<div class="attachment-card attachment-error">${descriptor.kind==="photo"?"Photo":"Attachment"} could not be opened.<span class="attachment-error-detail">${esc(runtime.error?.message||"Unknown attachment error")}</span><button class="attachment-retry" type="button" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}">Try Again</button></div>`;
       }else messageContent=`<div class="attachment-card attachment-loading">Loading ${descriptor.kind==="photo"?"photo":"attachment"}…</div>`;
@@ -2166,6 +2193,7 @@ async function sendCurrent(){
   if(!draftText) return;
   const activeConversation=currentConversation();
   if(directConversationBlockedByMe(activeConversation))throw new Error(blockedDirectMessage());
+  assertMessageSafety(draftText);
   messageSendInFlight=true;
   box.value="";
   box.style.height="46px";
@@ -2411,15 +2439,26 @@ async function flushQueued({allowedCloudMessageIds=null,notifyUser=false}={}){
         await removeOutboxMessage(payload.messageId);
         await persistState();
       }catch(err){
-        if(err?.code==="fidunio/direct-delivery-denied"){m.state="failed";m.failureReason="delivery-denied";firebaseError="";await removeOutboxMessage(payload.messageId);await persistState();if(notifyUser)alert(err?.message||"Message could not be delivered to this conversation.");continue;}
-
-        // Preserve the Outbox. Only work that never crossed the durable
-        // attempt boundary may return to Queued; ambiguous attempted work
-        // remains Failed until authoritative reconciliation resolves it.
-        m.state=(sendAttempted||timeoutRequiresFailedState(err))?"failed":"queued";
-        firebaseError=err?.message || String(err);
-        await persistState();
-        if(notifyUser)alert(firebaseError);
+        const deliveryDenied=err?.code==="fidunio/direct-delivery-denied";
+        if(deliveryDenied){
+          // A policy/security denial is terminal for this queued copy. Keeping
+          // it in the Outbox would create repeated retries and mislabel a
+          // deliberate delivery refusal as a Firebase connectivity problem.
+          m.state="failed";
+          m.failureReason="delivery-denied";
+          firebaseError="";
+          await removeOutboxMessage(payload.messageId);
+          await persistState();
+          if(notifyUser)alert(err?.message||"Message could not be delivered to this conversation.");
+        }else{
+          // Preserve the Outbox. Only work that never crossed the durable
+          // attempt boundary may return to Queued; ambiguous attempted work
+          // remains Failed until authoritative reconciliation resolves it.
+          m.state=(sendAttempted||timeoutRequiresFailedState(err))?"failed":"queued";
+          firebaseError=err?.message || String(err);
+          await persistState();
+          if(notifyUser)alert(firebaseError);
+        }
       }
     }else{
       m.state="failed";
@@ -2535,7 +2574,26 @@ function renderModal(){
   const modal=state.modal;
   const host=document.createElement("div");
   host.className="modal-backdrop";
-  if(modal.type==="notificationInbox"){
+  if(modal.type==="attachmentMedia"){
+    const runtime=attachmentRuntime.get(attachmentRuntimeKey(modal.conversationId,modal.messageId));
+    const result=runtime?.status==="ready"?runtime.result:null;
+    if(!result?.url){state.modal=null;return;}
+    const isVideo=result.kind==="video"||String(result.type||"").startsWith("video/");
+    host.classList.add("attachment-media-backdrop");
+    host.innerHTML=`
+      <div class="attachment-media-viewer" role="dialog" aria-modal="true" aria-label="${esc(result.name|| (isVideo?"Video":"Photo"))}">
+        <button class="attachment-media-close" id="modalCancel" type="button" aria-label="Close larger view">×</button>
+        <div class="attachment-media-stage">
+          ${isVideo
+            ?`<video class="attachment-media-full" src="${esc(result.url)}" controls playsinline preload="metadata" aria-label="${esc(result.name||"Video")}"></video>`
+            :`<img class="attachment-media-full" src="${esc(result.url)}" alt="${esc(result.name||"Photo")}">`}
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    const close=()=>{state.modal=null;host.remove();render();};
+    host.querySelector("#modalCancel").onclick=close;
+    host.onclick=event=>{if(event.target===host)close();};
+  } else if(modal.type==="notificationInbox"){
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notificationInboxTitle">
         <h2 id="notificationInboxTitle">New messages</h2>
@@ -2646,7 +2704,7 @@ function renderModal(){
     const isPending=message&&["queued","sending","failed"].includes(message.state);
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
-    const canReact=!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false&&!directConversationBlockedByMe(conversation);
+    const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation);
     const canReply=!!conversation?.cloudGroup&&!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&message.authoritativeSource!==false&&!(Number(message.disappearAfterSeconds)>0);
     const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
     const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
@@ -2882,7 +2940,7 @@ function renderSettings(){
       ${shellTop("Settings",'<button class="back-btn" id="backBtn">‹</button>')}
       <section class="content settings">
         <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
-          ${(()=>{const security=getLocalSecurityStatus();return `
+          ${(()=>{const security=getLocalSecurityStatus(),nativeIOS=isNativeIOSRuntime();return `
             <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Face ID or biometric enabled":""}</span></div>
             <label class="form-label" for="lockTimeoutSelect">Lock after inactivity</label>
             <select class="text-input" id="lockTimeoutSelect">${LOCK_TIMEOUTS.map(x=>`<option value="${x.value}" ${security.timeoutMs===x.value?"selected":""}>${esc(x.label)}</option>`).join("")}</select>
@@ -2890,7 +2948,7 @@ function renderSettings(){
               <button class="secondary" id="${security.hasBiometric?"disableBiometricBtn":"enableBiometricBtn"}" style="margin-top:10px">${security.hasBiometric?"Disable Face ID or Biometric":"Enable Face ID or Biometric"}</button>
               <button class="secondary" id="lockNowBtn" style="margin-top:10px">Lock Now</button>
             `:'<p class="small-note">Create your one six-digit FIDUNIO PIN in the Security section.</p>'}
-            <p class="small-note">Your PIN is never stored. Face ID or biometric unlock uses the secure capability provided by your browser and device.</p>
+            <p class="small-note">${nativeIOS?"Face ID or Touch ID uses the native iOS security adapter. Your FIDUNIO PIN always remains available as fallback.":"Your PIN is never stored. Face ID or biometric unlock uses the secure capability provided by your browser and device."}</p>
             ${localSecurityMessage?`<p class="${localSecurityMessageIsError?"warning-note":"small-note"}">${esc(localSecurityMessage)}</p>`:""}
           `})()}
           ${settingRow("Notification message previews","previews")}
@@ -3070,13 +3128,9 @@ if(appearanceMedia){
   if(typeof appearanceMedia.addEventListener==="function")appearanceMedia.addEventListener("change",followSystemAppearance);
   else appearanceMedia.addListener?.(followSystemAppearance);
 }
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.addEventListener("message",event=>{
-    if(event.data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
-    const route=normalizeNotificationRoute(event.data?.route);if(!route)return;
-    pendingNotificationRoute=route;void requestAppActivation("service-worker-message");
-  });
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js",{type:"module"})
-    .catch(err=>console.warn("Service worker registration failed",err)));
-}
-initApp();
+subscribePlatformBackgroundMessages(data=>{
+  if(data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
+  const route=normalizeNotificationRoute(data?.route);if(!route)return;
+  pendingNotificationRoute=route;void requestAppActivation("background-message");
+});
+export const FIDUNIO_APP_READY=initApp();

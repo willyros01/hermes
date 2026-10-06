@@ -12,7 +12,7 @@ assert.equal(FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,"fidunio-notification-route");
 const envelope=notificationEnvelopeFromFcmPayload({data:{type:"direct-message",conversationId:"conv-12345678",messageId:"msg-12345678",notificationBody:"New message"}});
 assert.deepEqual({...notificationOptionsForEnvelope(envelope).data},{type:"direct-message",conversationId:"conv-12345678",messageId:"msg-12345678"});
 
-const sw=readFileSync("service-worker.js","utf8"),app=readFileSync("app.js","utf8"),bootstrap=readFileSync("bootstrap.js","utf8"),version=readFileSync("version.js","utf8");
+const sw=readFileSync("service-worker.js","utf8"),app=readFileSync("app.js","utf8"),bootstrap=readFileSync("bootstrap.js","utf8"),background=readFileSync("background-platform-adapter.js","utf8"),version=readFileSync("version.js","utf8");
 assert.match(sw,/firebase-messaging-sw\.js/);
 assert.match(sw,/onBackgroundMessage\(notificationMessaging/);
 assert.match(sw,/addEventListener\("notificationclick"/);
@@ -24,8 +24,10 @@ assert.doesNotMatch(sw,/client\.postMessage\(\{type:"fidunio-notification-route"
 assert.doesNotMatch(sw,/addEventListener\("push"/);
 assert.match(sw,/fidunioNotification/);
 assert.doesNotMatch(sw,/decrypt|markCloudConversationRead|updateCloudMessageState/);
-assert.match(bootstrap,/register\("\.\/service-worker\.js",\{scope:"\.\/",type:"module"\}\)/);
-assert.match(app,/register\("\.\/service-worker\.js",\{type:"module"\}\)/);
+assert.match(background,/register\("\.\/service-worker\.js",\{scope:"\.\/",type:"module"\}\)/);
+assert.match(bootstrap,/startPlatformBackground\(\)/);
+assert.match(app,/subscribePlatformBackgroundMessages/);
+assert.doesNotMatch(app,/navigator\.serviceWorker|serviceWorker\.register/);
 assert.match(app,/notificationRouteFromUrl/);
 assert.match(app,/getCloudConversationFromServer\(route\.conversationId,firebaseUser\.uid\)/);
 assert.match(app,/beginCloudMessageSubscription\(c\.id,\{force:true\}\)/);
