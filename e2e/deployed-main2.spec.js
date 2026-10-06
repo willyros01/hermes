@@ -130,20 +130,31 @@ test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
     await expect(page.getByText("Privacy & Access",{exact:true})).toBeVisible();
     await expect(page.getByText("Account",{exact:true})).toBeVisible();
 
-    // Settings-backed panels are known to load slowly. Do not depend on
-    // intermediate navigation/button visibility. Observe the outcome we care
-    // about: whether the recovered Test Admin identity eventually appears.
+    // Mobile Settings is a scrollable navigation. Behave like a person:
+    // scroll the desired section into view, open it, then patiently observe
+    // the result instead of requiring intermediate controls to appear quickly.
+    const adminNav=page.locator('.fidunio-settings-nav-btn[data-group="users"]');
+    await adminNav.scrollIntoViewIfNeeded();
+    await adminNav.click({timeout:30000});
+    const manageUsers=page.locator("#manageUsersBtn");
+    await expect(manageUsers).toBeVisible({timeout:120000});
+    await manageUsers.click();
+
     const testAdminIdentity=page.getByText(process.env.FIDUNIO_E2E_ADMIN_EMAIL,{exact:true});
-    const settingsDeadline=Date.now()+180000;
+    const adminDeadline=Date.now()+480000;
     let testAdminFound=false;
-    while(Date.now()<settingsDeadline&&!testAdminFound){
+    while(Date.now()<adminDeadline&&!testAdminFound){
       testAdminFound=await testAdminIdentity.isVisible({timeout:2000}).catch(()=>false);
       if(testAdminFound)break;
       await page.waitForTimeout(10000);
     }
-    if(!testAdminFound){
-      await page.screenshot({path:"test-results/settings-test-admin-timeout.png",fullPage:true});
-    }
+    if(!testAdminFound)await page.screenshot({path:"test-results/user-administration-timeout.png",fullPage:true});
     await expect(testAdminIdentity).toBeVisible({timeout:2000});
+    await page.keyboard.press("Escape").catch(()=>{});
+
+    const invitesNav=page.locator('.fidunio-settings-nav-btn[data-group="invites"]');
+    await invitesNav.scrollIntoViewIfNeeded();
+    await invitesNav.click({timeout:30000});
+    await expect(page.locator("#createInviteBtn")).toBeVisible({timeout:120000});
   });
 });
