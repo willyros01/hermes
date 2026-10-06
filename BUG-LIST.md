@@ -437,3 +437,8 @@ The service worker persists the validated opaque route locally before notificati
 
 ### FDA-BIO-001 — returning-session biometric label — 1.1.56
 1.1.55 updated the main lock screen but missed the separate remembered-session authentication renderer, leaving **Unlock with device** visible despite the correct release version. 1.1.56 updates only that existing auth UI wording, advances the shell revision, and extends permanent regression coverage to both unlock paths. Device acceptance is pending; PIN, WebAuthn semantics, E2EE, Firebase, messaging and notification ownership are unchanged.
+
+
+### FDA-SETTINGS-001 — Settings administration and invitation panels load very slowly
+
+**Severity:** Medium usability / test reliability issue. **Observed:** User Administration and Invitations can take a long time to populate after opening Settings and may require several attempts before their Firestore-backed content appears, including during normal manual use. **Test accommodation:** MAIN2 deployed functional testing now stays on Settings, allows up to 60 seconds per attempt, and retries these panels up to three times before declaring failure. **Status:** OPEN — investigate the underlying Settings panel/data-loading latency separately; the longer test wait is not considered the application fix.
