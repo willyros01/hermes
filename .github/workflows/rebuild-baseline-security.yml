@@ -71,6 +71,7 @@ jobs:
       - {name: Group date separators, run: node group-date-separator.test.mjs}
       - {name: Group sender time, run: node group-sender-time.test.mjs}
       - {name: Message reactions policy and wiring, run: npm run test:message-reactions}
+      - {name: Local pre-encryption message safety filter, run: npm run test:message-safety}
       - {name: Group message Reply descriptor policy, run: npm run test:group-reply}
       - {name: Group earlier-history admin UI, run: npm run test:group-history-admin-ui}
       - {name: Receipt lifecycle stabilization, run: npm run test:receipt-lifecycle-stabilization}
@@ -87,8 +88,15 @@ jobs:
       - {name: Account direct-message crypto, run: npm run test:e2ee-account-message-crypto}
       - {name: Account direct-message service, run: npm run test:e2ee-account-message-service}
       - {name: Firebase App Check client integration, run: npm run test:firebase-app-check}
+      - {name: Abuse report Settings wiring, run: npm run test:abuse-report}
+      - {name: Abuse report readable moderation display, run: node abuse-report-display.test.mjs}
+      - {name: Abuse report Firestore rules, run: npm run emulator:test:abuse-report-rules}
+      - {name: User block Settings wiring, run: npm run test:user-block}
       - {name: User block Firestore rules, run: npx firebase emulators:exec --only firestore --project demo-fidunio-block-rules "node firestore-user-block.rules.test.mjs"}
+      - {name: Blocked direct-message delivery UX boundary, run: node blocked-direct-delivery-ux.test.mjs}
       - {name: Critical block and unlock regression, run: node critical-block-unlock-regression.test.mjs}
+      - {name: Account deletion Settings wiring, run: npm run test:account-deletion}
+      - {name: Account deletion request Firestore rules, run: npm run emulator:test:account-deletion-rules}
       - {name: FCM N2 ownership foundation, run: npm run test:notification-n2-foundation}
       - {name: Notification device Firestore rules, run: npm run emulator:test:notification-rules}
       - {name: FCM N3 registration and Settings, run: npm run test:notification-n3}
@@ -122,6 +130,16 @@ jobs:
       - {name: Single visible FIDUNIO PIN and hidden-key UX, run: npm run test:user-access-key-ux}
       - {name: Password change E2EE bridge and rollback, run: node password-change-integration.test.mjs}
       - {name: Forgot Password Firebase-to-E2EE recovery handoff, run: node forgot-password-recovery.test.mjs}
+      - {name: Firebase platform adapter contract, run: node build/firebase-platform-adapter.test.mjs}
+      - {name: First-use legal acceptance wiring, run: node legal-policy-wiring.test.mjs}
+      - {name: Legal acceptance callable core, run: node functions/legal/legal-policy-core.test.mjs}
+      - {name: Final account deletion callable core, run: node functions/account-deletion/account-deletion-core.test.mjs}
+      - {name: System ownership transfer core, run: node functions/access/system-ownership-core.test.mjs}
+      - {name: Attachment download platform boundary, run: node build/attachment-download-platform-adapter.test.mjs}
+      - {name: Authentication and recovery transition boundaries, run: node build/auth-transition-boundary.test.mjs}
+      - {name: Startup and background platform adapter boundaries, run: node build/platform-boundary-adapters.test.mjs}
+      - {name: Platform runtime web/native isolation, run: node platform-runtime.test.mjs}
+      - {name: Photo and video focused media viewer, run: node attachment-media-viewer.test.mjs}
       - {name: Password visibility presentation owner, run: node password-visibility.test.mjs}
       - {name: Portable encrypted account vault and recovery, run: npm run test:account-vault}
       - {name: Basic direct-message send and receive path, run: node direct-message-basic-path.test.mjs}
