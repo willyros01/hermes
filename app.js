@@ -1592,6 +1592,14 @@ function scheduleChatViewportRestore(conversationId,viewport,generation){
 }
 function bindChatMessageProjectionActions(){
   bindPendingMessageActions();
+  document.querySelectorAll(".attachment-media-open").forEach(button=>button.onclick=event=>{
+    event.preventDefault();event.stopPropagation();
+    const conversationId=button.dataset.conversationId,messageId=button.dataset.messageId;
+    const runtime=attachmentRuntime.get(attachmentRuntimeKey(conversationId,messageId));
+    if(runtime?.status!=="ready"||!runtime.result?.url)return;
+    state.modal={type:"attachmentMedia",conversationId,messageId};
+    render();
+  });
   document.querySelectorAll(".attachment-retry").forEach(btn=>btn.onclick=event=>{
     event.preventDefault();event.stopPropagation();
     const message=(state.messages[btn.dataset.conversationId]||[]).find(row=>String(row.id)===String(btn.dataset.messageId));
@@ -2043,9 +2051,9 @@ function renderBubble(m,c){
       if(runtime?.status==="ready"){
         const result=runtime.result,isImage=result.kind==="photo"||String(result.type||"").startsWith("image/"),isVideo=result.kind==="video"||String(result.type||"").startsWith("video/"),isAudio=result.kind==="audio"||String(result.type||"").startsWith("audio/");
         messageContent=isImage
-          ?`<a class="attachment-image-link" href="${esc(result.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(result.name)}"><img class="message-photo" src="${esc(result.url)}" alt="${esc(result.name)}"></a>`
+          ?`<button class="attachment-image-link attachment-media-open" type="button" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}" aria-label="View ${esc(result.name)} larger"><img class="message-photo" src="${esc(result.url)}" alt="${esc(result.name)}"></button>`
           :isVideo
-            ?`<video class="message-video" src="${esc(result.url)}" controls playsinline preload="metadata" aria-label="${esc(result.name)}"></video>`
+            ?`<div class="attachment-video-card"><video class="message-video" src="${esc(result.url)}" controls playsinline preload="metadata" aria-label="${esc(result.name)}"></video><button class="attachment-media-open attachment-view-larger" type="button" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}">View larger</button></div>`
             :isAudio
               ?`<div class="attachment-audio-card"><audio class="message-audio" src="${esc(result.url)}" controls preload="metadata" aria-label="${esc(result.name)}"></audio><div class="small-note">${esc(result.name)}</div></div>`
               :`<a class="attachment-card attachment-file" href="${esc(result.url)}" download="${esc(result.name)}">📎 ${esc(result.name)}</a>`;
@@ -2566,7 +2574,26 @@ function renderModal(){
   const modal=state.modal;
   const host=document.createElement("div");
   host.className="modal-backdrop";
-  if(modal.type==="notificationInbox"){
+  if(modal.type==="attachmentMedia"){
+    const runtime=attachmentRuntime.get(attachmentRuntimeKey(modal.conversationId,modal.messageId));
+    const result=runtime?.status==="ready"?runtime.result:null;
+    if(!result?.url){state.modal=null;return;}
+    const isVideo=result.kind==="video"||String(result.type||"").startsWith("video/");
+    host.classList.add("attachment-media-backdrop");
+    host.innerHTML=`
+      <div class="attachment-media-viewer" role="dialog" aria-modal="true" aria-label="${esc(result.name|| (isVideo?"Video":"Photo"))}">
+        <button class="attachment-media-close" id="modalCancel" type="button" aria-label="Close larger view">×</button>
+        <div class="attachment-media-stage">
+          ${isVideo
+            ?`<video class="attachment-media-full" src="${esc(result.url)}" controls playsinline preload="metadata" aria-label="${esc(result.name||"Video")}"></video>`
+            :`<img class="attachment-media-full" src="${esc(result.url)}" alt="${esc(result.name||"Photo")}">`}
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    const close=()=>{state.modal=null;host.remove();render();};
+    host.querySelector("#modalCancel").onclick=close;
+    host.onclick=event=>{if(event.target===host)close();};
+  } else if(modal.type==="notificationInbox"){
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notificationInboxTitle">
         <h2 id="notificationInboxTitle">New messages</h2>
