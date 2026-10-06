@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 async function reachAccountAccess(page){
-  await reachAccountAccess(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
   const terms=page.getByText("Terms of Use",{exact:true});
   if(await terms.isVisible().catch(()=>false)){
     const box=page.locator('input[type="checkbox"]').first();
