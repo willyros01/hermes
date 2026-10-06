@@ -74,20 +74,42 @@ async function signInTestAdmin(page){
 
   const recoveryPinHost=page.locator("#recoveryPinHost");
   const sessionPinHost=page.locator("#sessionPinHost");
+  const retryBtn=page.locator("#authTransitionRetryBtn");
+  const biometricFallback=page.locator("#sessionShowPinBtn");
   const appReady=page.getByText(/Settings|Messages|New Message/i).first();
+  const visible=locator=>locator.isVisible({timeout:750}).catch(()=>false);
 
-  await expect(recoveryPinHost.or(sessionPinHost).or(appReady)).toBeVisible({timeout:60000});
+  await expect(recoveryPinHost.or(sessionPinHost).or(retryBtn).or(biometricFallback).or(appReady)).toBeVisible({timeout:60000});
 
-  if(await recoveryPinHost.isVisible().catch(()=>false)){
-    await fillSixDigitPin(page,"#recoveryPinHost",pin);
-    await expect(page.locator("#recoverMessagingBtn")).toHaveText(/Recovering|Recover Messaging/);
-  }else if(await sessionPinHost.isVisible().catch(()=>false)){
-    const passwordField=page.locator("#sessionPassword");
-    if(await passwordField.isVisible().catch(()=>false))await passwordField.fill(password);
-    await fillSixDigitPin(page,"#sessionPinHost",pin);
+  for(let step=0;step<8&&!await visible(appReady);step++){
+    if(await visible(recoveryPinHost)){
+      await fillSixDigitPin(page,"#recoveryPinHost",pin);
+      await expect(page.locator("#recoverMessagingBtn")).toHaveText(/Recovering|Recover Messaging/);
+      await Promise.race([appReady.waitFor({state:"visible",timeout:210000}).catch(()=>null),retryBtn.waitFor({state:"visible",timeout:210000}).catch(()=>null)]);
+      continue;
+    }
+    if(await visible(biometricFallback)){
+      await biometricFallback.click();
+      await sessionPinHost.waitFor({state:"visible",timeout:15000});
+      continue;
+    }
+    if(await visible(sessionPinHost)){
+      const passwordField=page.locator("#sessionPassword");
+      if(await visible(passwordField))await passwordField.fill(password);
+      await fillSixDigitPin(page,"#sessionPinHost",pin);
+      await Promise.race([appReady.waitFor({state:"visible",timeout:210000}).catch(()=>null),retryBtn.waitFor({state:"visible",timeout:210000}).catch(()=>null)]);
+      continue;
+    }
+    if(await visible(retryBtn)){
+      await retryBtn.click();
+      await Promise.race([appReady.waitFor({state:"visible",timeout:210000}).catch(()=>null),recoveryPinHost.waitFor({state:"visible",timeout:210000}).catch(()=>null),sessionPinHost.waitFor({state:"visible",timeout:210000}).catch(()=>null)]);
+      continue;
+    }
+    await page.screenshot({path:"test-results/unexpected-auth-state.png",fullPage:true});
+    throw new Error("Unexpected authenticated FIDUNIO screen. Evidence captured; refusing blind navigation.");
   }
 
-  await expect(appReady).toBeVisible({timeout:210000});
+  await expect(appReady).toBeVisible({timeout:15000});
 }
 
 test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
