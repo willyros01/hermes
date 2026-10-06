@@ -130,12 +130,40 @@ test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
     await expect(page.getByText("Privacy & Access",{exact:true})).toBeVisible();
     await expect(page.getByText("Account",{exact:true})).toBeVisible();
 
-    // Mobile Settings is a scrollable navigation. Behave like a person:
-    // scroll the desired section into view, open it, then patiently observe
-    // the result instead of requiring intermediate controls to appear quickly.
-    const adminNav=page.locator('.fidunio-settings-nav-btn[data-group="users"]');
-    await adminNav.scrollIntoViewIfNeeded();
-    await adminNav.click({timeout:30000});
+    // Mobile Settings can re-render while Firestore-backed sections load.
+    // Reacquire the navigation element on every attempt, scroll progressively,
+    // and capture what the remote user would actually see.
+    async function openSlowSettingsSection(group,label){
+      const deadline=Date.now()+480000;
+      let attempt=0;
+      while(Date.now()<deadline){
+        attempt++;
+        const nav=page.locator(`.fidunio-settings-nav-btn[data-group="${group}"]`);
+        try{
+          await page.mouse.wheel(0,700).catch(()=>{});
+          await page.waitForTimeout(750);
+          if(await nav.isVisible({timeout:1500}).catch(()=>false)){
+            await nav.scrollIntoViewIfNeeded({timeout:3000});
+            await page.screenshot({path:`test-results/settings-${group}-visible-${attempt}.png`,fullPage:true});
+            await nav.click({timeout:5000});
+            const panel=page.locator(`#fidunioSettingsPanel-${group}.is-active`);
+            if(await panel.isVisible({timeout:5000}).catch(()=>false)){
+              await page.screenshot({path:`test-results/settings-${group}-opened.png`,fullPage:true});
+              return;
+            }
+          }
+        }catch(e){
+          // Settings may replace its DOM while data is loading. Reacquire on
+          // the next pass instead of treating a detached element as failure.
+        }
+        if(attempt%6===0)await page.screenshot({path:`test-results/settings-${group}-waiting-${attempt}.png`,fullPage:true});
+        await page.waitForTimeout(10000);
+      }
+      await page.screenshot({path:`test-results/settings-${group}-timeout.png`,fullPage:true});
+      throw new Error(`${label} did not become operable within the 8-minute observation window`);
+    }
+
+    await openSlowSettingsSection("users","User Administration");
     const manageUsers=page.locator("#manageUsersBtn");
     await expect(manageUsers).toBeVisible({timeout:120000});
     await manageUsers.click();
@@ -152,9 +180,7 @@ test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
     await expect(testAdminIdentity).toBeVisible({timeout:2000});
     await page.keyboard.press("Escape").catch(()=>{});
 
-    const invitesNav=page.locator('.fidunio-settings-nav-btn[data-group="invites"]');
-    await invitesNav.scrollIntoViewIfNeeded();
-    await invitesNav.click({timeout:30000});
+    await openSlowSettingsSection("invites","Invitations");
     const createInvite=page.locator("#createInviteBtn");
     await expect(createInvite).toBeVisible({timeout:120000});
     await createInvite.click();
