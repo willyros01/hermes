@@ -129,6 +129,28 @@ test.describe.serial("FIDUNIO recovered Test Admin authenticated screens",()=>{
     await settings.click();
     await expect(page.getByText("Privacy & Access",{exact:true})).toBeVisible();
     await expect(page.getByText("Account",{exact:true})).toBeVisible();
-    await expect(page.getByText(process.env.FIDUNIO_E2E_ADMIN_EMAIL,{exact:true})).toBeVisible();
+
+    // Settings-backed admin panels are known to load slowly. Stay on Settings
+    // and allow multiple attempts before treating delayed Firestore data as a failure.
+    const adminNav=page.locator('.fidunio-settings-nav-btn[data-group="users"]');
+    await expect(adminNav).toBeVisible({timeout:30000});
+    let adminLoaded=false;
+    for(let attempt=0;attempt<3&&!adminLoaded;attempt++){
+      await adminNav.click();
+      adminLoaded=await page.locator(".admin-user-row").first().isVisible({timeout:60000}).catch(()=>false);
+      if(!adminLoaded)await page.waitForTimeout(5000);
+    }
+    await expect(page.locator(".admin-user-row").first()).toBeVisible({timeout:60000});
+    await expect(page.getByText(process.env.FIDUNIO_E2E_ADMIN_EMAIL,{exact:true})).toBeVisible({timeout:60000});
+
+    const invitesNav=page.locator('.fidunio-settings-nav-btn[data-group="invites"]');
+    await expect(invitesNav).toBeVisible({timeout:30000});
+    let invitesLoaded=false;
+    for(let attempt=0;attempt<3&&!invitesLoaded;attempt++){
+      await invitesNav.click();
+      invitesLoaded=await page.locator("#fidunioSettingsHost-invites .card").first().isVisible({timeout:60000}).catch(()=>false);
+      if(!invitesLoaded)await page.waitForTimeout(5000);
+    }
+    await expect(page.locator("#fidunioSettingsHost-invites .card").first()).toBeVisible({timeout:60000});
   });
 });
