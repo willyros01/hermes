@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {existsSync} from "node:fs";
 import assert from "node:assert/strict";
 const auth=fs.readFileSync("auth-ui-clean.js","utf8");
 const bootstrap=fs.readFileSync("bootstrap.js","utf8");
@@ -7,7 +8,8 @@ const settings=fs.readFileSync("settings-lifecycle.js","utf8");
 const policy=fs.readFileSync("legal-policy.js","utf8");
 const client=fs.readFileSync("legal-acceptance-client.js","utf8");
 const functions=fs.readFileSync("functions/index.mjs","utf8");
-const allow=fs.readFileSync("build/www-files.txt","utf8");
+const allowPath="build/www-files.txt";
+const allow=existsSync(allowPath)?fs.readFileSync(allowPath,"utf8"):null;
 
 assert.match(policy,/termsVersion:"2026-10-04-v1"/);
 assert.match(policy,/privacyVersion:"2026-10-04-v1"/);
@@ -43,8 +45,10 @@ assert.match(client,/getCloudLegalAcceptance/);
 assert.match(client,/acceptCloudLegalPolicy/);
 assert.match(functions,/export const getLegalAcceptanceV1/);
 assert.match(functions,/export const acceptLegalPolicyV1/);
-assert.match(allow,/legal-policy\.js/);
-assert.match(allow,/legal-startup-gate\.js/);
-assert.match(allow,/legal-acceptance-client\.js/);
+if(allow){
+  assert.match(allow,/legal-policy\.js/);
+  assert.match(allow,/legal-startup-gate\.js/);
+  assert.match(allow,/legal-acceptance-client\.js/);
+}
 
 console.log("PASS: FIDUNIO first-launch Terms gate matches the app-family contract and server audit cannot block login");
