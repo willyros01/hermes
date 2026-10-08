@@ -23,7 +23,13 @@ export async function ensurePlatformBackgroundRegistration({platformOptions}={})
 }
 
 export function getPlatformBackgroundRegistration(options){
-  if(!registrationPromise)registrationPromise=ensurePlatformBackgroundRegistration(options);
+  if(!registrationPromise){
+    registrationPromise=ensurePlatformBackgroundRegistration(options).catch(error=>{
+      // Failed web registration must not poison later notification enable/retry.
+      registrationPromise=null;
+      throw error;
+    });
+  }
   return registrationPromise;
 }
 
