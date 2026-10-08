@@ -134,6 +134,11 @@ export const revokeNotificationLeaseV1=onCall(notificationLeaseOptions,async req
   try{return await notificationLeaseRepo.revoke({...request.data,uid:request.auth.uid});}
   catch(error){console.error("Notification lease revoke failed",{code:error?.code||"internal"});throw new HttpsError("failed-precondition","Notification logout cleanup unavailable.");}
 });
+// Staged only: deploy after iOS/web rollout validation and backend backup.
+export const purgeInactiveNotificationLeasesV1=onSchedule({
+  region:"us-central1",schedule:"every day 03:00",timeZone:"UTC",
+  serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:120,memory:"256MiB"
+},async()=>notificationLeaseRepo.purgeInactive({limit:200}));
 export const notifyDirectMessageCreatedV1 = onDocumentCreated({document:"conversations/{conversationId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});});
 export const notifyGroupMessageCreatedV1 = onDocumentCreated({document:"groups/{groupId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return groupNotificationCore.handleCreatedMessage({groupId:event.params.groupId,messageId:event.params.messageId,message});});
 export const purgeDisappearingMessagesV1 = onSchedule({region:"us-central1",schedule:"every 1 minutes",timeZone:"UTC",serviceAccount:DISAPPEARING_PURGE_SERVICE_ACCOUNT,timeoutSeconds:120,memory:"256MiB"},async()=>runDisappearingPurgeSweep({db,executor:disappearingPurgeExecutor,limit:200}));
