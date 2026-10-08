@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {NOTIFICATION_LEASE_MS,NOTIFICATION_INACTIVE_RETENTION_MS,mayDeliverTo,shouldPruneInactive} from "./notification-lease-policy.mjs";
+import {NOTIFICATION_LEASE_MS,NOTIFICATION_INACTIVE_RETENTION_MS,mayDeliverTo,mayDeliverRegistration,shouldPruneInactive} from "./notification-lease-policy.mjs";
 const now=1_900_000_000_000,token="x".repeat(80);
 const record={ownerUid:"A",installationId:"device-1",fcmToken:token,generation:3,enabled:true,leaseUntilMs:now+NOTIFICATION_LEASE_MS};
 assert.equal(mayDeliverTo({recipientUid:"A",registration:record,owner:record,nowMs:now}),true);
@@ -11,4 +11,9 @@ assert.equal(mayDeliverTo({recipientUid:"A",registration:{...record,enabled:fals
 assert.equal(shouldPruneInactive({lastSeenMs:now-NOTIFICATION_INACTIVE_RETENTION_MS,leaseUntilMs:now-1,nowMs:now}),true);
 assert.equal(shouldPruneInactive({lastSeenMs:now-1000,leaseUntilMs:now-1,nowMs:now}),false);
 assert.equal(shouldPruneInactive({lastSeenMs:now-NOTIFICATION_INACTIVE_RETENTION_MS,leaseUntilMs:now+1,nowMs:now}),false);
+assert.equal(mayDeliverRegistration({recipientUid:"A",registration:record,owner:record,nowMs:now}),true);
+assert.equal(mayDeliverRegistration({recipientUid:"B",registration:record,owner:record,nowMs:now}),false);
+assert.equal(mayDeliverRegistration({recipientUid:"A",registration:record,owner:null,nowMs:now}),false,"orphan lease must fail closed");
+assert.equal(mayDeliverRegistration({recipientUid:"A",registration:{installationId:"legacy",fcmToken:token,enabled:true},owner:null,nowMs:now}),true,"legacy web registration remains compatible");
+assert.equal(mayDeliverRegistration({recipientUid:"A",registration:{installationId:"legacy",fcmToken:token,enabled:true},owner:record,nowMs:now}),false,"legacy copy of claimed token must not deliver");
 console.log("PASS: lease expires, single current owner, generation fencing, inactive cleanup");
