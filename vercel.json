@@ -1,9 +1,0 @@
-{
-  "version": 2,
-  "rewrites": [
-    {
-      "source": "/__fidunio-storage/v0/b/fidunio-fef13.firebasestorage.app/o/:object*",
-      "destination": "https://firebasestorage.googleapis.com/v0/b/fidunio-fef13.firebasestorage.app/o/:object*"
-    }
-  ]
-}
