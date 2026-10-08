@@ -430,13 +430,15 @@ export function stopNotificationRegistrationMaintenance(){
   try{notificationTokenMaintenanceStop();}catch{}
   notificationTokenMaintenanceStop=()=>{};
 }
+export function renewNotificationLeaseOnActivation(uid){
+  if(!FIDUNIO_NOTIFICATION_LEASE_ROLLOUT||!notificationTransport.nativeRegistration||!uid)return;
+  void notificationLeaseSession.activate(uid).catch(error=>console.warn("FIDUNIO notification lease renewal failed",error));
+}
 export function startNotificationRegistrationMaintenance(uid){
   stopNotificationRegistrationMaintenance();
   if(!notificationTransport.nativeRegistration||!uid)return()=>{};
   const generation=notificationTokenMaintenanceGeneration;
-  if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT){
-    void notificationLeaseSession.activate(uid).catch(error=>console.warn("FIDUNIO lease activation failed",error));
-  }
+  renewNotificationLeaseOnActivation(uid);
   notificationTokenMaintenanceStop=subscribeNativeMessagingTokens(token=>{
     if(generation!==notificationTokenMaintenanceGeneration)return;
     void notificationRegistrationOwner.refreshToken({uid,fcmToken:token}).catch(error=>console.warn("FIDUNIO native notification token refresh failed",error));
