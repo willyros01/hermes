@@ -1,0 +1,23 @@
+name: iOS Notification Lease Tests
+on:
+  push:
+    branches: [ios]
+    paths:
+      - 'functions/notification/**'
+      - '.github/workflows/ios-notification-lease.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lease:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify lease ownership policy
+        run: node functions/notification/notification-lease-policy.test.mjs
+      - name: Verify transactional token handoff
+        run: node functions/notification/notification-lease-firestore-admin.test.mjs
