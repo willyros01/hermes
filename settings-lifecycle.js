@@ -39,6 +39,7 @@ import {
   transferCloudSystemOwnership,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
+import {getPlatformBackgroundRegistration} from "./background-platform-adapter.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
 import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";
 import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeAdminRecoveryAuthorization} from "./admin-recovery-client.js";
@@ -407,7 +408,7 @@ const notificationRegistrationOwner=createNotificationRegistrationOwner({
   readRegistration:getCloudNotificationDevice,writeRegistration:upsertCloudNotificationDevice,deleteRegistration:deleteCloudNotificationDevice,
   getConfigured:()=>notificationTransport.nativeRegistration||String(FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY||"").trim().length>0,
   requestPermission:notificationTransport.nativeRegistration?requestNativeNotificationPermission:undefined,
-  getRegistrationContext:notificationTransport.nativeRegistration?async()=>null:null,
+  getRegistrationContext:notificationTransport.nativeRegistration?async()=>null:async()=>{const registration=await getPlatformBackgroundRegistration();if(!registration?.active)await navigator.serviceWorker.ready;return registration;},
   buildTokenOptions:notificationTransport.nativeRegistration?()=>({}):undefined,
   getPlatform:notificationTransport.nativeRegistration?()=>"ios-native":undefined
 });
