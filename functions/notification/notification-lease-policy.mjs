@@ -11,7 +11,7 @@ export function mayDeliverTo({recipientUid,registration,owner,nowMs=Date.now()}=
   if(!validLease(registration,nowMs))return false;
   if(!owner||owner.ownerUid!==recipientUid||registration.ownerUid!==recipientUid)return false;
   return owner.fcmToken===registration.fcmToken&&owner.installationId===registration.installationId&&
-    owner.generation===registration.generation&&validLease(owner,nowMs);
+    owner.generation===registration.generation&&owner.leaseId===registration.leaseId&&typeof owner.leaseId==="string"&&validLease(owner,nowMs);
 }
 export function shouldPruneInactive({lastSeenMs,leaseUntilMs,nowMs=Date.now()}={}){
   return Number.isFinite(lastSeenMs)&&Number.isFinite(leaseUntilMs)&&
