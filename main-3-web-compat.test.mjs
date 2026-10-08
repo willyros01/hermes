@@ -29,6 +29,7 @@ const host={
   querySelector(selector){return selector===".startup-spinner"?spinner:selector==="strong"?title:selector==="span"?detail:this.button;},
   append(element){this.button=element;}
 };
+globalThis.document={createElement:()=>retry};
 let reloads=0;
 const watchdog=createPlatformStartupWatchdog({host,platformOptions:web,reload:()=>reloads++});
 watchdog.fail();
