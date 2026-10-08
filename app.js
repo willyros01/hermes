@@ -43,7 +43,7 @@ import {
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
-import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance } from "./settings-lifecycle.js";
+import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance,removeNotificationRegistrationForSignOut } from "./settings-lifecycle.js";
 import {assertMessageSafety} from "./message-safety-policy.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
@@ -1438,12 +1438,13 @@ function shellTop(title,left=`<span class="topbar-spacer"></span>`,right=`<span 
 function mainSignOutMarkup(){
   return '<button class="secondary" id="fidunioMainSignOutBtn" type="button" aria-label="Sign Out" style="width:auto;margin:0 6px;padding:8px 12px">Sign Out</button>';
 }
+async function signOutWithNotificationCleanup(){const user=getFirebaseUser();if(user?.uid)await removeNotificationRegistrationForSignOut(user.uid);await signOutFidunio();}
 function bindMainSignOut(){
   const btn=document.querySelector("#fidunioMainSignOutBtn");
   if(!btn)return;
   btn.onclick=async()=>{
     btn.disabled=true;btn.textContent="Signing Out…";
-    try{await signOutFidunio();location.reload();}
+    try{await signOutWithNotificationCleanup();location.reload();}
     catch(err){btn.disabled=false;btn.textContent="Sign Out";alert(err?.message||String(err));}
   };
 }
@@ -3108,7 +3109,7 @@ function renderSettings(){
     catch(err){firebaseError=err?.message||String(err);render();}
   };
   const signOutBtn=document.querySelector("#firebaseSignOutBtn");
-  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutFidunio();firebaseError="";render();};
+  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutWithNotificationCleanup();firebaseError="";render();};
   const copyBtn=document.querySelector("#copyUidBtn");
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
