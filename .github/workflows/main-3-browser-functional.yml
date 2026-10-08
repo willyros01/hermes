@@ -1,0 +1,30 @@
+name: Main-3 Browser Functional Gate
+on:
+  push:
+    branches: [main-3]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: main-3-browser-functional-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Isolated actual web-platform smoke
+        env:
+          TEST_BROWSER: ${{ matrix.browser }}
+        run: node build/main-3-browser-smoke.mjs
