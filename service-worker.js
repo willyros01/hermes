@@ -41,6 +41,8 @@ async function networkFirst(request){
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
   const url=new URL(event.request.url);
+  // Encrypted attachment relay URLs include bearer download tokens; never cache them.
+  if(url.origin===self.location.origin&&url.pathname.startsWith("/__fidunio-storage/"))return;
   if(url.hostname.endsWith("googleapis.com")||url.hostname.endsWith("firebaseio.com"))return;
   if(url.hostname==="www.gstatic.com"){
     event.respondWith(caches.open(CACHE).then(async cache=>{
