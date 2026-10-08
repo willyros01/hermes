@@ -38,8 +38,8 @@ async function callCloudFunction(name,data={}){const s=await ensureServices();if
 export async function claimCloudNotificationLease({installationId,fcmToken,platform,showSenderName=false}={}){
   return callCloudFunction("claimNotificationLeaseV1",{installationId,fcmToken,platform,showSenderName});
 }
-export async function revokeCloudNotificationLease({installationId,fcmToken}={}){
-  return callCloudFunction("revokeNotificationLeaseV1",{installationId,fcmToken});
+export async function revokeCloudNotificationLease({installationId,fcmToken,leaseId}={}){
+  return callCloudFunction("revokeNotificationLeaseV1",{installationId,fcmToken,leaseId});
 }
 export function enrollCloudE2EERecovery(data){return callCloudFunction("enrollRecoveryV1",data);}export function startCloudE2EERecovery(){return callCloudFunction("startE2EERecoveryV1",{});}export function completeCloudE2EERecovery(data){return callCloudFunction("completeE2EERecoveryV1",data);}
 export function deleteCloudDirectMessageForEveryone(conversationId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(conversationId||""),messageId:String(messageId||"")});}
