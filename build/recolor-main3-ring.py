@@ -42,3 +42,5 @@ for name in FILES:
                 assert 0.075 <= hue <= 0.175 and sat >= 0.24 and r >= 90 and r > g*1.05 and g > b*1.22
     output.save(source, optimize=True)
     print(f"PASS: {name}: only {changed} original warm-gold pixels recolored red; all other pixels unchanged")
+
+# main-3-only deployment marker: native iOS and production icons are never modified.
