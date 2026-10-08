@@ -51,14 +51,7 @@ export async function downloadPlatformAttachmentBytes(url,{
       if(signal&&abortListener)signal.removeEventListener("abort",abortListener);
     }
   }else{
-    const source=new URL(url);
-    const bucket=String(storageBucket||"");
-    const prefix=`/v0/b/${encodeURIComponent(bucket)}/o/`;
-    // Vercel main-3 only: relay only strict Firebase download URLs for our bucket.
-    const isMain3Preview=globalThis.location?.hostname==="project-w7z4s.vercel.app";
-    const relayAllowed=bucket&&source.protocol==="https:"&&source.hostname==="firebasestorage.googleapis.com"&&!source.port&&!source.username&&!source.password&&source.pathname.startsWith(prefix)&&source.searchParams.get("alt")==="media";
-    const relayUrl=isMain3Preview&&relayAllowed?`/__fidunio-storage${source.pathname}${source.search}`:url;
-    const response=await fetchImpl(relayUrl,{cache:"no-store",signal});
+    const response=await fetchImpl(url,{cache:"no-store",signal});
     if(!response.ok)throw failure(`HTTP ${response.status}`,`storage/http-${response.status}`);
     buffer=await response.arrayBuffer();
   }
