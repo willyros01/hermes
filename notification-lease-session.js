@@ -9,25 +9,33 @@ export function createNotificationLeaseSession({storage,getInstallationId,getTok
   if(!prefs?.getItem||!prefs?.setItem)throw new Error("Persistent preferences required.");
   const preferred=uid=>prefs.getItem(preferenceKey(uid))==="on";
   const setPreference=(uid,enabled)=>prefs.setItem(preferenceKey(uid),enabled?"on":"off");
+  let epoch=0,activeLease=null;
   async function activate(uid){
     if(!preferred(uid))return{activated:false,reason:"not-enabled"};
+    const requestEpoch=++epoch;
     const token=String(await getToken()||"");
     if(token.length<20)throw new Error("Notification token unavailable.");
-    const result=await claim({installationId:getInstallationId(),fcmToken:token,platform:getPlatform()});
+    const installationId=getInstallationId();
+    const result=await claim({installationId,fcmToken:token,platform:getPlatform()});
+    if(typeof result?.leaseId!=="string"||!result.leaseId)throw new Error("Notification lease identity missing.");
+    if(requestEpoch!==epoch){
+      void Promise.resolve().then(()=>revoke({installationId,fcmToken:token,leaseId:result.leaseId})).catch(()=>{});
+      return{activated:false,reason:"superseded"};
+    }
+    activeLease={uid,installationId,fcmToken:token,leaseId:result.leaseId};
     return{activated:true,result};
   }
   async function logout(uid){
-    if(!preferred(uid))return{revoked:false,reason:"not-enabled"};
-    let token="";
-    try{token=String(await Promise.race([Promise.resolve().then(getToken),new Promise((_,reject)=>setTimeout(()=>reject(new Error("token timeout")),timeoutMs))])||"");}
-    catch{return{revoked:false,reason:"offline-or-timeout"};}
-    if(token.length<20)return{revoked:false,reason:"missing-token"};
+    ++epoch;
+    const lease=activeLease?.uid===uid?activeLease:null;
+    activeLease=null;
+    if(!lease)return{revoked:false,reason:"no-current-lease"};
     try{
       const result=await Promise.race([
-        Promise.resolve().then(()=>revoke({installationId:getInstallationId(),fcmToken:token})),
+        Promise.resolve().then(()=>revoke({installationId:lease.installationId,fcmToken:lease.fcmToken,leaseId:lease.leaseId})),
         new Promise((_,reject)=>setTimeout(()=>reject(new Error("revoke timeout")),timeoutMs))
       ]);
-      return{revoked:true,result};
+      return{revoked:result?.revoked===true,result};
     }catch{return{revoked:false,reason:"offline-or-timeout"};}
   }
   return Object.freeze({preferred,setPreference,activate,logout});
