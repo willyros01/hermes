@@ -126,12 +126,12 @@ export const deleteConversationForEveryoneV1 = onCall({region:"us-central1",serv
 const notificationLeaseOptions={region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:15,memory:"256MiB",maxInstances:10};
 export const claimNotificationLeaseV1=onCall(notificationLeaseOptions,async request=>{
   if(!request.auth?.uid)throw new HttpsError("unauthenticated","Sign in first.");
-  try{return await notificationLeaseRepo.claim({uid:request.auth.uid,...request.data});}
+  try{return await notificationLeaseRepo.claim({...request.data,uid:request.auth.uid});}
   catch(error){console.error("Notification lease claim failed",{code:error?.code||"internal"});throw new HttpsError("failed-precondition","Notification registration unavailable.");}
 });
 export const revokeNotificationLeaseV1=onCall(notificationLeaseOptions,async request=>{
   if(!request.auth?.uid)throw new HttpsError("unauthenticated","Sign in first.");
-  try{return await notificationLeaseRepo.revoke({uid:request.auth.uid,...request.data});}
+  try{return await notificationLeaseRepo.revoke({...request.data,uid:request.auth.uid});}
   catch(error){console.error("Notification lease revoke failed",{code:error?.code||"internal"});throw new HttpsError("failed-precondition","Notification logout cleanup unavailable.");}
 });
 export const notifyDirectMessageCreatedV1 = onDocumentCreated({document:"conversations/{conversationId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});});
