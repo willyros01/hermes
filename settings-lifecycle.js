@@ -248,6 +248,16 @@ const notificationRegistrationOwner=createNotificationRegistrationOwner({
   readRegistration:getCloudNotificationDevice,writeRegistration:upsertCloudNotificationDevice,deleteRegistration:deleteCloudNotificationDevice,
   getConfigured:()=>String(FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY||"").trim().length>0
 });
+export async function removeNotificationRegistrationForSignOut(uid){
+  if(!uid)return true;
+  try{
+    await notificationRegistrationOwner.disable({uid});
+    return true;
+  }catch(error){
+    console.warn("FIDUNIO web notification sign-out cleanup failed",error);
+    throw new Error("Could not safely sign out because this installation's notification registration could not be removed. Check the connection and try again.");
+  }
+}
 function notificationStatusText(status){return({ready:"Enabled",off:"Off",denied:"Permission denied",unsupported:"Unsupported on this device/browser","config-required":"Web Push setup required"})[status]||status;}
 async function renderNotifications(notificationsHost,info){
   notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note">Loading notification status…</p></div>';
