@@ -1,0 +1,51 @@
+name: iOS browser release regressions
+on:
+  push:
+    branches: [ios]
+  workflow_dispatch:
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-browser-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browsers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run ios:prepare
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Configure isolated Firebase Auth emulator
+        run: |
+          cat > "$RUNNER_TEMP/fidunio-auth-emulator.json" <<'JSON'
+          {
+            "emulators": {
+              "auth": { "port": 9099 },
+              "ui": { "enabled": false },
+              "singleProjectMode": true
+            }
+          }
+          JSON
+      - name: Run isolated real browser release regressions with Auth emulator
+        env:
+          TEST_BROWSER: ${{ matrix.browser }}
+          FIDUNIO_AUTH_EMULATOR_URL: http://127.0.0.1:9099
+        run: npx firebase emulators:exec --only auth --project demo-fidunio-ios-auth --config "$RUNNER_TEMP/fidunio-auth-emulator.json" "node build/ios-browser-release.test.mjs"
+      - name: Save release regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-release-${{ matrix.browser }}
+          path: browser-release-evidence/

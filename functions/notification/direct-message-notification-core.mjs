@@ -28,8 +28,8 @@ export function isInvalidNotificationTokenError(error){
   return INVALID_TOKEN_CODES.has(String(error?.code||""));
 }
 
-export function createDirectMessageNotificationCore({conversationRepo,profileRepo,deviceRepo,messaging,logger=console}={}){
-  if(typeof conversationRepo?.get!=="function"||typeof profileRepo?.getDisplayName!=="function"||typeof deviceRepo?.listActive!=="function"||typeof deviceRepo?.deleteIfTokenMatches!=="function"||typeof messaging?.sendEachForMulticast!=="function")throw new Error("Direct notification core dependencies are incomplete.");
+export function createDirectMessageNotificationCore({conversationRepo,profileRepo,deviceRepo,blockRepo,messaging,logger=console}={}){
+  if(typeof conversationRepo?.get!=="function"||typeof profileRepo?.getDisplayName!=="function"||typeof deviceRepo?.listActive!=="function"||typeof deviceRepo?.deleteIfTokenMatches!=="function"||typeof blockRepo?.isBlockedEitherDirection!=="function"||typeof messaging?.sendEachForMulticast!=="function")throw new Error("Direct notification core dependencies are incomplete.");
   return Object.freeze({async handleCreatedMessage({conversationId,messageId,message}={}){
     conversationId=boundedId(conversationId,"Conversation ID");
     messageId=boundedId(messageId,"Message ID");
@@ -38,6 +38,7 @@ export function createDirectMessageNotificationCore({conversationRepo,profileRep
     if(!conversation)return{status:"conversation-missing",sent:0,failed:0,pruned:0};
     const recipientUid=deriveDirectRecipientUid({conversation,message});
     const senderUid=String(message.senderUid||"").trim();
+    if(await blockRepo.isBlockedEitherDirection(senderUid,recipientUid))return{status:"blocked",recipientUid,sent:0,failed:0,pruned:0};
     const devices=(await deviceRepo.listActive(recipientUid)).filter(row=>row?.enabled===true&&typeof row?.fcmToken==="string"&&row.fcmToken.length>=20);
     if(!devices.length)return{status:"no-active-installations",recipientUid,sent:0,failed:0,pruned:0};
     const senderDisplayName=await profileRepo.getDisplayName(senderUid);

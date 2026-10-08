@@ -5,3 +5,8 @@ firebase-debug.log
 firebase-debug.*.log
 *.log
 .DS_Store
+/www/
+/ios/
+
+/browser-release-evidence/
+/startup-evidence/

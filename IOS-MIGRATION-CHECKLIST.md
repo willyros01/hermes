@@ -33,13 +33,13 @@
 
 ## Phase 2 — Apple/Firebase application setup
 
-- [ ] Select/register FIDUNIO iOS bundle ID.
-- [ ] Confirm Apple Developer team and App Store Connect API credentials.
-- [ ] Create the App Store Connect FIDUNIO app record.
+- [x] Register explicit FIDUNIO iOS bundle ID `io.github.willyros01.fidunio`.
+- [x] Confirm Team ID `VXMLKHF72B`; existing API key verified locally and four Hermes repository secrets provisioned.
+- [x] Create and verify FIDUNIO app record `6818880685`, SKU `fidunio-ios-001`, locale `en-US`.
 - [ ] Register the iOS app in the existing Firebase project as needed for native integrations.
 - [ ] Handle `GoogleService-Info.plist` safely if required by selected native Firebase plugins.
-- [ ] Enable only required capabilities.
-- [ ] Add read-only Apple setup verification before TestFlight uploads.
+- [x] Enable Push Notifications only as the selected initial capability; Apple includes its disabled In-App Purchase default.
+- [x] Existing read-only `build/asc.mjs check` passed locally using the verified credentials; GitHub secret execution passed in runs `37156481701` and `37157602057`.
 
 ## Phase 3 — shared platform-adapter contracts
 
@@ -95,7 +95,7 @@
 
 ## Phase 8 — TestFlight and branch synchronization
 
-- [ ] Add deterministic iOS build/audit/TestFlight workflow modeled on Scorecard.
+- [x] Add deterministic iOS build/audit/TestFlight workflow modeled on Scorecard, with exact-commit required checks and a distribution-signed archive audit.
 - [ ] Before each iOS candidate, synchronize accepted shared `main` changes into `ios`.
 - [ ] Shared fixes found on iOS are reconciled to `main`, gated there, then synchronized back to `ios`.
 - [ ] Keep iOS-only native/plugin/build files isolated.
@@ -113,3 +113,87 @@ The goal is one application with two distributions, not two implementations. Sha
 - Rebuild Baseline Security Gate `37137850079`: SUCCESS.
 - Capacitor iOS shell `37137850047`: SUCCESS, including fresh project generation and unsigned Simulator compilation.
 - Apple/Firebase registration is intentionally still open in Phase 2.
+
+
+## Pre-TestFlight native-shell compatibility checkpoint — 2026-10-03
+
+Repository implementation is prepared on the `ios` branch before Apple registration:
+
+- Added one bounded `platform-runtime.js` authority for web versus Capacitor iOS selection.
+- Web service-worker registration is disabled only inside the native iOS shell; the accepted web/PWA path remains unchanged.
+- Browser Web Push controls are not exposed in the native shell; APNs/FCM remains a later dedicated native adapter.
+- Browser reCAPTCHA Enterprise App Check initialization is skipped only in the native shell while App Check enforcement remains OFF; native App Attest/DeviceCheck remains a later controlled phase.
+- Browser WebAuthn/passkey biometric enrollment/unlock is not used inside the native shell. PIN remains the first-shell local unlock path until the LocalAuthentication Face ID adapter is implemented.
+- Browser Home Screen installation guidance is replaced by installed-iOS-app guidance inside Capacitor.
+- Invitation, Quick Start, and recovery links created inside the native shell resolve to the public FIDUNIO web origin rather than a private `capacitor://` URL.
+- Firebase Auth/Firestore/Storage, E2EE, Outbox, direct/group messaging, receipts, attachments, recovery authority, deletion authority, and live Firebase configuration were not changed.
+- No web runtime version bump: these changes exist only on the `ios` migration branch.
+
+Validation after correcting an initially caught platform-module newline syntax defect:
+- Capacitor iOS branch preflight: run 37139976180 — SUCCESS.
+- Full Rebuild Baseline Security Gate: run 37139976192 — SUCCESS.
+- Capacitor iOS shell: run 37139976206 — SUCCESS, including fresh Capacitor generation and unsigned simulator compilation.
+
+Apple Phase 2 registration remains the next external-account step.
+
+
+## Apple registration closeout — 2026-10-03
+
+See `IOS-APPLE-REGISTRATION.md` for verified Apple identity, capability, credential and validation facts. Apple setup is complete; Firebase native SDK registration remains later work. FIDUNIO's independent current-shell encryption assessment is documented in `IOS-EXPORT-COMPLIANCE.md`; first uploaded-build processing remains to verify. Existing pre-registration GitHub gates were read and passed; no TestFlight build was uploaded and no live Firebase/App Check or `main` change was made.
+
+
+## Current-shell export compliance — 2026-10-03
+
+- [x] Independently inventory FIDUNIO's iOS payload encryption (82 allow-listed JS/HTML files reviewed).
+- [x] Consult current Apple documentation and WebKit's native Web Crypto implementation documentation.
+- [x] Record current iOS OS-provided encryption / documentation-exempt self-assessment in `IOS-EXPORT-COMPLIANCE.md`.
+- [x] Apply `ITSAppUsesNonExemptEncryption=false` to generated iOS Info.plist via a dedicated post-sync build script.
+- [x] Verify first uploaded TestFlight archive declaration and App Store Connect compliance processing: `1.1.56 (1)`, workflow `37157602057` SUCCESS; Apple `VALID`, `usesNonExemptEncryption=false`.
+
+No non-OS encryption documentation was uploaded and no Apple approval/code is claimed. Reassess if encryption implementations, protocols or runtime change.
+
+
+## First TestFlight build — 2026-10-03
+
+Version `1.1.56`, build `1`, uploaded from `ios` commit `9b5efe5f9db91a80c93e2cd0b67b2bb17b1e8a50`. Exact-commit preflight, Simulator compilation and full security baseline passed before upload. Apple processed build ID `4273f40c-2550-4016-982e-43b43c4e320f` as VALID. Device installation, same-account/E2EE coexistence, native branding, Face ID and APNs/FCM acceptance remain open. Do not count TestFlight upload as feature completion.
+
+
+## Internal tester distribution — 2026-10-03
+
+User explicitly authorized an invitation to their Apple Account email. Created `FIDUNIO Internal Testing`, group ID `2e0a3b20-414a-47eb-b014-f2695a94703e`, automatic distribution OFF. Added only the existing Account Holder/Admin as internal tester; no account role or team-access grant changed. Assigned `1.1.56 (1)`; group build status is `Testing`, and tester status is `Invited` at 2026-10-03 6:25 PM EDT. No device installation/session or interoperability acceptance is claimed. Final documentation checkpoint `73d1e3e964ecf1c2bb493aceda449fae2a6e91e4` passed preflight `37158198686`, Simulator shell `37158198681`, and full security baseline `37158198672`.
+
+
+## iOS 1.1.57 startup/icon repair candidate — 2026-10-03
+
+User-device report on TestFlight 1.1.56 (1): IOS-STARTUP-001 (blocking) remains on the initial “Opening your secure local data” screen; IOS-ICON-001 (branding) shows the Capacitor placeholder icon. Device: iPhone 18 Pro Max, iOS 27.0.1 (App Store Connect tester observation). Expected: cold launch reaches Sign In and home-screen icon uses the established FIDUNIO logo. The initial text alone does not identify a storage failure.
+
+1.1.56 → 1.1.57 applies a native-only Firebase auth initialization without the unused browser popup/redirect resolver, preserving IndexedDB/local/session persistence and web getAuth defaults. Bootstrap owns only its original startup host, reports native load failures/30-second stalls, and retries through a full page reload without clearing storage or bypassing authentication/PIN. Firebase remains the sole service initializer; platform-runtime owns platform selection. The user approved resizing the existing opaque logo to 1024×1024 with macOS sips; build tooling installs it in the generated Xcode icon catalog.
+
+Status: repair candidate, NOT device-accepted. A fresh iOS Simulator cold-start gate must visibly reach Sign In/Email/Password before TestFlight upload. Repository tests and signed upload results must be recorded separately after completion. Exit criteria: required checks green, user updates TestFlight and repeatedly reaches sign-in/correct icon, then existing-account/PIN/E2EE acceptance. No completion credit earned. main remains production 1.1.56; no live Firebase/config/rules/Functions/App Check enforcement changes. Native Face ID and push remain later phases. External tester wrosales@cuberoot-systems.com exists in FIDUNIO External Testing; no build access until Apple beta-review prerequisites are supplied and review succeeds.
+
+
+### Scorecard-style pre-upload regression gate — 2026-10-03
+
+The user requested automated verification before another TestFlight build. Reviewed Scorecard main `8320c6cf02a9bbf38fa3fa7171235d2954f1d873`: reusable required release suite, Chromium/WebKit matrix, isolated emulator tests, deterministic build audits, release-marker trigger, and saved failure artifacts. Hermes now adds `ios-browser-release.yml` (both engines; native-mode actual SDK startup/reload, sign-in/join/validation/password visibility, failed-load/retry, stalled-startup fail-closed diagnostics; test-only demo config and outbound backend blocking). Existing full security/rules/emulator baseline remains required. `ios-testflight.yml` requires this fourth workflow at the exact release commit. Actual Capacitor iOS Simulator cold-launch and opaque-logo/icon audit are also required. See `IOS-PREUPLOAD-TESTS.md` for scope and limits.
+
+TestFlight run `37159557103` was explicitly cancelled by the user before archive/upload (gates cancelled; testflight job cancelled with no steps). No build 2 was submitted by this run. Browser suite is initially unverified until GitHub execution; local browser launch is sandbox-blocked. Do not mark device defects closed or trigger another release marker until these checks pass. No production-backend mutations, copied Scorecard credentials/test accounts/export-compliance answers, or main branch changes.
+
+
+### Verified 1.1.57 pre-upload checkpoint — 2026-10-03
+
+All four required workflows succeeded at `19d1a2911441913ad5c048bae839fd5b990d3b2e`: native preflight `37161083339`, complete security baseline `37161083345`, Chromium AND WebKit browser regression suite `37161083342`, and actual Capacitor iOS Simulator startup `37161083343`. Simulator OCR explicitly confirmed FIDUNIO 1.1.57 with Sign In/Email/Password; artifact `11287488574` stores screenshot and screen text. The apparent log stall was a redirected second compilation (23:20:45 → 23:24:33 UTC), not proof of an app hang. The workflow now installs its already-compiled simulator app and prints stage progress; test-only browser harness edits no longer request unnecessary Simulator recompilation. Those workflow changes must still pass the release's exact-commit checks.
+
+The new release marker (revision 3) requests one gated 1.1.57 upload after all four checks at its source commit succeed. Cancelled run 2 submitted nothing. Upload/Apple processing/internal-group distribution results remain pending until verified. IOS-STARTUP-001 and IOS-ICON-001 stay user-device OPEN. This is no new acceptance credit and no change to main/production Firebase/App Check enforcement/E2EE protocols.
+
+
+## FIDUNIO 1.1.60 — iOS photo-download transport candidate — 2026-10-04
+
+User-device evidence on TestFlight 1.1.59 (8): text messages load, while sent/received photo rows show `Manifest download failed (storage/unknown): Load failed`. IOS-ATTACH-001 is OPEN / IMPLEMENTED CANDIDATE. The user separately confirmed that a fresh reinstall prompts for the established PIN after email/password; no PIN repair is included. Web notifications resumed in both directions after installation registration was disabled/re-enabled. The reported delayed direct Sent -> Read transition remains a separate open investigation and is not repaired by this release.
+
+1.1.59 -> 1.1.60 preserves Firebase URL lookup and the shared attachment receive/decryption/display owners. `attachment-download-platform-adapter.js` owns only encrypted-object download transport: browser uses the existing no-store fetch + AbortSignal; native iOS uses the already bundled CapacitorHttp request bridge. Only HTTPS Firebase Storage media URLs for the configured bucket are accepted by the native path; redirects are disabled, requests have a bounded timeout, each object retains the 1 MiB limit, and application/json responses and ciphertext JSON text are normalized into bytes for the unchanged verifier/decryptor. No global fetch/XHR patch, independent Firebase initialization, authentication change, second attachment owner, plaintext transport, Storage rule change or production backend deployment is included. main remains unchanged.
+
+Cause confidence: the screenshot and source establish a failure before decryption at the attachment download boundary. They do not by themselves prove CORS or a particular iOS network restriction. This is a tested native-transport repair candidate, not a claim that the exact device network failure has been reproduced.
+
+Validation: local adapter tests passed for web/native encrypted multi-chunk round trips, exact byte equality, tamper rejection, URL bounds, HTTP failure, size limit, timeout and unavailable bridge. Existing attachment UI/lifecycle and native bootstrap boundary tests passed. The permanent CI gate includes the adapter test. A disposable Simulator-only app fixture checks the actual built-in native HTTP bridge through the production adapter and shared receive/decrypt owner to image decode; it uses local encrypted fixtures and no live Firebase credentials/requests/writes. The fixture substitutes only its local server URL at the injected test bridge, and its test HTTP allowance and entry page are never packaged in TestFlight. Exact-commit full security, browser, preflight and Simulator gates remain required before upload; live Firebase download and repeated iPhone/iPad acceptance remain required before IOS-ATTACH-001 closes.
+
+Rollback: keep 1.1.59 (8) available in TestFlight. The last accepted source checkpoint is `b0960b8bcb99d4c549f7478e33d6c254089bf0d4`. Revert this isolated transport candidate in ios if rejected; no server/data rollback is necessary because it makes no production configuration or data change. TestFlight build availability and upload are verified separately from repository checks.

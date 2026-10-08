@@ -1,0 +1,14 @@
+import fs from "node:fs";
+const cap=JSON.parse(fs.readFileSync("capacitor.config.json","utf8"));
+const doc=fs.readFileSync("IOS-APPLE-REGISTRATION.md","utf8");
+const asc=fs.readFileSync("build/asc.mjs","utf8");
+const fail=(m)=>{throw new Error(m)};
+if(cap.appId!=="io.github.willyros01.fidunio")fail("Capacitor bundle ID drift");
+if(!doc.includes("io.github.willyros01.fidunio"))fail("Apple registration authority missing bundle ID");
+if(!doc.includes("Push Notifications"))fail("Apple registration authority missing Push Notifications");
+if(!doc.includes("fidunio-fef13"))fail("Apple registration authority missing Firebase project authority");
+if(!doc.includes("Do **not** copy Scorecard"))fail("export-compliance safety hold missing");
+if(!asc.includes('const BUNDLE_ID = "io.github.willyros01.fidunio"'))fail("Apple checker bundle ID drift");
+if(!asc.includes('types.includes("PUSH_NOTIFICATIONS")'))fail("Apple checker does not verify push capability");
+if(/POST|PATCH|DELETE/.test(asc.replace(/\/\*[\s\S]*?\*\//g,"")))fail("Phase 2 Apple checker must remain read-only");
+console.log("PASS: FIDUNIO Phase 2 Apple registration specification is internally consistent");

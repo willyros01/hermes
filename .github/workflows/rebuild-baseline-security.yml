@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: rebuild-baseline-security-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   security-baseline:
     runs-on: ubuntu-latest
@@ -29,6 +33,7 @@ jobs:
       - {name: Invitation lifecycle policy, run: npm run test:invitation-policy}
       - {name: Invitation enrollment rules gate, run: npm run emulator:test:invitation-rules}
       - {name: Invitation install coexistence closeout, run: npm run test:invitation-install-closeout}
+      - {name: Invitation Universal Link routing, run: node build/invitation-universal-link.test.mjs}
       - {name: Accepted full invitation letter restoration, run: node invitation-letter-restoration.test.mjs}
       - {name: Account group-message crypto, run: npm run test:e2ee-account-group-crypto}
       - {name: Account group-history grant crypto, run: npm run test:e2ee-account-group-history-crypto}
@@ -62,6 +67,7 @@ jobs:
       - {name: Disappearing restart reconnect recovery, run: npm run test:disappearing-reconnect-recovery}
       - {name: Disappearing multi-device convergence, run: npm run test:disappearing-multi-device-convergence}
       - {name: Disappearing compose policy and UI wiring, run: npm run test:disappearing-compose-policy}
+      - {name: Disappearing conversation preference isolation, run: npm run test:disappearing-conversation-preference}
       - {name: Disappearing text end-to-end closeout, run: npm run test:disappearing-text-closeout}
       - {name: Disappearing text activation, run: npm run test:disappearing-activation}
       - {name: Disappearing attachment activation, run: npm run test:disappearing-attachment-activation}
@@ -70,6 +76,7 @@ jobs:
       - {name: Group date separators, run: node group-date-separator.test.mjs}
       - {name: Group sender time, run: node group-sender-time.test.mjs}
       - {name: Message reactions policy and wiring, run: npm run test:message-reactions}
+      - {name: Local pre-encryption message safety filter, run: npm run test:message-safety}
       - {name: Group message Reply descriptor policy, run: npm run test:group-reply}
       - {name: Group earlier-history admin UI, run: npm run test:group-history-admin-ui}
       - {name: Receipt lifecycle stabilization, run: npm run test:receipt-lifecycle-stabilization}
@@ -86,6 +93,15 @@ jobs:
       - {name: Account direct-message crypto, run: npm run test:e2ee-account-message-crypto}
       - {name: Account direct-message service, run: npm run test:e2ee-account-message-service}
       - {name: Firebase App Check client integration, run: npm run test:firebase-app-check}
+      - {name: Abuse report Settings wiring, run: npm run test:abuse-report}
+      - {name: Abuse report readable moderation display, run: node abuse-report-display.test.mjs}
+      - {name: Abuse report Firestore rules, run: npm run emulator:test:abuse-report-rules}
+      - {name: User block Settings wiring, run: npm run test:user-block}
+      - {name: User block Firestore rules, run: npm run emulator:test:user-block-rules}
+      - {name: Blocked direct-message delivery UX boundary, run: node blocked-direct-delivery-ux.test.mjs}
+      - {name: Critical block and unlock regression, run: node critical-block-unlock-regression.test.mjs}
+      - {name: Account deletion Settings wiring, run: npm run test:account-deletion}
+      - {name: Account deletion request Firestore rules, run: npm run emulator:test:account-deletion-rules}
       - {name: FCM N2 ownership foundation, run: npm run test:notification-n2-foundation}
       - {name: Notification device Firestore rules, run: npm run emulator:test:notification-rules}
       - {name: FCM N3 registration and Settings, run: npm run test:notification-n3}
@@ -99,6 +115,7 @@ jobs:
       - {name: Cloud Functions recovery scaffold, run: npm run test:functions-scaffold}
       - {name: Runtime transform anchor gate, run: npm run test:runtime-transform-anchors}
       - {name: Runtime authority gate, run: npm run test:runtime-authority}
+      - {name: Release readiness feature/backend manifest, run: node build/release-readiness-gate.test.mjs}
       - {name: 1.0 candidate UI and lifecycle gate, run: npm run test:release-candidate-ui}
       - {name: iPad RC stabilization gate, run: npm run test:ipad-rc-stabilization}
       - {name: Bounded Firebase Outbox reconciliation, run: npm run test:outbox-reconciliation-boundary}
@@ -119,6 +136,16 @@ jobs:
       - {name: Single visible FIDUNIO PIN and hidden-key UX, run: npm run test:user-access-key-ux}
       - {name: Password change E2EE bridge and rollback, run: node password-change-integration.test.mjs}
       - {name: Forgot Password Firebase-to-E2EE recovery handoff, run: node forgot-password-recovery.test.mjs}
+      - {name: Firebase platform adapter contract, run: node build/firebase-platform-adapter.test.mjs}
+      - {name: First-use legal acceptance wiring, run: node legal-policy-wiring.test.mjs}
+      - {name: Legal acceptance callable core, run: node functions/legal/legal-policy-core.test.mjs}
+      - {name: Final account deletion callable core, run: node functions/account-deletion/account-deletion-core.test.mjs}
+      - {name: System ownership transfer core, run: node functions/access/system-ownership-core.test.mjs}
+      - {name: Native App Check release wiring, run: node build/ios-app-check-gate.test.mjs}
+      - {name: Packaged iOS JavaScript syntax, run: node build/ios-runtime-syntax.test.mjs}
+      - {name: Attachment download platform boundary, run: node build/attachment-download-platform-adapter.test.mjs}
+      - {name: Authentication and recovery transition boundaries, run: node build/auth-transition-boundary.test.mjs}
+      - {name: Startup and background platform adapter boundaries, run: node build/platform-boundary-adapters.test.mjs}
       - {name: Password visibility presentation owner, run: node password-visibility.test.mjs}
       - {name: Portable encrypted account vault and recovery, run: npm run test:account-vault}
       - {name: Basic direct-message send and receive path, run: node direct-message-basic-path.test.mjs}

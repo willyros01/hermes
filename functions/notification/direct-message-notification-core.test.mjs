@@ -10,6 +10,7 @@ const deleted=[];
 const core=createDirectMessageNotificationCore({
   conversationRepo:{get:async id=>({id,type:"direct",members:["sender","recipient"]})},
   profileRepo:{getDisplayName:async uid=>uid==="sender"?"Authoritative Alice":""},
+  blockRepo:{isBlockedEitherDirection:async()=>false},
   deviceRepo:{
     listActive:async()=>[
       {installationId:"install-a",fcmToken:"a".repeat(80),enabled:true,showSenderName:false},
@@ -52,10 +53,22 @@ let sent=false;
 const noDevices=createDirectMessageNotificationCore({
   conversationRepo:{get:async()=>({type:"direct",members:["s","r"]})},
   profileRepo:{getDisplayName:async()=>"Sender"},
+  blockRepo:{isBlockedEitherDirection:async()=>false},
   deviceRepo:{listActive:async()=>[],deleteIfTokenMatches:async()=>false},
   messaging:{sendEachForMulticast:async()=>{sent=true;}}
 });
 const noResult=await noDevices.handleCreatedMessage({conversationId:"c",messageId:"m",message:{senderUid:"s"}});
 assert.equal(noResult.status,"no-active-installations");
 assert.equal(sent,false);
-console.log("FCM direct data-only notification privacy gate passed");
+
+const blockedCore=createDirectMessageNotificationCore({
+  conversationRepo:{get:async()=>({type:"direct",members:["s","r"]})},
+  profileRepo:{getDisplayName:async()=>"Sender"},
+  blockRepo:{isBlockedEitherDirection:async()=>true},
+  deviceRepo:{listActive:async()=>{throw new Error("blocked users must not enumerate notification devices");},deleteIfTokenMatches:async()=>false},
+  messaging:{sendEachForMulticast:async()=>{throw new Error("blocked users must not receive notification");}}
+});
+const blockedResult=await blockedCore.handleCreatedMessage({conversationId:"c",messageId:"m",message:{senderUid:"s"}});
+assert.equal(blockedResult.status,"blocked");
+assert.equal(blockedResult.sent,0);
+console.log("FCM direct data-only notification privacy and blocking gate passed");

@@ -31,7 +31,7 @@ requireTrue(auth.includes("restoreLocalAccountE2EE(saved)"),"password sign-in mu
 requireTrue(auth.includes("unlockAccountE2EE({uid:user.uid,password,pin})"),"account recovery must retain the existing password and PIN cryptographic path");
 requireTrue(auth.includes("recoverAccountE2EE({uid:user.uid,newPassword:password,pin})"),"a stale password wrapper must have one bounded same-identity recovery path");
 requireTrue(auth.includes("readLocalAccountE2EEIdentity")&&auth.includes("restoreLocalAccountE2EE(saved)"),"returning sessions must restore encryption after local authorization");
-requireTrue(auth.includes("verifyBiometric()")&&auth.includes("verifyLocalPin(pinInput.value())"),"ordinary returning unlock must use PIN or biometrics");
+requireTrue(auth.includes("verifyBiometric()")&&auth.includes("verifyLocalPin(pin)")&&auth.includes("sessionShowPinBtn"),"ordinary returning unlock must use biometric-first authorization with an explicit PIN fallback");
 requireTrue(auth.includes("await unlockAccountForMessaging(user,password,pin"),"Join must establish account encryption before entering the app");
 requireTrue(!auth.includes("Unlock messaging with your password and six-digit PIN"),"ordinary returning unlock must not demand password plus PIN");
 requireTrue(app.includes('getAccountE2EELifecycleState().manager.state!=="READY"'),"app startup must not relock a READY encryption identity");

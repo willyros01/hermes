@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+# FIDUNIO Report Abuse Firestore rules repair
+#
+# ONE COMMAND, NO PARAMETERS:
+#   bash abuse.txt
+#
+# This script:
+# - switches explicitly to fidunio-fef13
+# - verifies project number 130339622893
+# - captures the exact current live Firestore rules
+# - refuses to continue unless live rules exactly match the Block/Unblock ruleset
+#   that was successfully deployed immediately before this repair
+# - tests BOTH Block/Unblock and Report Abuse rules against the exact candidate
+# - deploys ONLY Firestore rules
+# - verifies the exact candidate became live
+# - creates rollback to the exact pre-change live rules
+#
+# It does NOT build TestFlight, deploy Functions, change IAM, App Check,
+# Storage rules, or application data.
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+PROJECT_NUMBER_EXPECTED="130339622893"
+REPO="willyros01/hermes"
+LIVE_BASE_COMMIT="bb5f76f3ec6ec66f88aab748cd8bf681f7888121"
+LIVE_BASE_PATH="build/firestore-block-rules-candidate.rules"
+CANDIDATE_COMMIT="2d290e8fb193140469e6bd250691e6ff270f22ec"
+CANDIDATE_PATH="build/firestore-safety-rules-candidate.rules"
+RULES_API="https://firebaserules.googleapis.com/v1"
+
+say(){ printf '\n==== %s ====\n' "$*"; }
+stop(){ echo "STOP: $*" >&2; exit 1; }
+
+for cmd in gcloud curl jq python3 diff tar npm; do
+  command -v "$cmd" >/dev/null 2>&1 || stop "$cmd is required"
+done
+
+say "FIDUNIO project safety switch"
+BEFORE="$(gcloud config get-value project 2>/dev/null || true)"
+echo "Project before switch: ${BEFORE:-<none>}"
+echo "Switching explicitly to: $PROJECT"
+gcloud config set project "$PROJECT" >/dev/null
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "Project switch failed; active project is '$ACTIVE'."
+NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Wrong project number '$NUMBER'."
+echo "PASS: target project is $PROJECT ($NUMBER)."
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_DIR="$HOME/fidunio-abuse-rules-$STAMP"
+WORK="$(mktemp -d)"
+mkdir -p "$BACKUP_DIR"
+trap 'rm -rf "$WORK"' EXIT
+
+say "Capture exact current live Firestore rules"
+TOKEN="$(gcloud auth print-access-token)"
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/projects/$PROJECT/releases/cloud.firestore"   -o "$BACKUP_DIR/release-before.json"
+
+RULESET_NAME="$(jq -r '.rulesetName // empty' "$BACKUP_DIR/release-before.json")"
+[[ "$RULESET_NAME" == projects/*/rulesets/* ]] || stop "Could not determine current Firestore ruleset."
+echo "Current ruleset: $RULESET_NAME"
+
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/$RULESET_NAME"   -o "$BACKUP_DIR/ruleset-before.json"
+
+python3 - "$BACKUP_DIR/ruleset-before.json" "$BACKUP_DIR/firestore-before.rules" <<'PY'
+import json,sys
+src=json.load(open(sys.argv[1],encoding="utf-8"))
+files=src.get("source",{}).get("files",[])
+if len(files)!=1:
+    raise SystemExit(f"STOP: expected one live Firestore rules source file, found {len(files)}")
+content=files[0].get("content")
+if not isinstance(content,str) or not content.strip():
+    raise SystemExit("STOP: live Firestore rules source is empty")
+open(sys.argv[2],"w",encoding="utf-8",newline="").write(content)
+print("Saved live rules:",sys.argv[2])
+PY
+
+say "Download expected live base and Report Abuse candidate"
+BASE_URL="https://raw.githubusercontent.com/$REPO/$LIVE_BASE_COMMIT/$LIVE_BASE_PATH"
+CANDIDATE_URL="https://raw.githubusercontent.com/$REPO/$CANDIDATE_COMMIT/$CANDIDATE_PATH"
+curl --retry 3 --retry-delay 2 -fsSL "$BASE_URL" -o "$WORK/base.rules"
+curl --retry 3 --retry-delay 2 -fsSL "$CANDIDATE_URL" -o "$WORK/candidate.rules"
+
+say "Safety check: live rules must equal the previously deployed Block/Unblock rules"
+if ! cmp -s "$BACKUP_DIR/firestore-before.rules" "$WORK/base.rules"; then
+  diff -u "$WORK/base.rules" "$BACKUP_DIR/firestore-before.rules" > "$BACKUP_DIR/live-vs-expected.diff" || true
+  echo "NO DEPLOYMENT WAS PERFORMED."
+  echo "Difference saved at: $BACKUP_DIR/live-vs-expected.diff"
+  stop "Current live rules changed unexpectedly. Refusing to overwrite them."
+fi
+echo "PASS: current live rules exactly match the previously tested Block/Unblock ruleset."
+
+say "Verify candidate safety scope"
+grep -Fq 'match /blocks/{blockedUid}' "$WORK/candidate.rules" || stop "Candidate lost Block/Unblock authority."
+grep -Fq 'function validAbuseReportCreate(d)' "$WORK/candidate.rules" || stop "Candidate missing abuse-report validator."
+grep -Fq 'match /abuseReports/{reportId}' "$WORK/candidate.rules" || stop "Candidate missing abuse-report rules."
+grep -Fq 'allow create: if registered()&&validAbuseReportCreate(request.resource.data);' "$WORK/candidate.rules" || stop "Candidate missing user report-create authority."
+grep -Fq 'allow list: if isSystemAdmin();' "$WORK/candidate.rules" || stop "Candidate missing admin report-list authority."
+grep -Fq 'request.resource.data.status in ["resolved","dismissed"]' "$WORK/candidate.rules" || stop "Candidate missing admin moderation transition authority."
+echo "PASS: candidate preserves Block/Unblock and adds Report Abuse authority."
+
+say "Prepare exact candidate test workspace"
+ARCHIVE="$WORK/repo.tar.gz"
+curl --retry 3 --retry-delay 2 -fsSL   "https://github.com/$REPO/archive/$CANDIDATE_COMMIT.tar.gz"   -o "$ARCHIVE"
+tar -xzf "$ARCHIVE" -C "$WORK"
+ROOT="$WORK/hermes-$CANDIDATE_COMMIT"
+[[ -d "$ROOT" ]] || stop "Pinned workspace did not unpack."
+cp "$WORK/candidate.rules" "$ROOT/firestore.rules"
+
+if ! command -v firebase >/dev/null 2>&1; then
+  echo "Firebase CLI not found; installing firebase-tools..."
+  npm install -g firebase-tools
+fi
+
+say "Install pinned test dependencies"
+(
+  cd "$ROOT"
+  npm ci --ignore-scripts --no-audit --no-fund >/dev/null
+)
+
+say "Run Block/Unblock regression"
+(
+  cd "$ROOT"
+  firebase emulators:exec     --only firestore     --project demo-fidunio-block-rules     "node firestore-user-block.rules.test.mjs"
+)
+
+say "Run Report Abuse acceptance"
+(
+  cd "$ROOT"
+  firebase emulators:exec     --only firestore     --project demo-fidunio-abuse-report-rules     "node firestore-abuse-report.rules.test.mjs"
+)
+
+say "Re-confirm project immediately before deployment"
+gcloud config set project "$PROJECT" >/dev/null
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "Active project changed unexpectedly."
+[[ "$NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Project number changed unexpectedly."
+echo "PASS: deployment target is $PROJECT ($NUMBER)."
+
+say "Prepare rollback before deployment"
+cp "$BACKUP_DIR/firestore-before.rules" "$BACKUP_DIR/firestore.rules"
+cat > "$BACKUP_DIR/firebase.json" <<'JSON'
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
+JSON
+cat > "$BACKUP_DIR/rollback.sh" <<ROLLBACK
+#!/usr/bin/env bash
+set -euo pipefail
+PROJECT="$PROJECT"
+EXPECTED="$PROJECT_NUMBER_EXPECTED"
+DIR="$BACKUP_DIR"
+
+gcloud config set project "\$PROJECT" >/dev/null
+ACTIVE="\$(gcloud config get-value project 2>/dev/null)"
+NUMBER="\$(gcloud projects describe "\$PROJECT" --format='value(projectNumber)')"
+[[ "\$ACTIVE" == "\$PROJECT" ]] || { echo "STOP: wrong project"; exit 1; }
+[[ "\$NUMBER" == "\$EXPECTED" ]] || { echo "STOP: wrong project number"; exit 1; }
+
+cd "\$DIR"
+firebase deploy --only firestore:rules --project "\$PROJECT" --non-interactive
+echo "ROLLBACK COMPLETE: exact pre-change rules restored."
+ROLLBACK
+chmod +x "$BACKUP_DIR/rollback.sh"
+echo "Rollback prepared: $BACKUP_DIR/rollback.sh"
+
+say "Deploy ONLY the tested Firestore rules candidate"
+DEPLOY="$WORK/deploy"
+mkdir -p "$DEPLOY"
+cp "$WORK/candidate.rules" "$DEPLOY/firestore.rules"
+cat > "$DEPLOY/firebase.json" <<'JSON'
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
+JSON
+(
+  cd "$DEPLOY"
+  firebase deploy --only firestore:rules --project "$PROJECT" --non-interactive
+)
+
+say "Verify exact candidate is now live"
+sleep 3
+TOKEN="$(gcloud auth print-access-token)"
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/projects/$PROJECT/releases/cloud.firestore"   -o "$BACKUP_DIR/release-after.json"
+NEW_RULESET="$(jq -r '.rulesetName // empty' "$BACKUP_DIR/release-after.json")"
+[[ "$NEW_RULESET" == projects/*/rulesets/* ]] || stop "Could not determine post-deploy Firestore ruleset."
+
+curl -fsS -H "Authorization: Bearer $TOKEN"   "$RULES_API/$NEW_RULESET"   -o "$BACKUP_DIR/ruleset-after.json"
+
+python3 - "$BACKUP_DIR/ruleset-after.json" "$BACKUP_DIR/firestore-after.rules" <<'PY'
+import json,sys
+src=json.load(open(sys.argv[1],encoding="utf-8"))
+files=src.get("source",{}).get("files",[])
+if len(files)!=1:
+    raise SystemExit(f"STOP: expected one deployed rules source file, found {len(files)}")
+open(sys.argv[2],"w",encoding="utf-8",newline="").write(files[0].get("content",""))
+PY
+
+cmp -s "$BACKUP_DIR/firestore-after.rules" "$WORK/candidate.rules" ||
+  stop "Live rules do not exactly match the tested candidate. Rollback is available at $BACKUP_DIR/rollback.sh"
+
+echo "PASS: exact tested safety candidate is live."
+echo "New ruleset: $NEW_RULESET"
+
+say "SUCCESS"
+echo "FIDUNIO Report Abuse Firestore repair completed."
+echo "Project: $PROJECT ($PROJECT_NUMBER_EXPECTED)"
+echo "Previous ruleset: $RULESET_NAME"
+echo "New ruleset: $NEW_RULESET"
+echo "Rollback directory: $BACKUP_DIR"
+echo
+echo "No Functions, IAM, App Check, Storage rules, application data, or TestFlight build were changed."
+echo
+echo "NEXT DEVICE TEST:"
+echo "1. FIDUNIO 1.1.72 -> Settings -> Safety -> Report Abuse."
+echo "2. Choose a reason and optional test user."
+echo "3. Enter harmless test text such as: Safety feature test."
+echo "4. Tap Send Report."
+echo "5. Confirm a report reference is shown instead of a permission error."
+echo "6. If signed in as Owner/Admin, confirm the report appears in Abuse Reports and can be Resolve/Dismissed."

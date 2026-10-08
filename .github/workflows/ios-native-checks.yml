@@ -1,0 +1,111 @@
+name: Capacitor iOS branch preflight
+
+on:
+  push:
+    branches: [ios]
+  pull_request:
+    branches: [ios]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ios-native-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Cancel superseded queued iOS validation/release runs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/ios'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'JS'
+          const relevant = new Set([
+            ".github/workflows/ios-native-checks.yml",
+            ".github/workflows/ios-capacitor-shell.yml",
+            ".github/workflows/rebuild-baseline-security.yml",
+            ".github/workflows/ios-browser-release.yml",
+            ".github/workflows/ios-testflight.yml"
+          ]);
+          const headers = {
+            Authorization: "Bearer " + process.env.GH_TOKEN,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+          };
+          const list = await fetch(
+            "https://api.github.com/repos/" + process.env.REPO + "/actions/runs?branch=ios&per_page=100",
+            { headers }
+          );
+          if (!list.ok) throw new Error("GitHub workflow list failed: " + list.status);
+          const runs = (await list.json()).workflow_runs;
+          const stale = runs.filter(r =>
+            relevant.has(r.path) &&
+            r.head_branch === "ios" &&
+            r.head_sha !== process.env.CURRENT_SHA &&
+            (r.status === "queued" || r.status === "pending")
+          );
+          for (const r of stale) {
+            const res = await fetch(
+              "https://api.github.com/repos/" + process.env.REPO + "/actions/runs/" + r.id + "/cancel",
+              { method: "POST", headers }
+            );
+            if (res.ok || res.status === 409) {
+              console.log("Cancelled superseded run", r.id, r.name, r.head_sha);
+            } else {
+              throw new Error("Cancel failed for run " + r.id + ": " + res.status);
+            }
+          }
+          console.log("Superseded queued/pending runs handled:", stale.length);
+          JS
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify native architecture files
+        run: |
+          test -f IOS-NATIVE-ARCHITECTURE.md
+          test -f IOS-MIGRATION-CHECKLIST.md
+          test -f build/ios/README.md
+          grep -q 'main.*production web/PWA' IOS-NATIVE-ARCHITECTURE.md
+          grep -q 'Capacitor + shared JavaScript' IOS-MIGRATION-CHECKLIST.md
+          grep -q 'minimum code drift' IOS-NATIVE-ARCHITECTURE.md
+          node build/verify-ios-foundation.mjs
+          node build/ios-apple-registration.test.mjs
+          node platform-runtime.test.mjs
+          node build/firebase-platform-adapter.test.mjs
+          node build/ios-runtime-syntax.test.mjs
+          node build/attachment-download-platform-adapter.test.mjs
+          node build/platform-boundary-adapters.test.mjs
+          node build/auth-transition-boundary.test.mjs
+          node build/ios-startup-repair.test.mjs
+          node build/ios-testflight-apns-gate.test.mjs
+          node build/ios-native-notification-stack.test.mjs
+
+      - name: Protect Firebase web configuration
+        run: |
+          git fetch origin main --depth=1
+          test ! -e config-firestore.js
+          git diff --exit-code origin/main -- firebase-config.js
+
+      - name: Confirm iOS branch cannot publish Pages through repository workflows
+        run: |
+          if grep -R --include='*.yml' --include='*.yaml' -nE 'branches:[[:space:]]*\[[^]]*ios[^]]*\]' .github/workflows | grep -Ei 'pages|deploy-pages'; then
+            echo 'An iOS-triggered Pages deployment workflow was found.'
+            exit 1
+          fi
+          echo 'No iOS-triggered Pages deployment workflow found.'
+
+      - name: Report preparation state
+        run: |
+          echo 'PASS: Capacitor iOS branch preparation boundaries are intact.'
+          echo 'The full Rebuild Baseline Security Gate runs separately on ios.'

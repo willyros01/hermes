@@ -1,0 +1,101 @@
+name: Capacitor iOS shell
+# Exact-head release validation trigger, 2026-10-06. No gate or application change.
+# No application code, release version, runner selection or gate change.
+
+on:
+  push:
+    branches: [ios]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'build/**'
+      - '!build/*.test.mjs'
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - '*.png'
+      - 'manifest.json'
+      - '.github/workflows/ios-native-checks.yml'
+      - '.github/workflows/ios-capacitor-shell.yml'
+      - '.github/workflows/rebuild-baseline-security.yml'
+      - '.github/workflows/ios-browser-release.yml'
+      - '.github/workflows/ios-testflight.yml'
+      - 'IOS-EXPORT-COMPLIANCE.md'
+      - 'FIDUNIO-BUILD-CHECKLIST.md'
+      - 'IOS-PREUPLOAD-TESTS.md'
+      - 'IOS-RELEASE-READINESS.md'
+      - 'hermes-memory.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-capacitor-shell-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shell:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Prepare and verify shared FIDUNIO web payload
+        run: npm run ios:prepare
+      - name: Generate fresh Capacitor iOS project
+        run: |
+          rm -rf ios
+          npx cap add ios
+          npx cap sync ios
+          node build/apply-ios-native-services.mjs
+          test -f ios/App/App.xcodeproj/project.pbxproj
+          test -f ios/App/App/public/index.html
+          test -f ios/App/App/public/app.js
+          test -f ios/App/App/public/firebase.js
+      - name: Apply assessed FIDUNIO export-compliance declaration
+        run: |
+          node build/apply-ios-export-compliance.mjs
+          node build/apply-ios-icon.mjs
+      - name: Compile unsigned iOS simulator shell
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/fidunio-simulator-build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Verify fresh iOS cold startup reaches Terms
+        timeout-minutes: 20
+        env:
+          FIDUNIO_SIMULATOR_APP: ${{ runner.temp }}/fidunio-simulator-build/Build/Products/Debug-iphonesimulator/App.app
+        run: bash build/ios-startup-smoke.sh
+      - name: Verify native encrypted photo and audio transport/decode
+        timeout-minutes: 8
+        env:
+          FIDUNIO_SIMULATOR_APP: ${{ runner.temp }}/fidunio-simulator-build/Build/Products/Debug-iphonesimulator/App.app
+        run: bash build/ios-attachment-smoke.sh
+      - name: Save native attachment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-attachment-evidence
+          path: attachment-evidence/
+      - name: Save native startup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-startup-evidence
+          path: startup-evidence/
+      - name: Report shell result
+        run: |
+          echo "PASS: FIDUNIO shared web payload generated, Capacitor iOS project generated, and unsigned simulator shell compiled."

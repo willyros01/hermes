@@ -1,0 +1,17 @@
+import fs from "node:fs";
+import assert from "node:assert/strict";
+const firebase=fs.readFileSync("firebase.js","utf8");
+const settings=fs.readFileSync("settings-lifecycle.js","utf8");
+const rules=fs.readFileSync("firestore.rules","utf8");
+assert.match(firebase,/submitFidunioAbuseReport/);
+assert.match(firebase,/listFidunioAbuseReportsForAdmin/);
+assert.match(firebase,/resolveFidunioAbuseReport/);
+assert.match(settings,/Settings structural layout/);
+assert.match(settings,/{id:"safety",label:"Safety"/);
+assert.match(settings,/Report Abuse/);
+assert.match(settings,/Send Report/);
+assert.match(settings,/Administrator moderation queue/);
+assert.match(settings,/submitFidunioAbuseReport/);
+assert.match(rules,/match \/abuseReports\/\{reportId\}/);
+assert.match(rules,/validAbuseReportCreate/);
+console.log("PASS: Settings abuse reporting and admin moderation queue are wired through the central Firebase owner");

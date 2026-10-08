@@ -1,0 +1,52 @@
+name: FIDUNIO Apple registration verification
+
+on:
+  push:
+    branches: [ios]
+    paths:
+      - '.github/workflows/ios-apple-verification.yml'
+      - 'build/asc.mjs'
+      - 'build/ios-apple-registration.test.mjs'
+      - 'capacitor.config.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-apple-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/ios'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify registration specification
+        run: node build/ios-apple-registration.test.mjs
+      - name: Verify Apple credentials and FIDUNIO registration (read-only)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export KEY="$RUNNER_TEMP/fidunio-asc-verification.p8"
+          trap 'rm -f "$KEY"' EXIT
+          node --input-type=module -e '
+            import fs from "node:fs";
+            for (const name of ["ASC_KEY_ID", "ASC_ISSUER_ID", "ASC_KEY_P8", "APPLE_TEAM_ID"]) {
+              if (!process.env[name]) throw new Error("Missing repository secret: " + name);
+            }
+            fs.writeFileSync(process.env.KEY, process.env.ASC_KEY_P8, { mode: 0o600 });
+          '
+          unset ASC_KEY_P8
+          node build/asc.mjs check

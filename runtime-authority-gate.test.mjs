@@ -35,12 +35,15 @@ if(unexpectedObservers.length){
 }
 
 const firebase=await readFile("firebase.js","utf8");
-if(!/firebase-app-check\.js/.test(firebase)||!/initializeAppCheck\s*\(/.test(firebase)||!/ReCaptchaEnterpriseProvider/.test(firebase))throw new Error("firebase.js must own App Check initialization.");
+const firebasePlatformAdapter=await readFile("firebase-platform-adapter.js","utf8");
+if(!/firebase-app-check\.js/.test(firebase)||!/createPlatformFirebaseAppCheck/.test(firebase))throw new Error("firebase.js must centrally acquire App Check and delegate provider bootstrap through the platform adapter.");
+if(/initializeAppCheck\s*\(|ReCaptchaEnterpriseProvider|isNativeIOSRuntime/.test(firebase))throw new Error("firebase.js must not own platform-specific App Check provider policy.");
+if(!/initializeAppCheck\s*\(/.test(firebasePlatformAdapter)||!/ReCaptchaEnterpriseProvider/.test(firebasePlatformAdapter))throw new Error("firebase-platform-adapter.js must own bounded App Check provider construction.");
 const appAt=firebase.indexOf("initializeApp(firebaseConfig)");
-const appCheckAt=firebase.indexOf("initializeAppCheck(app");
-const authAt=firebase.indexOf("getAuth(app)");
+const appCheckAt=firebase.indexOf("createPlatformFirebaseAppCheck(");
+const authAt=firebase.indexOf("createPlatformFirebaseAuth({app,authSdk})");
 const firestoreAt=firebase.indexOf("getFirestore(app)");
-if(appAt<0||appCheckAt<=appAt||authAt<=appCheckAt||firestoreAt<=appCheckAt)throw new Error("Central App Check must initialize after the single app and before Auth/Firestore services.");
+if(appAt<0||appCheckAt<=appAt||authAt<=appCheckAt||firestoreAt<=appCheckAt)throw new Error("Central App Check bootstrap must run after the single app and before Auth/Firestore services.");
 
 if(jsFiles.includes("firebase-app-check.js"))throw new Error("firebase-app-check.js second Firebase owner must remain deleted.");
 

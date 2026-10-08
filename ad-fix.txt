@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+# FIDUNIO self-service account deletion backend repair.
+#
+# RUN WITH NO PARAMETERS:
+#   bash FIDUNIO-account-delete-repair.txt
+#
+# APPROVED LIVE CHANGES:
+# 1) Force/select Firebase project fidunio-fef13 and verify project number.
+# 2) Add roles/firebaseauth.admin to the existing dedicated deletion runtime SA
+#    only if that exact binding is missing.
+# 3) Deploy ONLY the five self-service account deletion Functions.
+# 4) Verify all five are ACTIVE and run as the dedicated deletion service account.
+#
+# DOES NOT CHANGE:
+# - Firestore rules
+# - Storage rules
+# - App Check configuration/enforcement
+# - Firestore application data
+# - existing messages/accounts
+# - main/main2 branches
+#
+# Safety:
+# - Refuses to run if any of the five Functions already exists, because the
+#   pre-repair state proven on 2026-10-05 was "all five absent".
+# - Captures IAM before change and writes an executable rollback script.
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+PROJECT_NUMBER_EXPECTED="130339622893"
+REGION="us-central1"
+CODEBASE="recovery"
+SERVICE_ACCOUNT="fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com"
+AUTH_ROLE="roles/firebaseauth.admin"
+SOURCE_COMMIT="71104cc7499dc51143a0a3dda00cd6b1fc680825"
+SCRIPT_VERSION="account-delete-repair-1"
+
+FUNCTIONS=(
+  getMyAccountDeletionRequestV1
+  requestMyAccountDeletionV1
+  markMyAccountDeletionCleanupCompleteV1
+  cancelMyAccountDeletionRequestV1
+  completeMyAccountDeletionV1
+)
+
+say(){ printf '\n==== %s ====\n' "$*"; }
+stop(){ echo "STOP: $*" >&2; exit 1; }
+
+command -v gcloud >/dev/null 2>&1 || stop "gcloud is required"
+command -v curl >/dev/null 2>&1 || stop "curl is required"
+command -v jq >/dev/null 2>&1 || stop "jq is required"
+
+say "FIDUNIO project safety switch"
+BEFORE="$(gcloud config get-value project 2>/dev/null || true)"
+echo "Project before switch: ${BEFORE:-<none>}"
+echo "Switching explicitly to: $PROJECT"
+gcloud config set project "$PROJECT" >/dev/null
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "Project switch failed; active project is '$ACTIVE'."
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$PROJECT_NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Wrong project number '$PROJECT_NUMBER'."
+echo "PASS: target project is $PROJECT ($PROJECT_NUMBER)."
+
+say "Dedicated service account"
+gcloud iam service-accounts describe "$SERVICE_ACCOUNT" --project="$PROJECT" >/dev/null 2>&1 ||
+  stop "Dedicated deletion service account is missing: $SERVICE_ACCOUNT"
+echo "PASS: $SERVICE_ACCOUNT exists."
+
+say "Pre-change Function state"
+present=0
+for fn in "${FUNCTIONS[@]}"; do
+  if gcloud functions describe "$fn" --gen2 --project="$PROJECT" --region="$REGION" >/dev/null 2>&1; then
+    echo "FOUND: $fn"
+    present=$((present+1))
+  else
+    echo "ABSENT: $fn"
+  fi
+done
+[[ "$present" -eq 0 ]] || stop "Expected all five deletion Functions to be absent. Refusing to overwrite a changed live state."
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_DIR="$HOME/fidunio-account-delete-repair-$STAMP"
+mkdir -p "$BACKUP_DIR"
+
+say "Capture rollback evidence"
+gcloud projects get-iam-policy "$PROJECT" --format=json > "$BACKUP_DIR/iam-before.json"
+echo "$SOURCE_COMMIT" > "$BACKUP_DIR/source-commit.txt"
+echo "$SCRIPT_VERSION" > "$BACKUP_DIR/script-version.txt"
+
+MEMBER="serviceAccount:$SERVICE_ACCOUNT"
+ROLE_ALREADY_PRESENT="NO"
+if jq -e --arg role "$AUTH_ROLE" --arg member "$MEMBER" '
+  .bindings[]? | select(.role==$role) | .members[]? | select(.==$member)
+' "$BACKUP_DIR/iam-before.json" >/dev/null; then
+  ROLE_ALREADY_PRESENT="YES"
+fi
+echo "$ROLE_ALREADY_PRESENT" > "$BACKUP_DIR/auth-role-already-present.txt"
+echo "IAM backup: $BACKUP_DIR/iam-before.json"
+echo "Auth role already present before repair: $ROLE_ALREADY_PRESENT"
+
+cat > "$BACKUP_DIR/rollback.sh" <<ROLLBACK
+#!/usr/bin/env bash
+set -euo pipefail
+PROJECT="$PROJECT"
+PROJECT_NUMBER_EXPECTED="$PROJECT_NUMBER_EXPECTED"
+REGION="$REGION"
+SERVICE_ACCOUNT="$SERVICE_ACCOUNT"
+AUTH_ROLE="$AUTH_ROLE"
+
+gcloud config set project "\$PROJECT" >/dev/null
+ACTIVE="\$(gcloud config get-value project 2>/dev/null)"
+[[ "\$ACTIVE" == "\$PROJECT" ]] || { echo "STOP: wrong project"; exit 1; }
+NUMBER="\$(gcloud projects describe "\$PROJECT" --format='value(projectNumber)')"
+[[ "\$NUMBER" == "\$PROJECT_NUMBER_EXPECTED" ]] || { echo "STOP: wrong project number"; exit 1; }
+
+firebase functions:delete \
+  getMyAccountDeletionRequestV1 \
+  requestMyAccountDeletionV1 \
+  markMyAccountDeletionCleanupCompleteV1 \
+  cancelMyAccountDeletionRequestV1 \
+  completeMyAccountDeletionV1 \
+  --region "\$REGION" \
+  --project "\$PROJECT" \
+  --force
+
+if [[ "$ROLE_ALREADY_PRESENT" == "NO" ]]; then
+  gcloud projects remove-iam-policy-binding "\$PROJECT" \
+    --member="serviceAccount:\$SERVICE_ACCOUNT" \
+    --role="\$AUTH_ROLE" \
+    --quiet
+fi
+
+echo "ROLLBACK COMPLETE."
+ROLLBACK
+chmod +x "$BACKUP_DIR/rollback.sh"
+echo "Rollback script created: $BACKUP_DIR/rollback.sh"
+
+say "Grant required Firebase Authentication authority"
+if [[ "$ROLE_ALREADY_PRESENT" == "YES" ]]; then
+  echo "PASS: $AUTH_ROLE was already granted; no IAM change needed."
+else
+  gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="$MEMBER" \
+    --role="$AUTH_ROLE" \
+    --quiet >/dev/null
+
+  gcloud projects get-iam-policy "$PROJECT" --format=json > "$BACKUP_DIR/iam-after-role.json"
+  jq -e --arg role "$AUTH_ROLE" --arg member "$MEMBER" '
+    .bindings[]? | select(.role==$role) | .members[]? | select(.==$member)
+  ' "$BACKUP_DIR/iam-after-role.json" >/dev/null ||
+    stop "Firebase Authentication role grant could not be verified."
+  echo "PASS: $AUTH_ROLE granted to $SERVICE_ACCOUNT."
+fi
+
+say "Re-confirm project before Firebase deployment"
+gcloud config set project "$PROJECT" >/dev/null
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "Active project changed unexpectedly."
+[[ "$NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Project number changed unexpectedly."
+echo "PASS: Firebase deployment target is $PROJECT ($NUMBER)."
+
+say "Prepare pinned reviewed source"
+if ! command -v firebase >/dev/null 2>&1; then
+  echo "Firebase CLI not found; installing firebase-tools..."
+  npm install -g firebase-tools
+fi
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+ARCHIVE="$WORK/hermes.tar.gz"
+ROOT="$WORK/hermes-$SOURCE_COMMIT"
+
+curl --retry 3 --retry-delay 2 -fsSL \
+  "https://github.com/willyros01/hermes/archive/$SOURCE_COMMIT.tar.gz" \
+  -o "$ARCHIVE"
+tar -xzf "$ARCHIVE" -C "$WORK"
+
+[[ -f "$ROOT/firebase.json" ]] || stop "Pinned firebase.json is missing."
+[[ -f "$ROOT/functions/index.mjs" ]] || stop "Pinned Functions entrypoint is missing."
+[[ -f "$ROOT/functions/account-deletion/account-deletion-core.mjs" ]] || stop "Pinned deletion core is missing."
+[[ -f "$ROOT/functions/account-deletion/account-deletion-firestore-admin-adapter.mjs" ]] || stop "Pinned deletion Admin adapter is missing."
+
+for marker in \
+  'export const getMyAccountDeletionRequestV1=onCall' \
+  'export const requestMyAccountDeletionV1=onCall' \
+  'export const markMyAccountDeletionCleanupCompleteV1=onCall' \
+  'export const cancelMyAccountDeletionRequestV1=onCall' \
+  'export const completeMyAccountDeletionV1=onCall'
+do
+  grep -Fq "$marker" "$ROOT/functions/index.mjs" ||
+    stop "Pinned source missing expected callable: $marker"
+done
+
+grep -Fq 'serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT' "$ROOT/functions/index.mjs" ||
+  stop "Pinned callables are not wired to the dedicated deletion identity."
+grep -Fq 'async readRequest(uid){const snap=await db.doc(' "$ROOT/functions/account-deletion/account-deletion-firestore-admin-adapter.mjs" ||
+  stop "Pinned deletion request reader is missing."
+grep -Fq 'auth.getUser(uid)' "$ROOT/functions/account-deletion/account-deletion-firestore-admin-adapter.mjs" ||
+  stop "Pinned Auth user lookup is missing."
+grep -Fq 'auth.deleteUser(uid)' "$ROOT/functions/account-deletion/account-deletion-firestore-admin-adapter.mjs" ||
+  stop "Pinned Auth user deletion is missing."
+
+echo "Installing pinned Functions dependencies for import validation..."
+npm --prefix "$ROOT/functions" install --ignore-scripts --silent
+(
+  cd "$ROOT"
+  node --input-type=module <<'JS'
+const m=await import('./functions/index.mjs');
+for(const name of [
+  'getMyAccountDeletionRequestV1',
+  'requestMyAccountDeletionV1',
+  'markMyAccountDeletionCleanupCompleteV1',
+  'cancelMyAccountDeletionRequestV1',
+  'completeMyAccountDeletionV1'
+]){
+  if(typeof m[name] !== 'function') throw new Error(name+' export missing');
+}
+console.log('PASS: pinned account-deletion module graph imports.');
+JS
+)
+
+say "Deploy only the five account-deletion Functions"
+cd "$ROOT"
+firebase deploy \
+  --project "$PROJECT" \
+  --only "functions:$CODEBASE:getMyAccountDeletionRequestV1,functions:$CODEBASE:requestMyAccountDeletionV1,functions:$CODEBASE:markMyAccountDeletionCleanupCompleteV1,functions:$CODEBASE:cancelMyAccountDeletionRequestV1,functions:$CODEBASE:completeMyAccountDeletionV1" \
+  --non-interactive
+
+say "Post-deploy verification"
+fail=0
+for fn in "${FUNCTIONS[@]}"; do
+  state="$(gcloud functions describe "$fn" --gen2 --project="$PROJECT" --region="$REGION" --format='value(state)' 2>/dev/null || true)"
+  runtime_sa="$(gcloud functions describe "$fn" --gen2 --project="$PROJECT" --region="$REGION" --format='value(serviceConfig.serviceAccountEmail)' 2>/dev/null || true)"
+  uri="$(gcloud functions describe "$fn" --gen2 --project="$PROJECT" --region="$REGION" --format='value(serviceConfig.uri)' 2>/dev/null || true)"
+  if [[ "$state" == "ACTIVE" && "$runtime_sa" == "$SERVICE_ACCOUNT" && -n "$uri" ]]; then
+    echo "PASS: $fn"
+    echo "      state=$state"
+    echo "      runtime=$runtime_sa"
+    echo "      uri=$uri"
+  else
+    echo "FAIL: $fn state='$state' runtime='$runtime_sa' uri='$uri'"
+    fail=1
+  fi
+done
+[[ "$fail" -eq 0 ]] || stop "One or more account-deletion Functions failed verification. Use $BACKUP_DIR/rollback.sh only if rollback is deliberately chosen."
+
+say "Final IAM verification"
+gcloud projects get-iam-policy "$PROJECT" --format=json > "$BACKUP_DIR/iam-final.json"
+for role in roles/datastore.user "$AUTH_ROLE"; do
+  jq -e --arg role "$role" --arg member "$MEMBER" '
+    .bindings[]? | select(.role==$role) | .members[]? | select(.==$member)
+  ' "$BACKUP_DIR/iam-final.json" >/dev/null ||
+    stop "Required role missing after deployment: $role"
+  echo "PASS: $SERVICE_ACCOUNT has $role"
+done
+
+say "SUCCESS"
+echo "FIDUNIO account-deletion backend repair completed."
+echo "Project: $PROJECT ($PROJECT_NUMBER_EXPECTED)"
+echo "Pinned source: $SOURCE_COMMIT"
+echo "All five account-deletion Functions are ACTIVE."
+echo "Runtime identity: $SERVICE_ACCOUNT"
+echo "Firestore role verified: roles/datastore.user"
+echo "Firebase Authentication role verified: $AUTH_ROLE"
+echo
+echo "Rollback evidence and script:"
+echo "  $BACKUP_DIR"
+echo
+echo "No Firestore rules, Storage rules, App Check settings, or application data were changed."
+echo
+echo "NEXT TEST:"
+echo "Return to FIDUNIO 1.1.72, leave Settings, reopen Settings -> Profile."
+echo "The Delete My Account panel should load without 'internal [0]'."

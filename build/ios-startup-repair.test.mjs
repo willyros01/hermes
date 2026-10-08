@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const firebase=fs.readFileSync("firebase.js","utf8");
+assert.match(firebase,/from "\.\/firebase-platform-adapter\.js"/);
+assert.match(firebase,/createPlatformFirebaseAuth\(\{app,authSdk\}\)/);
+assert.match(firebase,/createPlatformFirebaseAppCheck\(/);
+assert.doesNotMatch(firebase,/isNativeIOSRuntime|shouldUseWebAppCheck|indexedDBLocalPersistence|browserSessionPersistence|initializeAuth\(/);
+const icon=fs.readFileSync("build/ios/AppIcon-1024.png");
+assert.equal(icon.readUInt32BE(16),1024);assert.equal(icon.readUInt32BE(20),1024);assert.equal(icon[25],2);
+console.log("PASS: firebase.js delegates platform bootstrap to the bounded adapter; shared Firebase owner has no native branch; opaque app icon validated");

@@ -1,3 +1,18 @@
+## iOS migration blockers — 1.1.59 repair candidate — 2026-10-04
+
+- **IOS-AUTH-002 — OPEN / release blocking until TestFlight acceptance.** Root cause is now source-confirmed in exact 1.1.57 commit: invalid executable quote escapes in `settings-lifecycle.js`, loaded by the post-recovery `app.js` import. Current candidate removes the syntax defect and permanently checks every packaged iOS JavaScript file.
+- **IOS-AUTH-003 — OPEN / release blocking until TestFlight acceptance.** 1.1.57 combined credential success with later E2EE/app startup in one catch and signed out on later failure. Current candidate separates those transitions and regression-tests native Firebase Auth persistence across reload. Device restart proof is still required.
+
+## FIDUNIO 1.1.59 iOS auth/recovery root-cause checkpoint — 2026-10-04
+
+Exact 1.1.57 TestFlight release commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` contains invalid JavaScript in `settings-lifecycle.js`: the native Notifications placeholder used literal escaped quote delimiters (`\'...\'`) in executable source. `app.js` at that same commit imports `./settings-lifecycle.js`, and 1.1.57 recovery called `startApp() -> import("./app.js")` inside the recovery UI catch. This is source-confirmed evidence for IOS-AUTH-002: successful PIN/E2EE recovery could be followed by a JavaScriptCore/WebKit parser failure during post-recovery application startup, then be displayed as though recovery itself failed. The shared recovery protocol and cryptographic owners remain unchanged.
+
+1.1.57 also wrapped successful Firebase sign-in, account-E2EE binding, and later application startup in one sign-in catch that reset/signs out on any later failure. This is a source-confirmed misclassification mechanism relevant to IOS-AUTH-003, but the defect remains OPEN until real-device TestFlight proves persisted native auth/restart behavior.
+
+Current iOS candidate uses the approved adapter architecture: `firebase-platform-adapter.js` owns bounded Firebase SDK/Auth/App Check bootstrap policy; `background-platform-adapter.js` owns web Service Worker vs native no-op background capability; `startup-platform-adapter.js` owns native startup-failure presentation; and `notification-platform-adapter.js` reports web-push vs native-pending notification capability so Settings no longer branches directly on iOS. No fake `navigator.serviceWorker` is introduced. Native APNs/FCM remains a later adapter implementation.
+
+Repository evidence before this documentation commit: commit `c922255516c6ac3697fbc729ace8df8ce4b7276c` passed Capacitor iOS branch preflight, Chromium and WebKit browser release regressions, and the complete Rebuild Baseline Security Gate through all 108 substantive checks. Documentation changes require a fresh exact-head gate cycle before any TestFlight release marker. IOS-AUTH-002 and IOS-AUTH-003 remain OPEN / DEVICE ACCEPTANCE REQUIRED.
+
 ## Disappearing attachments — 0.9.9.19
 
 **Status: REPOSITORY CANDIDATE / LIVE BACKEND HANDOFF REQUIRED.** Photos, files, audio and video now carry disappearing activation metadata and have server Storage-prefix + local object-URL cleanup wiring. Do not mark closed until `att.txt` live deployment succeeds and direct/group attachment expiry, unread protection, reopen, and multi-device absence are device-proven.
@@ -437,3 +452,104 @@ The service worker persists the validated opaque route locally before notificati
 
 ### FDA-BIO-001 — returning-session biometric label — 1.1.56
 1.1.55 updated the main lock screen but missed the separate remembered-session authentication renderer, leaving **Unlock with device** visible despite the correct release version. 1.1.56 updates only that existing auth UI wording, advances the shell revision, and extends permanent regression coverage to both unlock paths. Device acceptance is pending; PIN, WebAuthn semantics, E2EE, Firebase, messaging and notification ownership are unchanged.
+
+
+## iOS 1.1.57 startup/icon repair candidate — 2026-10-03
+
+User-device report on TestFlight 1.1.56 (1): IOS-STARTUP-001 (blocking) remains on the initial “Opening your secure local data” screen; IOS-ICON-001 (branding) shows the Capacitor placeholder icon. Device: iPhone 18 Pro Max, iOS 27.0.1 (App Store Connect tester observation). Expected: cold launch reaches Sign In and home-screen icon uses the established FIDUNIO logo. The initial text alone does not identify a storage failure.
+
+1.1.56 → 1.1.57 applies a native-only Firebase auth initialization without the unused browser popup/redirect resolver, preserving IndexedDB/local/session persistence and web getAuth defaults. Bootstrap owns only its original startup host, reports native load failures/30-second stalls, and retries through a full page reload without clearing storage or bypassing authentication/PIN. Firebase remains the sole service initializer; platform-runtime owns platform selection. The user approved resizing the existing opaque logo to 1024×1024 with macOS sips; build tooling installs it in the generated Xcode icon catalog.
+
+Status: repair candidate, NOT device-accepted. A fresh iOS Simulator cold-start gate must visibly reach Sign In/Email/Password before TestFlight upload. Repository tests and signed upload results must be recorded separately after completion. Exit criteria: required checks green, user updates TestFlight and repeatedly reaches sign-in/correct icon, then existing-account/PIN/E2EE acceptance. No completion credit earned. main remains production 1.1.56; no live Firebase/config/rules/Functions/App Check enforcement changes. Native Face ID and push remain later phases. External tester wrosales@cuberoot-systems.com exists in FIDUNIO External Testing; no build access until Apple beta-review prerequisites are supplied and review succeeds.
+
+
+### Scorecard-style pre-upload regression gate — 2026-10-03
+
+The user requested automated verification before another TestFlight build. Reviewed Scorecard main `8320c6cf02a9bbf38fa3fa7171235d2954f1d873`: reusable required release suite, Chromium/WebKit matrix, isolated emulator tests, deterministic build audits, release-marker trigger, and saved failure artifacts. Hermes now adds `ios-browser-release.yml` (both engines; native-mode actual SDK startup/reload, sign-in/join/validation/password visibility, failed-load/retry, stalled-startup fail-closed diagnostics; test-only demo config and outbound backend blocking). Existing full security/rules/emulator baseline remains required. `ios-testflight.yml` requires this fourth workflow at the exact release commit. Actual Capacitor iOS Simulator cold-launch and opaque-logo/icon audit are also required. See `IOS-PREUPLOAD-TESTS.md` for scope and limits.
+
+TestFlight run `37159557103` was explicitly cancelled by the user before archive/upload (gates cancelled; testflight job cancelled with no steps). No build 2 was submitted by this run. Browser suite is initially unverified until GitHub execution; local browser launch is sandbox-blocked. Do not mark device defects closed or trigger another release marker until these checks pass. No production-backend mutations, copied Scorecard credentials/test accounts/export-compliance answers, or main branch changes.
+
+
+### Verified 1.1.57 pre-upload checkpoint — 2026-10-03
+
+All four required workflows succeeded at `19d1a2911441913ad5c048bae839fd5b990d3b2e`: native preflight `37161083339`, complete security baseline `37161083345`, Chromium AND WebKit browser regression suite `37161083342`, and actual Capacitor iOS Simulator startup `37161083343`. Simulator OCR explicitly confirmed FIDUNIO 1.1.57 with Sign In/Email/Password; artifact `11287488574` stores screenshot and screen text. The apparent log stall was a redirected second compilation (23:20:45 → 23:24:33 UTC), not proof of an app hang. The workflow now installs its already-compiled simulator app and prints stage progress; test-only browser harness edits no longer request unnecessary Simulator recompilation. Those workflow changes must still pass the release's exact-commit checks.
+
+The new release marker (revision 3) requests one gated 1.1.57 upload after all four checks at its source commit succeed. Cancelled run 2 submitted nothing. Upload/Apple processing/internal-group distribution results remain pending until verified. IOS-STARTUP-001 and IOS-ICON-001 stay user-device OPEN. This is no new acceptance credit and no change to main/production Firebase/App Check enforcement/E2EE protocols.
+
+
+## iOS 1.1.57 TestFlight authentication/recovery blockers — 2026-10-03
+
+Device acceptance found two critical release blockers, recorded as IOS-AUTH-002 and IOS-AUTH-003 in DEVICE-ACCEPTANCE-BUGS.md. IOS-AUTH-002: first native sign-in accepts valid credentials, reaches Recover Secure Messaging, then PIN recovery fails with `Invalid escape in identifier: '\\'`; the exact lower-level source remains unproven. IOS-AUTH-003: after failed recovery and restart, native sign-in reports invalid email/password for credentials verified in the web app and reproduced with two accounts; native auth persistence is only an investigation lead. Both are OPEN / INVESTIGATING and release-blocking. This checkpoint documents defects only; no corrective code or production-service change is authorized. Closure requires root cause, focused regression coverage, required green gates, and repeated real-device TestFlight acceptance.
+
+
+## FIDUNIO 1.1.58 — native authentication/recovery boundary repair candidate — 2026-10-03
+
+IOS-AUTH-002 / IOS-AUTH-003 remain release-blocking until real-device TestFlight acceptance, but the repair is now deliberately confined to the native Firebase Auth boundary. Comparison of first TestFlight commit `9b5efe5f9db91a80c93e2cd0b67b2bb17b1e8a50` with failing 1.1.57 commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` confirms that the PIN, account-E2EE recovery client/runtime/identity manager/crypto and recovery Functions were unchanged; the relevant authentication-runtime change was the native-only Firebase `initializeAuth()` persistence stack.
+
+1.1.58 preserves web/PWA behavior exactly on Firebase Web SDK 12.18.0 + `getAuth(app)`. Native iOS alone loads Firebase Web SDK 12.19.0 and keeps custom `initializeAuth()` (therefore still omitting the browser popup/redirect resolver that contributed to the earlier native startup problem), but uses only `browserLocalPersistence`. Native Firebase Auth no longer owns IndexedDB or sessionStorage persistence. FIDUNIO's own local-security/account-E2EE IndexedDB remains unchanged and remains its existing owner. Firebase 12.19.0 contains upstream iOS/iPadOS Auth persistence repairs, including IndexedDB reconnection after pagehide, fallback when persistence storage initialization fails, and preservation of underlying persistence errors.
+
+Protected areas unchanged: web Firebase SDK/runtime, PIN semantics, recovery callables, E2EE identity/keyId, recovery cryptography, Firestore/Functions schemas, App Check enforcement, local-security IndexedDB, messaging and production `main`. Permanent iOS startup regression coverage now requires localStorage-only native Auth persistence, no popup redirect resolver, native SDK 12.19.0, and web SDK 12.18.0. Device defects remain OPEN / IMPLEMENTED CANDIDATE until TestFlight proves initial sign-in -> six-digit PIN recovery -> established identity/messages, then close/restart -> retained valid Firebase session without false invalid-credential presentation.
+
+
+## FIDUNIO 1.1.59 architecture checkpoint — 2026-10-03
+
+1.1.58 is superseded before device acceptance. 1.1.59 restores the approved platform-adapter boundary through firebase-platform-adapter.js. IOS-AUTH-002 and IOS-AUTH-003 remain open pending real-device proof. The WebKit gate now parses the post-auth app.js graph.
+
+
+## FIDUNIO 1.1.59 — pre-emptive startup/auth/recovery transition hardening — 2026-10-03
+
+This checkpoint supersedes the earlier 1.1.58 implementation and extends the 1.1.59 adapter correction under the Hermes minimum-drift rules. The user explicitly authorized pre-emptive code changes so TestFlight acceptance is not forced to discover startup, login and recovery failures one screen at a time.
+
+Architecture: `firebase-platform-adapter.js` is the bounded owner of web-vs-native Firebase bootstrap policy. Shared `firebase.js` no longer branches on iOS. Web remains Firebase JS 12.18.0 + `getAuth(app)`; iOS uses Firebase JS 12.19.0 + `initializeAuth(app,{persistence:browserLocalPersistence})` with no popup/redirect resolver. PIN, account E2EE, recovery callables, identity/keyId, Firestore schemas and cryptographic algorithms remain shared and unchanged.
+
+Transition hardening: `auth-ui-clean.js` now separates Firebase credential authentication from post-auth E2EE/application activation; separates successful PIN recovery from subsequent `startApp()`; separates successful invitation redemption from subsequent secure startup; and makes application startup retry-safe. `appStarted` is not set until the complete `app.js` module graph imports successfully, and a failed import clears the in-flight startup promise so Retry Opening FIDUNIO can genuinely retry. Once Firebase authentication succeeds, a later E2EE/startup failure is explicitly reported as an authenticated transition failure and is not relabeled as invalid credentials. Once recovery succeeds, a later parser/startup failure is not relabeled as failed recovery. Once a one-time invitation creates the account, a later secure-startup failure retries the authenticated transition rather than redeeming the invitation again.
+
+IOS-AUTH-002 evidence correction: the 1.1.57 recovery button catch enclosed both `recoverAccountE2EE()` and the later `startApp()` dynamic import. Therefore the observed JavaScriptCore `Invalid escape in identifier: '\\'` message did not prove the cryptographic recovery operation itself failed; it could have been emitted by post-recovery application startup. The defects remain open until real-device proof.
+
+Pre-upload gates now additionally require: the Firebase platform-adapter contract; no native branch/persistence policy inside shared `firebase.js`; separate retry-safe auth/recovery/enrollment/startup boundaries; Chromium and WebKit parsing of the post-auth `app.js` graph; and a WebKit P-256 private CryptoKey -> IndexedDB -> read-back -> ECDH-use round trip matching FIDUNIO local E2EE storage. The complete existing recovery/crypto/Firestore/emulator baseline remains required. No production Firebase/App Check enforcement or `main` branch change is included.
+
+Status: IOS-AUTH-002 and IOS-AUTH-003 are OPEN / IMPLEMENTED CANDIDATE, not device-accepted. Required workflows must pass on the exact final release-marker commit before upload. Device exit criteria remain first sign-in -> missing-local recovery -> correct existing PIN -> same identity/messages -> close/restart -> retained authenticated session -> correct secure unlock/startup without credential, parser or recovery misclassification.
+
+
+## FIDUNIO 1.1.60 — iOS photo-download transport candidate — 2026-10-04
+
+User-device evidence on TestFlight 1.1.59 (8): text messages load, while sent/received photo rows show `Manifest download failed (storage/unknown): Load failed`. IOS-ATTACH-001 is OPEN / IMPLEMENTED CANDIDATE. The user separately confirmed that a fresh reinstall prompts for the established PIN after email/password; no PIN repair is included. Web notifications resumed in both directions after installation registration was disabled/re-enabled. The reported delayed direct Sent -> Read transition remains a separate open investigation and is not repaired by this release.
+
+1.1.59 -> 1.1.60 preserves Firebase URL lookup and the shared attachment receive/decryption/display owners. `attachment-download-platform-adapter.js` owns only encrypted-object download transport: browser uses the existing no-store fetch + AbortSignal; native iOS uses the already bundled CapacitorHttp request bridge. Only HTTPS Firebase Storage media URLs for the configured bucket are accepted by the native path; redirects are disabled, requests have a bounded timeout, each object retains the 1 MiB limit, and application/json responses and ciphertext JSON text are normalized into bytes for the unchanged verifier/decryptor. No global fetch/XHR patch, independent Firebase initialization, authentication change, second attachment owner, plaintext transport, Storage rule change or production backend deployment is included. main remains unchanged.
+
+Cause confidence: the screenshot and source establish a failure before decryption at the attachment download boundary. They do not by themselves prove CORS or a particular iOS network restriction. This is a tested native-transport repair candidate, not a claim that the exact device network failure has been reproduced.
+
+Validation: local adapter tests passed for web/native encrypted multi-chunk round trips, exact byte equality, tamper rejection, URL bounds, HTTP failure, size limit, timeout and unavailable bridge. Existing attachment UI/lifecycle and native bootstrap boundary tests passed. The permanent CI gate includes the adapter test. A disposable Simulator-only app fixture checks the actual built-in native HTTP bridge through the production adapter and shared receive/decrypt owner to image decode; it uses local encrypted fixtures and no live Firebase credentials/requests/writes. The fixture substitutes only its local server URL at the injected test bridge, and its test HTTP allowance and entry page are never packaged in TestFlight. Exact-commit full security, browser, preflight and Simulator gates remain required before upload; live Firebase download and repeated iPhone/iPad acceptance remain required before IOS-ATTACH-001 closes.
+
+Rollback: keep 1.1.59 (8) available in TestFlight. The last accepted source checkpoint is `b0960b8bcb99d4c549f7478e33d6c254089bf0d4`. Revert this isolated transport candidate in ios if rejected; no server/data rollback is necessary because it makes no production configuration or data change. TestFlight build availability and upload are verified separately from repository checks.
+## iOS migration device closeout — 2026-10-04
+
+**Status: ACCEPTED on iPhone and iPad for the current TestFlight build, subject only to the separate App Check hardening rollout below.**
+
+Real-device acceptance completed after the Firebase APNs credential was corrected:
+- direct native notification delivery: PASS in background and cold start;
+- direct notification tap routing: PASS to the exact conversation/message;
+- group native notification delivery: PASS;
+- group notification tap routing: PASS to the exact group/message;
+- iPhone and iPad: PASS for the tested notification paths;
+- delayed direct Sent -> Read refresh is no longer reproducible in current device use and is closed as a non-issue at this checkpoint;
+- the stale yellow Firebase/permissions banner is no longer present on either device and is closed at this checkpoint;
+- native photo/attachment repair, sign-in/PIN recovery, Face ID, direct messaging and group messaging remain accepted from the current device cycle.
+
+Notification infrastructure evidence: the live direct/group notification Functions were aligned to reviewed commit `8ce96f85f132da078bbfc237825e78f139deea96`; the earlier direct FCM diagnostic returned `messaging/third-party-auth-error` / `Invalid APNs credential`; after the APNs credential was corrected in Firebase, real FCM -> APNs delivery and exact-route taps passed on both iPhone and iPad.
+
+Do not reopen these items merely because a routine TestFlight build is created. Revalidate only when a related component changes or a regression is observed.
+
+### App Store requirement: Report Abuse
+
+Add **Settings → Report Abuse** in the next iOS build. This should let a signed-in user report abusive behavior or objectionable content from inside FIDUNIO with minimal typing. The report should capture the reporting user, optional reported user/conversation/message reference when launched from context, a short reason/category, optional notes, and timestamp, and send it to an admin/moderation queue without exposing unrelated conversation content. This is separate from blocking/suspending users and supports App Store user-generated-content moderation requirements.
+
+### App Store requirement: Self-service account deletion
+
+Add **Settings → Account → Delete My Account** in the next iOS build. The user must be able to initiate full account deletion from inside FIDUNIO, with reauthentication/confirmation, clear consequences, server-side account/data cleanup through the existing controlled account-cleanup authority, and local sign-out/vault cleanup only after server deletion succeeds. Admin suspend/revoke/delete remains a separate moderation capability and does not replace self-service deletion.
+
+### Remaining security hardening: Firebase App Check
+
+The previously deferred DoS/abuse-prevention control is Firebase App Check. Web/PWA already initializes App Check through reCAPTCHA Enterprise in the central Firebase bootstrap. Native iOS App Check is still deferred in `firebase-platform-adapter.js` and must be implemented with an Apple attestation provider for validation.
+
+**Approved operating policy — standby / sleep mode:** implement and test App Check on web/PWA and native iOS, confirm that both platforms can obtain valid App Check tokens, then leave backend enforcement OFF during normal operation. Keep the implementation and configuration ready for rapid activation if credible abuse, automated backend misuse or a DoS-related threat appears. Re-test only when App Check code/configuration changes or before activating enforcement. App Check is an abuse-reduction control, not a guarantee against all denial-of-service attacks. No enforcement change is authorized by this documentation closeout.

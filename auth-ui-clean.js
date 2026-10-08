@@ -18,6 +18,7 @@ import {validateFidunioInvitation,redeemInvitationForEnrollment} from "./invitat
 import {markSuccessfulAuthBypass,getLocalSecurityStatus,verifyLocalPin,verifyBiometric,setLocalPin,saveLocalAccountE2EEIdentity,readLocalAccountE2EEIdentity,inspectLocalAccountE2EEIdentity,markPasswordResetPending,hasPasswordResetPending,clearPasswordResetPending} from "./local-security.js";
 import {bindAuthenticatedAccountE2EE,unlockAccountE2EE,enrollAccountE2EE,recoverAccountE2EE,restoreLocalAccountE2EE,getAccountE2EERuntimeIdentity,resetAccountE2EEForSignOut} from "./e2ee-account-runtime.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
+import {acceptLegalPolicy} from "./legal-acceptance-client.js";
 import {
   getAccountStorageStatus,
   inspectLegacyAccountIdentity,
@@ -25,13 +26,26 @@ import {
   recoverQuarantinedE2EEIdentity,
   activateAccountStorage
 } from "./account-storage.js";
+import {readInitialNativeInvitationToken,subscribeNativeInvitationLinks} from "./invitation-platform-adapter.js";
 
 const VERSION=globalThis.FIDUNIO_RELEASE?.version||"";
 let appStarted=false;
+let appStartPromise=null;
+let pendingNativeInviteToken="";
+let invitationLinkSubscriptionStarted=false;
 
 function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function inviteTokenFromUrl(){return new URL(location.href).searchParams.get("invite")||"";}
-function clearInviteFromUrl(){const u=new URL(location.href);if(!u.searchParams.has("invite"))return;u.searchParams.delete("invite");history.replaceState(null,"",u.pathname+(u.search||"")+u.hash);}
+function inviteTokenFromUrl(){return pendingNativeInviteToken||new URL(location.href).searchParams.get("invite")||"";}
+function clearInviteFromUrl(){pendingNativeInviteToken="";const u=new URL(location.href);if(!u.searchParams.has("invite"))return;u.searchParams.delete("invite");history.replaceState(null,"",u.pathname+(u.search||"")+u.hash);}
+async function initializeInvitationLinkRouting(){
+  if(invitationLinkSubscriptionStarted)return;
+  invitationLinkSubscriptionStarted=true;
+  pendingNativeInviteToken=await readInitialNativeInvitationToken();
+  subscribeNativeInvitationLinks(token=>{
+    pendingNativeInviteToken=token;
+    if(!getFirebaseUser()&&!appStarted)renderGate("join");
+  });
+}
 function authShell(inner){document.querySelector("#app").innerHTML=`<main class="app-shell unlock"><section class="unlock-card" style="max-width:520px"><div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div><h1>FIDUNIO</h1><p>Private Messaging</p>${inner}<div class="small-note">FIDUNIO ${esc(VERSION)} • Invite-only access</div></section></main>`;}
 
 async function sendPasswordReset(email){return sendFidunioPasswordReset(email);}
@@ -69,21 +83,51 @@ async function recoverVerifiedQuarantinedIdentity(userUid){
   return recoverQuarantinedE2EEIdentity(userUid,{legacyOwnerUid:ownerUid});
 }
 
+async function startAppAfterLegalAcceptance(user){
+  // First-launch acceptance is device-owned and already completed before Auth.
+  // Keep the server record as best-effort audit only; it must never block login.
+  acceptLegalPolicy().catch(err=>console.warn("Legal acceptance server sync deferred",err));
+  return startApp();
+}
+
 async function startApp(){
   if(appStarted)return;
-  const user=getFirebaseUser();
-  if(!user)throw new Error("Authenticated account is required before FIDUNIO can start.");
-  const storageStatus=await getAccountStorageStatus();
-  let legacyOwnerUid=null;
-  if(!storageStatus.activeUid){
-    try{legacyOwnerUid=await resolveLegacyOwnerUid();}
-    catch(err){console.warn("FIDUNIO could not uniquely identify legacy local-data ownership; legacy data will be quarantined",err);}
-  }
-  await activateAccountStorage(user.uid,{legacyOwnerUid});
-  // Stable-identity invariant: ordinary startup never overwrites the active E2EE identity from quarantine.
-  appStarted=true;
-  clearInviteFromUrl();
-  await import("./app.js");
+  if(appStartPromise)return appStartPromise;
+  appStartPromise=(async()=>{
+    const user=getFirebaseUser();
+    if(!user)throw new Error("Authenticated account is required before FIDUNIO can start.");
+    const storageStatus=await getAccountStorageStatus();
+    let legacyOwnerUid=null;
+    if(!storageStatus.activeUid){
+      try{legacyOwnerUid=await resolveLegacyOwnerUid();}
+      catch(err){console.warn("FIDUNIO could not uniquely identify legacy local-data ownership; legacy data will be quarantined",err);}
+    }
+    await activateAccountStorage(user.uid,{legacyOwnerUid});
+    // Stable-identity invariant: ordinary startup never overwrites the active E2EE identity from quarantine.
+    // Do not mark startup complete until the complete application module graph has loaded.
+    const appModule=await import("./app.js");
+    await appModule.FIDUNIO_APP_READY;
+    clearInviteFromUrl();
+    appStarted=true;
+  })();
+  try{await appStartPromise;}
+  catch(error){appStartPromise=null;throw error;}
+}
+
+function renderAuthenticatedTransitionFailure(user,error,retry){
+  const message=error?.message||String(error);
+  authShell(`<p class="small-note"><strong>Signed in successfully.</strong></p><p class="small-note">FIDUNIO could not finish opening secure messaging. Your email/password was accepted; this is not being reported as a credential failure.</p><p class="warning-note">${esc(message)}</p><button class="primary" id="authTransitionRetryBtn">Retry Opening FIDUNIO</button><button class="secondary" id="authTransitionSignOutBtn" style="margin-top:10px">Use Another Account</button>`);
+  document.querySelector("#authTransitionRetryBtn").onclick=async()=>{
+    const btn=document.querySelector("#authTransitionRetryBtn");btn.disabled=true;btn.textContent="Retrying…";
+    try{await retry();}
+    catch(nextError){renderAuthenticatedTransitionFailure(user,nextError,retry);}
+  };
+  document.querySelector("#authTransitionSignOutBtn").onclick=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
+}
+
+async function openStartedAppOrOfferRetry(user){
+  try{await startAppAfterLegalAcceptance(user);}
+  catch(error){renderAuthenticatedTransitionFailure(user,error,()=>startAppAfterLegalAcceptance(user));}
 }
 
 async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
@@ -92,7 +136,7 @@ async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
     try{await unlockAccountE2EE({uid:user.uid,password,pin});}
     catch(unlockError){
       try{await recoverAccountE2EE({uid:user.uid,newPassword:password,pin});}
-      catch{throw unlockError;}
+      catch(recoveryError){if(recoveryError&&typeof recoveryError==="object"&&!recoveryError.cause)recoveryError.cause=unlockError;throw recoveryError;}
     }
   }
   else await enrollAccountE2EE({uid:user.uid,password,pin});
@@ -107,40 +151,65 @@ async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
 async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   const saved=identity?await readLocalAccountE2EEIdentity(user.uid,identity):null;
   const security=getLocalSecurityStatus();
+
+  const signOut=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
+
   if(saved){
-    authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with Face ID or Biometric</button>':""}<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="${security.hasBiometric?"secondary":"primary"}" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
-  }else{
-    const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
-    authShell(`<p class="small-note">${hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
+    let showPinFallback=!security.hasBiometric;
+    const paint=(message="")=>{
+      authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with Face ID or Biometric</button>':""}${security.hasBiometric&&!showPinFallback?'<button class="secondary" id="sessionShowPinBtn" style="margin-top:10px">Use PIN instead</button>':""}${showPinFallback?'<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button>':""}<button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote">${message?`<p class="warning-note" role="alert">${esc(message)}</p>`:""}</div>`);
+
+      document.querySelector("#sessionSignOutBtn").onclick=signOut;
+      const reveal=document.querySelector("#sessionShowPinBtn");
+      if(reveal)reveal.onclick=()=>{showPinFallback=true;paint();};
+
+      const deviceBtn=document.querySelector("#sessionDeviceBtn");
+      if(deviceBtn)deviceBtn.onclick=async()=>{
+        deviceBtn.disabled=true;deviceBtn.textContent="Waiting for Face ID or biometric…";
+        try{
+          if(await verifyBiometric()){restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();await openStartedAppOrOfferRetry(user);return;}
+        }catch{}
+        showPinFallback=true;
+        paint("Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.");
+      };
+
+      const pinHost=document.querySelector("#sessionPinHost"),unlockBtn=document.querySelector("#sessionUnlockBtn");
+      if(pinHost&&unlockBtn){
+        const pinInput=mountSixDigitPinInput(pinHost,{onComplete:()=>unlockBtn.click()});
+        unlockBtn.onclick=async()=>{
+          const pin=pinInput.value();
+          if(!/^\d{6}$/.test(pin)){paint("Enter your six-digit FIDUNIO PIN.");return;}
+          unlockBtn.disabled=true;unlockBtn.textContent="Unlocking…";pinInput.setDisabled(true);
+          try{
+            if(!await verifyLocalPin(pin))throw new Error("Incorrect PIN.");
+            restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();
+          }catch(err){paint(err?.message||String(err));return;}
+          await openStartedAppOrOfferRetry(user);
+        };
+        setTimeout(()=>pinInput.focus(),0);
+      }
+    };
+    paint();
+    return;
   }
+
+  const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
+  authShell(`<p class="small-note">${hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   const pinInput=mountSixDigitPinInput(document.querySelector("#sessionPinHost"),{onComplete:()=>document.querySelector("#sessionUnlockBtn")?.click()});
   document.querySelector("#sessionUnlockBtn").onclick=async()=>{
-    const btn=document.querySelector("#sessionUnlockBtn"),note=document.querySelector("#sessionNote");
+    const btn=document.querySelector("#sessionUnlockBtn"),note=document.querySelector("#sessionNote"),pin=pinInput.value();
+    if(!/^\d{6}$/.test(pin)){note.innerHTML='<p class="warning-note" role="alert">Enter your six-digit FIDUNIO PIN.</p>';pinInput.clear();pinInput.focus();return;}
     btn.disabled=true;btn.textContent="Unlocking…";pinInput.setDisabled(true);
     try{
-      if(saved){
-        if(!await verifyLocalPin(pinInput.value()))throw new Error("Incorrect PIN.");
-        restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();
-      }else await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pinInput.value(),{hasIdentity});
-      await startApp();
+      await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pin,{hasIdentity});
     }catch(err){
-      note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
-      btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();
+      note.innerHTML=`<p class="warning-note" role="alert">${esc(err?.message||String(err))}</p>`;
+      btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();return;
     }
+    await openStartedAppOrOfferRetry(user);
   };
-  const deviceBtn=document.querySelector("#sessionDeviceBtn");
-  if(deviceBtn)deviceBtn.onclick=async()=>{
-    deviceBtn.disabled=true;deviceBtn.textContent="Waiting for Face ID or biometric…";
-    if(await verifyBiometric()){restoreLocalAccountE2EE(saved);markSuccessfulAuthBypass();await startApp();return;}
-    document.querySelector("#sessionNote").innerHTML='<p class="warning-note">Face ID or biometric unlock was cancelled or unavailable. Use your PIN instead.</p>';
-    deviceBtn.disabled=false;deviceBtn.textContent="Unlock with Face ID or Biometric";
-  };
-  document.querySelector("#sessionSignOutBtn").onclick=async()=>{
-    resetAccountE2EEForSignOut();
-    await signOutFidunio();
-    renderGate("signin");
-  };
-  setTimeout(()=>saved||password?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
+  document.querySelector("#sessionSignOutBtn").onclick=signOut;
+  setTimeout(()=>password?pinInput.focus():document.querySelector("#sessionPassword")?.focus(),0);
 }
 
 async function renderPasswordResetRecovery(user,password,{reason="password-reset"}={}){
@@ -153,15 +222,16 @@ async function renderPasswordResetRecovery(user,password,{reason="password-reset
       if(security.hasPin&&!await verifyLocalPin(pin))throw new Error("Incorrect PIN.");
       await recoverAccountE2EE({uid:user.uid,newPassword:password,pin});
       if(!security.hasPin)await setLocalPin(pin);
-      await clearPasswordResetPending();markSuccessfulAuthBypass();await startApp();
-    }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Recover Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();}
+      await clearPasswordResetPending();markSuccessfulAuthBypass();
+    }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Recover Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();return;}
+    await openStartedAppOrOfferRetry(user);
   };
   document.querySelector("#recoverySignOutBtn").onclick=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
   setTimeout(()=>pinInput.focus(),0);
 }
 
 async function enterAfterPasswordSignIn(user,bound,password){
-  if(bound.state?.state==="READY"){markSuccessfulAuthBypass();await startApp();return;}
+  if(bound.state?.state==="READY"){markSuccessfulAuthBypass();await startAppAfterLegalAcceptance(user);return;}
   if(await hasPasswordResetPending(user.email)){await renderPasswordResetRecovery(user,password);return;}
   const saved=bound.identity?await readLocalAccountE2EEIdentity(user.uid,bound.identity):null;
   if(!saved){
@@ -172,7 +242,7 @@ async function enterAfterPasswordSignIn(user,bound,password){
   }
   restoreLocalAccountE2EE(saved);
   markSuccessfulAuthBypass();
-  await startApp();
+  await startAppAfterLegalAcceptance(user);
 }
 
 function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){
@@ -190,12 +260,15 @@ function renderSignIn(){
   document.querySelector("#loginBtn").onclick=async()=>{
     const btn=document.querySelector("#loginBtn");btn.disabled=true;btn.textContent="Signing in…";
     const password=document.querySelector("#loginPassword").value;
-    try{
-      const user=await signInFidunio(document.querySelector("#loginEmail").value.trim(),password);
+    let user;
+    try{user=await signInFidunio(document.querySelector("#loginEmail").value.trim(),password);}
+    catch(err){resetAccountE2EEForSignOut();try{await signOutFidunio();}catch{}renderGate("signin",err?.message||String(err));return;}
+    const continueAfterSignIn=async()=>{
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
       await enterAfterPasswordSignIn(user,bound,password);
-    }
-    catch(err){resetAccountE2EEForSignOut();try{await signOutFidunio();}catch{}renderGate("signin",err?.message||String(err));}
+    };
+    try{await continueAfterSignIn();}
+    catch(err){renderAuthenticatedTransitionFailure(user,err,continueAfterSignIn);}
   };
   document.querySelector("#forgotBtn").onclick=async()=>{
     const email=document.querySelector("#loginEmail").value.trim(),note=document.querySelector("#loginNote"),btn=document.querySelector("#forgotBtn");
@@ -215,20 +288,26 @@ async function renderJoin(initialToken=""){
     const btn=document.querySelector("#redeemBtn"),note=document.querySelector("#joinNote"),token=document.querySelector("#inviteCode").value.trim(),name=document.querySelector("#joinName").value.trim(),email=document.querySelector("#joinEmail").value.trim(),password=document.querySelector("#joinPassword").value,pin=pinInput.value();
     if(!/^\d{6}$/.test(pin)){note.innerHTML='<p class="warning-note">Enter a six-digit FIDUNIO PIN.</p>';pinInput.focus();return;}
     btn.disabled=true;pinInput.setDisabled(true);btn.textContent="Creating account…";
+    let user;
     try{
       await validateFidunioInvitation(token);
-      const user=await redeemInvitationForEnrollment(token,email,password,name);
-      const bound=await bindAuthenticatedAccountE2EE(user.uid);
-      await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});
-      await startApp();
+      user=await redeemInvitationForEnrollment(token,email,password,name);
     }catch(err){
       note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;
-      btn.disabled=false;pinInput.setDisabled(false);btn.textContent="Join FIDUNIO";
+      btn.disabled=false;pinInput.setDisabled(false);btn.textContent="Join FIDUNIO";return;
     }
+    const finishEnrollment=async()=>{
+      const bound=await bindAuthenticatedAccountE2EE(user.uid);
+      await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});
+      await startAppAfterLegalAcceptance(user);
+    };
+    try{await finishEnrollment();}
+    catch(err){renderAuthenticatedTransitionFailure(user,err,finishEnrollment);}
   };
 }
 
 export async function runAuthGate(){
+  await initializeInvitationLinkRouting();
   if(!isFirebaseConfigured()){authShell('<p class="warning-note">FIDUNIO cannot start because Firebase is not configured.</p>');return;}
   // firebase.js owns the complete Firebase startup lifecycle. App Check is
   // initialized there before Auth/Firestore services are exposed.
@@ -241,13 +320,14 @@ export async function runAuthGate(){
   });
   const user=getFirebaseUser();
   if(user){
-    try{
+    const resumeAuthenticatedSession=async()=>{
       const info=await getFidunioAccessInfo();
       if(!info.profile){renderGate("join","This login is not enrolled in FIDUNIO. Use a valid invitation.");return;}
       const bound=await bindAuthenticatedAccountE2EE(user.uid);
-      if(bound.state?.state==="READY")await startApp();
+      if(bound.state?.state==="READY")await startAppAfterLegalAcceptance(user);
       else await renderSessionUnlock(user,bound);
-    }
-    catch(err){renderGate("signin",err?.message||String(err));}
+    };
+    try{await resumeAuthenticatedSession();}
+    catch(err){renderAuthenticatedTransitionFailure(user,err,resumeAuthenticatedSession);}
   }else renderGate();
 }

@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+# FIDUNIO one-time pre-TestFlight live Firebase audit.
+# READ-ONLY: this script contains no deploy/create/update/delete/patch commands.
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+PROJECT_NUMBER_EXPECTED="130339622893"
+IOS_APP_ID="1:130339622893:ios:929f4e431c91ef7ed0e1e4"
+WEB_APP_ID="1:130339622893:web:912a9016e294b30dd0e1e4"
+REGION="us-central1"
+OUT="$HOME/fidunio-readonly-audit-$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$OUT"
+
+say(){ printf '\n==== %s ====\n' "$*"; }
+die(){ echo "FAIL: $*" >&2; exit 1; }
+command -v gcloud >/dev/null || die "gcloud is required"
+command -v curl >/dev/null || die "curl is required"
+command -v jq >/dev/null || die "jq is required"
+command -v sha256sum >/dev/null || command -v shasum >/dev/null || die "sha256sum or shasum is required"
+sha256(){ if command -v sha256sum >/dev/null; then sha256sum "$1"|awk '{print $1}'; else shasum -a 256 "$1"|awk '{print $1}'; fi; }
+
+say "Identity / project"
+ACCOUNT="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' | head -1)"
+[ -n "$ACCOUNT" ] || die "No active Google Cloud account"
+echo "Active account: $ACCOUNT"
+gcloud config set project "$PROJECT" >/dev/null
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+echo "Project: $PROJECT"
+echo "Project number: $PROJECT_NUMBER"
+[ "$PROJECT_NUMBER" = "$PROJECT_NUMBER_EXPECTED" ] || die "Unexpected Firebase project number"
+
+TOKEN="$(gcloud auth print-access-token)"
+api_get(){
+  local url="$1" dest="$2"
+  local code
+  code="$(curl -sS -o "$dest" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$url")"
+  if [ "$code" != "200" ]; then
+    echo "HTTP $code for $url" >&2
+    cat "$dest" >&2
+    return 1
+  fi
+}
+
+say "Firebase Rules releases"
+api_get "https://firebaserules.googleapis.com/v1/projects/$PROJECT/releases?pageSize=100" "$OUT/rules-releases.json"
+jq -r '.releases[]? | [.name,.rulesetName,.updateTime] | @tsv' "$OUT/rules-releases.json" | tee "$OUT/rules-releases.tsv"
+
+compare_rule(){
+  local release_suffix="$1" local_file="$2" label="$3"
+  local ruleset
+  ruleset="$(jq -r --arg suffix "$release_suffix" '.releases[]? | select(.name|endswith($suffix)) | .rulesetName' "$OUT/rules-releases.json" | head -1)"
+  if [ -z "$ruleset" ] || [ "$ruleset" = "null" ]; then
+    die "No $label release matched suffix $release_suffix"
+  fi
+  local id="${ruleset##*/}" json="$OUT/$label-ruleset.json" live="$OUT/$label-live.rules"
+  api_get "https://firebaserules.googleapis.com/v1/projects/$PROJECT/rulesets/$id" "$json"
+  jq -r '.source.files[0].content // empty' "$json" > "$live"
+  echo "$label ruleset: $ruleset"
+  echo "$label live SHA256: $(sha256 "$live")"
+  [ -f "$local_file" ] || die "Required local authority file missing: $local_file"
+  echo "$label local SHA256: $(sha256 "$local_file")"
+  if cmp -s "$local_file" "$live"; then
+    echo "PASS: $label live rules exactly match $local_file"
+  else
+    diff -u "$local_file" "$live" > "$OUT/$label-live-vs-local.diff" || true
+    die "$label live rules differ from $local_file; see $OUT/$label-live-vs-local.diff"
+  fi
+}
+compare_rule "/cloud.firestore" "firestore.rules" "firestore"
+STORAGE_SUFFIX="/firebase.storage/fidunio-fef13.firebasestorage.app"
+compare_rule "$STORAGE_SUFFIX" "storage.rules" "storage"
+
+say "Firestore composite indexes"
+gcloud firestore indexes composite list --database='(default)' --format=json > "$OUT/firestore-indexes.json"
+jq -r '.[]? | [.name,.state,(.queryScope//""),(.fields|tostring)] | @tsv' "$OUT/firestore-indexes.json" | tee "$OUT/firestore-indexes.tsv"
+
+say "Gen 2 Cloud Functions"
+gcloud functions list --gen2 --regions="$REGION" --format=json > "$OUT/functions.json"
+jq -r '.[]? | [.name,.state,(.serviceConfig.serviceAccountEmail//""),(.updateTime//"")] | @tsv' "$OUT/functions.json" | tee "$OUT/functions.tsv"
+EXPECTED_FUNCTIONS=(
+ enrollRecoveryV1 startE2EERecoveryV1 completeE2EERecoveryV1
+ createAdminRecoveryAuthorizationV1 listAdminRecoveryAuthorizationsV1 revokeAdminRecoveryAuthorizationV1
+ startAdminAuthorizedRecoveryV1 completeAdminAuthorizedRecoveryV1
+ getLegalAcceptanceV1 acceptLegalPolicyV1
+ getMyAccountDeletionRequestV1 requestMyAccountDeletionV1 markMyAccountDeletionCleanupCompleteV1
+ cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1 transferSystemOwnershipV1
+ deleteDirectMessageForEveryoneV1 deleteMyMessagesForEveryoneV1 deleteConversationForEveryoneV1
+ notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1 purgeDisappearingMessagesV1
+)
+FUNCTION_AUDIT_FAIL=0
+for fn in "${EXPECTED_FUNCTIONS[@]}"; do
+  row="$(jq -c --arg n "$fn" '.[]? | select((.name|split("/")|last)==$n)' "$OUT/functions.json" | head -1)"
+  if [ -z "$row" ]; then
+    echo "FAIL function missing: $fn"
+    FUNCTION_AUDIT_FAIL=1
+    continue
+  fi
+  state="$(printf '%s' "$row" | jq -r '.state // "MISSING"')"
+  if [ "$state" = "ACTIVE" ]; then
+    echo "PASS function ACTIVE: $fn"
+  else
+    echo "FAIL function not ACTIVE: $fn state=$state"
+    FUNCTION_AUDIT_FAIL=1
+  fi
+done
+
+say "Function service-account authority"
+jq -r '.[]? | [(.name|split("/")|last),(.serviceConfig.serviceAccountEmail//"MISSING")] | @tsv' "$OUT/functions.json" | tee "$OUT/function-service-accounts.tsv"
+
+RECOVERY_SA="fidunio-recovery@$PROJECT.iam.gserviceaccount.com"
+MESSAGE_DELETE_SA="fidunio-message-delete@$PROJECT.iam.gserviceaccount.com"
+NOTIFICATION_SA="fidunio-notification@$PROJECT.iam.gserviceaccount.com"
+PURGE_SA="fidunio-disappearing-purge@$PROJECT.iam.gserviceaccount.com"
+
+check_runtime(){
+  local fn="$1" expected="$2" actual
+  actual="$(jq -r --arg n "$fn" '.[]? | select((.name|split("/")|last)==$n) | .serviceConfig.serviceAccountEmail // empty' "$OUT/functions.json" | head -1)"
+  if [ "$actual" = "$expected" ]; then
+    echo "PASS runtime identity: $fn -> $actual"
+  else
+    echo "FAIL runtime identity: $fn -> ${actual:-MISSING}; expected $expected"
+    FUNCTION_AUDIT_FAIL=1
+  fi
+}
+
+for fn in enrollRecoveryV1 startE2EERecoveryV1 completeE2EERecoveryV1 createAdminRecoveryAuthorizationV1 listAdminRecoveryAuthorizationsV1 revokeAdminRecoveryAuthorizationV1 startAdminAuthorizedRecoveryV1 completeAdminAuthorizedRecoveryV1 getLegalAcceptanceV1 acceptLegalPolicyV1 transferSystemOwnershipV1; do
+  check_runtime "$fn" "$RECOVERY_SA"
+done
+for fn in getMyAccountDeletionRequestV1 requestMyAccountDeletionV1 markMyAccountDeletionCleanupCompleteV1 cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1 deleteDirectMessageForEveryoneV1 deleteMyMessagesForEveryoneV1 deleteConversationForEveryoneV1; do
+  check_runtime "$fn" "$MESSAGE_DELETE_SA"
+done
+for fn in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  check_runtime "$fn" "$NOTIFICATION_SA"
+done
+check_runtime purgeDisappearingMessagesV1 "$PURGE_SA"
+
+[ "$FUNCTION_AUDIT_FAIL" -eq 0 ] || die "Required Cloud Function state/runtime identity audit failed"
+
+say "Account deletion service-account project IAM (read-only)"
+gcloud projects get-iam-policy "$PROJECT" --format=json > "$OUT/project-iam.json"
+jq -r --arg member "serviceAccount:$ACCOUNT_DELETE_SA" '
+  .bindings[]? | select(any(.members[]?; . == $member)) | .role
+' "$OUT/project-iam.json" | sort -u | tee "$OUT/account-delete-service-account-project-roles.txt"
+if [ ! -s "$OUT/account-delete-service-account-project-roles.txt" ]; then
+  echo "ATTENTION: no project-level IAM role binding found for $ACCOUNT_DELETE_SA. Resource-level bindings may still exist; deployment/permission readiness is NOT proven."
+fi
+
+say "Firebase App Check iOS App Attest registration"
+if api_get "https://firebaseappcheck.googleapis.com/v1/projects/$PROJECT_NUMBER/apps/$IOS_APP_ID/appAttestConfig" "$OUT/appcheck-ios-appattest.json"; then
+  jq '{name,tokenTtl}' "$OUT/appcheck-ios-appattest.json"
+  echo "PASS: iOS App Attest configuration exists"
+else
+  echo "MISSING/UNREADABLE: iOS App Attest configuration"
+fi
+
+say "Firebase App Check web reCAPTCHA Enterprise registration"
+if api_get "https://firebaseappcheck.googleapis.com/v1/projects/$PROJECT_NUMBER/apps/$WEB_APP_ID/recaptchaEnterpriseConfig" "$OUT/appcheck-web-enterprise.json"; then
+  jq '{name,tokenTtl,siteKey,riskAnalysis}' "$OUT/appcheck-web-enterprise.json"
+  echo "PASS: web reCAPTCHA Enterprise configuration exists"
+else
+  echo "MISSING/UNREADABLE: web reCAPTCHA Enterprise configuration"
+fi
+
+say "Firebase App Check enforcement state"
+api_get "https://firebaseappcheck.googleapis.com/v1/projects/$PROJECT_NUMBER/services?pageSize=100" "$OUT/appcheck-services.json"
+jq -r '.services[]? | [.name,.enforcementMode,(.replayProtection//"OFF"),(.updateTime//"")] | @tsv' "$OUT/appcheck-services.json" | tee "$OUT/appcheck-services.tsv"
+if jq -e '.services[]? | select(.enforcementMode=="ENFORCED")' "$OUT/appcheck-services.json" >/dev/null; then
+  echo "ATTENTION: at least one App Check service is ENFORCED. Approved FIDUNIO standby policy expects enforcement OFF unless deliberately activated."
+else
+  echo "PASS: no returned App Check service is in ENFORCED mode"
+fi
+
+say "Firebase app registrations"
+if api_get "https://firebase.googleapis.com/v1beta1/projects/$PROJECT/iosApps?pageSize=100" "$OUT/firebase-ios-apps.json"; then
+  jq -r '.apps[]? | [.appId,.bundleId,.displayName] | @tsv' "$OUT/firebase-ios-apps.json" | tee "$OUT/firebase-ios-apps.tsv"
+fi
+if api_get "https://firebase.googleapis.com/v1beta1/projects/$PROJECT/webApps?pageSize=100" "$OUT/firebase-web-apps.json"; then
+  jq -r '.apps[]? | [.appId,.displayName] | @tsv' "$OUT/firebase-web-apps.json" | tee "$OUT/firebase-web-apps.tsv"
+fi
+
+say "Audit complete"
+echo "READ-ONLY audit output: $OUT"
+echo "No Firebase/Google Cloud resource was changed by this script."

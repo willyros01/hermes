@@ -1,6 +1,64 @@
-import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {createNotificationRegistrationOwner,classifyNotificationPlatform,NOTIFICATION_REGISTRATION_TIMEOUT_MS,awaitNotificationRegistrationStep} from './notification-registration.js';
-assert.equal(classifyNotificationPlatform({userAgent:'iPhone',standalone:true}),'ios-pwa');assert.equal(classifyNotificationPlatform({userAgent:'iPhone',standalone:false}),'ios-browser');assert.equal(NOTIFICATION_REGISTRATION_TIMEOUT_MS,15000);
-let fireTimeout;const bounded=awaitNotificationRegistrationStep(new Promise(()=>{}),{stage:'registration token request',timeoutMs:5,setTimer(callback){fireTimeout=callback;return 1;},clearTimer(){}});fireTimeout();await assert.rejects(bounded,error=>error?.code==='notification-registration-timeout'&&/registration token request timed out/i.test(error.message));
-let permissionCalls=0,writes=[],deleted=false,tokenDeleted=false;const owner=createNotificationRegistrationOwner({getCapability:async()=>({supported:true,permission:'granted'}),getToken:async()=> 't'.repeat(80),deleteToken:async()=>{tokenDeleted=true;return true;},readRegistration:async()=>writes.at(-1)||null,writeRegistration:async row=>{writes.push(row);},deleteRegistration:async()=>{deleted=true;writes=[];},getConfigured:()=>true,requestPermission:()=>{permissionCalls++;return Promise.resolve('granted');},getServiceWorkerRegistration:async()=>({scope:'/'}),getInstallationId:()=> 'install-12345678',getPlatform:()=> 'ios-pwa'});
-await owner.enableFromUserGesture({uid:'u1',vapidKey:'public-key'});assert.equal(permissionCalls,1);assert.equal(writes.length,1);assert.equal(writes[0].enabled,true);assert.equal(writes[0].showSenderName,false);assert.equal(writes[0].installationId,'install-12345678');await owner.setShowSenderName({uid:'u1',showSenderName:true});assert.equal(writes.at(-1).showSenderName,true);await owner.disable({uid:'u1'});assert.equal(tokenDeleted,true);assert.equal(deleted,true);
-const firebase=readFileSync('firebase.js','utf8'),settings=readFileSync('settings-lifecycle.js','utf8'),sw=readFileSync('service-worker.js','utf8'),rules=readFileSync('firestore.rules','utf8'),bootstrap=readFileSync('bootstrap.js','utf8');assert.match(firebase,/firebase-messaging\.js/);assert.match(firebase,/upsertCloudNotificationDevice/);assert.match(firebase,/notificationDevices/);assert.doesNotMatch(settings,/initializeApp\(/);assert.match(settings,/Enable Notifications/);assert.match(settings,/Show sender\'s FIDUNIO display name/);assert.match(settings,/setShowSenderName/);assert.match(settings,/enableFromUserGesture/);assert.match(settings,/Enabling…/);assert.match(settings,/\{id:"notifications",label:"Notifications"/);assert.match(settings,/id="fidunioSettingsHost-\$\{group\.id\}"/);assert.match(rules,/match \/notificationDevices\/\{installationId\}/);assert.match(bootstrap,/navigator\.serviceWorker\.register\("\.\/service-worker\.js",\{scope:"\.\/",type:"module"\}\)/);assert.match(sw,/const SHELL_REVISION="[^"]+";/,'service worker must retain an explicit cache revision without pinning FCM N3 to an unrelated release');console.log('FCM N3 registration, deterministic service-worker ownership, visible pending state, and bounded timeout gate passed');
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createNotificationRegistrationOwner,classifyNotificationPlatform,NOTIFICATION_REGISTRATION_TIMEOUT_MS,awaitNotificationRegistrationStep} from './notification-registration.js';
+
+assert.equal(classifyNotificationPlatform({userAgent:'iPhone',standalone:true}),'ios-pwa');
+assert.equal(classifyNotificationPlatform({userAgent:'iPhone',standalone:false}),'ios-browser');
+assert.equal(NOTIFICATION_REGISTRATION_TIMEOUT_MS,15000);
+let fireTimeout;
+const bounded=awaitNotificationRegistrationStep(new Promise(()=>{}),{stage:'registration token request',timeoutMs:5,setTimer(callback){fireTimeout=callback;return 1;},clearTimer(){}});
+fireTimeout();
+await assert.rejects(bounded,error=>error?.code==='notification-registration-timeout'&&/registration token request timed out/i.test(error.message));
+
+let permissionCalls=0,writes=[],deleted=false,tokenDeleted=false;
+const owner=createNotificationRegistrationOwner({
+  getCapability:async()=>({supported:true,permission:'granted'}),
+  getToken:async()=> 't'.repeat(80),
+  deleteToken:async()=>{tokenDeleted=true;return true;},
+  readRegistration:async()=>writes.at(-1)||null,
+  writeRegistration:async row=>{writes.push(row);},
+  deleteRegistration:async()=>{deleted=true;writes=[];},
+  getConfigured:()=>true,
+  requestPermission:()=>{permissionCalls++;return Promise.resolve('granted');},
+  getServiceWorkerRegistration:async()=>({scope:'/'}),
+  getInstallationId:()=> 'install-12345678',
+  getPlatform:()=> 'ios-pwa'
+});
+await owner.enableFromUserGesture({uid:'u1',vapidKey:'public-key'});
+assert.equal(permissionCalls,1);assert.equal(writes.length,1);assert.equal(writes[0].enabled,true);
+assert.equal(writes[0].showSenderName,false);assert.equal(writes[0].installationId,'install-12345678');
+await owner.setShowSenderName({uid:'u1',showSenderName:true});assert.equal(writes.at(-1).showSenderName,true);
+const rotated='r'.repeat(80);
+const rotatedResult=await owner.refreshToken({uid:'u1',fcmToken:rotated});
+assert.equal(rotatedResult.updated,true);assert.equal(writes.at(-1).fcmToken,rotated);assert.equal(writes.at(-1).enabled,true);assert.equal(writes.at(-1).showSenderName,true);assert.equal(writes.at(-1).platform,'ios-pwa');
+const unchangedResult=await owner.refreshToken({uid:'u1',fcmToken:rotated});assert.equal(unchangedResult.updated,false);assert.equal(unchangedResult.reason,'unchanged');
+await owner.disable({uid:'u1'});assert.equal(tokenDeleted,true);assert.equal(deleted,true);
+const disabledRefresh=await owner.refreshToken({uid:'u1',fcmToken:'z'.repeat(80)});assert.equal(disabledRefresh.updated,false);assert.equal(disabledRefresh.reason,'disabled');assert.equal(writes.length,0);
+
+const firebase=readFileSync('firebase.js','utf8');
+const settings=readFileSync('settings-lifecycle.js','utf8');
+const sw=readFileSync('service-worker.js','utf8');
+const rules=readFileSync('firestore.rules','utf8');
+const bootstrap=readFileSync('bootstrap.js','utf8');
+const background=readFileSync('background-platform-adapter.js','utf8');
+const notificationPlatform=readFileSync('notification-platform-adapter.js','utf8');
+assert.match(firebase,/firebase-messaging\.js/);
+assert.match(firebase,/upsertCloudNotificationDevice/);
+assert.match(firebase,/notificationDevices/);
+assert.doesNotMatch(settings,/initializeApp\(/);
+assert.match(settings,/Enable Notifications/);
+assert.match(settings,/getNotificationPlatformCapabilities/);
+assert.doesNotMatch(settings,/isNativeIOSRuntime/);
+assert.match(notificationPlatform,/registrationKind:"native-fcm"/);
+assert.match(notificationPlatform,/registrationKind:"web-push"/);
+assert.match(settings,/Show sender\'s FIDUNIO display name/);
+assert.match(settings,/setShowSenderName/);
+assert.match(settings,/enableFromUserGesture/);
+assert.match(settings,/Enabling…/);
+assert.match(settings,/\{id:"notifications",label:"Notifications"/);
+assert.match(settings,/id="fidunioSettingsHost-\$\{group\.id\}"/);
+assert.match(rules,/match \/notificationDevices\/\{installationId\}/);
+assert.match(background,/navigator\.serviceWorker\.register\("\.\/service-worker\.js",\{scope:"\.\/",type:"module"\}\)/);
+assert.match(bootstrap,/startPlatformBackground\(\)/);
+assert.match(sw,/const SHELL_REVISION="[^"]+";/,'service worker must retain an explicit cache revision without pinning FCM N3 to an unrelated release');
+assert.match(notificationPlatform,/nativeRegistration:true/);assert.match(notificationPlatform,/getNativeMessagingToken/);assert.match(notificationPlatform,/tokenReceived/);assert.match(settings,/startNotificationRegistrationMaintenance/);assert.match(settings,/refreshToken/);assert.match(background,/subscribeNativeNotificationRoutes/);console.log('FCM N3 web/native registration, token rotation, deterministic background-adapter ownership, and bounded timeout gate passed');
