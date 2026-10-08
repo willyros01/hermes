@@ -33,6 +33,8 @@ concurrency:
 jobs:
   gates:
     if: github.ref == 'refs/heads/ios'
+    outputs:
+      ready: ${{ steps.verify.outputs.ready }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -41,6 +43,7 @@ jobs:
         with:
           node-version: '22'
       - name: Wait for required checks on this exact commit
+        id: verify
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.sha }}
@@ -48,13 +51,28 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           const required=["ios-native-checks.yml","ios-capacitor-shell.yml","rebuild-baseline-security.yml","ios-browser-release.yml"];
+          import {appendFileSync} from "node:fs";
+          const headers={Authorization:"Bearer "+process.env.GH_TOKEN,Accept:"application/vnd.github+json"};
+          async function currentHead(){
+            const response=await fetch("https://api.github.com/repos/"+process.env.REPO+"/branches/ios",{headers});
+            if(!response.ok)throw new Error("GitHub branch lookup "+response.status);
+            return (await response.json()).commit.sha;
+          }
           for(let i=0;i<100;i++){
+            if((await currentHead())!==process.env.HEAD_SHA){
+              console.log("SUPERSEDED: newer ios commit exists; old TestFlight upload skipped.");
+              appendFileSync(process.env.GITHUB_OUTPUT,"ready=false\\n");
+              process.exit(0);
+            }
             const res=await fetch("https://api.github.com/repos/"+process.env.REPO+"/actions/runs?head_sha="+process.env.HEAD_SHA+"&per_page=100",{headers:{Authorization:"Bearer "+process.env.GH_TOKEN,Accept:"application/vnd.github+json"}});
             if(!res.ok)throw new Error("GitHub checks API "+res.status);
             const runs=(await res.json()).workflow_runs;
             const found=required.map(name=>runs.filter(r=>r.path===".github/workflows/"+name&&r.event==="push").sort((a,b)=>b.id-a.id)[0]);
-            if(found.some(r=>r?.status==="completed"&&r.conclusion!=="success"))throw new Error("A required check failed; upload blocked");
-            if(found.every(r=>r?.conclusion==="success")){console.log("PASS: exact-commit native preflight, Simulator shell and full security baseline");process.exit(0);}
+            if(found.some(r=>r?.status==="completed"&&r.conclusion!=="success")){
+              console.error("Blocking checks: "+found.map((r,i)=>required[i]+"="+(r?.conclusion||r?.status||"not listed")).join(", "));
+              throw new Error("Required check failed on current commit; upload blocked");
+            }
+            if(found.every(r=>r?.conclusion==="success")){console.log("PASS: required gates on current exact ios head");appendFileSync(process.env.GITHUB_OUTPUT,"ready=true\\n");process.exit(0);}
             console.log("Waiting for required checks: "+found.map((r,i)=>required[i]+"="+(r?.conclusion||r?.status||"not yet listed")).join(", "));
             await new Promise(r=>setTimeout(r,15000));
           }
@@ -62,6 +80,7 @@ jobs:
           JS
   testflight:
     needs: gates
+    if: needs.gates.outputs.ready == 'true'
     runs-on: macos-26
     timeout-minutes: 80
     steps:
