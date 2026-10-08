@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {NOTIFICATION_LEASE_MS,NOTIFICATION_INACTIVE_RETENTION_MS,mayDeliverTo,mayDeliverRegistration,shouldPruneInactive} from "./notification-lease-policy.mjs";
 const now=1_900_000_000_000,token="x".repeat(80);
-const record={ownerUid:"A",installationId:"device-1",fcmToken:token,generation:3,enabled:true,leaseUntilMs:now+NOTIFICATION_LEASE_MS};
+const record={ownerUid:"A",installationId:"device-1",fcmToken:token,generation:3,leaseId:"00000000-0000-4000-8000-000000000000",enabled:true,leaseUntilMs:now+NOTIFICATION_LEASE_MS};
 assert.equal(mayDeliverTo({recipientUid:"A",registration:record,owner:record,nowMs:now}),true);
 assert.equal(mayDeliverTo({recipientUid:"B",registration:record,owner:record,nowMs:now}),false);
 assert.equal(mayDeliverTo({recipientUid:"A",registration:record,owner:{...record,ownerUid:"B"},nowMs:now}),false);
