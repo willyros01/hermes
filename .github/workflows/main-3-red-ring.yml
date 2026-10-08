@@ -1,0 +1,32 @@
+name: Main-3 Original Icon Red Ring
+on:
+  push:
+    branches: [main-3]
+    paths:
+      - 'build/recolor-main3-ring.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  recolor-only-ring:
+    if: github.ref == 'refs/heads/main-3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install Pillow==11.3.0
+      - name: Recolor original ring only; verify other pixels unchanged
+        run: python build/recolor-main3-ring.py
+      - name: Commit only three web icons to main-3
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- icon-180.png icon-192.png icon-512.png
+          git diff --cached --quiet && { echo 'No icon changes'; exit 0; }
+          git commit -m 'main-3: red ring on original 2D Hermes icon only'
+          git push origin HEAD:main-3
