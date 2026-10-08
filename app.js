@@ -43,7 +43,7 @@ import {
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
-import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance,removeNotificationRegistrationForSignOut } from "./settings-lifecycle.js";
+import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance,removeNotificationRegistrationForSignOut,renewNotificationLeaseOnActivation } from "./settings-lifecycle.js";
 import {assertMessageSafety} from "./message-safety-policy.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
@@ -2487,8 +2487,9 @@ function scheduleReconnectRecovery(){
     if(state.online && firebaseUser) flushQueuedAfterAuthoritativeReconcile();
   },4000);
 }
-function recoverForegroundCloudSession(){void requestAppActivation("foreground");}
+function recoverForegroundCloudSession(){if(firebaseUser?.uid)renewNotificationLeaseOnActivation(firebaseUser.uid);void requestAppActivation("foreground");}
 window.addEventListener("online",()=>{
+  if(firebaseUser?.uid)renewNotificationLeaseOnActivation(firebaseUser.uid);
   void requestAppActivation("online");
   void resumePendingLargeAttachmentSend();
 });
