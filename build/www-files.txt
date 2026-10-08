@@ -28,6 +28,7 @@ group-reply-policy.js
 notification-policy.js
 notification-platform-adapter.js
 notification-registration.js
+notification-lease-session.js
 notification-config.js
 notification-routing.js
 notification-background-policy.js
