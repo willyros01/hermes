@@ -17,3 +17,15 @@ export function shouldPruneInactive({lastSeenMs,leaseUntilMs,nowMs=Date.now()}={
   return Number.isFinite(lastSeenMs)&&Number.isFinite(leaseUntilMs)&&
     leaseUntilMs<=nowMs&&lastSeenMs<=nowMs-NOTIFICATION_INACTIVE_RETENTION_MS;
 }
+
+export function mayDeliverRegistration({recipientUid,registration,owner,nowMs=Date.now()}={}){
+  if(!registration?.enabled||typeof registration.fcmToken!=="string"||registration.fcmToken.length<20)return false;
+  if(owner){
+    if(owner.ownerUid!==recipientUid||owner.fcmToken!==registration.fcmToken||
+       owner.installationId!==registration.installationId)return false;
+    return mayDeliverTo({recipientUid,registration,owner,nowMs});
+  }
+  // Existing web clients still have legacy registrations during the phased rollout.
+  // A leased record without its authority entry must fail closed.
+  return !Object.prototype.hasOwnProperty.call(registration,"leaseUntilMs");
+}
