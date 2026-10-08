@@ -6,7 +6,8 @@
 import {isNativeIOSRuntime} from "./platform-runtime.js";
 
 export function createPlatformStartupWatchdog({host,timeoutMs=30000,reload=()=>location.reload(),platformOptions}={}){
-  if(!isNativeIOSRuntime(platformOptions)||!host)return Object.freeze({fail:()=>{},clear:()=>{}});
+  if(!host)return Object.freeze({fail:()=>{},clear:()=>{}});
+  const native=isNativeIOSRuntime(platformOptions);
   const show=message=>{
     if(!host.isConnected)return;
     host.querySelector(".startup-spinner")?.remove();
@@ -17,12 +18,12 @@ export function createPlatformStartupWatchdog({host,timeoutMs=30000,reload=()=>l
       retry.addEventListener("click",reload);host.append(retry);
     }
   };
-  const timer=setTimeout(()=>show("Sign-in is taking longer than expected. Check your connection and retry. Your secure data has not been reset."),timeoutMs);
+  const timer=native?setTimeout(()=>show("Sign-in is taking longer than expected. Check your connection and retry. Your secure data has not been reset."),timeoutMs):null;
   return Object.freeze({fail:()=>show("Sign-in could not be loaded. Check your connection and retry. Your secure data has not been reset."),clear:()=>clearTimeout(timer)});
 }
 
 export const STARTUP_PLATFORM_ADAPTER_V1=Object.freeze({
   sharedOwner:"bootstrap-sequencing",
-  webPresentation:"none",
+  webPresentation:"explicit-startup-failure-retry",
   iosPresentation:"bounded-startup-watchdog",
 });
