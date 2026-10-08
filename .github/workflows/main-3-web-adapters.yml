@@ -1,0 +1,29 @@
+name: Main-3 Web Adapter Gate
+on:
+  push:
+    branches: [main-3]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: main-3-web-adapters-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  web-adapters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Web/native platform ownership
+        run: node platform-runtime.test.mjs
+      - name: Web adapter retry and browser transport
+        run: node main-3-web-adapters.test.mjs
+      - name: Background and startup adapter invariants
+        run: node build/platform-boundary-adapters.test.mjs
+      - name: Firebase platform choices
+        run: node build/firebase-platform-adapter.test.mjs
+      - name: Attachment platform boundary
+        run: node build/attachment-download-platform-adapter.test.mjs
