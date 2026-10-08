@@ -21,6 +21,8 @@ jobs:
         run: node platform-runtime.test.mjs
       - name: Web adapter retry and browser transport
         run: node main-3-web-adapters.test.mjs
+      - name: Web startup, PWA and responsive compatibility
+        run: node main-3-web-compat.test.mjs
       - name: Background and startup adapter invariants
         run: node build/platform-boundary-adapters.test.mjs
       - name: Firebase platform choices
