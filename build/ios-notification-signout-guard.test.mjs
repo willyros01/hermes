@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const source=readFileSync(new URL("../app.js",import.meta.url),"utf8");
+const settings=readFileSync(new URL("../settings-lifecycle.js",import.meta.url),"utf8");
+assert.match(source,/import\s*\{[^}]*removeNotificationRegistrationForSignOut[^}]*\}\s*from\s*["']\.\/settings-lifecycle\.js["']/);
+assert.match(source,/async function signOutWithNotificationCleanup\(\)\s*\{\s*const user=getFirebaseUser\(\);if\(user\?\.uid\)await removeNotificationRegistrationForSignOut\(user\.uid\);await signOutFidunio\(\);\s*\}/);
+assert.match(source,/try\{await signOutWithNotificationCleanup\(\);location\.reload\(\);\}/);
+assert.match(source,/if\(signOutBtn\) signOutBtn\.onclick=async\(\)=>\{await signOutWithNotificationCleanup\(\);/);
+assert.equal((source.match(/await signOutFidunio\(\)/g)||[]).length,1,"all app sign-out paths must use cleanup wrapper");
+assert.match(settings,/export async function removeNotificationRegistrationForSignOut\(uid\)/);
+assert.match(settings,/await notificationRegistrationOwner\.disable\(\{uid\}\)/);
+assert.match(settings,/throw new Error\("Could not safely sign out/);
+console.log("PASS: both iOS sign-out paths remove notification registration before authentication sign-out");
