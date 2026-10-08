@@ -21,6 +21,7 @@ import { runDisappearingPurgeSweep } from "./disappearing/disappearing-scheduler
 import { createDirectMessageNotificationCore } from "./notification/direct-message-notification-core.mjs";
 import { createGroupMessageNotificationCore } from "./notification/group-message-notification-core.mjs";
 import { createNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
+import { createNotificationLeaseFirestoreAdmin } from "./notification/notification-lease-firestore-admin.mjs";
 import { createLegalPolicyCore } from "./legal/legal-policy-core.mjs";
 import { createLegalPolicyFirestoreRepository } from "./legal/legal-policy-firestore-admin-adapter.mjs";
 import { createAccountDeletionCore } from "./account-deletion/account-deletion-core.mjs";
@@ -45,6 +46,7 @@ const {conversationRepo,attachmentRepo:conversationAttachmentRepo}=createConvers
 const disappearingPurgeRepository=createDisappearingPurgeFirestoreAdminRepository({db,bucket:attachmentBucket,requireStorage:true});
 const disappearingPurgeExecutor=createDisappearingPurgeExecutor({repository:disappearingPurgeRepository,serverNow:()=>new Date()});
 const {conversationRepo:notificationConversationRepo,groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo}=createNotificationAdminRepositories({db});
+const notificationLeaseRepo=createNotificationLeaseFirestoreAdmin({db});
 const legalRepo=createLegalPolicyFirestoreRepository({db});
 const legalCore=createLegalPolicyCore({repo:legalRepo,termsVersion:"2026-10-04-v1",privacyVersion:"2026-10-04-v1"});
 const accountDeletionRepo=createAccountDeletionAdminRepository({db,auth:getAuth()});
@@ -120,6 +122,18 @@ export const deleteDirectMessageForEveryoneV1 = onCall({region:"us-central1",ser
 export const deleteMyMessagesForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:60,memory:"256MiB",maxInstances:10},request=>invoke(messageDeleteCore.deleteMyMessagesForEveryoneV1,request));
 export const deleteConversationForEveryoneV1 = onCall({region:"us-central1",serviceAccount:MESSAGE_DELETE_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:300,memory:"512MiB",maxInstances:5},request=>invoke(conversationDeleteCore.deleteConversationForEveryoneV1,request));
 
+// Staged, authenticated v2 lease API. Do not deploy until migration is approved.
+const notificationLeaseOptions={region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,enforceAppCheck:REQUIRE_APP_CHECK,timeoutSeconds:15,memory:"256MiB",maxInstances:10};
+export const claimNotificationLeaseV1=onCall(notificationLeaseOptions,async request=>{
+  if(!request.auth?.uid)throw new HttpsError("unauthenticated","Sign in first.");
+  try{return await notificationLeaseRepo.claim({uid:request.auth.uid,...request.data});}
+  catch(error){console.error("Notification lease claim failed",{code:error?.code||"internal"});throw new HttpsError("failed-precondition","Notification registration unavailable.");}
+});
+export const revokeNotificationLeaseV1=onCall(notificationLeaseOptions,async request=>{
+  if(!request.auth?.uid)throw new HttpsError("unauthenticated","Sign in first.");
+  try{return await notificationLeaseRepo.revoke({uid:request.auth.uid,...request.data});}
+  catch(error){console.error("Notification lease revoke failed",{code:error?.code||"internal"});throw new HttpsError("failed-precondition","Notification logout cleanup unavailable.");}
+});
 export const notifyDirectMessageCreatedV1 = onDocumentCreated({document:"conversations/{conversationId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});});
 export const notifyGroupMessageCreatedV1 = onDocumentCreated({document:"groups/{groupId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return groupNotificationCore.handleCreatedMessage({groupId:event.params.groupId,messageId:event.params.messageId,message});});
 export const purgeDisappearingMessagesV1 = onSchedule({region:"us-central1",schedule:"every 1 minutes",timeZone:"UTC",serviceAccount:DISAPPEARING_PURGE_SERVICE_ACCOUNT,timeoutSeconds:120,memory:"256MiB"},async()=>runDisappearingPurgeSweep({db,executor:disappearingPurgeExecutor,limit:200}));
