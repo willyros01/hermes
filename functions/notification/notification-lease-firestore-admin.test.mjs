@@ -14,15 +14,15 @@ const db={
   }
 };
 const store=createNotificationLeaseFirestoreAdmin({db,now:()=>clock}),fcmToken="a".repeat(80);
-await store.claim({uid:"A",installationId:"install-0001",fcmToken,platform:"ios-native"});
+const first=await store.claim({uid:"A",installationId:"install-0001",fcmToken,platform:"ios-native"});
 assert.equal((await store.eligible("A")).length,1);
-await store.claim({uid:"B",installationId:"install-0001",fcmToken,platform:"ios-native"});
+const second=await store.claim({uid:"B",installationId:"install-0001",fcmToken,platform:"ios-native"});
 assert.equal((await store.eligible("A")).length,0,"old owner cannot receive notifications");
 assert.equal((await store.eligible("B")).length,1);
-const stale=await store.revoke({uid:"A",installationId:"install-0001",fcmToken});
+const stale=await store.revoke({uid:"A",installationId:"install-0001",fcmToken,leaseId:first.leaseId});
 assert.equal(stale.revoked,false,"old owner cannot revoke a newly transferred token");
 assert.equal((await store.eligible("B")).length,1);
-await store.revoke({uid:"B",installationId:"install-0001",fcmToken});
+await store.revoke({uid:"B",installationId:"install-0001",fcmToken,leaseId:second.leaseId});
 assert.equal((await store.eligible("B")).length,0);
 await store.claim({uid:"B",installationId:"install-0001",fcmToken,platform:"ios-native"});
 clock+=24*60*60*1000;
