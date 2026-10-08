@@ -23,6 +23,8 @@ import {
   getCloudNotificationDevice,
   upsertCloudNotificationDevice,
   deleteCloudNotificationDevice,
+  claimCloudNotificationLease,
+  revokeCloudNotificationLease,
   listCloudUsers,
   getCloudUserProfile,
   submitFidunioAbuseReport,
@@ -39,6 +41,8 @@ import {
   transferCloudSystemOwnership,
 } from "./firebase.js";
 import {createNotificationRegistrationOwner} from "./notification-registration.js";
+import {getOrCreateNotificationInstallationId} from "./notification-registration.js";
+import {createNotificationLeaseSession,FIDUNIO_NOTIFICATION_LEASE_ROLLOUT} from "./notification-lease-session.js";
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
 import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";
 import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeAdminRecoveryAuthorization} from "./admin-recovery-client.js";
@@ -411,6 +415,14 @@ const notificationRegistrationOwner=createNotificationRegistrationOwner({
   buildTokenOptions:notificationTransport.nativeRegistration?()=>({}):undefined,
   getPlatform:notificationTransport.nativeRegistration?()=>"ios-native":undefined
 });
+const notificationLeaseSession=createNotificationLeaseSession({
+  storage:globalThis.localStorage,
+  getInstallationId:getOrCreateNotificationInstallationId,
+  getToken:getNativeMessagingToken,
+  claim:claimCloudNotificationLease,
+  revoke:revokeCloudNotificationLease,
+  getPlatform:()=>"ios-native",
+});
 let notificationTokenMaintenanceStop=()=>{};
 let notificationTokenMaintenanceGeneration=0;
 export function stopNotificationRegistrationMaintenance(){
@@ -422,6 +434,9 @@ export function startNotificationRegistrationMaintenance(uid){
   stopNotificationRegistrationMaintenance();
   if(!notificationTransport.nativeRegistration||!uid)return()=>{};
   const generation=notificationTokenMaintenanceGeneration;
+  if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT){
+    void notificationLeaseSession.activate(uid).catch(error=>console.warn("FIDUNIO lease activation failed",error));
+  }
   notificationTokenMaintenanceStop=subscribeNativeMessagingTokens(token=>{
     if(generation!==notificationTokenMaintenanceGeneration)return;
     void notificationRegistrationOwner.refreshToken({uid,fcmToken:token}).catch(error=>console.warn("FIDUNIO native notification token refresh failed",error));
@@ -433,7 +448,9 @@ export async function removeNotificationRegistrationForSignOut(uid){
   stopNotificationRegistrationMaintenance();
   if(!uid)return true;
   try{
-    await notificationRegistrationOwner.disable({uid});
+    if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT&&notificationTransport.nativeRegistration){
+      await notificationLeaseSession.logout(uid);
+    }else await notificationRegistrationOwner.disable({uid});
     return true;
   }catch(error){
     console.warn("FIDUNIO notification sign-out cleanup failed",error);
@@ -450,8 +467,8 @@ async function renderNotifications(notificationsHost,info){
   try{const state=await notificationRegistrationOwner.getStatus(info.user.uid);if(!card.isConnected)return;const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&!state.enabled;card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(notificationStatusText(state.status))}</p><p class="small-note">Private is the default: <strong>FIDUNIO — New message</strong>. You may optionally show only the sender's FIDUNIO display name. Message text, attachment names, email addresses, UIDs, and decrypted content are never placed in the notification.</p>${state.enabled?`<label class="form-label" style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="showNotificationSenderName" ${state.showSenderName?"checked":""}> Show sender's FIDUNIO display name</label><p class="small-note">When enabled on this installation, the card may say <strong>New message from Display Name</strong>.</p>`:""}${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${state.enabled?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
     const enable=card.querySelector("#enableNotificationsBtn"),disable=card.querySelector("#disableNotificationsBtn"),senderToggle=card.querySelector("#showNotificationSenderName"),note=card.querySelector("#notificationNote");
     if(senderToggle)senderToggle.onchange=async()=>{senderToggle.disabled=true;try{await notificationRegistrationOwner.setShowSenderName({uid:info.user.uid,showSenderName:senderToggle.checked});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;senderToggle.disabled=false;}};
-    enable.onclick=async()=>{enable.disabled=true;enable.textContent="Enabling…";try{await notificationRegistrationOwner.enableFromUserGesture({uid:info.user.uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;enable.disabled=false;enable.textContent="Enable Notifications";}};
-    disable.onclick=async()=>{disable.disabled=true;disable.textContent="Turning off…";try{await notificationRegistrationOwner.disable({uid:info.user.uid});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;disable.disabled=false;disable.textContent="Turn Off Notifications";}};
+    enable.onclick=async()=>{enable.disabled=true;enable.textContent="Enabling…";try{await notificationRegistrationOwner.enableFromUserGesture({uid:info.user.uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT&&notificationTransport.nativeRegistration){notificationLeaseSession.setPreference(info.user.uid,true);await notificationLeaseSession.activate(info.user.uid);}await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;enable.disabled=false;enable.textContent="Enable Notifications";}};
+    disable.onclick=async()=>{disable.disabled=true;disable.textContent="Turning off…";try{if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT&&notificationTransport.nativeRegistration)notificationLeaseSession.setPreference(info.user.uid,false);await notificationRegistrationOwner.disable({uid:info.user.uid});await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;disable.disabled=false;disable.textContent="Turn Off Notifications";}};
   }catch(err){card.innerHTML=`<h2>Notifications</h2><p class="warning-note">${esc(err?.message||String(err))}</p>`;}
 }
 
