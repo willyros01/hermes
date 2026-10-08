@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import {NOTIFICATION_LEASE_MS,mayDeliverTo} from "./notification-lease-policy.mjs";
+import {NOTIFICATION_LEASE_MS,NOTIFICATION_INACTIVE_RETENTION_MS,mayDeliverTo,shouldPruneInactive} from "./notification-lease-policy.mjs";
 const tokenKey=token=>createHash("sha256").update(token).digest("hex");
 const valid=(s,min,max)=>typeof s==="string"&&s.length>=min&&s.length<=max;
 export function createNotificationLeaseFirestoreAdmin({db,now=()=>Date.now()}={}){
@@ -49,5 +49,29 @@ export function createNotificationLeaseFirestoreAdmin({db,now=()=>Date.now()}={}
     }));
     return checked.filter(Boolean);
   }
-  return Object.freeze({claim,revoke,eligible});
+  async function purgeInactive({limit=100}={}){
+    if(!Number.isInteger(limit)||limit<1||limit>200)throw new Error("Invalid cleanup batch.");
+    const cutoff=now()-NOTIFICATION_INACTIVE_RETENTION_MS;
+    const snap=await db.collection("notificationTokenOwners").where("lastSeenMs","<=",cutoff).limit(limit).get();
+    let deleted=0;
+    for(const doc of snap.docs){
+      const ownerRef=db.doc("notificationTokenOwners/"+doc.id);
+      const didDelete=await db.runTransaction(async tx=>{
+        const fresh=await tx.get(ownerRef);
+        if(!fresh.exists)return false;
+        const row=fresh.data();
+        if(!shouldPruneInactive({lastSeenMs:row.lastSeenMs,leaseUntilMs:row.leaseUntilMs,nowMs:now()}))return false;
+        if(!valid(row.ownerUid,1,180)||!valid(row.installationId,8,128)||!valid(row.fcmToken,20,4096))return false;
+        if(tokenKey(row.fcmToken)!==doc.id)return false;
+        const target=db.doc("users/"+row.ownerUid+"/notificationDevices/"+row.installationId);
+        const targetSnap=await tx.get(target);
+        if(targetSnap.exists&&targetSnap.data()?.fcmToken===row.fcmToken&&targetSnap.data()?.generation===row.generation)tx.delete(target);
+        tx.delete(ownerRef);
+        return true;
+      });
+      if(didDelete)deleted++;
+    }
+    return {inspected:snap.size,deleted};
+  }
+  return Object.freeze({claim,revoke,eligible,purgeInactive});
 }
