@@ -61,7 +61,7 @@ jobs:
           for(let i=0;i<100;i++){
             if((await currentHead())!==process.env.HEAD_SHA){
               console.log("SUPERSEDED: newer ios commit exists; old TestFlight upload skipped.");
-              appendFileSync(process.env.GITHUB_OUTPUT,"ready=false\\n");
+              appendFileSync(process.env.GITHUB_OUTPUT,"ready=false\n");
               process.exit(0);
             }
             const res=await fetch("https://api.github.com/repos/"+process.env.REPO+"/actions/runs?head_sha="+process.env.HEAD_SHA+"&per_page=100",{headers:{Authorization:"Bearer "+process.env.GH_TOKEN,Accept:"application/vnd.github+json"}});
@@ -72,7 +72,7 @@ jobs:
               console.error("Blocking checks: "+found.map((r,i)=>required[i]+"="+(r?.conclusion||r?.status||"not listed")).join(", "));
               throw new Error("Required check failed on current commit; upload blocked");
             }
-            if(found.every(r=>r?.conclusion==="success")){console.log("PASS: required gates on current exact ios head");appendFileSync(process.env.GITHUB_OUTPUT,"ready=true\\n");process.exit(0);}
+            if(found.every(r=>r?.conclusion==="success")){console.log("PASS: required gates on current exact ios head");appendFileSync(process.env.GITHUB_OUTPUT,"ready=true\n");process.exit(0);}
             console.log("Waiting for required checks: "+found.map((r,i)=>required[i]+"="+(r?.conclusion||r?.status||"not yet listed")).join(", "));
             await new Promise(r=>setTimeout(r,15000));
           }
