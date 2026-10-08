@@ -441,6 +441,7 @@ export function startNotificationRegistrationMaintenance(uid){
   renewNotificationLeaseOnActivation(uid);
   notificationTokenMaintenanceStop=subscribeNativeMessagingTokens(token=>{
     if(generation!==notificationTokenMaintenanceGeneration)return;
+    if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT){renewNotificationLeaseOnActivation(uid);return;}
     void notificationRegistrationOwner.refreshToken({uid,fcmToken:token}).catch(error=>console.warn("FIDUNIO native notification token refresh failed",error));
   });
   return()=>{if(generation===notificationTokenMaintenanceGeneration)stopNotificationRegistrationMaintenance();};
