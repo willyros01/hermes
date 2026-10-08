@@ -19,11 +19,11 @@ assert.equal(getPlatformFirebaseSdkVersion(native),FIDUNIO_FIREBASE_SDK_VERSION.
 assert.equal(await ensurePlatformBackgroundRegistration({platformOptions:native}),null);
 
 let attempts=0;const events=new Map();
-globalThis.navigator={serviceWorker:{
+Object.defineProperty(globalThis,"navigator",{configurable:true,value:{serviceWorker:{
   register:async(url,options)=>{attempts++;assert.equal(url,"./service-worker.js");assert.equal(options.type,"module");if(attempts===1)throw new Error("offline");return {update:async()=>{}};},
   addEventListener:(name,cb)=>events.set(name,cb),
   removeEventListener:(name,cb)=>{if(events.get(name)===cb)events.delete(name);},
-}};
+}}});
 await assert.rejects(getPlatformBackgroundRegistration({platformOptions:web}),/offline/);
 await getPlatformBackgroundRegistration({platformOptions:web});
 assert.equal(attempts,2,"failed registration must be retryable");
