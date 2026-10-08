@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import {createNotificationLeaseSession,FIDUNIO_NOTIFICATION_LEASE_ROLLOUT} from "../notification-lease-session.js";
+const records=new Map(),calls=[];
+const storage={getItem:k=>records.get(k)||null,setItem:(k,v)=>records.set(k,v)};
+let token="a".repeat(80);
+const owner=createNotificationLeaseSession({storage,getInstallationId:()=> "device-abc",getToken:async()=>token,claim:async args=>{calls.push(["claim",args]);return{ok:true};},revoke:async args=>{calls.push(["revoke",args]);return{ok:true};},getPlatform:()=>"ios-native",timeoutMs:20});
+assert.equal(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT,false,"staged only; never call undeployed backend");
+assert.equal((await owner.activate("A")).activated,false);
+owner.setPreference("A",true);
+assert.equal((await owner.activate("A")).activated,true);
+assert.equal((await owner.logout("A")).revoked,true);
+assert.equal(owner.preferred("A"),true,"logout must keep preference");
+owner.setPreference("B",true);
+assert.equal((await owner.activate("B")).activated,true);
+assert.deepEqual(calls.map(x=>x[0]),["claim","revoke","claim"]);
+const offline=createNotificationLeaseSession({storage,getInstallationId:()=> "device-abc",getToken:async()=>token,claim:async()=>true,revoke:async()=>new Promise(()=>{}),getPlatform:()=>"ios-native",timeoutMs:10});
+assert.equal((await offline.logout("A")).reason,"offline-or-timeout");
+console.log("PASS: staged lease lifecycle, account preference retention, bounded offline logout");
