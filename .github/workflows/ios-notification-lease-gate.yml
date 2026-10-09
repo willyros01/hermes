@@ -13,10 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Require executable notification lease regression suite
+      - name: Run existing notification lease policy and Firestore-owner regression suites
         run: |
-          if [ ! -f notification-token-lease.test.mjs ]; then
-            echo "::error::Required lease regression suite is missing; TestFlight upload is blocked."
-            exit 1
-          fi
-          node notification-token-lease.test.mjs
+          node functions/notification/notification-lease-policy.test.mjs
+          node functions/notification/notification-lease-firestore-admin.test.mjs
