@@ -1275,6 +1275,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
           if(peerKey){try{text=await decryptCloudText(m,peerKey,conversationId);}catch{text="[Encrypted message — key unavailable]";}}
           else text="[Encrypted message — key unavailable]";
         }
+        if(m.e2ee!==3)text="[Warning: This older message is not protected by current E2EE v3] "+text;
         remote.push({id:m.id,mine:m.senderUid===firebaseUser.uid,sender:m.senderName||"",text,time:m.timeLabel||"",createdAt:m.createdAt?.toDate?.()||m.createdAt||null,state:m.state||"sent",cloud:true,e2ee:!!m.e2ee,senderDeviceId:m.senderDeviceId||null,disappearAfterSeconds:m.disappearAfterSeconds??null,disappearingPurgeVersion:m.disappearingPurgeVersion??null,reactions:m.reactions&&typeof m.reactions==="object"?m.reactions:{}});
       }
 
