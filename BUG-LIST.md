@@ -437,3 +437,8 @@ The service worker persists the validated opaque route locally before notificati
 
 ### FDA-BIO-001 — returning-session biometric label — 1.1.56
 1.1.55 updated the main lock screen but missed the separate remembered-session authentication renderer, leaving **Unlock with device** visible despite the correct release version. 1.1.56 updates only that existing auth UI wording, advances the shell revision, and extends permanent regression coverage to both unlock paths. Device acceptance is pending; PIN, WebAuthn semantics, E2EE, Firebase, messaging and notification ownership are unchanged.
+
+
+## 2026-10-09 — Notification sender-name and lease acceptance
+
+Production `main` commit `b57ea951` and native `ios` commit `f586060c` passed their respective GitHub notification validation gates. User device testing confirmed the sender-name preference fix works on both platforms. Each installation stores its own sender-name preference; successful bounded Firestore updates are followed by local preference persistence, and lease renewal carries the preference forward. Do not bypass logout revocation, rotate tokens, or redeploy Firebase rules as part of this documentation update. Pending acceptance: multi-account/offline logout, stale lease cleanup, unexpected multiple-notification inbox prompt, and full cross-platform regression. GitHub TestFlight workflow passed; Apple processing and App Store release are separate states.
