@@ -31,6 +31,12 @@ export async function upsertCloudNotificationDevice({installationId,fcmToken,pla
 export async function deleteCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId);await s.fsSdk.deleteDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return true;}
 
 async function callCloudFunction(name,data={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const callable=s.functionsSdk.httpsCallable(s.functions,name);const result=await callable(data);return result.data;}
+export async function claimCloudNotificationLease({installationId,fcmToken,platform,showSenderName=false}={}){
+  return callCloudFunction("claimNotificationLeaseV1",{installationId,fcmToken,platform,showSenderName});
+}
+export async function revokeCloudNotificationLease({installationId,fcmToken,leaseId}={}){
+  return callCloudFunction("revokeNotificationLeaseV1",{installationId,fcmToken,leaseId});
+}
 export function enrollCloudE2EERecovery(data){return callCloudFunction("enrollRecoveryV1",data);}export function startCloudE2EERecovery(){return callCloudFunction("startE2EERecoveryV1",{});}export function completeCloudE2EERecovery(data){return callCloudFunction("completeE2EERecoveryV1",data);}
 export function deleteCloudDirectMessageForEveryone(conversationId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(conversationId||""),messageId:String(messageId||"")});}
 export function deleteCloudGroupMessageForEveryone(groupId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(groupId||""),messageId:String(messageId||""),messageKind:"group"});}
