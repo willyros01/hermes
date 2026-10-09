@@ -1214,3 +1214,6 @@ Approved standby / sleep-mode policy:
 5. activate enforcement only if a credible abuse, automated-backend or DoS-related threat appears, and then enable it deliberately one protected Firebase product at a time;
 6. retain rollback instructions and do not combine an enforcement activation with unrelated TestFlight feature changes;
 7. routine TestFlight builds do not repeat App Check validation unless App Check code/configuration changed or enforcement is about to be activated.
+
+
+2026-10-09 checkpoint: `main` b57ea951 web notification lease, baseline security, and Pages deployment PASS; user device confirmation PASS. `ios` f586060c notification lease, browser regressions, preflight, shell, security and TestFlight workflows PASS; user sender-name device confirmation PASS. Apple processing and App Store submission are not established by these CI results. Multi-account logout, offline revoke, stale lease cleanup, inbox modal and full regression remain open.
