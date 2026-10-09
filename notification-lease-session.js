@@ -9,7 +9,15 @@ export function createNotificationLeaseSession({storage,getInstallationId,getTok
   if(!prefs?.getItem||!prefs?.setItem)throw new Error("Persistent preferences required.");
   const preferred=uid=>prefs.getItem(preferenceKey(uid))==="on";
   const setPreference=(uid,enabled)=>prefs.setItem(preferenceKey(uid),enabled?"on":"off");
-  let epoch=0,activeLease=null;
+  const leaseKey="fidunio.notification.active-lease.v2."+getInstallationId();
+  function readLease(){
+    try{const row=JSON.parse(prefs.getItem(leaseKey)||"null");return row&&typeof row.leaseId==="string"&&typeof row.fcmToken==="string"&&typeof row.uid==="string"?row:null;}catch{return null;}
+  }
+  function saveLease(value){
+    if(value)prefs.setItem(leaseKey,JSON.stringify(value));
+    else prefs.removeItem?.(leaseKey);
+  }
+  let epoch=0,activeLease=readLease();
   async function activate(uid){
     if(!preferred(uid))return{activated:false,reason:"not-enabled"};
     const requestEpoch=++epoch;
@@ -23,12 +31,14 @@ export function createNotificationLeaseSession({storage,getInstallationId,getTok
       return{activated:false,reason:"superseded"};
     }
     activeLease={uid,installationId,fcmToken:token,leaseId:result.leaseId};
+    saveLease(activeLease);
     return{activated:true,result};
   }
   async function logout(uid){
     ++epoch;
     const lease=activeLease?.uid===uid?activeLease:null;
     activeLease=null;
+    saveLease(null);
     if(!lease)return{revoked:false,reason:"no-current-lease"};
     try{
       const result=await Promise.race([
