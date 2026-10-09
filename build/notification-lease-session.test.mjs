@@ -4,7 +4,7 @@ const records=new Map(),calls=[];
 const storage={getItem:k=>records.get(k)||null,setItem:(k,v)=>records.set(k,v)};
 let token="a".repeat(80);
 const owner=createNotificationLeaseSession({storage,getInstallationId:()=> "device-abc",getToken:async()=>token,claim:async args=>{calls.push(["claim",args]);return{leaseId:"lease-"+calls.length};},revoke:async args=>{calls.push(["revoke",args]);return{revoked:true};},getPlatform:()=>"ios-native",timeoutMs:20});
-assert.equal(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT,false,"staged only; never call undeployed backend");
+assert.equal(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT,true,"native TestFlight lease rollout enabled after backend deployment");
 assert.equal((await owner.activate("A")).activated,false);
 owner.setPreference("A",true);
 assert.equal((await owner.activate("A")).activated,true);
