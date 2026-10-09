@@ -197,3 +197,13 @@ Cause confidence: the screenshot and source establish a failure before decryptio
 Validation: local adapter tests passed for web/native encrypted multi-chunk round trips, exact byte equality, tamper rejection, URL bounds, HTTP failure, size limit, timeout and unavailable bridge. Existing attachment UI/lifecycle and native bootstrap boundary tests passed. The permanent CI gate includes the adapter test. A disposable Simulator-only app fixture checks the actual built-in native HTTP bridge through the production adapter and shared receive/decrypt owner to image decode; it uses local encrypted fixtures and no live Firebase credentials/requests/writes. The fixture substitutes only its local server URL at the injected test bridge, and its test HTTP allowance and entry page are never packaged in TestFlight. Exact-commit full security, browser, preflight and Simulator gates remain required before upload; live Firebase download and repeated iPhone/iPad acceptance remain required before IOS-ATTACH-001 closes.
 
 Rollback: keep 1.1.59 (8) available in TestFlight. The last accepted source checkpoint is `b0960b8bcb99d4c549f7478e33d6c254089bf0d4`. Revert this isolated transport candidate in ios if rejected; no server/data rollback is necessary because it makes no production configuration or data change. TestFlight build availability and upload are verified separately from repository checks.
+
+
+## 2026-10-09 notification acceptance
+
+- [x] iOS sender-name privacy preference persists and appears in notifications (user device PASS).
+- [x] iOS lease, regression, preflight, shell, security, and TestFlight GitHub workflows passed at `f586060c`.
+- [x] Matching production web fix accepted on `main` at `b57ea951`.
+- [ ] Multi-account logout, offline revocation, stale lease renewal and cleanup acceptance.
+- [ ] Full iOS/web interoperability regression and Apple App Store readiness review.
+- [ ] Investigate unexpected multi-route New messages modal without changing routing speculatively.
