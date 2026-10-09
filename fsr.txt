@@ -22,10 +22,11 @@ PROJECT_NUMBER_EXPECTED="130339622893"
 REPO="willyros01/hermes"
 BRANCH="ios"
 RULES_API="https://firebaserules.googleapis.com/v1"
-CANDIDATE_SHA256="b496d157f8dfeb5642de413c4ee890856190359fffe6ca1fc4f4ce05308d8360"
+CANDIDATE_SHA256="5975ff6d9b66b118490a526aca4f23b08f237d343d1fcce6f51138ebffc7cbad"
 # Live rules this script may replace (otherwise it stops):
 KNOWN_SAFETY_SHA256="7866fb87ab522caa5a63593c07f0541ab4410cb1aaf3c67710c749f00edcdcb8"  # 2d290e8 Block/Unblock + Report Abuse
 KNOWN_FSFIX_SHA256="68053b012263183bbfd692e40173ca45ce29d891207b6f8bcd65a53bacbef3cd"   # a36ba8f + account deletion requests
+KNOWN_SENDER_SHA256="20eaae934ddba1133e9642dfda661be3bdcc9122f709b9c78e561796bda159fd"  # 2d290e8 + main-3 48161c3 sender-name rule (live 2026-10-09)
 
 say(){ printf '\n==== %s ====\n' "$*"; }
 stop(){ echo "STOP: $*" >&2; echo "NOTHING WAS DEPLOYED unless a PASS line above says so." >&2; exit 1; }
@@ -61,6 +62,7 @@ grep -Fq 'request.resource.data.state=="sent"&&validAccountDirectMessage(convers
 grep -Fq 'allow create: if !("deletionState" in groupDocAfter(groupId).data)&&isGroupAdminAfter(groupId)' "$ROOT/firestore.rules" || stop "candidate lacks the group-deletion member guard"
 grep -Fq 'directPairUnblocked' "$ROOT/firestore.rules" || stop "candidate lost Block enforcement"
 grep -Fq 'match /abuseReports/{reportId}' "$ROOT/firestore.rules" || stop "candidate lost Report Abuse"
+grep -Fq 'affectedKeys().hasOnly(["showSenderName","updatedAt","lastSeenAt"])' "$ROOT/firestore.rules" || stop "candidate lost the live sender-name rule"
 echo "PASS: reviewed release rules ($CANDIDATE_SHA256)"
 
 say "Back up the exact live Firestore rules"
@@ -86,7 +88,7 @@ if [[ "$LIVE_SHA" == "$CANDIDATE_SHA256" ]]; then
   echo "The reviewed 1.1.76 rules are already deployed. Nothing to do."
   exit 0
 fi
-if [[ "$LIVE_SHA" != "$KNOWN_SAFETY_SHA256" && "$LIVE_SHA" != "$KNOWN_FSFIX_SHA256" ]]; then
+if [[ "$LIVE_SHA" != "$KNOWN_SAFETY_SHA256" && "$LIVE_SHA" != "$KNOWN_FSFIX_SHA256" && "$LIVE_SHA" != "$KNOWN_SENDER_SHA256" ]]; then
   diff -u "$BACKUP_DIR/firestore.rules" "$ROOT/firestore.rules" > "$BACKUP_DIR/live-vs-candidate.diff" || true
   stop "live rules are not a version this script recognises; refusing to overwrite. Diff: $BACKUP_DIR/live-vs-candidate.diff"
 fi
