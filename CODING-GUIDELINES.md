@@ -1,3 +1,14 @@
+## 2026-10-09 DOCUMENTATION RECONCILIATION — main-3 / ios (documentation only)
+
+- The active reconciliation branches are `main-3` (web candidate) and `ios` (Capacitor candidate); `main` is protected and must not be modified by this work. `main2` is a distinct historical branch, not an alias for `main-3`.
+- Shared application fixes must be reviewed against both active branches in the same work item. Native-only adapters/build/signing remain on `ios`. Never use a blind merge to synchronize diverged branches.
+- Mandatory source-of-truth documents: `hermes-memory.txt`, `CODING-GUIDELINES.md`, `IOS-NATIVE-ARCHITECTURE.md`, `FCM-NOTIFICATION-ARCHITECTURE.md`, `FIDUNIO-BUILD-CHECKLIST.md`, and the applicable iOS release/test documents.
+- Notification lease acceptance on iOS 1.1.76: one token can be reused across sequential users of the same installation; the server must fence previous ownership. Sign-out must not proceed when notification revocation is offline or unconfirmed; a clear warning is required. A retained lease is not discarded on transport failure. Lease lifetime and inactive retention are 30 days. These are implementation/test contracts, not proof of all network edge cases.
+- iOS release 1.1.76 reference commit `d4117a3a9f72e0598628676dc8c41d4d501cd016`; reported TestFlight build 75 processed VALID. This does not establish main-3 parity or device acceptance for untested scenarios.
+- Review status: shared-code parity and full guideline compliance remain **NOT VERIFIED**. No optimization or behavior change is approved by this documentation checkpoint. Preserve the user's working iOS behavior; prove a defect and run deterministic targeted regression tests before proposing a surgical fix.
+- Accessibility and ergonomics remain mandatory: large readable fonts, high contrast, short labels/names, minimal typing, clear error states and no indefinite waiting.
+- This is documentation-only. It authorizes no Firebase/Firestore/Functions/IAM/App Check deployment, no production `main` change, and no new TestFlight release.
+
 # FIDUNIO / Hermes Mandatory Coding Guidelines
 
 ## Message Notification / FCM mandatory reference
