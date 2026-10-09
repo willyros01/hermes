@@ -432,6 +432,12 @@ html.text-aplusplus .message-reaction-btn{min-height:64px;font-size:32px}
   justify-content:center;
   margin-bottom:10px;
 }
+/* main-3 visual identity: red Hermes ring on sign-in and PIN/biometric screens only. */
+.unlock-brand .brand-logo{
+  border:5px solid #d71920;
+  border-radius:50%;
+  box-sizing:border-box;
+}
 .about-brand{
   display:flex;
   justify-content:center;
