@@ -42,7 +42,7 @@ import {
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
-import { mountSettingsLifecycle,removeNotificationRegistrationForSignOut } from "./settings-lifecycle.js";
+import { mountSettingsLifecycle,removeNotificationRegistrationForSignOut,renewWebNotificationLease } from "./settings-lifecycle.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
@@ -1297,6 +1297,7 @@ async function initializeFirebaseLayer(){
       firebaseUser=user;
       firebaseReady=true;
       if(user){
+        renewWebNotificationLease(user.uid);
         if(getAccountE2EELifecycleState().manager.state!=="READY")bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
         publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
         beginCloudConversationSubscription();
@@ -2396,8 +2397,9 @@ function scheduleReconnectRecovery(){
     if(state.online && firebaseUser) flushQueuedAfterAuthoritativeReconcile();
   },4000);
 }
-function recoverForegroundCloudSession(){void requestAppActivation("foreground");}
+function recoverForegroundCloudSession(){if(firebaseUser?.uid)renewWebNotificationLease(firebaseUser.uid);void requestAppActivation("foreground");}
 window.addEventListener("online",()=>{
+  if(firebaseUser?.uid)renewWebNotificationLease(firebaseUser.uid);
   void requestAppActivation("online");
   void resumePendingLargeAttachmentSend();
 });
