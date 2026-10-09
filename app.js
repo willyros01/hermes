@@ -1704,17 +1704,21 @@ function renderUnlock(){
   if(showPinButton)showPinButton.onclick=()=>{unlockPinFallbackVisible=true;unlockError="";render();};
   const pinButton=document.querySelector("#localPinUnlockBtn");
   let pinInput=null;
+  let pinVerificationPending=false;
   if(pinButton){
     const showPinError=message=>{
       unlockError=String(message||"PIN check did not finish. Please try again.");
       const note=document.querySelector("#localUnlockNote");
       if(note){note.textContent=unlockError;note.hidden=false;}
+      pinVerificationPending=false;
       pinButton.disabled=false;pinButton.textContent="Unlock with PIN";
       pinInput.setDisabled(false);pinInput.clear();pinInput.focus();
     };
     const tryPin=async()=>{
+      if(pinVerificationPending)return;
       const pin=pinInput.value();
       if(!/^\d{6}$/.test(pin)){showPinError("Enter your six-digit FIDUNIO PIN.");return;}
+      pinVerificationPending=true;
       pinButton.disabled=true;pinInput.setDisabled(true);pinButton.textContent="Checking…";
       try{
         if(await awaitBoundedLocalPinVerification(verifyLocalPin(pin))){unlockLocalApp();return;}
