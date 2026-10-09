@@ -1,3 +1,11 @@
+## 2026-10-09 documentation reconciliation and direct-message E2EE audit status
+
+- This entry supersedes any interpretation of the 2026-10-04 iOS migration checkpoint as the latest release status; older entries remain historical evidence.
+- The current iOS source path in `app.js` calls `prepareAccountDirectMessage` before `sendCloudMessage`, sending `text:""` with the resulting encrypted envelope. The receive path calls `decryptAccountDirectMessage`. `e2ee-account-message-service.js` requires account identities and rejects non-v3 encrypted direct-message rows. These are source observations, NOT proof of deployed device-to-device confidentiality or Firestore ciphertext inspection.
+- An external audit has alleged that direct messages are no longer encrypted. Treat this as an OPEN, SECURITY-SENSITIVE VERIFICATION ITEM until the auditor's branch, SHA, file/line evidence and runtime test are reconciled. Inspect all active deployed branches, including production, before concluding whether a regression exists. Do not weaken encryption checks, alter backend rules, or claim this issue resolved based solely on the presence of crypto code.
+- Branch scope: this documentation reconciliation is on `ios` only. Production `main` is protected and must not be changed without separate explicit authorization. No Firebase/Firestore/Functions/IAM/App Check changes are authorized by this entry.
+- This is documentation-only; it does not certify CI gates, Apple processing, or device acceptance for the resulting documentation commit. Verify exact-head checks after publication.
+
 ## MANDATORY FIDUNIO BUILD / RELEASE MONITORING — 2026-10-05
 
 This is the standard procedure for EVERY builder, assistant and future build/fix session. Read this section and the existing mandatory first-read documents before work. For release work, also reconcile the current FIDUNIO-BUILD-CHECKLIST.md, IOS-PREUPLOAD-TESTS.md, IOS-RELEASE-READINESS.md where present, and the actual branch workflows. This current process supersedes older branch/promotion or wait-for-reconfirmation instructions in historical checkpoints; those checkpoints remain evidence, not permission to modify production.
