@@ -1,4 +1,4 @@
-// Shared notification lease session orchestration (v2 staged rollout).
+// Shared notification lease session orchestration (iOS device-acceptance rollout).
 // Firebase SDK and native push capabilities are injected, never initialized here.
 export const FIDUNIO_NOTIFICATION_LEASE_ROLLOUT=true;
 export const NOTIFICATION_LOGOUT_BOUND_MS=5000;
