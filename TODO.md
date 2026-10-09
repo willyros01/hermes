@@ -1,3 +1,8 @@
+## 2026-10-09 — Non-release PIN storage reliability correction
+
+- `ios` commit `add380f`: `local-security.js` closes an IndexedDB connection that arrives after the bounded eight-second open timeout, avoiding a stranded connection. Consolidated imports from the existing biometric adapter; authentication and unlock ownership unchanged.
+- Source fix only: PIN/Face ID real-device regression remains pending. No TestFlight build, live backend deployment, or production `main` modification was authorized or performed as part of this work.
+
 # FIDUNIO / Hermes — Deferred TODO
 
 ## SINGLE-BUILD ACTION ITEM — Security, architecture, and release reconciliation (2026-10-09)
