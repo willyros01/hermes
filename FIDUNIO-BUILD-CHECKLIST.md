@@ -1,3 +1,11 @@
+## 2026-10-09 shared branch reconciliation and release evidence
+
+Documentation-only checkpoint. Active comparison branches: `main-3` and `ios`; `main` is protected. Preserve the working iOS 1.1.76 implementation; do not silently synchronize code by merging diverged branches. Shared fixes require same-work-item comparison and targeted validation on both branches; native-only work stays on iOS.
+
+iOS notification lease contract: an FCM token may be reused by a different authenticated user on the same installation after ownership is safely transferred. Logout must be refused with a clear warning if revocation is offline or not confirmed. Revocation is bounded and a failed transport attempt retains the lease for recovery. Lease lifetime and inactive retention are 30 days. iOS 1.1.76 source reference: `d4117a3a9f72e0598628676dc8c41d4d501cd016`; TestFlight build 75 reported Apple processing VALID. The iOS release evidence is not evidence that `main-3` has equivalent source or passed device acceptance.
+
+Outstanding: perform a file-by-file shared-code comparison and complete the guideline compliance audit before recommending optimizations. Do not claim these are complete. Large fonts, high contrast, short names, minimal typing, deterministic tests and single-resource ownership remain required. No production deployment, source refactor, or TestFlight release is authorized by this documentation change.
+
 ## 2026-10-09 notification lease regression suite and repairs — candidate 1.1.76 (Claude)
 
 - Added required gate suite `notification-token-lease.test.mjs` (23 cases, no dependencies, runs in `ios-notification-lease-gate.yml`): token registration/ownership, lease creation and renewal, expiry, logout revocation, bounded retry with no hang, stale cleanup, multi-account same-device isolation, token reassignment and rotation, preference persistence, web and iOS paths.
