@@ -6,6 +6,8 @@
  */
 import {isNativeIOSRuntime} from "./platform-runtime.js";
 
+export function isNativeBiometricRuntime(){return isNativeIOSRuntime();}
+
 function nativePlugin(){
   if(!isNativeIOSRuntime())return null;
   return globalThis.Capacitor?.Plugins?.BiometricAuthNative||null;
