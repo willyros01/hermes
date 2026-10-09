@@ -21,11 +21,9 @@ on:
       - '.github/workflows/rebuild-baseline-security.yml'
       - '.github/workflows/ios-browser-release.yml'
       - '.github/workflows/ios-testflight.yml'
+      - '.github/workflows/ios-notification-lease-gate.yml'
+      - '.github/workflows/ios-backend-audit-gate.yml'
       - 'IOS-EXPORT-COMPLIANCE.md'
-      - 'FIDUNIO-BUILD-CHECKLIST.md'
-      - 'IOS-PREUPLOAD-TESTS.md'
-      - 'IOS-RELEASE-READINESS.md'
-      - 'hermes-memory.txt'
   workflow_dispatch:
 
 permissions:
