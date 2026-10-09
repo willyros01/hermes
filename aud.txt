@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# FIDUNIO one-time pre-TestFlight live Firebase audit.
+# FIDUNIO pre-TestFlight live Firebase audit.   RUN WITH:   bash aud.txt
+# Compares live Firebase with the CURRENT ios branch commit and prints that exact commit SHA.
+# The GitHub audit gate may be set GREEN only for the commit printed in the final AUDIT GREEN line.
 # READ-ONLY: this script contains no deploy/create/update/delete/patch commands.
 set -euo pipefail
 
@@ -8,6 +10,8 @@ PROJECT_NUMBER_EXPECTED="130339622893"
 IOS_APP_ID="1:130339622893:ios:929f4e431c91ef7ed0e1e4"
 WEB_APP_ID="1:130339622893:web:912a9016e294b30dd0e1e4"
 REGION="us-central1"
+REPO="willyros01/hermes"
+BRANCH="ios"
 OUT="$HOME/fidunio-readonly-audit-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$OUT"
 
@@ -41,6 +45,14 @@ api_get(){
   fi
 }
 
+say "Release source commit"
+AUDIT_COMMIT="$(curl --retry 3 -fsSL "https://api.github.com/repos/$REPO/commits/$BRANCH" | jq -r '.sha // empty')"
+[[ "$AUDIT_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Could not resolve the $BRANCH commit"
+echo "Audited commit: $AUDIT_COMMIT"
+for f in firestore.rules storage.rules; do
+  curl --retry 3 --retry-delay 2 -fsSL "https://raw.githubusercontent.com/$REPO/$AUDIT_COMMIT/$f" -o "$OUT/release-$f" || die "Could not download $f for $AUDIT_COMMIT"
+done
+
 say "Firebase Rules releases"
 api_get "https://firebaserules.googleapis.com/v1/projects/$PROJECT/releases?pageSize=100" "$OUT/rules-releases.json"
 jq -r '.releases[]? | [.name,.rulesetName,.updateTime] | @tsv' "$OUT/rules-releases.json" | tee "$OUT/rules-releases.tsv"
@@ -66,9 +78,9 @@ compare_rule(){
     die "$label live rules differ from $local_file; see $OUT/$label-live-vs-local.diff"
   fi
 }
-compare_rule "/cloud.firestore" "firestore.rules" "firestore"
+compare_rule "/cloud.firestore" "$OUT/release-firestore.rules" "firestore"
 STORAGE_SUFFIX="/firebase.storage/fidunio-fef13.firebasestorage.app"
-compare_rule "$STORAGE_SUFFIX" "storage.rules" "storage"
+compare_rule "$STORAGE_SUFFIX" "$OUT/release-storage.rules" "storage"
 
 say "Firestore composite indexes"
 gcloud firestore indexes composite list --database='(default)' --format=json > "$OUT/firestore-indexes.json"
@@ -86,6 +98,7 @@ EXPECTED_FUNCTIONS=(
  cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1 transferSystemOwnershipV1
  deleteDirectMessageForEveryoneV1 deleteMyMessagesForEveryoneV1 deleteConversationForEveryoneV1
  notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1 purgeDisappearingMessagesV1
+ claimNotificationLeaseV1 revokeNotificationLeaseV1
 )
 FUNCTION_AUDIT_FAIL=0
 for fn in "${EXPECTED_FUNCTIONS[@]}"; do
@@ -111,6 +124,8 @@ RECOVERY_SA="fidunio-recovery@$PROJECT.iam.gserviceaccount.com"
 MESSAGE_DELETE_SA="fidunio-message-delete@$PROJECT.iam.gserviceaccount.com"
 NOTIFICATION_SA="fidunio-notification@$PROJECT.iam.gserviceaccount.com"
 PURGE_SA="fidunio-disappearing-purge@$PROJECT.iam.gserviceaccount.com"
+# The self-service account deletion callables run under the message-delete identity.
+ACCOUNT_DELETE_SA="$MESSAGE_DELETE_SA"
 
 check_runtime(){
   local fn="$1" expected="$2" actual
@@ -129,7 +144,7 @@ done
 for fn in getMyAccountDeletionRequestV1 requestMyAccountDeletionV1 markMyAccountDeletionCleanupCompleteV1 cancelMyAccountDeletionRequestV1 completeMyAccountDeletionV1 deleteDirectMessageForEveryoneV1 deleteMyMessagesForEveryoneV1 deleteConversationForEveryoneV1; do
   check_runtime "$fn" "$MESSAGE_DELETE_SA"
 done
-for fn in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+for fn in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1 claimNotificationLeaseV1 revokeNotificationLeaseV1; do
   check_runtime "$fn" "$NOTIFICATION_SA"
 done
 check_runtime purgeDisappearingMessagesV1 "$PURGE_SA"
@@ -180,4 +195,5 @@ fi
 
 say "Audit complete"
 echo "READ-ONLY audit output: $OUT"
+echo "AUDIT GREEN for commit $AUDIT_COMMIT"
 echo "No Firebase/Google Cloud resource was changed by this script."

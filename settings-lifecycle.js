@@ -456,7 +456,7 @@ export function startNotificationRegistrationMaintenance(uid){
   return()=>{if(generation===notificationTokenMaintenanceGeneration)stopNotificationRegistrationMaintenance();};
 }
 
-export const NOTIFICATION_SIGNOUT_PENDING_MESSAGE="You are signed out. FIDUNIO could not reach the server to stop notifications on this device, so new-message alerts for this account may still appear for up to 24 hours, or until another account signs in here.";
+export const NOTIFICATION_SIGNOUT_PENDING_MESSAGE="You are signed out. FIDUNIO could not reach the server to stop notifications on this device, so new-message alerts for this account may still appear on this device until you or another account signs in here again, or for up to 30 days.";
 export const NOTIFICATION_TURN_OFF_UNCONFIRMED_MESSAGE="Notifications could not be turned off because FIDUNIO could not reach the server. They are still on. Check the connection and try again.";
 export async function removeNotificationRegistrationForSignOut(uid){
   stopNotificationRegistrationMaintenance();

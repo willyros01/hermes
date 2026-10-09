@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {createNotificationLeaseFirestoreAdmin} from "./notification-lease-firestore-admin.mjs";
+import {NOTIFICATION_LEASE_MS} from "./notification-lease-policy.mjs";
 const docs=new Map();
 let clock=1_900_000_000_000;
 function ref(path){return {path,get:async()=>snap(path)};}
@@ -25,6 +26,6 @@ assert.equal((await store.eligible("B")).length,1);
 await store.revoke({uid:"B",installationId:"install-0001",fcmToken,leaseId:second.leaseId});
 assert.equal((await store.eligible("B")).length,0);
 await store.claim({uid:"B",installationId:"install-0001",fcmToken,platform:"ios-native"});
-clock+=24*60*60*1000;
+clock+=NOTIFICATION_LEASE_MS;
 assert.equal((await store.eligible("B")).length,0,"expired leases cannot deliver");
 console.log("PASS: atomic account handoff, stale revoke fencing, logout and expiry");

@@ -147,7 +147,7 @@ Source alignment does not prove deployed state. The one-time audit must verify, 
 
 Perform this as one consolidated read-only audit. Do not turn App Check enforcement on as part of certification.
 
-The repository now contains `fidunio-pretestflight-readonly-audit.txt`. It performs the live checks above without deploy/create/update/delete operations. It still must be executed against the authenticated Firebase project and its output reviewed before certification closes.
+The repository now contains `aud.txt`. It performs the live checks above without deploy/create/update/delete operations. It still must be executed against the authenticated Firebase project and its output reviewed before certification closes.
 
 ## Remediation order
 

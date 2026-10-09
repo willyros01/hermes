@@ -12,7 +12,7 @@ For each visible feature, release readiness requires:
 5. live backend deployment matched to the candidate;
 6. physical-device acceptance where browser/simulator proof is insufficient.
 
-The machine-readable contract is `build/release-readiness-manifest.json`. The permanent baseline runs `build/release-readiness-gate.test.mjs`. The read-only live audit is `fidunio-pretestflight-readonly-audit.txt`.
+The machine-readable contract is `build/release-readiness-manifest.json`. The permanent baseline runs `build/release-readiness-gate.test.mjs`. The read-only live audit is `aud.txt`.
 
 ## Current branch protection
 

@@ -123,6 +123,11 @@ await test("2 renewal issues a new lease, extends expiry, carries sender-name pr
   assert.equal((await deliverable(env,"A")).length,1);
 });
 
+await test("2b lease length is 30 days, matching the inactive-retention period (user decision 2026-10-09)",()=>{
+  assert.equal(NOTIFICATION_LEASE_MS,30*24*60*60*1000);
+  assert.equal(NOTIFICATION_LEASE_MS,NOTIFICATION_INACTIVE_RETENTION_MS);
+});
+
 // 3. Lease expiration
 await test("3 an unrenewed lease stops delivery exactly at expiry and renewal restores it",async()=>{
   const env=backend();const {session}=deviceSession(env,{currentUid:()=>"A"});

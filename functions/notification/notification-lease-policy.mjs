@@ -1,5 +1,7 @@
 // Shared notification ownership policy. Pure logic; no Firebase writes here.
-export const NOTIFICATION_LEASE_MS = 24*60*60*1000;
+// 30 days (2026-10-09 user decision): a phone keeps receiving notifications while the app is not opened;
+// renewal happens on every app foreground/reconnect. Matches the inactive-retention period.
+export const NOTIFICATION_LEASE_MS = 30*24*60*60*1000;
 export const NOTIFICATION_INACTIVE_RETENTION_MS = 30*24*60*60*1000;
 export function validLease(record,nowMs=Date.now()){
   const uid=String(record?.ownerUid||"");

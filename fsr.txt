@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# FIDUNIO 1.1.76 Firestore rules deployment
+#
+# RUN WITH:   bash fsr.txt
+#
+# WHAT IT DEPLOYS (Firestore rules ONLY)
+# - New direct messages must be end-to-end encrypted (E2EE v3). Old messages stay readable.
+# - Group members cannot be added while a group is being deleted.
+#
+# SAFETY
+# - Switches to project fidunio-fef13 first and verifies project number 130339622893.
+# - Downloads the rules from the current ios branch commit and refuses to continue unless
+#   the file is byte-for-byte the reviewed release rules (SHA-256 below).
+# - Backs up the exact live rules and refuses to overwrite live rules it does not recognise.
+# - Runs the complete Firestore emulator rules regression suite before deploying.
+# - Prepares a one-command rollback before deploying, then verifies the live result.
+# - Does NOT touch Cloud Functions, Storage rules, indexes, IAM, App Check, Auth users or data.
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+PROJECT_NUMBER_EXPECTED="130339622893"
+REPO="willyros01/hermes"
+BRANCH="ios"
+RULES_API="https://firebaserules.googleapis.com/v1"
+CANDIDATE_SHA256="b496d157f8dfeb5642de413c4ee890856190359fffe6ca1fc4f4ce05308d8360"
+# Live rules this script may replace (otherwise it stops):
+KNOWN_SAFETY_SHA256="7866fb87ab522caa5a63593c07f0541ab4410cb1aaf3c67710c749f00edcdcb8"  # 2d290e8 Block/Unblock + Report Abuse
+KNOWN_FSFIX_SHA256="68053b012263183bbfd692e40173ca45ce29d891207b6f8bcd65a53bacbef3cd"   # a36ba8f + account deletion requests
+
+say(){ printf '\n==== %s ====\n' "$*"; }
+stop(){ echo "STOP: $*" >&2; echo "NOTHING WAS DEPLOYED unless a PASS line above says so." >&2; exit 1; }
+for cmd in gcloud curl jq python3 npm tar sha256sum cmp java; do
+  command -v "$cmd" >/dev/null 2>&1 || stop "$cmd is required"
+done
+
+say "Select and verify the FIDUNIO project"
+gcloud config set project "$PROJECT" >/dev/null 2>&1 || stop "could not select $PROJECT"
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "active project is '$ACTIVE'"
+NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "wrong project number '$NUMBER'"
+echo "PASS: $PROJECT ($NUMBER)"
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_DIR="$HOME/fidunio-rules-1.1.76-$STAMP"
+WORK="$(mktemp -d)"
+mkdir -p "$BACKUP_DIR"
+trap 'rm -rf "$WORK"' EXIT
+
+say "Download the current ios commit and verify the reviewed rules"
+COMMIT="$(curl --retry 3 -fsSL "https://api.github.com/repos/$REPO/commits/$BRANCH" | jq -r '.sha // empty')"
+[[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || stop "could not resolve the $BRANCH commit"
+echo "Source commit: $COMMIT"
+curl --retry 3 --retry-delay 2 -fsSL "https://github.com/$REPO/archive/$COMMIT.tar.gz" -o "$WORK/repo.tar.gz"
+tar -xzf "$WORK/repo.tar.gz" -C "$WORK"
+ROOT="$WORK/hermes-$COMMIT"
+[[ -f "$ROOT/firestore.rules" ]] || stop "source archive did not unpack"
+GOT="$(sha256sum "$ROOT/firestore.rules" | awk '{print $1}')"
+[[ "$GOT" == "$CANDIDATE_SHA256" ]] || stop "firestore.rules on $BRANCH is not the reviewed release version (got $GOT). Ask Claude for an updated script."
+grep -Fq 'request.resource.data.state=="sent"&&validAccountDirectMessage(conversationId,request.resource.data);' "$ROOT/firestore.rules" || stop "candidate is not E2EE-v3-only for direct messages"
+grep -Fq 'allow create: if !("deletionState" in groupDocAfter(groupId).data)&&isGroupAdminAfter(groupId)' "$ROOT/firestore.rules" || stop "candidate lacks the group-deletion member guard"
+grep -Fq 'directPairUnblocked' "$ROOT/firestore.rules" || stop "candidate lost Block enforcement"
+grep -Fq 'match /abuseReports/{reportId}' "$ROOT/firestore.rules" || stop "candidate lost Report Abuse"
+echo "PASS: reviewed release rules ($CANDIDATE_SHA256)"
+
+say "Back up the exact live Firestore rules"
+TOKEN="$(gcloud auth print-access-token)"
+curl -fsS -H "Authorization: Bearer $TOKEN" "$RULES_API/projects/$PROJECT/releases/cloud.firestore" -o "$BACKUP_DIR/release-before.json"
+RULESET_BEFORE="$(jq -r '.rulesetName // empty' "$BACKUP_DIR/release-before.json")"
+[[ "$RULESET_BEFORE" == projects/*/rulesets/* ]] || stop "could not read the live ruleset name"
+curl -fsS -H "Authorization: Bearer $TOKEN" "$RULES_API/$RULESET_BEFORE" -o "$BACKUP_DIR/ruleset-before.json"
+python3 - "$BACKUP_DIR/ruleset-before.json" "$BACKUP_DIR/firestore.rules" <<'PY'
+import json,sys
+files=json.load(open(sys.argv[1],encoding="utf-8")).get("source",{}).get("files",[])
+if len(files)!=1 or not str(files[0].get("content","")).strip():
+    raise SystemExit("STOP: unexpected live rules source")
+open(sys.argv[2],"w",encoding="utf-8",newline="").write(files[0]["content"])
+PY
+LIVE_SHA="$(sha256sum "$BACKUP_DIR/firestore.rules" | awk '{print $1}')"
+echo "Live ruleset: $RULESET_BEFORE"
+echo "Live SHA-256: $LIVE_SHA"
+echo "Backup: $BACKUP_DIR/firestore.rules"
+
+if [[ "$LIVE_SHA" == "$CANDIDATE_SHA256" ]]; then
+  say "ALREADY LIVE"
+  echo "The reviewed 1.1.76 rules are already deployed. Nothing to do."
+  exit 0
+fi
+if [[ "$LIVE_SHA" != "$KNOWN_SAFETY_SHA256" && "$LIVE_SHA" != "$KNOWN_FSFIX_SHA256" ]]; then
+  diff -u "$BACKUP_DIR/firestore.rules" "$ROOT/firestore.rules" > "$BACKUP_DIR/live-vs-candidate.diff" || true
+  stop "live rules are not a version this script recognises; refusing to overwrite. Diff: $BACKUP_DIR/live-vs-candidate.diff"
+fi
+echo "PASS: live rules are a known approved version"
+
+say "Install test tools"
+command -v firebase >/dev/null 2>&1 || npm install -g firebase-tools >/dev/null
+( cd "$ROOT" && npm ci --ignore-scripts --no-audit --no-fund >/dev/null )
+echo "PASS: tools installed"
+
+say "Run the complete Firestore rules regression suite (emulator only)"
+(
+  cd "$ROOT"
+  npm run emulator:test:e2ee-rules
+  npm run emulator:test:account-message-rules
+  npm run emulator:test:group-e2ee-rules
+  npm run emulator:test:invitation-rules
+  npm run emulator:test:notification-rules
+  npm run emulator:test:abuse-report-rules
+  npm run emulator:test:user-block-rules
+  npm run emulator:test:account-deletion-rules
+  firebase emulators:exec --only firestore --project demo-fidunio-conversation-delete-rules "node firestore-conversation-deletion.rules.test.mjs"
+) || stop "a Firestore rules regression test failed"
+echo "PASS: all Firestore rules regression suites"
+
+say "Prepare rollback"
+cat > "$BACKUP_DIR/firebase.json" <<'JSON'
+{ "firestore": { "rules": "firestore.rules" } }
+JSON
+cat > "$BACKUP_DIR/rollback.sh" <<ROLLBACK
+#!/usr/bin/env bash
+set -euo pipefail
+gcloud config set project "$PROJECT" >/dev/null
+[[ "\$(gcloud config get-value project 2>/dev/null)" == "$PROJECT" ]] || { echo "STOP: wrong project"; exit 1; }
+[[ "\$(gcloud projects describe $PROJECT --format='value(projectNumber)')" == "$PROJECT_NUMBER_EXPECTED" ]] || { echo "STOP: wrong project number"; exit 1; }
+cd "$BACKUP_DIR"
+firebase deploy --only firestore:rules --project "$PROJECT" --non-interactive
+echo "ROLLBACK COMPLETE: previous Firestore rules restored."
+ROLLBACK
+chmod +x "$BACKUP_DIR/rollback.sh"
+echo "Rollback ready: bash $BACKUP_DIR/rollback.sh"
+
+say "Re-check project, then deploy Firestore rules ONLY"
+gcloud config set project "$PROJECT" >/dev/null
+[[ "$(gcloud config get-value project 2>/dev/null)" == "$PROJECT" ]] || stop "project changed"
+[[ "$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "project number changed"
+DEPLOY="$WORK/deploy"; mkdir -p "$DEPLOY"
+cp "$ROOT/firestore.rules" "$DEPLOY/firestore.rules"
+cp "$BACKUP_DIR/firebase.json" "$DEPLOY/firebase.json"
+( cd "$DEPLOY" && firebase deploy --only firestore:rules --project "$PROJECT" --non-interactive )
+
+say "Verify the live rules are exactly the reviewed release rules"
+sleep 3
+TOKEN="$(gcloud auth print-access-token)"
+curl -fsS -H "Authorization: Bearer $TOKEN" "$RULES_API/projects/$PROJECT/releases/cloud.firestore" -o "$BACKUP_DIR/release-after.json"
+RULESET_AFTER="$(jq -r '.rulesetName // empty' "$BACKUP_DIR/release-after.json")"
+curl -fsS -H "Authorization: Bearer $TOKEN" "$RULES_API/$RULESET_AFTER" -o "$BACKUP_DIR/ruleset-after.json"
+jq -r '.source.files[0].content // empty' "$BACKUP_DIR/ruleset-after.json" > "$BACKUP_DIR/firestore-after.rules"
+cmp -s "$BACKUP_DIR/firestore-after.rules" "$ROOT/firestore.rules" || stop "live rules do not match the release rules. Roll back with: bash $BACKUP_DIR/rollback.sh"
+
+say "SUCCESS"
+echo "FIDUNIO 1.1.76 Firestore rules are live."
+echo "Previous ruleset: $RULESET_BEFORE"
+echo "New ruleset:      $RULESET_AFTER"
+echo "Rollback:         bash $BACKUP_DIR/rollback.sh"
+echo "Only Firestore rules were changed."
