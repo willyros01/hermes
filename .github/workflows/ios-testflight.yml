@@ -18,6 +18,8 @@ on:
       - '.github/workflows/rebuild-baseline-security.yml'
       - '.github/workflows/ios-browser-release.yml'
       - '.github/workflows/ios-testflight.yml'
+      - '.github/workflows/ios-notification-lease-gate.yml'
+      - '.github/workflows/ios-backend-audit-gate.yml'
       - 'IOS-EXPORT-COMPLIANCE.md'
   workflow_dispatch:
 permissions:
