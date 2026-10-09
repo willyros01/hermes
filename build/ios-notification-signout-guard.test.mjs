@@ -5,7 +5,7 @@ const settings=readFileSync(new URL("../settings-lifecycle.js",import.meta.url),
 assert.match(source,/import\s*\{[^}]*removeNotificationRegistrationForSignOut[^}]*\}\s*from\s*["']\.\/settings-lifecycle\.js["']/);
 assert.match(source,/async function signOutWithNotificationCleanup\(\)\s*\{\s*const user=getFirebaseUser\(\);if\(user\?\.uid\)await removeNotificationRegistrationForSignOut\(user\.uid\);await signOutFidunio\(\);\s*\}/);
 assert.match(source,/try\{await signOutWithNotificationCleanup\(\);location\.reload\(\);\}/);
-assert.match(source,/if\(signOutBtn\) signOutBtn\.onclick=async\(\)=>\{await signOutWithNotificationCleanup\(\);/);
+assert.match(source,/if\(signOutBtn\) signOutBtn\.onclick=async\(\)=>\{signOutBtn\.disabled=true;try\{await signOutWithNotificationCleanup\(\);firebaseError="";render\(\);\}catch\(err\)\{signOutBtn\.disabled=false;alert\(err\?\.message\|\|String\(err\)\);\}\};/,"both sign-out buttons go through cleanup and show a refused sign-out");
 assert.equal((source.match(/await signOutFidunio\(\)/g)||[]).length,1,"all app sign-out paths must use cleanup wrapper");
 assert.match(settings,/export async function removeNotificationRegistrationForSignOut\(uid\)/);
 assert.match(settings,/await notificationRegistrationOwner\.disable\(\{uid\}\)/);

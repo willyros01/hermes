@@ -3115,7 +3115,7 @@ function renderSettings(){
     catch(err){firebaseError=err?.message||String(err);render();}
   };
   const signOutBtn=document.querySelector("#firebaseSignOutBtn");
-  if(signOutBtn) signOutBtn.onclick=async()=>{await signOutWithNotificationCleanup();firebaseError="";render();};
+  if(signOutBtn) signOutBtn.onclick=async()=>{signOutBtn.disabled=true;try{await signOutWithNotificationCleanup();firebaseError="";render();}catch(err){signOutBtn.disabled=false;alert(err?.message||String(err));}};
   const copyBtn=document.querySelector("#copyUidBtn");
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}

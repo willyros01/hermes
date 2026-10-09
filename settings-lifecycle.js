@@ -456,20 +456,26 @@ export function startNotificationRegistrationMaintenance(uid){
   return()=>{if(generation===notificationTokenMaintenanceGeneration)stopNotificationRegistrationMaintenance();};
 }
 
-export const NOTIFICATION_SIGNOUT_PENDING_MESSAGE="You are signed out. FIDUNIO could not reach the server to stop notifications on this device, so new-message alerts for this account may still appear on this device until you or another account signs in here again, or for up to 30 days.";
+export const NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE="You're offline. FIDUNIO can't sign out until it is connected, so that this phone stops receiving your notifications. Connect to the internet and try again.";
 export const NOTIFICATION_TURN_OFF_UNCONFIRMED_MESSAGE="Notifications could not be turned off because FIDUNIO could not reach the server. They are still on. Check the connection and try again.";
+// Rule (user decision 2026-10-09): a signed-out device must never receive that account's notifications.
+// iOS displays alerts itself, so only the server can stop them: sign-out completes ONLY after the
+// server confirms this installation can no longer deliver. Offline or unconfirmed -> sign-out refused.
 export async function removeNotificationRegistrationForSignOut(uid){
   stopNotificationRegistrationMaintenance();
   if(!uid)return true;
   try{
     if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT&&notificationTransport.nativeRegistration){
-      // Bounded (never hangs). Sign-out is not blocked offline, but the user is told the truth.
+      if(globalThis.navigator?.onLine===false){const offline=new Error(NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE);offline.code="fidunio/signout-offline";throw offline;}
       const outcome=await notificationLeaseSession.logout(uid);
-      if(!outcome?.stopped)globalThis.alert?.(NOTIFICATION_SIGNOUT_PENDING_MESSAGE);
+      if(!outcome?.stopped){const unconfirmed=new Error(NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE);unconfirmed.code="fidunio/signout-offline";throw unconfirmed;}
     }else await notificationRegistrationOwner.disable({uid});
     return true;
   }catch(error){
     console.warn("FIDUNIO notification sign-out cleanup failed",error);
+    // Still signed in: resume this account's notification maintenance.
+    startNotificationRegistrationMaintenance(uid);
+    if(error?.code==="fidunio/signout-offline")throw error;
     throw new Error("Could not safely sign out because this installation's notification registration could not be removed. Check the connection and try again.");
   }
 }

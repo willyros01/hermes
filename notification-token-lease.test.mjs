@@ -300,10 +300,15 @@ await test("9b Settings commits the lease preference only after the server confi
 });
 
 // 10. Correct operation on web and iOS
-await test("10a iOS sign-out uses the bounded lease logout, never blocks, and tells the user when unconfirmed",()=>{
+await test("10a iOS sign-out is refused offline or when the server has not confirmed; a signed-out phone gets no notifications",()=>{
   const settings=readFileSync(new URL("./settings-lifecycle.js",import.meta.url),"utf8"),app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
-  assert.match(settings,/if\(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT&&notificationTransport\.nativeRegistration\)\{[^}]*const outcome=await notificationLeaseSession\.logout\(uid\);\s*if\(!outcome\?\.stopped\)globalThis\.alert\?\.\(NOTIFICATION_SIGNOUT_PENDING_MESSAGE\);\s*\}else await notificationRegistrationOwner\.disable\(\{uid\}\);/);
-  assert.match(app,/async function signOutWithNotificationCleanup\(\)\{const user=getFirebaseUser\(\);if\(user\?\.uid\)await removeNotificationRegistrationForSignOut\(user\.uid\);await signOutFidunio\(\);\}/,"cleanup runs before Firebase sign-out, while the revoke is still authenticated");
+  assert.match(settings,/if\(globalThis\.navigator\?\.onLine===false\)\{const offline=new Error\(NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE\);offline\.code="fidunio\/signout-offline";throw offline;\}/,"offline: refuse at once, no waiting");
+  assert.match(settings,/const outcome=await notificationLeaseSession\.logout\(uid\);\s*if\(!outcome\?\.stopped\)\{const unconfirmed=new Error\(NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE\);unconfirmed\.code="fidunio\/signout-offline";throw unconfirmed;\}/,"unconfirmed revoke: refuse sign-out");
+  assert.match(settings,/startNotificationRegistrationMaintenance\(uid\);\s*if\(error\?\.code==="fidunio\/signout-offline"\)throw error;/,"a refused sign-out resumes notification maintenance and keeps the offline message");
+  assert.doesNotMatch(settings,/NOTIFICATION_SIGNOUT_PENDING_MESSAGE|globalThis\.alert\?\.\(/,"no sign-out-anyway path");
+  assert.match(app,/async function signOutWithNotificationCleanup\(\)\{const user=getFirebaseUser\(\);if\(user\?\.uid\)await removeNotificationRegistrationForSignOut\(user\.uid\);await signOutFidunio\(\);\}/,"Firebase sign-out happens only after notification cleanup succeeded");
+  assert.match(app,/try\{await signOutWithNotificationCleanup\(\);location\.reload\(\);\}\s*catch\(err\)\{btn\.disabled=false;btn\.textContent="Sign Out";alert\(err\?\.message\|\|String\(err\)\);\}/,"main sign-out button shows the refusal");
+  assert.match(app,/signOutBtn\.onclick=async\(\)=>\{signOutBtn\.disabled=true;try\{await signOutWithNotificationCleanup\(\);firebaseError="";render\(\);\}catch\(err\)\{signOutBtn\.disabled=false;alert\(err\?\.message\|\|String\(err\)\);\}\};/,"settings sign-out button shows the refusal");
   assert.match(settings,/getPlatform:\(\)=>"ios-native",\s*\}\);/,"native lease session reports the ios-native platform");
   assert.ok(NOTIFICATION_LOGOUT_BOUND_MS*NOTIFICATION_REVOKE_ATTEMPTS<=20000,"worst-case sign-out wait stays bounded");
 });
