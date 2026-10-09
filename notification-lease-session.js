@@ -1,6 +1,6 @@
 // Shared notification lease session orchestration (v2 staged rollout).
 // Firebase SDK and native push capabilities are injected, never initialized here.
-export const FIDUNIO_NOTIFICATION_LEASE_ROLLOUT=false;
+export const FIDUNIO_NOTIFICATION_LEASE_ROLLOUT=true;
 export const NOTIFICATION_LOGOUT_BOUND_MS=5000;
 const preferenceKey=uid=>"fidunio.notification.preference.v2."+uid;
 export function createNotificationLeaseSession({storage,getInstallationId,getToken,claim,revoke,getPlatform,timeoutMs=NOTIFICATION_LOGOUT_BOUND_MS}={}){
