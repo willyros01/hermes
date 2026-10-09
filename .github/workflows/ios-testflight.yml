@@ -19,10 +19,6 @@ on:
       - '.github/workflows/ios-browser-release.yml'
       - '.github/workflows/ios-testflight.yml'
       - 'IOS-EXPORT-COMPLIANCE.md'
-      - 'FIDUNIO-BUILD-CHECKLIST.md'
-      - 'IOS-PREUPLOAD-TESTS.md'
-      - 'IOS-RELEASE-READINESS.md'
-      - 'hermes-memory.txt'
   workflow_dispatch:
 permissions:
   contents: read
@@ -50,7 +46,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           node --input-type=module <<'JS'
-          const required=["ios-native-checks.yml","ios-capacitor-shell.yml","rebuild-baseline-security.yml","ios-browser-release.yml"];
+          const required=["ios-native-checks.yml","ios-capacitor-shell.yml","rebuild-baseline-security.yml","ios-browser-release.yml","ios-notification-lease-gate.yml","ios-backend-audit-gate.yml"];
           import {appendFileSync} from "node:fs";
           const headers={Authorization:"Bearer "+process.env.GH_TOKEN,Accept:"application/vnd.github+json"};
           async function currentHead(){
