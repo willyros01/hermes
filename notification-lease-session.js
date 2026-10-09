@@ -10,6 +10,9 @@ export function createNotificationLeaseSession({storage,getInstallationId,getTok
   const preferred=uid=>prefs.getItem(preferenceKey(uid))==="on";
   const setPreference=(uid,enabled)=>prefs.setItem(preferenceKey(uid),enabled?"on":"off");
   const leaseKey="fidunio.notification.active-lease.v2."+getInstallationId();
+  const senderNameKey="fidunio.notification.sender-name.v2."+getInstallationId();
+  const showSenderName=()=>prefs.getItem(senderNameKey)==="on";
+  const setShowSenderName=enabled=>prefs.setItem(senderNameKey,enabled?"on":"off";
   function readLease(){try{const row=JSON.parse(prefs.getItem(leaseKey)||"null");return row&&typeof row.leaseId==="string"&&typeof row.fcmToken==="string"&&typeof row.uid==="string"?row:null;}catch{return null;}}
   function saveLease(row){if(row)prefs.setItem(leaseKey,JSON.stringify(row));else prefs.removeItem?.(leaseKey);}
   let activeLease=readLease(),tail=Promise.resolve();
@@ -20,7 +23,7 @@ export function createNotificationLeaseSession({storage,getInstallationId,getTok
     const token=String(await getToken()||"");
     if(token.length<20)throw new Error("Notification token unavailable.");
     const installationId=getInstallationId();
-    const result=await claim({installationId,fcmToken:token,platform:getPlatform()});
+    const result=await claim({installationId,fcmToken:token,platform:getPlatform(),showSenderName:showSenderName()});
     if(typeof result?.leaseId!=="string"||!result.leaseId)throw new Error("Notification lease identity missing.");
     activeLease={uid,installationId,fcmToken:token,leaseId:result.leaseId};
     saveLease(activeLease);
@@ -41,5 +44,5 @@ export function createNotificationLeaseSession({storage,getInstallationId,getTok
     }catch{return{revoked:false,reason:"offline-or-timeout"};}
     });
   }
-  return Object.freeze({preferred,setPreference,activate,logout});
+  return Object.freeze({preferred,setPreference,showSenderName,setShowSenderName,activate,logout});
 }
