@@ -1,0 +1,22 @@
+name: FIDUNIO Live Backend Audit Gate
+on:
+  push:
+    branches: [ios]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require independent live-backend audit evidence
+        env:
+          AUDIT_STATUS: ${{ vars.FIDUNIO_LIVE_BACKEND_AUDIT_STATUS }}
+          AUDIT_SHA: ${{ vars.FIDUNIO_LIVE_BACKEND_AUDIT_SHA }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [ "$AUDIT_STATUS" != "GREEN" ] || [ "$AUDIT_SHA" != "$HEAD_SHA" ]; then
+            echo "::error::Live backend audit has not been independently certified GREEN for this exact commit. TestFlight upload is blocked."
+            exit 1
+          fi
+          echo "Live backend audit attestation present for exact commit."
