@@ -577,3 +577,8 @@ The worker and installation-local inbox accept `group-message` as a second valid
 ## FIDUNIO 1.1.29 — group stream reuse and close boundary
 
 Activation signals for a group already owned by the active group conversation stream must reuse that stream; they may not close and recreate it. Stream closure is a hard asynchronous boundary: a closed stream cannot project rows, load granted history, write receipts, report downstream errors, or retain a late exact-message priority waiter. This preserves one conversation stream and prevents stale maintenance from surfacing after a successful notification route. No notification payload, backend, rules, E2EE, membership or receipt authority changes.
+
+
+## 2026-10-09 verified notification checkpoint
+
+The sender-name preference is installation-scoped and passed user device acceptance on both web (`main` b57ea951) and native iOS (`ios` f586060c). Lease renewal must carry this preference; the local checkbox preference is committed only after the bounded cloud write succeeds. All six iOS GitHub workflows including TestFlight succeeded. Multi-account logout, stale lease cleanup, and complete cross-platform regression remain separate acceptance items. Do not modify Firebase production rules or tokens to synchronize this document.
