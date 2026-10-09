@@ -4,6 +4,7 @@ on:
     branches: [main-3]
     paths:
       - 'build/recolor-main3-ring.py'
+      - '.github/workflows/main-3-red-ring.yml'
   workflow_dispatch:
 permissions:
   contents: write
@@ -29,4 +30,6 @@ jobs:
           git add -- fidunio-logo.png
           git diff --cached --quiet && { echo 'No icon changes'; exit 0; }
           git commit -m 'main-3: red ring on original 2D Hermes icon only'
+          git fetch origin main-3
+          git rebase origin/main-3
           git push origin HEAD:main-3
