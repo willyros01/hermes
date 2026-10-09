@@ -144,7 +144,14 @@ TOKEN="$(gcloud auth print-access-token)"
 curl -fsS -H "Authorization: Bearer $TOKEN" "$RULES_API/projects/$PROJECT/releases/cloud.firestore" -o "$BACKUP_DIR/release-after.json"
 RULESET_AFTER="$(jq -r '.rulesetName // empty' "$BACKUP_DIR/release-after.json")"
 curl -fsS -H "Authorization: Bearer $TOKEN" "$RULES_API/$RULESET_AFTER" -o "$BACKUP_DIR/ruleset-after.json"
-jq -r '.source.files[0].content // empty' "$BACKUP_DIR/ruleset-after.json" > "$BACKUP_DIR/firestore-after.rules"
+# Write the exact content (jq -r would append an extra newline and cause a false mismatch).
+python3 - "$BACKUP_DIR/ruleset-after.json" "$BACKUP_DIR/firestore-after.rules" <<'PY'
+import json,sys
+files=json.load(open(sys.argv[1],encoding="utf-8")).get("source",{}).get("files",[])
+if len(files)!=1:
+    raise SystemExit("STOP: unexpected deployed rules source")
+open(sys.argv[2],"w",encoding="utf-8",newline="").write(files[0].get("content",""))
+PY
 cmp -s "$BACKUP_DIR/firestore-after.rules" "$ROOT/firestore.rules" || stop "live rules do not match the release rules. Roll back with: bash $BACKUP_DIR/rollback.sh"
 
 say "SUCCESS"

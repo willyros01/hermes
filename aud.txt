@@ -66,7 +66,7 @@ compare_rule(){
   fi
   local id="${ruleset##*/}" json="$OUT/$label-ruleset.json" live="$OUT/$label-live.rules"
   api_get "https://firebaserules.googleapis.com/v1/projects/$PROJECT/rulesets/$id" "$json"
-  jq -r '.source.files[0].content // empty' "$json" > "$live"
+  jq -j '.source.files[0].content // empty' "$json" > "$live"  # -j: exact content, no added newline
   echo "$label ruleset: $ruleset"
   echo "$label live SHA256: $(sha256 "$live")"
   [ -f "$local_file" ] || die "Required local authority file missing: $local_file"
