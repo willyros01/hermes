@@ -1,3 +1,14 @@
+## 2026-10-09 security worklist implementation checkpoint — release BLOCKED
+
+- Staged iOS direct-message sender owner now rejects non-E2EE-v3 records; historical non-v3 rows receive a visible warning, not automatic re-encryption.
+- Staged `firestore.rules` requires E2EE v3 for new direct messages and disallows member creation when a group's resulting document has `deletionState`. These rules are NOT deployed. Emulator tests and compatibility review are mandatory before deployment.
+- Biometric platform detection in `local-security.js` now delegates through `biometric-platform-adapter.js`; native-device and browser regression acceptance remains pending.
+- `.github/workflows/ios-testflight.yml` now waits for six gates: four previous CI checks, `ios-notification-lease-gate.yml`, and `ios-backend-audit-gate.yml`. Documentation-only file triggers were removed. **A manually dispatched release remains subject to the same gates.**
+- The live backend audit gate requires repository Actions variables `FIDUNIO_LIVE_BACKEND_AUDIT_STATUS=GREEN` and `FIDUNIO_LIVE_BACKEND_AUDIT_SHA` equal to the exact release commit. Do not set these without independent live audit evidence. No audit has been certified.
+- The lease gate requires an executable `notification-token-lease.test.mjs`. This test does NOT yet exist, so the gate intentionally fails. Implement meaningful expiry, renewal, logout revocation, retry and stale-token cases; do not bypass.
+- Remaining: emulator tests, lease tests, backend App Check inventory and approved deployment, release marker/version reconciliation, current exact-head validation, Apple processing, real-device acceptance, and documentation synchronization. Production `main` untouched.
+- **No release-ready claim is authorized until these checks are green.** Claude owns the read-only historical plaintext audit, pending evidence.
+
 ## 2026-10-09 documentation reconciliation and direct-message E2EE audit status
 
 - This entry supersedes any interpretation of the 2026-10-04 iOS migration checkpoint as the latest release status; older entries remain historical evidence.
