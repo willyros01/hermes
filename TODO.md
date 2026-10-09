@@ -97,3 +97,8 @@ The required destructive iPhone/iPad recovery matrix passed on 2026-09-13 in FID
 - First candidate supports text replies; send or cancel the reply before attaching a file.
 - Required acceptance: iPhone + iPad, reply to incoming/outgoing/attachment target, close/reopen persistence, Cancel/draft preservation, reactions/delete regression, Sent→Read, direct-chat unchanged, and FCM exact-message routing.
 - **Status:** device acceptance pending.
+
+
+## 2026-10-09 — Notification sender-name and lease acceptance
+
+Production `main` commit `b57ea951` and native `ios` commit `f586060c` passed their respective GitHub notification validation gates. User device testing confirmed the sender-name preference fix works on both platforms. Each installation stores its own sender-name preference; successful bounded Firestore updates are followed by local preference persistence, and lease renewal carries the preference forward. Do not bypass logout revocation, rotate tokens, or redeploy Firebase rules as part of this documentation update. Pending acceptance: multi-account/offline logout, stale lease cleanup, unexpected multiple-notification inbox prompt, and full cross-platform regression. GitHub TestFlight workflow passed; Apple processing and App Store release are separate states.
