@@ -1,3 +1,10 @@
+## 2026-10-09 Firestore rule regression and App Check inventory
+
+- Commit `ec2f7f7` changes `firestore-account-message-v3.rules.test.mjs`: new E2EE v2 and plaintext creates must fail; historical plaintext receipt update is seeded with rules disabled inside the emulator fixture and remains permitted. Emulator run NOT YET VERIFIED.
+- `functions/index.mjs` currently sets `REQUIRE_APP_CHECK = false` and shares it across recovery, legal, account deletion, ownership, message deletion and notification lease callables. Changing the flag would affect all these callable families. Firestore triggers for direct/group notifications and scheduled cleanup jobs are server-side and should not be treated as client App Check callables.
+- Before enabling App Check: confirm web reCAPTCHA Enterprise and iOS App Attest/DeviceCheck tokens in real installations; verify callable requests and recovery/account deletion/notification lease flows; establish metrics, rollback, and coordinated backend deployment. No live enforcement or Firebase deployment has occurred.
+- The six-gate TestFlight workflow remains blocked pending notification lease regression suite and independent exact-SHA backend audit. Do not set audit GREEN without evidence.
+
 ## 2026-10-09 security worklist implementation checkpoint — release BLOCKED
 
 - Staged iOS direct-message sender owner now rejects non-E2EE-v3 records; historical non-v3 rows receive a visible warning, not automatic re-encryption.
