@@ -1,3 +1,11 @@
+## 2026-10-09 documentation reconciliation and direct-message E2EE audit status
+
+- This entry supersedes any interpretation of the 2026-10-04 iOS migration checkpoint as the latest release status; older entries remain historical evidence.
+- The current iOS source path in `app.js` calls `prepareAccountDirectMessage` before `sendCloudMessage`, sending `text:""` with the resulting encrypted envelope. The receive path calls `decryptAccountDirectMessage`. `e2ee-account-message-service.js` requires account identities and rejects non-v3 encrypted direct-message rows. These are source observations, NOT proof of deployed device-to-device confidentiality or Firestore ciphertext inspection.
+- An external audit has alleged that direct messages are no longer encrypted. Treat this as an OPEN, SECURITY-SENSITIVE VERIFICATION ITEM until the auditor's branch, SHA, file/line evidence and runtime test are reconciled. Inspect all active deployed branches, including production, before concluding whether a regression exists. Do not weaken encryption checks, alter backend rules, or claim this issue resolved based solely on the presence of crypto code.
+- Branch scope: this documentation reconciliation is on `ios` only. Production `main` is protected and must not be changed without separate explicit authorization. No Firebase/Firestore/Functions/IAM/App Check changes are authorized by this entry.
+- This is documentation-only; it does not certify CI gates, Apple processing, or device acceptance for the resulting documentation commit. Verify exact-head checks after publication.
+
 ## iOS migration status — 2026-10-04
 
 FIDUNIO's native iOS migration keeps one shared application with thin platform adapters. The exact 1.1.57 TestFlight parser failure has been traced to invalid executable quote escaping in `settings-lifecycle.js`, which was imported by `app.js` after secure recovery. The 1.1.59 repair candidate removes that defect, parses the complete packaged iOS JavaScript set, and uses bounded Firebase/background/startup/notification adapters rather than separate iOS feature implementations. Repository gates are green on the pre-documentation candidate; real TestFlight acceptance is still required before IOS-AUTH-002/003 are closed.
