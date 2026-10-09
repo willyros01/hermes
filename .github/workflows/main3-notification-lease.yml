@@ -1,0 +1,31 @@
+name: Main-3 Notification Lease Gate
+on:
+  push:
+    branches: [main-3]
+    paths:
+      - 'notification-lease-session.js'
+      - 'web-notification-lease.test.mjs'
+      - 'settings-lifecycle.js'
+      - 'firebase.js'
+      - 'app.js'
+      - '.github/workflows/main3-notification-lease.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lease:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify lease and reload-safe logout
+        run: node web-notification-lease.test.mjs
+      - name: Verify browser module syntax
+        run: |
+          node --check app.js
+          node --check settings-lifecycle.js
+          node --check firebase.js
+          node --check notification-lease-session.js
