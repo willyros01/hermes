@@ -2,7 +2,7 @@
 // Emulator-only. Never point this suite at the live Firebase project.
 import {readFileSync} from "node:fs";
 import {initializeTestEnvironment,assertFails,assertSucceeds} from "@firebase/rules-unit-testing";
-import {doc,setDoc,updateDoc,serverTimestamp} from "firebase/firestore";
+import {doc,getDoc,setDoc,updateDoc,serverTimestamp} from "firebase/firestore";
 
 const rules=readFileSync(new URL("./firestore.rules",import.meta.url),"utf8");
 const PROJECT_ID="demo-fidunio-account-message-rules";
@@ -48,9 +48,15 @@ await test("18 recipient read transition requires authoritative readAt",()=>asse
 await test("19 recipient first Read stores server-backed readAt",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","m01"),{state:"read",readAt:serverTimestamp()})));
 await test("20 repeat Read cannot move first-read timestamp",()=>assertFails(updateDoc(doc(dbB,"conversations","dm-v3","messages","m01"),{state:"read",readAt:serverTimestamp()})));
 await test("21 recipient receipt update cannot mutate ciphertext",()=>assertFails(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{state:"read",readAt:serverTimestamp(),ciphertext:"BBBBBBBBBBBBBBBBBBBBBB"})));
-await test("22 legacy e2ee v2 create rejected",()=>assertFails(setDoc(doc(dbA,"conversations","dm-v3","messages","m21"),{senderUid:A,senderName:"Owner A",timeLabel:"12:01 PM",state:"sent",createdAt:serverTimestamp(),text:"",e2ee:2,ciphertext:"",iv:"",envelopes:{legacyDevice:{ciphertext:"legacy",iv:"legacy"}},recipientDeviceIds:["legacyDevice"],senderDeviceId:"legacyDevice",senderDevicePublicJwk:{kty:"EC",crv:"P-256",x:"x",y:"y"}})));
-await test("23 legacy plaintext create rejected",()=>assertFails(setDoc(doc(dbA,"conversations","dm-v3","messages","m22"),{senderUid:A,state:"sent",createdAt:serverTimestamp(),text:"legacy regression"})));
-await test("24 historical plaintext message retains read receipt",async()=>{await env.withSecurityRulesDisabled(async context=>{await setDoc(doc(context.firestore(),"conversations","dm-v3","messages","m22"),{senderUid:A,state:"sent",createdAt:serverTimestamp(),text:"historical message"});});await assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","m22"),{state:"read",readAt:serverTimestamp()}));});
+await test("22 new legacy e2ee v2 create denied (E2EE v3 only)",()=>assertFails(setDoc(doc(dbA,"conversations","dm-v3","messages","m21"),{senderUid:A,senderName:"Owner A",timeLabel:"12:01 PM",state:"sent",createdAt:serverTimestamp(),text:"",e2ee:2,ciphertext:"",iv:"",envelopes:{legacyDevice:{ciphertext:"legacy",iv:"legacy"}},recipientDeviceIds:["legacyDevice"],senderDeviceId:"legacyDevice",senderDevicePublicJwk:{kty:"EC",crv:"P-256",x:"x",y:"y"}})));
+await test("23 new plaintext create denied (E2EE v3 only)",()=>assertFails(setDoc(doc(dbA,"conversations","dm-v3","messages","m22"),{senderUid:A,state:"sent",createdAt:serverTimestamp(),text:"plaintext must be refused"})));
+// Historical rows written before the E2EE-v3-only policy stay readable and keep their receipt lifecycle.
+await env.withSecurityRulesDisabled(async context=>{const db=context.firestore();await setDoc(doc(db,"conversations","dm-v3","messages","h-plain"),{senderUid:A,senderName:"Owner A",timeLabel:"12:02 PM",state:"sent",createdAt:new Date(),text:"historical plaintext"});await setDoc(doc(db,"conversations","dm-v3","messages","h-v2"),{senderUid:A,senderName:"Owner A",timeLabel:"12:03 PM",state:"sent",createdAt:new Date(),text:"",e2ee:2,ciphertext:"",iv:"",envelopes:{legacyDevice:{ciphertext:"legacy",iv:"legacy"}},recipientDeviceIds:["legacyDevice"],senderDeviceId:"legacyDevice",senderDevicePublicJwk:{kty:"EC",crv:"P-256",x:"x",y:"y"}});});
+await test("23a recipient can read a historical plaintext row",()=>assertSucceeds(getDoc(doc(dbB,"conversations","dm-v3","messages","h-plain"))));
+await test("23b recipient can read a historical e2ee v2 row",()=>assertSucceeds(getDoc(doc(dbB,"conversations","dm-v3","messages","h-v2"))));
+await test("24 recipient can mark a historical plaintext message Read",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","h-plain"),{state:"read",readAt:serverTimestamp()})));
+await test("24a recipient can mark a historical e2ee v2 message Delivered",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","h-v2"),{state:"delivered"})));
+await test("24b outsider cannot read a historical plaintext row",()=>assertFails(getDoc(doc(dbC,"conversations","dm-v3","messages","h-plain"))));
 
 await test("25 participant can add own reaction",()=>assertSucceeds(updateDoc(doc(dbA,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"👍"}})));
 await test("26 second participant can add own reaction",()=>assertSucceeds(updateDoc(doc(dbB,"conversations","dm-v3","messages","m02"),{reactions:{[A]:"👍",[B]:"❤️"}})));

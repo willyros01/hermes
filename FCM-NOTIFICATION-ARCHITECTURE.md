@@ -582,3 +582,13 @@ Activation signals for a group already owned by the active group conversation st
 ## 2026-10-09 verified notification checkpoint
 
 The sender-name preference is installation-scoped and passed user device acceptance on both web (`main` b57ea951) and native iOS (`ios` f586060c). Lease renewal must carry this preference; the local checkbox preference is committed only after the bounded cloud write succeeds. All six iOS GitHub workflows including TestFlight succeeded. Multi-account logout, stale lease cleanup, and complete cross-platform regression remain separate acceptance items. Do not modify Firebase production rules or tokens to synchronize this document.
+
+
+## Notification token lease contract (2026-10-09)
+
+- One client owner per installation: `notification-lease-session.js` holds the retained lease (account, installation, token, leaseId) in persistent storage. One server authority: `notification-lease-firestore-admin.mjs`, with one owner record per token hash in `notificationTokenOwners`.
+- A claim transfers the token to the claiming account in one transaction and removes the previous account's device row for that token. Renewal issues a new leaseId and generation; an older leaseId can no longer revoke.
+- Leases expire 24 hours after the last claim. Delivery requires a valid lease on both the device row and the owner record.
+- Revocation targets the exact leaseId. It keeps a revoked owner record (tombstone) so a stale pre-lease registration of another account with the same token cannot deliver. The tombstone is replaced by the next claim or removed by the 30-day inactive cleanup.
+- Client logout: at most 3 bounded attempts; the retained lease is cleared only on server confirmation. An unconfirmed turn-off is completed at the next activation. Settings changes commit only after server confirmation, otherwise they roll back with a message. iOS sign-out never blocks; it warns when the revoke could not be confirmed. Web sign-out still refuses to proceed while its registration cannot be removed.
+- Required regression gate: `notification-token-lease.test.mjs`.

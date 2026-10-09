@@ -34,7 +34,11 @@ export function createNotificationLeaseFirestoreAdmin({db,now=()=>Date.now()}={}
       const [ownerSnap,targetSnap]=await Promise.all([tx.get(ownerRef),tx.get(target)]);
       const owner=ownerSnap.exists?ownerSnap.data():null;
       const matching=owner?.ownerUid===uid&&owner?.installationId===installationId&&owner?.fcmToken===fcmToken&&owner?.leaseId===leaseId;
-      if(matching)tx.delete(ownerRef);
+      // Keep a revoked owner record (tombstone) instead of deleting it. A deleted owner record would
+      // let any pre-lease registration of another account with this same token deliver again
+      // (mayDeliverRegistration treats "no owner" as legacy). The tombstone fails every lease check
+      // and is removed by the 30-day inactive cleanup or replaced by the next claim.
+      if(matching)tx.set(ownerRef,{...owner,enabled:false,leaseUntilMs:0,revokedMs:now()},{merge:false});
       if(targetSnap.exists&&targetSnap.data()?.fcmToken===fcmToken&&targetSnap.data()?.leaseId===leaseId)tx.update(target,{enabled:false,leaseUntilMs:0,updatedAt:new Date(now())});
       return {revoked:matching};
     });
