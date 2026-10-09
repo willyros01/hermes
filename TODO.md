@@ -2,7 +2,9 @@
 
 ## SINGLE-BUILD ACTION ITEM — Security, architecture, and release reconciliation (2026-10-09)
 
-**Status: OPEN — ONE COORDINATED VALIDATED BUILD; NOT YET IMPLEMENTED OR ACCEPTED.** This is one integrated release candidate, not separate phased deliveries. The following items must be addressed and tested together before the candidate is declared ready. Scope initial implementation to `ios` and appropriate nonproduction web branch (`main-3` where available); **do not modify production `main` without explicit approval**. Never deploy live Firebase/Firestore/Functions/IAM/App Check changes without separate explicit approval. Do not bypass legitimate validation gates. No automatic production promotion.
+**Implementation record (2026-10-09):** `ios` commits `692f099` (reject non-E2EE-v3 writes at `sendCloudMessage`) and `900bf4e` (explicit warning prefix on legacy direct-message display). These are source changes only: regression testing, exact-head CI, cross-platform reconciliation, live backend audit, and release readiness remain OPEN. No live Firebase deployment and no production `main` modification.
+
+**Status: IN PROGRESS — ONE COORDINATED VALIDATED BUILD; NOT YET TESTED OR ACCEPTED.** This is one integrated release candidate, not separate phased deliveries. The following items must be addressed and tested together before the candidate is declared ready. Scope initial implementation to `ios` and appropriate nonproduction web branch (`main-3` where available); **do not modify production `main` without explicit approval**. Never deploy live Firebase/Firestore/Functions/IAM/App Check changes without separate explicit approval. Do not bypass legitimate validation gates. No automatic production promotion.
 
 | Finding / issue | Required correction and acceptance evidence |
 | --- | --- |
