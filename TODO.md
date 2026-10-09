@@ -1,3 +1,9 @@
+## 2026-10-09 — PIN / biometric unlock source correction (no TestFlight)
+
+- `ios` commit `5a6ee14`: `app.js` now serializes PIN verification when the sixth-digit completion callback and Unlock with PIN button are triggered together. Pending verification cannot be duplicated; a failed/timed-out attempt clears the pending flag and re-enables input.
+- Earlier `add380f` closes late IndexedDB opens after the PIN-storage timeout and retains biometric adapter ownership.
+- Face ID-first UI and fallback behavior are unchanged. Actual iPhone/iPad Face ID, cancelled biometric prompt, incorrect/empty PIN, timeout, background/foreground and repeated attempt tests remain **NOT YET VERIFIED**. No TestFlight build or production backend deployment was performed.
+
 ## 2026-10-09 — Non-release PIN storage reliability correction
 
 - `ios` commit `add380f`: `local-security.js` closes an IndexedDB connection that arrives after the bounded eight-second open timeout, avoiding a stranded connection. Consolidated imports from the existing biometric adapter; authentication and unlock ownership unchanged.
