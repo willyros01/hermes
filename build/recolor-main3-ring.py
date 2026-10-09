@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Recolor only warm-gold ring pixels in existing main-3 web icons.
+"""Recolor only warm-gold ring pixels in the original main-3 login logo.
 Never redraw or generate the Hermes artwork. Original non-gold pixels are byte-identical.
 """
 from pathlib import Path
 from PIL import Image
 import colorsys
 
-FILES = ("icon-180.png", "icon-192.png", "icon-512.png")
+FILES = ("fidunio-logo.png",)
 for name in FILES:
     source = Path(name)
     image = Image.open(source).convert("RGBA")
@@ -21,7 +21,7 @@ for name in FILES:
             if a == 0:
                 continue
             hue, sat, val = colorsys.rgb_to_hsv(r/255, g/255, b/255)
-            # Select only the gold/yellow circle; blue-black Hermes head is excluded.
+            # Select only the original gold/yellow ring; blue-black Hermes artwork is excluded.
             gold = (0.075 <= hue <= 0.175 and sat >= 0.24 and r >= 90
                     and r > g * 1.05 and g > b * 1.22)
             if not gold:
@@ -43,4 +43,4 @@ for name in FILES:
     output.save(source, optimize=True)
     print(f"PASS: {name}: only {changed} original warm-gold pixels recolored red; all other pixels unchanged")
 
-# main-3-only deployment marker: native iOS and production icons are never modified.
+# main-3-only deployment marker: native iOS and production logos are never modified.
