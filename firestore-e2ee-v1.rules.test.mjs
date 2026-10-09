@@ -63,7 +63,7 @@ await test("34 duplicate private create denied",()=>assertFails(setDoc(doc(dbB,"
 await test("35 regression invitation get still allowed",()=>assertSucceeds(getDoc(doc(dbN,"invitations","public-test"))));
 await test("36 regression registered profile read still allowed",()=>assertSucceeds(getDoc(doc(dbA,"users",B))));
 await test("37 regression direct conversation create still allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-regression"),{type:"direct",members:[A,B],memberNames:{[A]:"Owner A",[B]:"Owner B"},createdAt:serverTimestamp(),updatedAt:serverTimestamp()})));
-await test("38 regression direct message create still allowed",()=>assertSucceeds(setDoc(doc(dbA,"conversations","dm-regression","messages","m1"),{senderUid:A,state:"sent",text:"regression",createdAt:serverTimestamp()})));
+await test("38 regression plaintext direct message create denied",()=>assertFails(setDoc(doc(dbA,"conversations","dm-regression","messages","m1"),{senderUid:A,state:"sent",text:"regression",createdAt:serverTimestamp()})));
 await test("39 regression legacy device create still allowed",()=>assertSucceeds(setDoc(doc(dbA,"users",A,"devices","legacy-device"),{uid:A,deviceId:"legacy-device",e2eeVersion:1,publicJwk:{kty:"EC",crv:"P-256",x:"x",y:"y"},fingerprint:"test"})));
 await test("40 regression group create still allowed",()=>assertSucceeds(setDoc(doc(dbA,"groups","group-regression"),{type:"group",name:"Regression Group",ownerUid:A,createdByUid:A,memberUids:[A,B],adminUids:[A],historyPolicy:"fromJoin",groupVersion:1,keyEpoch:0,createdAt:serverTimestamp(),updatedAt:serverTimestamp()})));
 
