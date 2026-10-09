@@ -553,3 +553,8 @@ Add **Settings → Account → Delete My Account** in the next iOS build. The us
 The previously deferred DoS/abuse-prevention control is Firebase App Check. Web/PWA already initializes App Check through reCAPTCHA Enterprise in the central Firebase bootstrap. Native iOS App Check is still deferred in `firebase-platform-adapter.js` and must be implemented with an Apple attestation provider for validation.
 
 **Approved operating policy — standby / sleep mode:** implement and test App Check on web/PWA and native iOS, confirm that both platforms can obtain valid App Check tokens, then leave backend enforcement OFF during normal operation. Keep the implementation and configuration ready for rapid activation if credible abuse, automated backend misuse or a DoS-related threat appears. Re-test only when App Check code/configuration changes or before activating enforcement. App Check is an abuse-reduction control, not a guarantee against all denial-of-service attacks. No enforcement change is authorized by this documentation closeout.
+
+
+### 2026-10-09 — Notification preference resolved, follow-up checks open
+
+User confirmed sender-name preference working on production web and iOS TestFlight. iOS `f586060c` and main `b57ea951` notification gates passed. The missing closing parenthesis in the new preference setter was fixed in both branches before acceptance. Remaining verification: multi-account/offline logout, stale notification lease expiry, unexpected multi-route inbox popup, and full iOS/web regression. These are not all confirmed defects.
