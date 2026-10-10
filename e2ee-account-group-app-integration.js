@@ -1,4 +1,4 @@
-import {prepareGroupSend,flushGroupSend,openGroupConversation,prioritizeGroupConversationMessage,closeGroupConversation,isGroupOutboxPayload,resetGroupMessagingForSignOut,renameGroup,addGroupMember,removeGroupMember,leaveGroup,grantGroupHistory} from "./e2ee-account-group-app-controller.js";
+import {prepareGroupSend,flushGroupSend,openGroupConversation,refreshGroupConversationRead,prioritizeGroupConversationMessage,closeGroupConversation,isGroupOutboxPayload,resetGroupMessagingForSignOut,renameGroup,addGroupMember,removeGroupMember,leaveGroup,grantGroupHistory} from "./e2ee-account-group-app-controller.js";
 
 // Bounded bridge between the legacy app shell and the account-authoritative
 // group messaging owners. This module owns no Firebase, crypto, IndexedDB or
@@ -42,6 +42,7 @@ export function openGroupForApp(groupId,{onRows,onError,isOpen}={}){
   return openGroupConversation(id,{onRows,onError,isOpen});
 }
 
+export function refreshGroupReadForApp(groupId){if(String(activeGroupId)===String(groupId))refreshGroupConversationRead(groupId);}
 export function prioritizeGroupMessageForApp(groupId,messageId){return prioritizeGroupConversationMessage(groupId,messageId);}
 
 export function closeGroupForApp(){
