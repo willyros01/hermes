@@ -47,7 +47,7 @@ import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccoun
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
 import { mountSixDigitPinInput } from "./pin-input.js";
 import {awaitBoundedLocalPinVerification} from "./local-pin-verification-boundary.js";
-import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
+import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,refreshGroupReadForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
 import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions} from "./message-reaction-policy.js";
 import {encodeGroupReplyDescriptor,parseGroupReplyDescriptor} from "./group-reply-policy.js";
@@ -915,7 +915,7 @@ function beginCloudConversationSubscription(){
 const directReadReconcilePromises=new Map();
 function reconcileVisibleDirectRead(conversationId,{forceServer=false}={}){
   const id=String(conversationId||"");
-  if(!id||!firebaseUser||state.route!=="chat"||String(state.selectedId)!==id)return Promise.resolve(false);
+  if(!id||!firebaseUser||document.visibilityState!=="visible"||state.route!=="chat"||String(state.selectedId)!==id)return Promise.resolve(false);
   const hasUnreadIncoming=(state.messages[id]||[]).some(message=>!message.mine&&message.state!=="read");
   if(!forceServer&&!hasUnreadIncoming)return Promise.resolve(false);
   const running=directReadReconcilePromises.get(id);
@@ -950,7 +950,7 @@ function beginCloudGroupMessageSubscription(groupId){
   const token=groupMessageStreamLifecycle.open(wanted);
   cloudGroupMessageConversationId=wanted;
   openGroupForApp(groupId,{
-    isOpen:()=>state.route==="chat"&&String(state.selectedId)===String(groupId),
+    isOpen:()=>document.visibilityState==="visible"&&state.route==="chat"&&String(state.selectedId)===String(groupId),
     onRows:async (rows,meta={})=>{
       if(!groupMessageStreamLifecycle.isCurrent(token))return;
       rows=(rows||[]).filter(m=>!isMessageHidden(groupId,m.id));
@@ -2397,7 +2397,7 @@ function scheduleReconnectRecovery(){
     if(state.online && firebaseUser) flushQueuedAfterAuthoritativeReconcile();
   },4000);
 }
-function recoverForegroundCloudSession(){if(firebaseUser?.uid)renewWebNotificationLease(firebaseUser.uid);void requestAppActivation("foreground");}
+function recoverForegroundCloudSession(){if(firebaseUser?.uid)renewWebNotificationLease(firebaseUser.uid);void requestAppActivation("foreground");if(document.visibilityState==="visible"&&state.route==="chat"&&state.selectedId){const c=state.conversations.find(row=>String(row.id)===String(state.selectedId));if(c?.cloudGroup)refreshGroupReadForApp(c.id);else if(c?.cloud)void reconcileVisibleDirectRead(c.id,{forceServer:true});}}
 window.addEventListener("online",()=>{
   if(firebaseUser?.uid)renewWebNotificationLease(firebaseUser.uid);
   void requestAppActivation("online");
