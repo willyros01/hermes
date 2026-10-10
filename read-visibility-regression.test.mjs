@@ -1,0 +1,27 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import vm from "node:vm";
+
+const app=readFileSync(new URL("./app.js",import.meta.url),"utf8");
+const group=readFileSync(new URL("./e2ee-account-group-conversation.js",import.meta.url),"utf8");
+const start=app.indexOf("const directReadReconcilePromises=new Map();");
+const end=app.indexOf("function ensureActiveCloudMessageSubscription(",start);
+assert.ok(start>=0&&end>start,"Direct Read owner must exist");
+const owner=app.slice(start,end);
+let writes=0;
+const document={visibilityState:"hidden"};
+const state={route:"chat",selectedId:"chat-1",messages:{"chat-1":[{mine:false,state:"delivered"}]}};
+const context={document,state,firebaseUser:{uid:"recipient"},markCloudConversationRead:async()=>{writes++;},firebaseError:"",render:()=>{}};
+vm.createContext(context);
+vm.runInContext(owner+";globalThis.reconcile=reconcileVisibleDirectRead;",context);
+assert.equal(await context.reconcile("chat-1"),false,"Hidden chat must not reconcile Read");
+assert.equal(writes,0,"Hidden chat must not write Read");
+document.visibilityState="visible";
+assert.equal(await context.reconcile("chat-1"),true,"Visible chat must reconcile Read");
+assert.equal(writes,1,"Visible chat writes Read once");
+assert.match(app,/if\(document\.visibilityState==="visible"&&state\.route==="chat"&&state\.selectedId\)/,"Foreground must reconcile selected chat");
+assert.match(app,/refreshGroupReadForApp\(c\.id\)/,"Foreground must refresh group Read");
+assert.match(app,/isOpen:\(\)=>document\.visibilityState==="visible"/,"Group Read must require visible document");
+assert.match(group,/isOpen\(\)\?"read":"delivered"/,"Group receipt owner must preserve delivered while hidden");
+assert.match(group,/refreshVisibleRead\(\)\{if\(!closed&&isOpen\(\)/,"Group foreground refresh must require visibility");
+console.log("PASS: hidden direct/group chat cannot mark Read; visible direct and group recovery are wired.");
