@@ -2,25 +2,6 @@ name: FIDUNIO TestFlight
 on:
   push:
     branches: [ios]
-    paths:
-      - 'package.json'
-      - 'package-lock.json'
-      - 'capacitor.config.json'
-      - 'build/**'
-      - '!build/*.test.mjs'
-      - '*.html'
-      - '*.js'
-      - '*.css'
-      - '*.png'
-      - 'manifest.json'
-      - '.github/workflows/ios-native-checks.yml'
-      - '.github/workflows/ios-capacitor-shell.yml'
-      - '.github/workflows/rebuild-baseline-security.yml'
-      - '.github/workflows/ios-browser-release.yml'
-      - '.github/workflows/ios-testflight.yml'
-      - '.github/workflows/ios-notification-lease-gate.yml'
-      - '.github/workflows/ios-backend-audit-gate.yml'
-      - 'IOS-EXPORT-COMPLIANCE.md'
   workflow_dispatch:
 permissions:
   contents: read
