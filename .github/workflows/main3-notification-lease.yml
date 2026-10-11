@@ -5,6 +5,9 @@ on:
     paths:
       - 'notification-lease-session.js'
       - 'web-notification-lease.test.mjs'
+      - 'notification-token-lease.test.mjs'
+      - 'build/notification-lease-session.test.mjs'
+      - 'functions/notification/**'
       - 'settings-lifecycle.js'
       - 'firebase.js'
       - 'app.js'
@@ -23,6 +26,12 @@ jobs:
           node-version: '22'
       - name: Verify lease and reload-safe logout
         run: node web-notification-lease.test.mjs
+      - name: Notification token lease regression suite (synchronized from ios)
+        run: |
+          node notification-token-lease.test.mjs
+          node build/notification-lease-session.test.mjs
+          node functions/notification/notification-lease-policy.test.mjs
+          node functions/notification/notification-lease-firestore-admin.test.mjs
       - name: Verify browser module syntax
         run: |
           node --check app.js

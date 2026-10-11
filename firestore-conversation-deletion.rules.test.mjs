@@ -14,6 +14,7 @@ await env.withSecurityRulesDisabled(async context=>{
   await setDoc(doc(db,"users",B),{displayName:"Member B",active:true,status:"active",systemRole:"user"});
   await setDoc(doc(db,"conversations","deleting-direct"),{type:"direct",members:[A,B],memberNames:{[A]:"Owner A",[B]:"Member B"},createdAt:now,updatedAt:now,deletionState:"deleting",deletionRequestedByUid:A,deletionRequestedAt:now});
   await setDoc(doc(db,"groups","deleting-group"),{type:"group",name:"Deleting Group",ownerUid:A,createdByUid:A,memberUids:[A,B],adminUids:[A],createdAt:now,updatedAt:now,historyPolicy:"fromJoin",groupVersion:1,keyEpoch:0,deletionState:"deleting",deletionRequestedByUid:A,deletionRequestedAt:now});
+  await setDoc(doc(db,"groups","live-group"),{type:"group",name:"Live Group",ownerUid:A,createdByUid:A,memberUids:[A,B],adminUids:[A],createdAt:now,updatedAt:now,historyPolicy:"fromJoin",groupVersion:1,keyEpoch:0});
 });
 
 await test("direct participants can still read the deletion-barrier parent",()=>assertSucceeds(getDoc(doc(dbB,"conversations","deleting-direct"))));
@@ -22,6 +23,9 @@ await test("direct parent updates are frozen after the barrier",()=>assertFails(
 await test("direct client root delete remains denied",()=>assertFails(deleteDoc(doc(dbA,"conversations","deleting-direct"))));
 await test("group members can still read the deletion-barrier parent",()=>assertSucceeds(getDoc(doc(dbB,"groups","deleting-group"))));
 await test("group owner updates are frozen after the barrier",()=>assertFails(updateDoc(doc(dbA,"groups","deleting-group"),{name:"Changed"})));
+const memberRow={uid:B,displayName:"Member B",role:"member",active:true,joinedAt:serverTimestamp(),addedByUid:A};
+await test("control: admin can create a member record in a live group",()=>assertSucceeds(setDoc(doc(dbA,"groups","live-group","members",B),memberRow)));
+await test("group member creation is frozen after the barrier",()=>assertFails(setDoc(doc(dbA,"groups","deleting-group","members",B),memberRow)));
 await test("group client root delete remains denied",()=>assertFails(deleteDoc(doc(dbA,"groups","deleting-group"))));
 
 await env.cleanup();

@@ -429,10 +429,15 @@ const webLeaseSession=createNotificationLeaseSession({
   getPlatform:classifyNotificationPlatform,
 });
 export function renewWebNotificationLease(uid){
-  if(!uid||notificationTransport.nativeRegistration||globalThis.Notification?.permission!=="granted")return;
+  if(!uid||notificationTransport.nativeRegistration)return;
+  // A retained lease must still be finished (renewed, or revoked after an unconfirmed turn-off)
+  // even if browser permission changed; otherwise renewal needs granted permission.
+  if(globalThis.Notification?.permission!=="granted"&&!webLeaseSession.retainedLease())return;
   void notificationRegistrationOwner.getStatus(uid).then(status=>{
-    if(status.enabled&&!webLeaseSession.preferred(uid))webLeaseSession.setPreference(uid,true);
-    if(webLeaseSession.preferred(uid))return webLeaseSession.activate(uid);
+    // Recover the preference only for installations the lease session has never managed. A retained
+    // lease means the session already owns this account's preference (including an unfinished turn-off).
+    if(status.enabled&&!webLeaseSession.preferred(uid)&&!webLeaseSession.retainedLease())webLeaseSession.setPreference(uid,true);
+    return webLeaseSession.activate(uid);
   }).catch(error=>console.warn("FIDUNIO web notification lease renewal failed",error));
 }
 let notificationTokenMaintenanceStop=()=>{};
@@ -453,14 +458,27 @@ export function startNotificationRegistrationMaintenance(uid){
   return()=>{if(generation===notificationTokenMaintenanceGeneration)stopNotificationRegistrationMaintenance();};
 }
 
+export const NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE="You're offline. FIDUNIO can't sign out until it is connected, so that this device stops receiving your notifications. Connect to the internet and try again.";
+export const NOTIFICATION_TURN_OFF_UNCONFIRMED_MESSAGE="Notifications could not be turned off because FIDUNIO could not reach the server. They are still on. Check the connection and try again.";
+// Rule (user decision 2026-10-09, synchronized from ios): a signed-out device must never receive that
+// account's notifications. Sign-out completes ONLY after the server confirms this installation can no
+// longer deliver: the exact lease is revoked (bounded) AND any registration row is removed.
+// Offline or unconfirmed -> sign-out refused with a message; the account stays signed in.
 export async function removeNotificationRegistrationForSignOut(uid){
   stopNotificationRegistrationMaintenance();
   if(!uid)return true;
   try{
-    await webLeaseSession.logout(uid);
+    if(globalThis.navigator?.onLine===false){const offline=new Error(NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE);offline.code="fidunio/signout-offline";throw offline;}
+    const outcome=await webLeaseSession.logout(uid);
+    if(!outcome?.stopped){const unconfirmed=new Error(NOTIFICATION_SIGNOUT_OFFLINE_MESSAGE);unconfirmed.code="fidunio/signout-offline";throw unconfirmed;}
+    // Removes a pre-lease (legacy) registration too, so no delivery path survives sign-out.
+    await notificationRegistrationOwner.disable({uid});
     return true;
   }catch(error){
     console.warn("FIDUNIO notification sign-out cleanup failed",error);
+    // Still signed in: resume this account's notification ownership.
+    if(notificationTransport.nativeRegistration)startNotificationRegistrationMaintenance(uid);else renewWebNotificationLease(uid);
+    if(error?.code==="fidunio/signout-offline")throw error;
     throw new Error("Could not safely sign out because this installation's notification registration could not be removed. Check the connection and try again.");
   }
 }
@@ -474,8 +492,25 @@ async function renderNotifications(notificationsHost,info){
   try{const state=await notificationRegistrationOwner.getStatus(info.user.uid);if(!card.isConnected)return;const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&!state.enabled;card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(notificationStatusText(state.status))}</p><p class="small-note">Private is the default: <strong>FIDUNIO — New message</strong>. You may optionally show only the sender's FIDUNIO display name. Message text, attachment names, email addresses, UIDs, and decrypted content are never placed in the notification.</p>${state.enabled?`<label class="form-label" style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="showNotificationSenderName" ${webLeaseSession.showSenderName()?"checked":""}> Show sender's FIDUNIO display name</label><p class="small-note">When enabled on this installation, the card may say <strong>New message from Display Name</strong>.</p>`:""}${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${state.enabled?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
     const enable=card.querySelector("#enableNotificationsBtn"),disable=card.querySelector("#disableNotificationsBtn"),senderToggle=card.querySelector("#showNotificationSenderName"),note=card.querySelector("#notificationNote");
     if(senderToggle)senderToggle.onchange=async()=>{senderToggle.disabled=true;const previous=webLeaseSession.showSenderName();try{await updateCloudNotificationSenderName({installationId:getOrCreateNotificationInstallationId(),showSenderName:senderToggle.checked});webLeaseSession.setShowSenderName(senderToggle.checked);note.textContent="Notification privacy preference saved.";senderToggle.disabled=false;}catch(err){senderToggle.checked=previous;note.innerHTML=`<p class="warning-note">Sender-name preference update failed: ${esc(err?.code||"unknown")} — ${esc(err?.message||String(err))}</p>`;senderToggle.disabled=false;}};
-    enable.onclick=async()=>{enable.disabled=true;enable.textContent="Enabling…";try{await notificationRegistrationOwner.enableFromUserGesture({uid:info.user.uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});webLeaseSession.setPreference(info.user.uid,true);await webLeaseSession.activate(info.user.uid);await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;enable.disabled=false;enable.textContent="Enable Notifications";}};
-    disable.onclick=async()=>{disable.disabled=true;disable.textContent="Turning off…";try{webLeaseSession.setPreference(info.user.uid,false);await webLeaseSession.logout(info.user.uid);await renderNotifications(notificationsHost,info);}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;disable.disabled=false;disable.textContent="Turn Off Notifications";}};
+    // Commit semantics (synchronized from ios): the local lease preference stands only once the server
+    // confirmed the change; on any failure it is rolled back and the user sees why.
+    enable.onclick=async()=>{enable.disabled=true;enable.textContent="Enabling…";let registered=false;try{
+        await notificationRegistrationOwner.enableFromUserGesture({uid:info.user.uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});registered=true;
+        webLeaseSession.setPreference(info.user.uid,true);
+        await webLeaseSession.activate(info.user.uid);registered=false;
+        await renderNotifications(notificationsHost,info);
+      }catch(err){
+        if(registered){webLeaseSession.setPreference(info.user.uid,false);await notificationRegistrationOwner.disable({uid:info.user.uid}).catch(()=>{});}
+        note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;enable.disabled=false;enable.textContent="Enable Notifications";}};
+    disable.onclick=async()=>{disable.disabled=true;disable.textContent="Turning off…";let rollbackPreference=false;try{
+        webLeaseSession.setPreference(info.user.uid,false);rollbackPreference=true;
+        const outcome=await webLeaseSession.logout(info.user.uid);
+        if(!outcome?.stopped)throw new Error(NOTIFICATION_TURN_OFF_UNCONFIRMED_MESSAGE);
+        // Also remove a pre-lease (legacy) registration so Turn Off stops every delivery path.
+        await notificationRegistrationOwner.disable({uid:info.user.uid});
+        rollbackPreference=false;
+        await renderNotifications(notificationsHost,info);
+      }catch(err){if(rollbackPreference)webLeaseSession.setPreference(info.user.uid,true);note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;disable.disabled=false;disable.textContent="Turn Off Notifications";}};
   }catch(err){card.innerHTML=`<h2>Notifications</h2><p class="warning-note">${esc(err?.message||String(err))}</p>`;}
 }
 

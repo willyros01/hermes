@@ -1,3 +1,41 @@
+## 2026-10-11 main-3 <- ios shared-functionality synchronization (Claude; ios unchanged)
+
+- Watermark: ios 1fad78a (1.1.77). main-3 base 657705d. Changes made on main-3 ONLY; no blind merge.
+- Taken verbatim from ios (shared code / single shared backend):
+  - notification-lease-session.js (bounded 3-attempt revoke, retained lease, finish unconfirmed turn-off);
+  - firebase.js (E2EE v3 required at the direct-message write owner);
+  - firestore.rules (= live ruleset 5975ff6d: E2EE-v3-only direct creates, no member create during group deletion);
+  - functions/** (30-day lease, revoke tombstone, lease callables and tests);
+  - biometric-platform-adapter.js + local-security.js (biometric detection via the adapter);
+  - rules tests, direct-message-basic-path, platform-runtime and session tests.
+- Hand-merged into main-3's own web lease path (settings-lifecycle.js, app.js):
+  - legacy/non-v3 direct rows labelled with the E2EE v3 warning;
+  - the Settings sign-out button shows refusals;
+  - web sign-out is refused while offline or until the lease revoke is confirmed, and also removes any
+    pre-lease registration, so a signed-out browser gets no notifications;
+  - Enable / Turn Off commit only after server confirmation, otherwise roll back
+    (Turn Off now also removes a legacy registration);
+  - preference recovery cannot undo an unfinished turn-off;
+  - a retained lease is finished even if browser permission changed.
+- Kept main-3-only on purpose (web, ahead of ios):
+  - background-platform-adapter.js (a failed web registration does not poison retry);
+  - startup-platform-adapter.js (web startup failure/retry presentation);
+  - main-3 red-ring branding (icons, logo, styles comment);
+  - renewWebNotificationLease naming;
+  - service-worker SHELL_REVISION main3-ios-parity-20261011.
+- Version 1.1.77 (functional parity with ios 1.1.77).
+- Tests: notification-token-lease.test.mjs (main-3 web variant, 23/23; cases 9b/10a assert the web path and
+  fail on the previous main-3 code) added to main3-notification-lease.yml; all 123 locally runnable main-3
+  workflow steps pass. Emulator rules suites, Playwright smoke and the functions scaffold need CI
+  (npm registry blocked locally).
+- Suggested for ios later (NOT done; ios untouched): the background-adapter retry fix.
+- Device acceptance on web (Mac Chrome, iPad Safari) still required:
+  - offline sign-out refused;
+  - Turn Off while offline stays On with a message;
+  - sign-out stops notifications;
+  - sender-name toggle;
+  - E2EE warning on legacy rows.
+
 ## 2026-10-09 DOCUMENTATION RECONCILIATION — main-3 / ios (documentation only)
 
 - The active reconciliation branches are `main-3` (web candidate) and `ios` (Capacitor candidate); `main` is protected and must not be modified by this work. `main2` is a distinct historical branch, not an alias for `main-3`.
