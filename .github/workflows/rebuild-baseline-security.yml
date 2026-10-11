@@ -88,6 +88,9 @@ jobs:
       - {name: Firebase App Check client integration, run: npm run test:firebase-app-check}
       - {name: FCM N2 ownership foundation, run: npm run test:notification-n2-foundation}
       - {name: Notification device Firestore rules, run: npm run emulator:test:notification-rules}
+      - {name: Abuse report Firestore rules, run: npm run emulator:test:abuse-report-rules}
+      - {name: User block Firestore rules, run: npm run emulator:test:user-block-rules}
+      - {name: Account deletion request Firestore rules, run: npm run emulator:test:account-deletion-rules}
       - {name: FCM N3 registration and Settings, run: npm run test:notification-n3}
       - {name: FCM N4 direct background notification, run: node functions/notification/direct-message-notification-core.test.mjs && node notification-n4.test.mjs}
       - {name: FCM N5 notification tap routing, run: npm run test:notification-n5}
