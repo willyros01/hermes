@@ -1,3 +1,24 @@
+## 2026-10-11 — Mandatory ios/main-3 functional equivalence
+
+**Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
+
+After the user-confirmed completion of the current sync, every change on `ios` must be assessed and implemented on `main-3` in the same work item so both versions deliver equivalent functionality. This includes features, fixes, security/privacy behavior, state transitions, error handling and lifecycle behavior. Do not defer the web implementation until a later bulk sync.
+
+Use the existing abstraction/platform-adapter layer: preserve shared feature owners and contracts, and implement browser and native capabilities behind their bounded adapters. The implementation on `main-3` is selected by the required functional outcome, not by copying the iOS patch. Different code or platform presentation is acceptable when it delivers the same operation, result and security guarantees. Do not scatter platform conditionals or create duplicate feature/state/Firebase/E2EE owners.
+
+Native packaging/signing/plugin mechanics may remain iOS-specific, but “native-only” is not an exemption for user-facing behavior. Record the corresponding web behavior or a reasoned no-functional-impact assessment. An unavailable browser capability is an explicit unresolved parity gap; it is not proof of equivalence.
+
+For every iOS change:
+- Record the required behavior and the corresponding `main-3` implementation/adapter boundary.
+- Preserve one-resource/one-owner serialization, deterministic lifecycle results, large fonts and high contrast.
+- Validate the changed functionality and neighboring regressions on both exact branch revisions, including relevant offline/failure/security paths.
+- Record branch commits, tests and remaining device checks in the applicable checklist and cumulative `hermes-memory.txt`.
+- Do not close the change or claim functional equivalence from source presence, a matching diff, or a green build alone. Device-dependent claims require applicable real-device evidence.
+
+`main` remains the protected production web/shared-backend authority. This rule does not authorize blind merges, production promotion, live Firebase changes or a new release. It supersedes older workflow wording that allowed iOS behavior changes to accumulate before web reconciliation.
+
+**Checkpoint:** the user reported the sync complete on 2026-10-11. Independent functional-equivalence audit remains pending; this documentation update does not certify parity.
+
 # FIDUNIO main-3 web retrofit checkpoint
 
 Date: 2026-10-08
