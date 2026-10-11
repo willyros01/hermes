@@ -1,5 +1,4 @@
-name: Hermes daily backup and variance
-
+name: Hermes Firebase backup and variance
 on:
   schedule:
     - cron: "0 7 * * *"
@@ -8,16 +7,62 @@ on:
     branches: [main]
     paths:
       - .github/workflows/hbk.yml
-
+      - .github/scripts/fbk.mjs
+      - .github/scripts/fbk.sh
 permissions:
   contents: read
-
 concurrency:
   group: hermes-daily-backup
   cancel-in-progress: false
-
 jobs:
-  backup:
+  database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check backup passphrase is configured (never print it)
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ "${#BACKUP_PASSPHRASE}" -lt 16 ]; then
+            echo "::error::Set Hermes repository secret BACKUP_PASSPHRASE (at least 16 characters). No database backup has been created."
+            exit 1
+          fi
+      - name: Keyless Google sign-in as read-only database backup helper
+        id: auth
+        uses: google-github-actions/auth@v3.0.0
+        with:
+          workload_identity_provider: projects/130339622893/locations/global/workloadIdentityPools/fidunio-backup/providers/nightly-backup
+          service_account: fidunio-backup@fidunio-fef13.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_lifetime: 1800s
+      - name: Read every Firestore document and subcollection plus sign-in account list
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT: fidunio-fef13
+          BK_NO_QUOTA_HEADER: "1"
+        run: node .github/scripts/fbk.mjs "$RUNNER_TEMP/backup.json"
+      - name: Encrypt, reopen and compare, then store 30 days on backups branch
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: bash .github/scripts/fbk.sh "$RUNNER_TEMP/backup.json"
+      - name: Remove plaintext
+        if: always()
+        run: rm -f "$RUNNER_TEMP/backup.json"
+      - name: Keep nightly schedule enabled
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/hbk.yml/enable"
+  variance:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -25,19 +70,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Back up all fetched branches and tags and verify restoration
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/hbk"
-          git show-ref > "$RUNNER_TEMP/hbk/refs.txt"
-          git bundle create "$RUNNER_TEMP/hbk/hbk.bundle" --all
-          git bundle verify "$RUNNER_TEMP/hbk/hbk.bundle"
-          git clone --mirror "$RUNNER_TEMP/hbk/hbk.bundle" "$RUNNER_TEMP/restore.git"
-          git -C "$RUNNER_TEMP/restore.git" fsck --full
-          git -C "$RUNNER_TEMP/restore.git" show-ref > "$RUNNER_TEMP/restored-refs.txt"
-          diff -u "$RUNNER_TEMP/hbk/refs.txt" "$RUNNER_TEMP/restored-refs.txt"
-          (cd "$RUNNER_TEMP/hbk" && sha256sum hbk.bundle > SHA256SUMS)
       - name: Compare exact main-3 and ios snapshots
         shell: python
         run: |
@@ -45,7 +77,8 @@ jobs:
           from datetime import datetime, timezone
           def git(*args):
               return subprocess.check_output(["git", *args])
-          out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "hbk"
+          out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "hvar"
+          out.mkdir(parents=True, exist_ok=True)
           refs = {name: git("rev-parse", "refs/remotes/origin/" + name).decode().strip()
                   for name in ("main", "main-3", "ios")}
           left, right = refs["main-3"], refs["ios"]
@@ -83,13 +116,12 @@ jobs:
           (out / "hvar.html").write_text('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hermes variance</title><style>body{font:28px/1.6 system-ui;background:#fff;color:#111;margin:24px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style><body><pre>' + html.escape(report) + '</pre></body></html>')
           (out / "hvar.diff").write_bytes(git("diff", "--binary", "--no-ext-diff", left, right))
           (out / "meta.json").write_text(json.dumps({"captured_utc":stamp,"repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],"branches":refs}, indent=2)+"\n")
-          (out / "restore.txt").write_text("REPOSITORY BACKUP ONLY: tracked Git history, fetched branches and tags.\nNot included: Firebase data, Storage objects, GitHub secrets/settings/issues, or Git LFS object payloads.\nCheck: sha256sum -c SHA256SUMS\nRestore to a NEW local directory: git clone --mirror hbk.bundle hermes.git\nInspect: git -C hermes.git show-ref\nDo not push restored refs over production without a reviewed recovery plan.\n")
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
               summary.write(report)
-      - name: Store verified backup and report for 30 days
+      - name: Store variance report for 30 days
         uses: actions/upload-artifact@v4
         with:
-          name: hbk-${{ github.run_id }}
-          path: ${{ runner.temp }}/hbk/
+          name: hvar-${{ github.run_id }}
+          path: ${{ runner.temp }}/hvar/
           retention-days: 30
           if-no-files-found: error
