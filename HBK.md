@@ -28,4 +28,9 @@ Daily ChatGPT morning summary checks database-job success and actual backups-bra
 
 ## Validation
 Syntax: shell, Node module, workflow YAML and embedded Python passed.
-Fixture integration: encrypted file decrypts byte-identically; failed account export preserves prior backup branch; 30-day retention passed. These are local fixtures only. Live backup status remains pending Google access/passphrase setup and initial/nightly execution evidence.
+Fixture integration: encrypted file decrypts byte-identically; failed account export preserves prior backup branch; 30-day retention passed. These are local fixtures only. Live backup and saved-file readback passed; see the verified checkpoint below.
+
+
+## Live backup/readback verified — 2026-10-11
+
+Google helper setup completed in the user's Cloud Shell (final verification passed after transient IAM retries). User configured Hermes Actions repository secret BACKUP_PASSPHRASE. Initial GitHub database backup run 38147649733 succeeded. Stronger saved-file readback run https://github.com/willyros01/hermes/actions/runs/38147705757 verified 977 Firestore documents, 5 user documents and 5 sign-in accounts. It encrypted the export, reopened/compared it, saved fidunio-2026-10-11.json.gpg on backups, cloned the actual GitHub-saved file back, decrypted it and compared byte-for-byte with the original export. READBACK PASSED is in the job log. Saved file: https://github.com/willyros01/hermes/blob/backups/fidunio-2026-10-11.json.gpg (179452 bytes at verification, blob 620d2b41a1053e5c08a35504c75562676bcf04a4). All earlier pending/prerequisite status is superseded. The saved-copy readback test is now permanent in every nightly backup. Daily schedule remains 07:00 UTC and 30-day retention; the backup reads the database and does not restore/mutate it. Plaintext and passphrase were not exposed. This proves readable encrypted backup, not a destructive live restore or atomic point-in-time export.
