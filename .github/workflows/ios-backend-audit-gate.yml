@@ -2,21 +2,39 @@ name: FIDUNIO Live Backend Audit Gate
 on:
   push:
     branches: [ios]
-  workflow_dispatch:
 permissions:
   contents: read
+  id-token: write
 jobs:
   audit:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/ios'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Require independent live-backend audit evidence
+      - name: Checkout audited exact commit and source baseline
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Authenticate read-only live audit identity using GitHub OIDC
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER || 'projects/130339622893/locations/global/workloadIdentityPools/fidunio-github-audit/providers/hermes-ios-audit' }}
+          service_account: ${{ vars.WIF_SA || 'fidunio-ci-audit@fidunio-fef13.iam.gserviceaccount.com' }}
+          token_format: access_token
+      - name: Configure Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: fidunio-fef13
+      - name: Audit live Firebase against checked-out SHA
         env:
-          AUDIT_STATUS: ${{ vars.FIDUNIO_LIVE_BACKEND_AUDIT_STATUS }}
-          AUDIT_SHA: ${{ vars.FIDUNIO_LIVE_BACKEND_AUDIT_SHA }}
-          HEAD_SHA: ${{ github.sha }}
-        run: |
-          if [ "$AUDIT_STATUS" != "GREEN" ] || [ "$AUDIT_SHA" != "$HEAD_SHA" ]; then
-            echo "::error::Live backend audit has not been independently certified GREEN for this exact commit. TestFlight upload is blocked."
-            exit 1
-          fi
-          echo "Live backend audit attestation present for exact commit."
+          CLOUDSDK_CORE_PROJECT: fidunio-fef13
+        run: python3 build/live-backend-audit.py
+      - name: Preserve audit evidence (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-backend-audit-${{ github.sha }}
+          path: backend-audit-evidence/
+          if-no-files-found: ignore
+          retention-days: 30
