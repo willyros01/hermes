@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import {getBackgroundPlatformKind,ensurePlatformBackgroundRegistration,subscribePlatformBackgroundMessages} from "../background-platform-adapter.js";
+import {getBackgroundPlatformKind,ensurePlatformBackgroundRegistration,getPlatformBackgroundRegistration,subscribePlatformBackgroundMessages} from "../background-platform-adapter.js";
 import {createPlatformStartupWatchdog} from "../startup-platform-adapter.js";
 import {getNotificationPlatformCapabilities} from "../notification-platform-adapter.js";
 
@@ -10,6 +10,16 @@ assert.equal(getBackgroundPlatformKind(web),"web-service-worker");
 assert.equal(getBackgroundPlatformKind(ios),"ios-native");
 assert.equal(await ensurePlatformBackgroundRegistration({platformOptions:ios}),null);
 assert.doesNotThrow(()=>subscribePlatformBackgroundMessages(()=>{},{platformOptions:ios})());
+// A failed web Service Worker registration must not be cached: the next request retries.
+{
+  let calls=0;const reg={update:async()=>{}};
+  const sw={register:async()=>{calls++;if(calls===1)throw new Error("transient registration failure");return reg;}};
+  Object.defineProperty(globalThis,"navigator",{value:{serviceWorker:sw},configurable:true,writable:true});
+  await assert.rejects(getPlatformBackgroundRegistration({platformOptions:web}),/transient registration failure/);
+  assert.equal(await getPlatformBackgroundRegistration({platformOptions:web}),reg);
+  assert.equal(await getPlatformBackgroundRegistration({platformOptions:web}),reg);
+  assert.equal(calls,2,"success is cached after one retry");
+}
 const inert=createPlatformStartupWatchdog({host:null,platformOptions:web});
 assert.equal(typeof inert.fail,"function");assert.equal(typeof inert.clear,"function");
 assert.deepEqual({...getNotificationPlatformCapabilities(web)},{registrationKind:"web-push",webPush:true,nativeRegistration:false});

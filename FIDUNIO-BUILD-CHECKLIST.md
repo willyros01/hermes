@@ -1,3 +1,12 @@
+## 2026-10-11 — ios 1.1.78: web Service Worker registration retry (functional equivalence with main-3)
+
+- Change: `background-platform-adapter.js` no longer caches a failed web Service Worker registration; the next notification enable/retry registers again. Success remains cached (one registration owner).
+- Source of behavior: main-3 commit `cdedfd9` (already on main-3; main-3 needs no code change for this item).
+- Native iOS: functionally unchanged; native registration returns `null` and never rejects, so the APNs/FCM path is untouched.
+- Test: `build/platform-boundary-adapters.test.mjs` now proves fail -> retry -> cached success; it fails on the previous code.
+- Release identity: version 1.1.78, shell revision `ios-sw-retry-20261011`, TestFlight marker revision 8.
+- Remaining device check: on a web browser served from the ios build, deny/fail the first Service Worker registration, then enable notifications again; it must succeed without a reload.
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
