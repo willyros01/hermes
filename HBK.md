@@ -19,3 +19,6 @@ GitHub may disable public-repository schedules after inactivity; the daily ChatG
 
 ## Validation
 Workflow YAML and embedded Python syntax were checked before publication. The first triggered Actions run must pass restoration, ref equality, report generation and artifact upload before operational success is recorded.
+
+
+First operational verification: run https://github.com/willyros01/hermes/actions/runs/38144110555 at commit ce56516b7c03a1c6cbc58739cc64cfafce873b73 completed SUCCESS on 2026-10-11. Logs confirm a complete-history bundle containing 41 refs, fresh mirror clone, fsck and matching refs. Both report generation and artifact upload passed. Artifact hbk-38144110555 (8,597,526 bytes) expires 2026-11-10. Daily ChatGPT morning backup-status/variance summary is enabled for America/Toronto, around 08:00 starting 2026-10-12. This confirms the first run; future daily results remain subject to verification.
