@@ -98,7 +98,7 @@ for path in run("git","ls-files","-z").split("\0"):
                 r'httpsCallable\s*\(\s*[^,\n]+,\s*["\x27]([A-Za-z]\w+)["\x27]']:
         names.update(re.findall(pat,source))
     # Some clients pass callable names through wrappers and templates.
-    names.update(re.findall(r'["\x27]([A-Za-z]\w+V1)["\x27]',source) & set(EXPECTED))
+    names.update(set(re.findall(r'["\x27]([A-Za-z]\w+V1)["\x27]',source)) & set(EXPECTED))
 # Any previously unknown literal callable must be explicitly classified before release.
 require(names.issubset(EXPECTED),f"unclassified client callable(s): {sorted(names-set(EXPECTED))}")
 listing=json.loads(run("gcloud","functions","list",f"--regions={REGION}","--format=json"))
