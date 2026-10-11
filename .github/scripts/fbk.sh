@@ -86,3 +86,10 @@ git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bo
   commit -q -m "Nightly backup ${TODAY}: ${NDOCS} documents, ${NUSERS} users, ${NACCOUNTS} accounts (${KEPT} nights kept)"
 git push -q --force-with-lease="refs/heads/${BRANCH}:${OLD_SHA}" "${REMOTE}" "HEAD:${BRANCH}" || die "could not store the backup; the earlier backups are unchanged."
 echo "Stored on the ${BRANCH} branch. ${KEPT} nights kept (from ${CUTOFF})."
+
+# 5. Read the actual stored copy back from GitHub and verify it opens identically.
+git clone -q --depth 1 --branch "${BRANCH}" "${REMOTE}" "${WORK}/readback" || die "could not read the saved backup from GitHub."
+gpg_do --decrypt --output "${WORK}/saved-check.json" "${WORK}/readback/${NAME}" || die "the GitHub-saved backup did not open."
+cmp -s "${SRC}" "${WORK}/saved-check.json" || die "the GitHub-saved backup differs from the database export."
+rm -f "${WORK}/saved-check.json"
+echo "READBACK PASSED: GitHub-saved ${NAME} decrypted and matches the database export byte for byte."
