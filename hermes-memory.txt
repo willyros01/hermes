@@ -1,3 +1,8 @@
+## 2026-10-11 — Functional-equivalence record: ios 1.1.78 Service Worker registration retry
+
+- ios now carries main-3's existing retry fix (main-3 `cdedfd9`): a failed web Service Worker registration is not cached, so notification enable/retry registers again.
+- main-3 code already delivers this behavior; no runtime change needed. main-3 now runs the same behavioural test (`build/platform-boundary-adapters.test.mjs`: fail -> retry -> cached success).
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
