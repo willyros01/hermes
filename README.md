@@ -1,3 +1,24 @@
+## 2026-10-11 — Mandatory ios/main-3 functional equivalence
+
+**Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
+
+After the user-confirmed completion of the current sync, every change on `ios` must be assessed and implemented on `main-3` in the same work item so both versions deliver equivalent functionality. This includes features, fixes, security/privacy behavior, state transitions, error handling and lifecycle behavior. Do not defer the web implementation until a later bulk sync.
+
+Use the existing abstraction/platform-adapter layer: preserve shared feature owners and contracts, and implement browser and native capabilities behind their bounded adapters. The implementation on `main-3` is selected by the required functional outcome, not by copying the iOS patch. Different code or platform presentation is acceptable when it delivers the same operation, result and security guarantees. Do not scatter platform conditionals or create duplicate feature/state/Firebase/E2EE owners.
+
+Native packaging/signing/plugin mechanics may remain iOS-specific, but “native-only” is not an exemption for user-facing behavior. Record the corresponding web behavior or a reasoned no-functional-impact assessment. An unavailable browser capability is an explicit unresolved parity gap; it is not proof of equivalence.
+
+For every iOS change:
+- Record the required behavior and the corresponding `main-3` implementation/adapter boundary.
+- Preserve one-resource/one-owner serialization, deterministic lifecycle results, large fonts and high contrast.
+- Validate the changed functionality and neighboring regressions on both exact branch revisions, including relevant offline/failure/security paths.
+- Record branch commits, tests and remaining device checks in the applicable checklist and cumulative `hermes-memory.txt`.
+- Do not close the change or claim functional equivalence from source presence, a matching diff, or a green build alone. Device-dependent claims require applicable real-device evidence.
+
+`main` remains the protected production web/shared-backend authority. This rule does not authorize blind merges, production promotion, live Firebase changes or a new release. It supersedes older workflow wording that allowed iOS behavior changes to accumulate before web reconciliation.
+
+**Checkpoint:** the user reported the sync complete on 2026-10-11. Independent functional-equivalence audit remains pending; this documentation update does not certify parity.
+
 FIDUNIO 1.1.54 GROUP MESSAGE REPLY — 2026-09-13: TODO Item 11 is a deployed device candidate. In an authoritative cloud group, press-and-hold an accepted non-disappearing message and choose Reply. The composer shows the target sender and bounded preview with an explicit cancel control; the outgoing reply carries a versioned reply descriptor entirely inside the existing encrypted group text payload, so Firestore outer schema/rules, group E2EE epochs, Outbox ownership, receipts, notifications, attachments, reactions, deletion and membership authority remain unchanged. Reply-to-disappearing-message preview copying is intentionally disabled so a permanent reply cannot preserve content that is scheduled to disappear. This first candidate supports text replies; attachment sends require sending or cancelling the active reply first. Device acceptance is required on iPhone and iPad before closure.
 
 FIDUNIO 1.1.52 PORTABLE ACCOUNT RECOVERY VAULT — 2026-09-13: TODO Item 2 advances as a complete-recovery deployed device candidate. Settings → Data can create and restore an encrypted `.fidunio` recovery file that survives browser-origin deletion. Opening requires matching authenticated UID, existing six-digit PIN and established server recovery authority. Import reconciles current direct/group access, deleted messages and Outbox IDs; attempted-but-absent sends remain failed and cannot auto-replay. Activation atomically replaces only app state/history/Outbox and rolls back after interruption or failed reread. Auth sessions, PIN verifier, biometrics, FCM tokens/routes and device identity are not restored. No Firebase/backend/rules change is included. Commit `47d864f4a4dd41b1a6b6fe91bb4bc4f290555505` passed full Rebuild Baseline Security Gate `34761472319`; GitHub Pages run `34761471712` succeeded. Destructive iPhone/iPad site-data-loss testing remains required.
