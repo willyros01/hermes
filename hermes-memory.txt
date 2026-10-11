@@ -1,3 +1,13 @@
+## 2026-10-11 — main 1.1.58: E2EE v3 direct-message send guard (user-approved production fix)
+
+- User explicitly approved this change to protected `main` on 2026-10-11 (item 1 of the main-3 sync report).
+- Change: `firebase.js` `sendCloudMessage` refuses any direct message that is not a complete E2EE v3 envelope and has no plaintext write branch. Identical guard already exists on `ios` and `main-3`.
+- Normal behavior is unchanged: the only caller (Outbox) always sends `prepareAccountDirectMessage` output, which is a complete v3 envelope (e2ee 3, kdfVersion 1, key IDs, ciphertext, iv). The guard is client-side defense in depth; the live Firestore rules (deployed via fsr.txt) already deny new non-v3 direct messages.
+- Not changed: `firestore.rules` on `main` still contains the old plaintext direct-message rule and is NOT the live ruleset. Do not deploy rules from `main` without aligning it with the live (ios) rules first.
+- Test: `direct-message-basic-path.test.mjs` asserts the guard and the absence of a plaintext branch.
+- Release identity: version 1.1.58, shell revision `web-e2ee-v3-send-guard-20261011`.
+- Device check: send a direct message from the live web app in both directions; both must arrive and reach Read.
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**

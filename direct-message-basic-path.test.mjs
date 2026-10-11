@@ -8,7 +8,10 @@ const worker=readFileSync(new URL("./service-worker.js",import.meta.url),"utf8")
 
 assert.match(app,/prepareAccountDirectMessage\(\{uid:firebaseUser\.uid,peerUid,conversationId:payload\.conversationId,messageId:payload\.messageId,text:payload\.text,disappearingPurgeVersion:payload\.disappearingPurgeVersion\?\?null\}\)/,"the Outbox owner must prepare one account-encrypted envelope while carrying only outer disappearing activation metadata");
 assert.match(app,/sendCloudMessage\(payload\.conversationId,\{id:payload\.messageId,text:"",\.\.\.encrypted,timeLabel:payload\.time,state:"sent"/,"the Outbox owner must send ciphertext through the existing Firebase owner");
-assert.match(firebase,/else row\.text=message\.text\|\|"";await s\.fsSdk\.setDoc\(ref,row\)/,"Firebase must persist non-E2EE direct text with the fixed message ID");
+// E2EE-v3-only send guard (2026-10-11, parity with ios/main-3): no plaintext or legacy-format direct message may be written.
+assert.doesNotMatch(firebase,/else row\.text=message\.text/,"Firebase must have no plaintext direct-message write branch");
+assert.match(firebase,/if\(message\.e2ee!==3\|\|typeof message\.ciphertext!=="string"\|\|!message\.ciphertext\|\|typeof message\.iv!=="string"\|\|!message\.iv\|\|!message\.senderKeyId\|\|!message\.recipientKeyId\|\|!message\.kdfVersion\)throw new Error\("Direct message encryption is required before sending\."\);/,"Firebase must refuse any direct message that is not a complete E2EE v3 envelope");
+assert.match(firebase,/await s\.fsSdk\.setDoc\(ref,row\)/,"Firebase must persist the fixed direct-message document ID");
 assert.match(rules,/request\.resource\.data\.text is string&&request\.resource\.data\.text\.size\(\)>0&&request\.resource\.data\.text\.size\(\)<=10000&&!\("e2ee" in request\.resource\.data\)/,"current rules must already authorize bounded authenticated direct text");
 assert.match(app,/if\(m\.e2ee===3\)/,"historical account-encrypted messages must remain readable");
 assert.doesNotMatch(app,/Encryption key changed since first seen/,"ordinary chat must not show key-change warnings");
