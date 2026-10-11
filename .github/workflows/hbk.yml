@@ -1,0 +1,95 @@
+name: Hermes daily backup and variance
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/hbk.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-daily-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Back up all fetched branches and tags and verify restoration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hbk"
+          git show-ref > "$RUNNER_TEMP/hbk/refs.txt"
+          git bundle create "$RUNNER_TEMP/hbk/hbk.bundle" --all
+          git bundle verify "$RUNNER_TEMP/hbk/hbk.bundle"
+          git clone --mirror "$RUNNER_TEMP/hbk/hbk.bundle" "$RUNNER_TEMP/restore.git"
+          git -C "$RUNNER_TEMP/restore.git" fsck --full
+          git -C "$RUNNER_TEMP/restore.git" show-ref > "$RUNNER_TEMP/restored-refs.txt"
+          diff -u "$RUNNER_TEMP/hbk/refs.txt" "$RUNNER_TEMP/restored-refs.txt"
+          (cd "$RUNNER_TEMP/hbk" && sha256sum hbk.bundle > SHA256SUMS)
+      - name: Compare exact main-3 and ios snapshots
+        shell: python
+        run: |
+          import subprocess, pathlib, os, html, json
+          from datetime import datetime, timezone
+          def git(*args):
+              return subprocess.check_output(["git", *args])
+          out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "hbk"
+          refs = {name: git("rev-parse", "refs/remotes/origin/" + name).decode().strip()
+                  for name in ("main", "main-3", "ios")}
+          left, right = refs["main-3"], refs["ios"]
+          # Direct tree comparison, not GitHub's three-dot merge-base comparison.
+          raw = git("diff", "--no-renames", "--name-status", "-z", left, right).split(b"\0")
+          native, shared, docs = [], [], []
+          for i in range(0, len(raw)-1, 2):
+              status, path = raw[i].decode(), raw[i+1].decode("utf-8", "replace")
+              row = (status, path)
+              if path.startswith(("build/", "resources/", "ios/", "www/")) or path in (
+                  "capacitor.config.json", "package.json", "package-lock.json"):
+                  native.append(row)
+              elif path.startswith((".github/", "test/", "tests/")) or path.endswith((".md", ".txt")):
+                  docs.append(row)
+              else:
+                  shared.append(row)
+          stamp = datetime.now(timezone.utc).isoformat()
+          lines = ["# Hermes code variance", "", "Captured: " + stamp, "",
+                   "Exact snapshots: main-3 -> ios (A = only in ios; D = only in main-3; M = changed).",
+                   "Groups are review aids; native/build differences can also affect shared behavior.",
+                   "This report measures source differences, not functional correctness.", ""]
+          for name, sha in refs.items():
+              lines.append("- " + name + ": " + sha)
+          for title, rows in (("Shared/application candidates", shared),
+                              ("Native/package/build candidates", native),
+                              ("Documentation, tests and CI", docs)):
+              lines.extend(["", "## " + title + " (" + str(len(rows)) + ")", ""])
+              if not rows:
+                  lines.append("No differences.")
+              for status, path in rows:
+                  lines.append("- " + status + ": " + path)
+          lines.extend(["", "## Diff totals", "", git("diff", "--shortstat", left, right).decode().strip() or "Identical trees."])
+          report = "\n".join(lines) + "\n"
+          (out / "hvar.md").write_text(report)
+          (out / "hvar.html").write_text('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hermes variance</title><style>body{font:28px/1.6 system-ui;background:#fff;color:#111;margin:24px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style><body><pre>' + html.escape(report) + '</pre></body></html>')
+          (out / "hvar.diff").write_bytes(git("diff", "--binary", "--no-ext-diff", left, right))
+          (out / "meta.json").write_text(json.dumps({"captured_utc":stamp,"repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],"branches":refs}, indent=2)+"\n")
+          (out / "restore.txt").write_text("REPOSITORY BACKUP ONLY: tracked Git history, fetched branches and tags.\nNot included: Firebase data, Storage objects, GitHub secrets/settings/issues, or Git LFS object payloads.\nCheck: sha256sum -c SHA256SUMS\nRestore to a NEW local directory: git clone --mirror hbk.bundle hermes.git\nInspect: git -C hermes.git show-ref\nDo not push restored refs over production without a reviewed recovery plan.\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(report)
+      - name: Store verified backup and report for 30 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: hbk-${{ github.run_id }}
+          path: ${{ runner.temp }}/hbk/
+          retention-days: 30
+          if-no-files-found: error
