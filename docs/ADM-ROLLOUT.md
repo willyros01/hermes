@@ -22,3 +22,7 @@ Only `willyros01/hermes` branch `Android` is changed. Production `main`, `ios`, 
 6. Verify live function revisions, return paths, direct/group ADM tokens, iOS/web APNs/FCM delivery, block-user behavior, and Fire notification-to-PIN navigation on physical devices. If needed, restore the backed-up function source and config; verify both revisions and receipt again.
 
 **Status:** Private secret transfer PASS. New live ADM sender is **NOT DEPLOYED**. Fresh backup **NOT VERIFIED**. Physical Fire ADM acceptance **NOT TESTED**.
+
+## 14 October 2026 — new in-Firebase rollback package
+
+Use `build/fb.txt` to make a **fresh verified backup INSIDE private versioned Firebase-project Cloud Storage**, rather than the older local-only `build/fbak.txt` approach. Use `build/fa.txt` only after checking `BACKUP PASS`, and retain `build/fr.txt` for restoring the archived deployed source and ADM secret-access bindings. All three scripts are committed solely to `Android`; none has been executed yet. See `docs/ADM-LIVE.md` for the exact conditions. Any prior manual deployment approval gate is satisfied by the owner’s explicit 2026-10-14 instruction to finish ADM activation with Firebase backups and rollback, but verification gates remain mandatory.
