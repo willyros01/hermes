@@ -14,7 +14,7 @@ Owner authorized activation of Amazon ADM notification sending for FIDUNIO, incl
 
 ## Production backup gate
 
-A prepared Cloud Shell script, `fb.txt`, independently reads both live functions `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1` from Firebase project `fidunio-fef13` / project number `130339622893`, region `us-central1`; fails if either is not ACTIVE, has unexpected runtime/trigger/identity, contains an ADM secret mount already, or has no retrievable deployed source.
+A prepared Cloud Shell script, `ab2614.txt`, independently reads both live functions `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1` from Firebase project `fidunio-fef13` / project number `130339622893`, region `us-central1`; fails if either is not ACTIVE, has unexpected runtime/trigger/identity, contains an ADM secret mount already, or has no retrievable deployed source.
 
 It saves original `gcloud functions describe` JSON, both actual deployed source archives, pre-change ADM Secret Manager IAM metadata (no secret values), and checksums. It creates or validates a **private, public-access-prevention-enforced, uniform-access, versioned bucket** `gs://fidunio-fef13-notify-backup-130339622893`, uploads all backups, copies both source and config archives back and checks byte equality, then writes a private `latest.txt` marker. No production function, rules or data writes occur during backup.
 
@@ -22,15 +22,15 @@ Do not claim backup complete until Cloud Shell prints `BACKUP PASS` and identifi
 
 ## Activation gate
 
-Prepared `fa.txt` requires the actual GCS backup and SHA-256 verification, confirms neither original live revision changed, fetches exact Android source commit `e0bf291c8d5e6a3a234bca73b6935bb46e1cabce`, compares the source against baseline, and runs all notification unit tests. Only after these checks does it grant `fidunio-notification@fidunio-fef13.iam.gserviceaccount.com` Secret Manager accessor on **exactly two** ADM secrets. It then deploys only the above two existing Gen2 Firestore functions, preserving original triggers and service account with added ADM secrets. A failed check stops without proceeding further; a failed partial deployment requires rollback before release.
+Prepared `ad2614.txt` requires the actual GCS backup and SHA-256 verification, confirms neither original live revision changed, fetches exact Android source commit `e0bf291c8d5e6a3a234bca73b6935bb46e1cabce`, compares the source against baseline, and runs all notification unit tests. Only after these checks does it grant `fidunio-notification@fidunio-fef13.iam.gserviceaccount.com` Secret Manager accessor on **exactly two** ADM secrets. It then deploys only the above two existing Gen2 Firestore functions, preserving original triggers and service account with added ADM secrets. A failed check stops without proceeding further; a failed partial deployment requires rollback before release.
 
 **Do not deploy** by a global `firebase deploy --only functions` or from `main`/`ios` checkout.
 
 ## Rollback gate
 
-Prepared `fr.txt` reads `latest.txt` in the same private Firebase bucket, checks all SHA-256 digests, compares live identities and event filters to baseline, and uses the archived **pre-ADM source** to restore each function with only its ADM secret mounts removed. It verifies ACTIVE state, trigger, runtime, service account and absence of ADM mounts. After both functions restore it removes the new runtime accessor bindings; the private backup bucket and secret versions remain preserved. This operation needs an authorized Cloud Shell session.
+Prepared `ar2614.txt` reads `latest.txt` in the same private Firebase bucket, checks all SHA-256 digests, compares live identities and event filters to baseline, and uses the archived **pre-ADM source** to restore each function with only its ADM secret mounts removed. It verifies ACTIVE state, trigger, runtime, service account and absence of ADM mounts. After both functions restore it removes the new runtime accessor bindings; the private backup bucket and secret versions remain preserved. This operation needs an authorized Cloud Shell session.
 
-The scripts are installed and source-verified in the Hermes `Android` branch at `build/fb.txt` (backup), `build/fa.txt` (activation) and `build/fr.txt` (rollback). Their Bash and embedded Python syntax were checked offline, but they have **not** been executed in Firebase. **No backup, deployment, or physical-device PASS may be claimed yet.**
+The scripts are installed and source-verified in the Hermes `Android` branch at `build/ab2614.txt` (backup), `build/ad2614.txt` (activation) and `build/ar2614.txt` (rollback). Their Bash and embedded Python syntax were checked offline, but they have **not** been executed in Firebase. **No backup, deployment, or physical-device PASS may be claimed yet.**
 
 ## Post-deployment device acceptance
 
@@ -40,3 +40,7 @@ The scripts are installed and source-verified in the Hermes `Android` branch at 
 4. Inspect Cloud Functions active revisions and errors for both functions. If regression appears, immediately use the rollback procedure and retest both existing web/iOS paths.
 
 **As of this handoff:** scripts prepared and syntax checked locally; Firebase backup not run; production ADM activation not run.
+
+## File naming (14 October 2026)
+
+Use **`ab2614.txt`** for backup, **`ad2614.txt`** for ADM activation, and **`ar2614.txt`** for rollback. These unique short filenames avoid the prior `fb.txt`, `fa.txt`, `fr.txt` collisions in the owner's existing Google Cloud Shell home directory. The older repository copies are superseded and must not be uploaded or executed for this rollout. Back up first and verify `BACKUP PASS` before running activation. Never overwrite an existing Cloud Shell file when uploading.
