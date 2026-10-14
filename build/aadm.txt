@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# FIDUNIO Amazon ADM certificate identity — READ ONLY.
+# Upload this file into Google Cloud Shell, then: bash aadm.txt
+set -Eeuo pipefail
+umask 077
+KEY="$HOME/fidunio-sign/fidunio.p12"
+PASS="$HOME/fidunio-sign/fpas.txt"
+test -s "$KEY" && test -s "$PASS" || {
+  echo "STOP: original FIDUNIO keystore/password missing in ~/fidunio-sign.";exit 1;
+}
+echo "FIDUNIO ADM registration identity (no private key displayed)"
+echo "Package: io.github.willyros01.fidunio"
+echo "Signed APK run: 38596933723"
+CERT="$(keytool -list -v -storetype PKCS12 -keystore "$KEY" \
+  -storepass "$(cat "$PASS")" -alias fidunio)"
+MD5="$(printf '%s\n' "$CERT" | sed -n 's/^[[:space:]]*MD5: *//p' | head -1)"
+SHA="$(printf '%s\n' "$CERT" | sed -n 's/^[[:space:]]*SHA256: *//p' | head -1)"
+test -n "$MD5" && test -n "$SHA" || { echo "STOP: signing certificate hashes not found.";exit 1; }
+NORMALIZED="$(printf '%s' "$SHA" | tr -d ':' | tr A-F a-f)"
+test "$NORMALIZED" = "fbff41947e477e0b4df65bd741b550d7b30d7b18636a47c10853d789c4937a1d" || {
+  echo "STOP: certificate differs from the permanent signed FIDUNIO APK."; exit 1;
+}
+echo "MD5: $MD5"
+echo "SHA-256: $SHA"
+echo "RESULT: PASS — hashes match permanent FIDUNIO signing identity."
+echo "Use THIS package + MD5 + SHA-256 to create FIDUNIO's API key in Amazon Developer Console."
+echo "DO NOT use Wire's package, API key, or sender credentials."
