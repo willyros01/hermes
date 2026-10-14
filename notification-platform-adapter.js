@@ -13,6 +13,31 @@ function nativeMessagingPlugin(){
   return globalThis.Capacitor?.Plugins?.FirebaseMessaging||null;
 }
 
+// ADM is a separate transport. Do not replace or hijack Google's FCM plugin.
+let selectedNativeProvider="fcm";
+let pendingAdmToken="";
+function admPlugin(){
+  if(!isNativeAndroidRuntime())return null;
+  return globalThis.Capacitor?.Plugins?.FidunioAdm||null;
+}
+async function activeAdm(){
+  const plugin=admPlugin();
+  if(!plugin?.available)return null;
+  try{
+    const status=await plugin.available();
+    if(status?.supported===true&&status?.provider==="adm"){
+      selectedNativeProvider="adm";
+      return plugin;
+    }
+  }catch(error){console.warn("FIDUNIO ADM capability check failed",error);}
+  return null;
+}
+export function getNativeNotificationLeasePlatform(){
+  return isNativeAndroidRuntime()
+    ?selectedNativeProvider==="adm"?"android-adm":"android-native"
+    :"ios-native";
+}
+
 function permissionValue(value){
   const text=String(value||"").toLowerCase();
   if(text==="granted"||text==="denied")return text;
@@ -37,6 +62,7 @@ export function getNotificationPlatformCapabilities(platformOptions){
 }
 
 export async function getNativeNotificationCapability(){
+  if(await activeAdm())return{supported:true,permission:"default"};
   const plugin=nativeMessagingPlugin();
   if(!plugin?.isSupported||!plugin?.checkPermissions)return{supported:false,permission:"unsupported"};
   try{
@@ -50,6 +76,14 @@ export async function getNativeNotificationCapability(){
 }
 
 export async function requestNativeNotificationPermission(){
+  const adm=await activeAdm();
+  if(adm){
+    const response=await adm.register();
+    if(response?.provider!=="adm"||!String(response?.token||"").trim())
+      throw new Error("ADM registration returned no valid token.");
+    pendingAdmToken=response.token;
+    return "granted";
+  }
   const plugin=nativeMessagingPlugin();
   if(!plugin?.requestPermissions)throw new Error("Native notification adapter is unavailable.");
   const result=await plugin.requestPermissions();
@@ -57,6 +91,13 @@ export async function requestNativeNotificationPermission(){
 }
 
 export async function getNativeMessagingToken(){
+  const adm=await activeAdm();
+  if(adm){
+    if(pendingAdmToken){const token=pendingAdmToken;pendingAdmToken="";return token;}
+    const response=await adm.register({silent:true});
+    if(response?.provider!=="adm")throw new Error("ADM returned wrong provider.");
+    return String(response?.token||"").trim();
+  }
   const plugin=nativeMessagingPlugin();
   if(!plugin?.getToken)throw new Error("Native Firebase Messaging is unavailable.");
   const result=await plugin.getToken();
@@ -64,6 +105,12 @@ export async function getNativeMessagingToken(){
 }
 
 export async function deleteNativeMessagingToken(){
+  if(await activeAdm()){
+    // ADM does not expose Firebase's local deleteToken action. Authenticated
+    // lease revocation, confirmed by the server, owns delivery cancellation.
+    pendingAdmToken="";
+    return true;
+  }
   const plugin=nativeMessagingPlugin();
   if(!plugin?.deleteToken)return false;
   await plugin.deleteToken();
@@ -92,21 +139,36 @@ export function subscribeNativeMessagingTokens(handler){
 
 export function subscribeNativeNotificationRoutes(handler){
   if(typeof handler!=="function")throw new Error("Native notification route handler is required.");
-  const plugin=nativeMessagingPlugin();
-  if(!plugin?.addListener)return()=>{};
-  let active=true,handle=null;
-  Promise.resolve(plugin.addListener("notificationActionPerformed",event=>{
-    if(!active)return;
-    const route=routeFromNativeEvent(event);
-    if(route)handler({type:FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,route},event);
-  })).then(value=>{handle=value;if(!active)handle?.remove?.();}).catch(error=>console.warn("FIDUNIO native notification listener failed",error));
-  return()=>{active=false;try{handle?.remove?.();}catch{}};
+  const fcm=nativeMessagingPlugin();
+  const adm=admPlugin();
+  let active=true;
+  const handles=[];
+  const add=(plugin)=>{if(!plugin?.addListener)return;
+    Promise.resolve(plugin.addListener("notificationActionPerformed",event=>{
+      if(!active)return;
+      const route=routeFromNativeEvent(event);
+      if(route)handler({type:FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,route},event);
+    })).then(handle=>{if(active)handles.push(handle);else handle?.remove?.();})
+      .catch(error=>console.warn("FIDUNIO notification action listener failed",error));
+  };
+  add(fcm);
+  add(adm);
+  // On cold start, the activity intent may precede all JavaScript listeners.
+  // Read it exactly once; the native bridge clears consumed route extras.
+  if(adm?.takeRoute){
+    Promise.resolve(adm.takeRoute()).then(routeData=>{
+      if(!active)return;
+      const route=normalizeNotificationRoute(routeData);
+      if(route)handler({type:FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,route},routeData);
+    }).catch(error=>console.warn("FIDUNIO ADM pending route failed",error));
+  }
+  return()=>{active=false;for(const handle of handles)try{handle?.remove?.();}catch{}};
 }
 
 export const NOTIFICATION_PLATFORM_ADAPTER_V1=Object.freeze({
   sharedOwner:"notification-registration",
   webTransport:"web-push-service-worker",
   iosTransport:"apns-fcm-capacitor",
-  androidTransport:"fcm-capacitor",
+  androidTransport:"fcm-capacitor-or-amazon-adm-a3l",
   fakeServiceWorker:false,
 });
