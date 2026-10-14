@@ -27,7 +27,7 @@ export function isNativeAndroidRuntime(options){return detectFidunioPlatform(opt
 export function isNativeMobileRuntime(options){return isNativeIOSRuntime(options)||isNativeAndroidRuntime(options);}
 export function shouldUseWebServiceWorker(options){return !isNativeMobileRuntime(options);}
 export function shouldUseWebPush(options){return !isNativeMobileRuntime(options);}
-export function shouldUseWebAppCheck(options){return !isNativeIOSRuntime(options);}
+export function shouldUseWebAppCheck(options){return !isNativeMobileRuntime(options);}
 export function fidunioPublicUrl(relative="./",{currentHref=globalThis.location?.href||FIDUNIO_PUBLIC_WEB_BASE,...platformOptions}={}){
   const base=isNativeMobileRuntime(platformOptions)?FIDUNIO_PUBLIC_WEB_BASE:currentHref;
   return new URL(relative,base);
