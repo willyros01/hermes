@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# FIDUNIO — restore pre-ADM production direct/group notification functions.
+# This script DOES change the live shared Firebase backend; run only for rollback.
+# Upload to Cloud Shell: bash fr.txt
+set -Eeuo pipefail
+umask 077
+P='fidunio-fef13'
+N='130339622893'
+R='us-central1'
+S='fidunio-notification@fidunio-fef13.iam.gserviceaccount.com'
+B='gs://fidunio-fef13-notify-backup-130339622893'
+D="$HOME/fidunio-restore-$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$D"
+echo 'FIDUNIO ADM ROLLBACK — TWO NOTIFICATION FUNCTIONS ONLY'
+test "$(gcloud projects describe "$P" --format='value(projectNumber)')" = "$N" || { echo 'STOP: incorrect Firebase project'; exit 1; }
+gcloud storage cp "$B/latest.txt" "$D/latest.txt" --project="$P" --quiet >/dev/null
+PREFIX="$(cat "$D/latest.txt")"
+[[ "$PREFIX" =~ ^gs://fidunio-fef13-notify-backup-130339622893/[0-9]{8}T[0-9]{6}Z$ ]] || { echo 'STOP: invalid Firebase backup marker'; exit 1; }
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  for E in .json .tar.gz; do gcloud storage cp "$PREFIX/$F$E" "$D/$F$E" --project="$P" --quiet >/dev/null; done
+done
+for K in FIDUNIO_ADM_CLIENT_ID FIDUNIO_ADM_CLIENT_SECRET; do
+  for E in .info.json .iam.json; do gcloud storage cp "$PREFIX/$K$E" "$D/$K$E" --project="$P" --quiet >/dev/null; done
+done
+gcloud storage cp "$PREFIX/SHA256SUMS.txt" "$D/SHA256SUMS.txt" --project="$P" --quiet >/dev/null
+(cd "$D" && sha256sum -c SHA256SUMS.txt >/dev/null)
+echo 'PASS: Verified live-before-ADM source and metadata hashes'
+
+# Skip functions never deployed; restore the exact saved source of changed ones.
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  gcloud functions describe "$F" --gen2 --region="$R" --project="$P" --format=json > "$D/$F.now.json"
+  if python3 - "$D/$F.json" "$D/$F.now.json" <<'PY'
+import json,sys
+b,n=(json.load(open(f)) for f in sys.argv[1:])
+sys.exit(0 if b['serviceConfig']['revision']==n['serviceConfig']['revision'] else 1)
+PY
+  then
+    echo "UNCHANGED: $F, no rollback needed"
+    continue
+  fi
+  python3 - "$D/$F.json" "$D/$F.now.json" "$F" <<'PY'
+import json,sys
+b,n=(json.load(open(f)) for f in sys.argv[1:3]);name=sys.argv[3]
+assert b['state']=='ACTIVE',name+' original was not active'
+assert n['serviceConfig']['serviceAccountEmail']==b['serviceConfig']['serviceAccountEmail'],name+' unexpected runtime identity'
+assert n['eventTrigger']['eventType']==b['eventTrigger']['eventType'],name+' trigger kind changed'
+assert n['eventTrigger']['eventFilters']==b['eventTrigger']['eventFilters'],name+' event filters changed'
+assert n['buildConfig']['entryPoint']==b['buildConfig']['entryPoint'],name+' entrypoint changed'
+assert n['buildConfig']['runtime']==b['buildConfig']['runtime'],name+' runtime changed'
+PY
+  mkdir -p "$D/$F.source"
+  tar -xzf "$D/$F.tar.gz" -C "$D/$F.source"
+  test -s "$D/$F.source/index.mjs" || { echo "STOP: missing archived source for $F"; exit 1; }
+  echo "RESTORING EXACT DEPLOYED SOURCE: $F"
+  gcloud functions deploy "$F" --gen2 --project="$P" --region="$R" \
+    --source="$D/$F.source" --entry-point="$F" --service-account="$S" \
+    --remove-secrets=FIDUNIO_ADM_CLIENT_ID,FIDUNIO_ADM_CLIENT_SECRET --quiet
+  gcloud functions describe "$F" --gen2 --project="$P" --region="$R" --format=json > "$D/$F.restored.json"
+  python3 - "$D/$F.json" "$D/$F.restored.json" "$F" <<'PY'
+import json,sys
+b,r=(json.load(open(f)) for f in sys.argv[1:3]);name=sys.argv[3]
+assert r['state']=='ACTIVE',name+' restore failed'
+assert r['serviceConfig']['serviceAccountEmail']==b['serviceConfig']['serviceAccountEmail'],name+' identity mismatch'
+assert r['eventTrigger']['eventType']==b['eventTrigger']['eventType'],name+' event kind mismatch'
+assert r['eventTrigger']['eventFilters']==b['eventTrigger']['eventFilters'],name+' trigger filters mismatch'
+assert r['buildConfig']['runtime']==b['buildConfig']['runtime'],name+' runtime mismatch'
+assert r['buildConfig']['entryPoint']==b['buildConfig']['entryPoint'],name+' entrypoint mismatch'
+assert not {'FIDUNIO_ADM_CLIENT_ID','FIDUNIO_ADM_CLIENT_SECRET'} & {x.get('key') for x in r['serviceConfig'].get('secretEnvironmentVariables',[])},name+' unexpected ADM secret mount'
+print('PASS: '+name+' restored original source and deployment contract')
+PY
+done
+# Both functions have passed restore validation before private runtime access is removed.
+for K in FIDUNIO_ADM_CLIENT_ID FIDUNIO_ADM_CLIENT_SECRET; do
+  gcloud secrets remove-iam-policy-binding "$K" --project="$P" \
+    --member="serviceAccount:$S" --role=roles/secretmanager.secretAccessor --quiet >/dev/null
+  echo "REMOVED ADM runtime secret access: $K"
+done
+printf '\nROLLBACK PASS — existing web/iOS Firebase notification functions restored\nBackup: %s\n' "$PREFIX"
+echo 'No Firebase rules or Firestore documents touched. Retained private backup bucket.'
