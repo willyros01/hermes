@@ -59,6 +59,7 @@ jobs:
       FIDUNIO_ANDROID_KEYSTORE_BASE64: ${{ secrets.FIDUNIO_ANDROID_KEYSTORE_BASE64 }}
       FIDUNIO_ANDROID_PASSWORD: ${{ secrets.FIDUNIO_ANDROID_PASSWORD }}
       FIDUNIO_GOOGLE_SERVICES_JSON_B64: ${{ secrets.FIDUNIO_GOOGLE_SERVICES_JSON_B64 }}
+      FIDUNIO_ADM_API_KEY: ${{ secrets.FIDUNIO_ADM_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Require owner-controlled signing and Firebase Android registration
@@ -70,6 +71,10 @@ jobs:
           fi
           if [ -z "$FIDUNIO_GOOGLE_SERVICES_JSON_B64" ]; then
             echo "::error title=Android Firebase registration required::Add FIDUNIO_GOOGLE_SERVICES_JSON_B64 to Actions secrets for the existing fidunio-fef13 project."
+            exit 1
+          fi
+          if [ -z "$FIDUNIO_ADM_API_KEY" ]; then
+            echo "::error title=Amazon ADM app identity required::Add FIDUNIO_ADM_API_KEY for package io.github.willyros01.fidunio signed by the existing permanent APK certificate. Do not publish FCM-only code as ADM."
             exit 1
           fi
       - uses: actions/setup-node@v4
