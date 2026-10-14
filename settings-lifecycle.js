@@ -62,6 +62,7 @@ import {
   getNativeMessagingToken,
   deleteNativeMessagingToken,
   subscribeNativeMessagingTokens,
+  getNativeNotificationLeasePlatform,
 } from "./notification-platform-adapter.js";
 
 let mutationTail=Promise.resolve();
@@ -422,7 +423,7 @@ const notificationLeaseSession=createNotificationLeaseSession({
   getToken:getNativeMessagingToken,
   claim:claimCloudNotificationLease,
   revoke:revokeCloudNotificationLease,
-  getPlatform:()=>notificationTransport.nativePlatform||"ios-native",
+  getPlatform:getNativeNotificationLeasePlatform,
 });
 let notificationTokenMaintenanceStop=()=>{};
 let notificationTokenMaintenanceGeneration=0;
