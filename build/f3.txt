@@ -104,5 +104,8 @@ print("GitHub Actions secret NAME: FIDUNIO_GOOGLE_SERVICES_JSON_B64")
 print("GitHub Actions secret VALUE is the whole contents of ~/fidunio-fb/f3.txt")
 print("To copy the value in Cloud Shell: cat ~/fidunio-fb/f3.txt")
 print("The value has NOT been uploaded to GitHub.")
+print("--- COPY SECRET 3 VALUE FROM THE NEXT LINE ---")
+print(base64.b64encode(config).decode())
+print("--- END SECRET 3 VALUE ---")
 PY
 unset FIDUNIO_FB_TOKEN
