@@ -1,10 +1,10 @@
 {
   "workflow": "FIDUNIO Android signed APK",
   "branch": "Android",
-  "run_id": 38642098793,
+  "run_id": 38650650435,
   "run_attempt": "1",
-  "run_url": "https://github.com/willyros01/hermes/actions/runs/38642098793",
-  "source_sha": "48dae08a578137ca95a3bfccc27bd01e07631733",
+  "run_url": "https://github.com/willyros01/hermes/actions/runs/38650650435",
+  "source_sha": "df92666b322a3e6f5c9810d7082a192dade6ac08",
   "outcome": "success",
   "artifact_name": "fidunio-android-signed-apk",
   "publication": {
@@ -12,7 +12,7 @@
     "state": "queued-for-cuberoot-publisher",
     "mechanism": "Cuberoot polls verified successful signed artifacts"
   },
-  "reported_at": "2026-10-14T21:47:10.970Z",
+  "reported_at": "2026-10-14T22:59:14.493Z",
   "jobs": [
     {
       "name": "Verify shared application and native Android adapters",
@@ -35,5 +35,5 @@
       "failed_steps": []
     }
   ],
-  "artifact_id": 11931427268
+  "artifact_id": 11934124381
 }
