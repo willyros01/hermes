@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# FIDUNIO — read-only snapshot of both live notification functions.
+# Upload into Google Cloud Shell; run: bash fb.txt
+# One new PRIVATE/versioned Cloud Storage backup bucket is the only write.
+set -Eeuo pipefail
+umask 077
+P='fidunio-fef13'
+N='130339622893'
+R='us-central1'
+S='fidunio-notification@fidunio-fef13.iam.gserviceaccount.com'
+B='gs://fidunio-fef13-notify-backup-130339622893'
+TS="$(date -u +%Y%m%dT%H%M%SZ)"
+D="$HOME/fidunio-fb-$TS"
+PREFIX="$B/$TS"
+mkdir -p "$D/verify"
+echo "FIDUNIO NOTIFICATION BACKUP — $P"
+command -v gcloud >/dev/null || { echo 'STOP: Google Cloud Shell required'; exit 1; }
+test "$(gcloud projects describe "$P" --format='value(projectNumber)')" = "$N" || { echo 'STOP: Incorrect Firebase project'; exit 1; }
+
+# Fail closed BEFORE any changes. These are the only two authorized functions.
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  gcloud functions describe "$F" --gen2 --region="$R" --project="$P" --format=json > "$D/$F.json"
+  python3 - "$D/$F.json" "$F" <<'PY'
+import json,sys
+j=json.load(open(sys.argv[1])); name=sys.argv[2]
+assert j.get('state')=='ACTIVE', f'{name}: not ACTIVE'
+assert j.get('serviceConfig',{}).get('serviceAccountEmail')=='fidunio-notification@fidunio-fef13.iam.gserviceaccount.com',f'{name}: unexpected service account'
+assert j.get('buildConfig',{}).get('entryPoint')==name,f'{name}: unexpected entry point'
+assert j.get('buildConfig',{}).get('runtime')=='nodejs22',f'{name}: unexpected runtime'
+et=j.get('eventTrigger') or {}
+assert et.get('eventType')=='google.cloud.firestore.document.v1.created',f'{name}: unexpected Firestore event'
+path=('conversations/{conversationId}/messages/{messageId}' if name=='notifyDirectMessageCreatedV1' else 'groups/{groupId}/messages/{messageId}')
+assert any(f.get('attribute')=='document' and f.get('value')==path for f in et.get('eventFilters',[])),f'{name}: trigger path mismatch'
+src=j.get('buildConfig',{}).get('source',{}).get('storageSource',{})
+assert src.get('bucket') and src.get('object'),f'{name}: source archive unavailable'
+assert not any(s.get('key') in ['FIDUNIO_ADM_CLIENT_ID','FIDUNIO_ADM_CLIENT_SECRET'] for s in (j.get('serviceConfig',{}).get('secretEnvironmentVariables') or [])),f'{name}: ADM already deployed, do not overwrite backup'
+print('PASS: '+name+' live identity, trigger, source and runtime verified')
+PY
+  SRC="$(python3 - "$D/$F.json" <<'PY'
+import json,sys
+s=json.load(open(sys.argv[1]))['buildConfig']['source']['storageSource']
+print('gs://'+s['bucket']+'/'+s['object']+('#'+str(s['generation']) if s.get('generation') else ''))
+PY
+)"
+  gcloud storage cp "$SRC" "$D/$F.tar.gz" --project="$P" --quiet >/dev/null
+  test -s "$D/$F.tar.gz" || { echo "STOP: empty live source archive for $F"; exit 1; }
+  tar -tzf "$D/$F.tar.gz" > "$D/$F.filelist"
+  grep -Eq '(^|/)index\.mjs$' "$D/$F.filelist" || { echo "STOP: no source entrypoint in archive for $F"; exit 1; }
+  grep -Eq '(^|/)package\.json$' "$D/$F.filelist" || { echo "STOP: no package.json in archive for $F"; exit 1; }
+  echo "PASS: $F actual deployed source captured"
+done
+
+# Capture pre-change security state, never the actual secret values.
+for K in FIDUNIO_ADM_CLIENT_ID FIDUNIO_ADM_CLIENT_SECRET; do
+  gcloud secrets describe "$K" --project="$P" --format=json > "$D/$K.info.json"
+  gcloud secrets get-iam-policy "$K" --project="$P" --format=json > "$D/$K.iam.json"
+  test -n "$(gcloud secrets versions list "$K" --project="$P" --filter='state:ENABLED' --format='value(name)' --limit=1)" || { echo "STOP: $K has no enabled version"; exit 1; }
+done
+(cd "$D" && sha256sum -- *.json *.tar.gz > SHA256SUMS.txt)
+echo 'PASS: Both source archives and function metadata captured before changes'
+
+# Create dedicated backup bucket with enforced privacy and object versioning.
+if gcloud storage buckets describe "$B" --project="$P" --format=json > "$D/bucket.json" 2>"$D/bucket-check.err"; then
+  python3 - "$D/bucket.json" "$N" <<'PY'
+import json,sys
+b=json.load(open(sys.argv[1])); n=sys.argv[2]
+assert str(b.get('projectNumber',''))==n,'STOP: backup bucket belongs to another project'
+c=b.get('iamConfiguration',{})
+assert c.get('publicAccessPrevention')=='enforced','STOP: backup bucket not private'
+assert c.get('uniformBucketLevelAccess',{}).get('enabled') is True,'STOP: unsafe bucket ACL mode'
+assert b.get('versioning',{}).get('enabled') is True,'STOP: backup bucket not versioned'
+print('PASS: Reusing secure versioned backup bucket')
+PY
+else
+  if ! grep -qiE 'not found|404' "$D/bucket-check.err"; then
+    echo 'STOP: could not safely determine whether backup bucket exists'; cat "$D/bucket-check.err"; exit 1
+  fi
+  gcloud storage buckets create "$B" --project="$P" --location="$R" --uniform-bucket-level-access --public-access-prevention --quiet
+  gcloud storage buckets update "$B" --versioning --project="$P" --quiet
+  gcloud storage buckets describe "$B" --project="$P" --format=json > "$D/bucket.json"
+  python3 - "$D/bucket.json" "$N" <<'PY'
+import json,sys
+b=json.load(open(sys.argv[1])); n=sys.argv[2]
+assert str(b.get('projectNumber',''))==n
+assert b['iamConfiguration']['publicAccessPrevention']=='enforced'
+assert b['iamConfiguration']['uniformBucketLevelAccess']['enabled'] is True
+assert b['versioning']['enabled'] is True
+print('PASS: New private and versioned backup bucket verified')
+PY
+fi
+# The bucket's own metadata is saved outside the checksum manifest.
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  for SUFFIX in .json .tar.gz; do
+    gcloud storage cp "$D/$F$SUFFIX" "$PREFIX/$F$SUFFIX" --project="$P" --quiet >/dev/null
+    gcloud storage cp "$PREFIX/$F$SUFFIX" "$D/verify/$F$SUFFIX" --project="$P" --quiet >/dev/null
+    cmp -s "$D/$F$SUFFIX" "$D/verify/$F$SUFFIX" || { echo "STOP: cloud backup checksum mismatch $F$SUFFIX"; exit 1; }
+  done
+done
+for K in FIDUNIO_ADM_CLIENT_ID FIDUNIO_ADM_CLIENT_SECRET; do
+  for SUFFIX in .info.json .iam.json; do
+    gcloud storage cp "$D/$K$SUFFIX" "$PREFIX/$K$SUFFIX" --project="$P" --quiet >/dev/null
+  done
+done
+gcloud storage cp "$D/SHA256SUMS.txt" "$PREFIX/SHA256SUMS.txt" --project="$P" --quiet >/dev/null
+# Pointer intentionally never replaces an older backup. Versioning preserves earlier pointers.
+printf '%s\n' "$PREFIX" > "$D/latest.txt"
+gcloud storage cp "$D/latest.txt" "$B/latest.txt" --project="$P" --quiet >/dev/null
+printf '\nBACKUP PASS: Both actual live functions safely archived\n'
+printf 'Firebase project: %s\nBackup location: %s\n' "$P" "$PREFIX"
+echo 'Archives were downloaded back from Firebase backup Storage and byte-compared.'
+echo 'No notification function, application, database, rules, or existing secrets were modified.'
+echo 'STOP here and report BACKUP PASS before activation.'
