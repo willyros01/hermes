@@ -30,7 +30,7 @@ export function deriveGroupRecipientUids({group,message}={}){
   return members.filter(uid=>uid!==senderUid);
 }
 
-export function createGroupMessageNotificationCore({groupRepo,profileRepo,deviceRepo,messaging,logger=console}={}){
+export function createGroupMessageNotificationCore({groupRepo,profileRepo,deviceRepo,messaging,admDelivery=null,logger=console}={}){
   if(typeof groupRepo?.get!=="function"||typeof profileRepo?.getDisplayName!=="function"||typeof deviceRepo?.listActive!=="function"||typeof deviceRepo?.deleteIfTokenMatches!=="function"||typeof messaging?.sendEachForMulticast!=="function")throw new Error("Group notification core dependencies are incomplete.");
   return Object.freeze({async handleCreatedMessage({groupId,messageId,message}={}){
     groupId=boundedId(groupId,"Group ID");
@@ -47,8 +47,10 @@ export function createGroupMessageNotificationCore({groupRepo,profileRepo,device
     const senderDisplayName=installations.some(row=>row.showSenderName===true)
       ?await profileRepo.getDisplayName(String(message.senderUid||"").trim())
       :"";
-    const privateDevices=installations.filter(row=>row.showSenderName!==true);
-    const namedDevices=installations.filter(row=>row.showSenderName===true);
+    const fcmDevices=installations.filter(row=>row.platform!=="android-adm");
+    const admDevices=installations.filter(row=>row.platform==="android-adm");
+    const privateDevices=fcmDevices.filter(row=>row.showSenderName!==true);
+    const namedDevices=fcmDevices.filter(row=>row.showSenderName===true);
     let sent=0,failed=0;
     const stale=[];
     async function sendBatch(batch,notificationBody){
@@ -65,6 +67,27 @@ export function createGroupMessageNotificationCore({groupRepo,profileRepo,device
     }
     for(const batch of batches(privateDevices))await sendBatch(batch,FIDUNIO_NOTIFICATION_BODY);
     for(const batch of batches(namedDevices))await sendBatch(batch,senderBody(senderDisplayName));
+    // ADM uses its own OAuth delivery path. Never send Amazon tokens to FCM.
+    for(const row of admDevices){
+      if(typeof admDelivery?.send!=="function"){
+        failed++;
+        logger.warn?.("FIDUNIO ADM delivery unavailable; no FCM fallback",{
+          recipientUid:row.recipientUid,installationId:row.installationId});
+        continue;
+      }
+      try{
+        const result=await admDelivery.send({token:row.fcmToken,
+          data:{type:"group-message",conversationId:groupId,messageId,
+            notificationBody:row.showSenderName===true?senderBody(senderDisplayName):FIDUNIO_NOTIFICATION_BODY}});
+        if(result?.success===true)sent++;
+        else{failed++;if(result?.invalid===true)stale.push(row);}
+      }catch(error){
+        failed++;
+        logger.warn?.("FIDUNIO ADM group delivery failed",{
+          recipientUid:row.recipientUid,installationId:row.installationId,
+          error:String(error?.message||error)});
+      }
+    }
     await Promise.all(stale.filter(Boolean).map(row=>deviceRepo.deleteIfTokenMatches(row.recipientUid,row.installationId,row.fcmToken)));
     if(failed>stale.length)logger.warn?.("FIDUNIO group notification partial failure",{groupId,messageId,recipientCount:recipientUids.length,failed,pruned:stale.length});
     return{status:"sent",recipientCount:recipientUids.length,sent,failed,pruned:stale.length};
