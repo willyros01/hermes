@@ -414,7 +414,7 @@ const notificationRegistrationOwner=createNotificationRegistrationOwner({
   requestPermission:notificationTransport.nativeRegistration?requestNativeNotificationPermission:undefined,
   getRegistrationContext:notificationTransport.nativeRegistration?async()=>null:null,
   buildTokenOptions:notificationTransport.nativeRegistration?()=>({}):undefined,
-  getPlatform:notificationTransport.nativeRegistration?()=>"ios-native":undefined
+  getPlatform:notificationTransport.nativeRegistration?()=>notificationTransport.nativePlatform:undefined
 });
 const notificationLeaseSession=createNotificationLeaseSession({
   storage:globalThis.localStorage,
@@ -422,7 +422,7 @@ const notificationLeaseSession=createNotificationLeaseSession({
   getToken:getNativeMessagingToken,
   claim:claimCloudNotificationLease,
   revoke:revokeCloudNotificationLease,
-  getPlatform:()=>"ios-native",
+  getPlatform:()=>notificationTransport.nativePlatform||"ios-native",
 });
 let notificationTokenMaintenanceStop=()=>{};
 let notificationTokenMaintenanceGeneration=0;
