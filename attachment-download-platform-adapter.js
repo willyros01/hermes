@@ -1,7 +1,7 @@
 /* Transport only. Firebase owns URL lookup; the shared receive owner verifies
  * and decrypts photo, video, audio, and file bytes. Preserve caller cancellation
  * semantics; no auth, plaintext, persistence, UI, or global networking ownership lives here. */
-import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {isNativeMobileRuntime} from "./platform-runtime.js";
 
 export const ATTACHMENT_OBJECT_MAX_BYTES=1048576;
 function failure(message,code){return Object.assign(new Error(message),{code});}
@@ -21,7 +21,7 @@ export async function downloadPlatformAttachmentBytes(url,{
   maxBytes=ATTACHMENT_OBJECT_MAX_BYTES,
 }={}){
   let buffer;
-  if(isNativeIOSRuntime(platformOptions)){
+  if(isNativeMobileRuntime(platformOptions)){
     const safeUrl=nativeStorageUrl(url,storageBucket);
     const http=capacitor?.Plugins?.CapacitorHttp;
     if(typeof http?.request!=="function")throw failure("Native attachment download transport is unavailable","storage/native-transport-unavailable");
