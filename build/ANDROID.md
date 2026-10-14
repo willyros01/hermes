@@ -12,6 +12,15 @@ Repository Settings > Secrets and variables > Actions > New repository secret.
 
 Use `build/fas.txt` in Google Cloud Shell to generate the permanent signing material. Back up the PRIVATE keystore and password securely before any public release. Do not commit them. Existing other-app signing keys must not be reused.
 
+## Verified milestones — 2026-10-14
+
+- **Firebase Android registration: PASS (owner's Cloud Shell output)**. Created app `io.github.willyros01.fidunio` in the *existing* Firebase project `fidunio-fef13`; downloaded configuration was validated for that project/package. Do not register a duplicate app. Keep the resulting `google-services.json` base64 out of source control.
+- **Storage CORS: RESTORED and verified** using original backup and conditional CORS-only update. The two original rules remain; the unintended exact duplicate was removed.
+- **Existing FIDUNIO Web media smoke test: PASS (owner)** for opening photos, playing videos, and playing audio after CORS recovery. This does not count as Android device media acceptance.
+- **Actions secret 3:** owner reports `FIDUNIO_GOOGLE_SERVICES_JSON_B64` was saved manually in GitHub repository secrets. Only a fresh successful workflow can verify the required build inputs; connector does not read secret contents.
+- All prior build outcomes remain historical; a fresh signed APK build and Cuberoot publication are **not yet verified**. This documentation update on `Android` intentionally triggers the existing full Android workflow, without modifying application code or the `main`/`ios` branches.
+- Detailed evidence: [`docs/ANDROID-ACCEPTANCE.md`](../docs/ANDROID-ACCEPTANCE.md).
+
 ## Chain
 1. Push to `Android` triggers `.github/workflows/android-apk.yml`.
 2. Verify original iOS-based web assets plus Android adapters.
