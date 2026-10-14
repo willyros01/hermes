@@ -12,9 +12,10 @@ node build/test-android.mjs
 npx cap add android
 npx cap sync android
 bash build/android-native.sh
+bash build/fadm.sh
 java build/AndroidIcons.java icon-512.png android/app/src/main/res
 bash build/android-sign.sh
-trap 'rm -f android/app/fidunio-signing.p12 android/app/fidunio-sign.gradle android/app/google-services.json' EXIT
+trap 'rm -f android/app/fidunio-signing.p12 android/app/fidunio-sign.gradle android/app/google-services.json android/app/src/main/assets/api_key.txt' EXIT
 cd android
 chmod +x gradlew
 ./gradlew --no-daemon assembleDebug
