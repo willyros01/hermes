@@ -10,3 +10,7 @@ firebase-debug.*.log
 
 /browser-release-evidence/
 /startup-evidence/
+
+/android/
+*.p12
+**/google-services.json
