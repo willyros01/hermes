@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# FIDUNIO notification functions: READ-ONLY production backup.
+# Upload into Cloud Shell and run: bash fbak.txt
+# Project/region/function IDs are fixed. NO deploy, IAM changes, writes to Firebase.
+set -Eeuo pipefail
+umask 077
+P='fidunio-fef13'
+N='130339622893'
+R='us-central1'
+T="$(date -u +%Y%m%d-%H%M%S)"
+D="$HOME/fbk-$T"
+mkdir -p "$D"
+echo 'FIDUNIO production notification backup (read-only)'
+if [ "$(gcloud projects describe "$P" --format='value(projectNumber)')" != "$N" ]; then
+  echo 'STOP: wrong Firebase project'; exit 1
+fi
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  echo "Reading function metadata: $F"
+  gcloud functions describe "$F" --project="$P" --region="$R" --gen2 --format=json > "$D/$F.json"
+  python3 - "$D/$F.json" "$D/$F.source" <<'PY'
+import json,sys
+j=json.load(open(sys.argv[1]))
+assert j.get("state")=="ACTIVE", "Production function not active"
+assert j.get("serviceConfig",{}).get("serviceAccountEmail")=="fidunio-notification@fidunio-fef13.iam.gserviceaccount.com", "Unexpected notification service identity"
+b=j.get("buildConfig",{}).get("source",{}).get("storageSource",{})
+assert b.get("bucket") and b.get("object"), "No retrievable deployed source; stop before rollout"
+open(sys.argv[2],"w").write("gs://"+b["bucket"]+"/"+b["object"]+"\n")
+print("PASS: active production function and source location captured.")
+PY
+  SRC="$(cat "$D/$F.source")"
+  gcloud storage cp "$SRC" "$D/$F.source.zip" --project="$P" --quiet >/dev/null
+  test -s "$D/$F.source.zip" || { echo 'STOP: source archive not copied'; exit 1; }
+  echo "PASS: $F source bytes backed up."
+done
+(cd "$D" && sha256sum *.json *.zip >SHA256SUMS.txt)
+ARCHIVE="$D.tar.gz"
+tar -C "$HOME" -czf "$ARCHIVE" "$(basename "$D")"
+chmod 600 "$ARCHIVE"
+sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
+echo "BACKUP PASS: $ARCHIVE"
+echo 'Contains BOTH live deployed sources, metadata, SHA-256. Store securely.'
+echo 'No Firebase functions, IAM bindings, or Firestore data were modified.'

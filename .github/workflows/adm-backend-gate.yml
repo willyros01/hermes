@@ -1,0 +1,30 @@
+name: FIDUNIO ADM backend compatibility tests
+on:
+  push:
+    branches: [Android]
+    paths:
+      - 'functions/notification/**'
+      - 'functions/index.mjs'
+      - '.github/workflows/adm-backend-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Direct, group, ADM and notification-lease unit regressions
+        run: |
+          node --test functions/notification/*.test.mjs
+      - name: Verify ADM credentials stay out of Android APK
+        run: |
+          if grep -R -E 'FIDUNIO_ADM_CLIENT_(ID|SECRET)|amzn1\.application-oa2-client' android-src/; then
+            echo '::error title=Sender OAuth leak::Amazon sender OAuth credentials are not allowed in the APK.'
+            exit 1
+          fi
+          echo 'PASS: No server ADM credentials or provider IDs embedded in native code.'
