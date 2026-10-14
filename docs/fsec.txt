@@ -1,86 +1,86 @@
 #!/usr/bin/env bash
-# FIDUNIO Amazon ADM sender credentials — one-time Cloud Shell setup.
-# Project is fixed. No Firestore, Function, IAM, APK or website changes.
+# FIDUNIO Amazon ADM — one-time secure GitHub-to-Firebase connection.
+# Upload this TXT into Google Cloud Shell, then run: bash fsec.txt
+# NEVER type or paste your Amazon credentials here. They're in GitHub Actions.
+# Fixed project, branch, service account, secret names. No Firebase deployment.
 set -Eeuo pipefail
 umask 077
-PRJ='fidunio-fef13'
-N1='FIDUNIO_ADM_CLIENT_ID'
-N2='FIDUNIO_ADM_CLIENT_SECRET'
-TMP="$(mktemp -d)"
-CID=''
-CSEC=''
-trap 'unset CID CSEC; rm -rf "$TMP"' EXIT
+P='fidunio-fef13'
+NUM='130339622893'
+POOL='fidunio-adm-sync'
+PROV='hermes-android'
+SA="fidunio-adm-sync@$P.iam.gserviceaccount.com"
+ONE='FIDUNIO_ADM_CLIENT_ID'
+TWO='FIDUNIO_ADM_CLIENT_SECRET'
+BACKUP="$HOME/fsbk.txt"
+if [ -e "$BACKUP" ]; then
+  BACKUP="$HOME/fsbk-$(date -u +%Y%m%d%H%M%S).txt"
+fi
+echo "FIDUNIO private ADM sync bootstrap — $P"
+echo 'This creates a narrowly authorized connection. No passwords are entered.'
+command -v gcloud >/dev/null || { echo 'ERROR: Google Cloud Shell required.'; exit 1; }
+test "$(gcloud projects describe "$P" --format='value(projectNumber)')" = "$NUM" || { echo 'ERROR: Wrong project number.'; exit 1; }
+test -n "$(gcloud auth list --filter='status:ACTIVE' --format='value(account)' | head -n1)" || { echo 'ERROR: No active Google Cloud account.'; exit 1; }
 
-echo 'FIDUNIO ADM sender credentials — safe preparation'
-echo "Firebase project: $PRJ"
-echo 'This script does NOT deploy functions or change notification routing.'
-command -v gcloud >/dev/null || { echo 'ERROR: Run in Google Cloud Shell.'; exit 1; }
-gcloud projects describe "$PRJ" --format='value(projectId)' > "$TMP/project"
-grep -Fxq "$PRJ" "$TMP/project" || { echo 'ERROR: Wrong Firebase project.'; exit 1; }
-ACCOUNT="$(gcloud auth list --filter='status:ACTIVE' --format='value(account)' | head -n1)"
-test -n "$ACCOUNT" || { echo 'ERROR: Sign into Google Cloud Shell first.'; exit 1; }
-echo "Google account: $ACCOUNT"
-
-echo 'Preflight: inspect BOTH secret names before changing anything...'
-for NAME in "$N1" "$N2"; do
-  if gcloud secrets describe "$NAME" --project="$PRJ" --format='value(name)' >"$TMP/one" 2>"$TMP/error"; then
-    echo "STOP: $NAME already exists. Nothing was changed."
-    echo 'Do not overwrite or rotate an existing production secret.'
+# Check existing resources without reading any secret payloads.
+for NAME in "$ONE" "$TWO"; do
+  if gcloud secrets describe "$NAME" --project="$P" >/dev/null 2>&1; then
+    echo "STOP: $NAME already exists; will not edit an existing secret."
     exit 2
-  elif grep -Eqi '(not found|NOT_FOUND)' "$TMP/error"; then
-    echo "$NAME: absent, may safely create after confirmation"
-  else
-    echo "ERROR: Could not inspect $NAME. No changes made."
-    cat "$TMP/error"
-    exit 3
   fi
 done
-
-BACKUP="$HOME/fsbk.txt"
-if test -e "$BACKUP"; then BACKUP="$(mktemp "$HOME/fsbk.XXXXXX.txt")"; fi
+if gcloud iam workload-identity-pools describe "$POOL" --location=global --project="$P" >/dev/null 2>&1; then
+  echo 'STOP: dedicated identity pool already exists. Inspect before retrying.'
+  exit 2
+fi
+if gcloud iam service-accounts describe "$SA" --project="$P" >/dev/null 2>&1; then
+  echo 'STOP: dedicated service account already exists. Inspect before retrying.'
+  exit 2
+fi
 {
-  date -u '+Firebase sender preflight UTC %Y-%m-%dT%H:%M:%SZ'
-  echo "project=$PRJ"
-  echo "$N1=absent"
-  echo "$N2=absent"
-  echo 'Before this operation no FIDUNIO ADM sender secrets existed.'
-  echo 'Rollback if no Functions have yet bound these new secrets:'
-  echo "  gcloud secrets versions disable 1 --secret=$N1 --project=$PRJ"
-  echo "  gcloud secrets versions disable 1 --secret=$N2 --project=$PRJ"
-  echo 'Do NOT delete production data, secrets or IAM roles automatically.'
+  date -u '+Firebase PRE-CHANGE snapshot UTC %Y-%m-%dT%H:%M:%SZ'
+  echo "project=$P number=$NUM"
+  echo 'GitHub repository=willyros01/hermes; allowed ref=refs/heads/Android'
+  echo "$ONE: absent"
+  echo "$TWO: absent"
+  echo "WIF pool $POOL: absent"
+  echo "Service account $SA: absent"
+  echo
+  echo 'Rollback: only after confirming no ADM sender functions have been deployed.'
+  echo "  gcloud iam service-accounts delete $SA --project=$P"
+  echo "  gcloud iam workload-identity-pools delete $POOL --location=global --project=$P"
+  echo "  gcloud secrets delete $ONE --project=$P"
+  echo "  gcloud secrets delete $TWO --project=$P"
+  echo 'Existing Firestore data, web/iOS functions, IAM principals and storage are not modified.'
 } > "$BACKUP"
 chmod 600 "$BACKUP"
-echo "Preflight snapshot saved: $BACKUP"
+echo "Pre-change snapshot: $BACKUP"
 
-echo
-echo 'Paste your saved Amazon CLIENT ID below (typing is hidden).'
-IFS= read -r -s -p 'Client ID, then Enter: ' CID
-printf '\n'
-echo 'Paste your saved Amazon CLIENT SECRET below (typing is hidden).'
-IFS= read -r -s -p 'Client Secret, then Enter: ' CSEC
-printf '\n'
-if [[ "$CID" != amzn1.application-oa2-client.* || "${#CID}" -lt 25 ]]; then
-  echo 'ERROR: Client ID does not have the expected Amazon format. No change.'
-  exit 4
-fi
-if [[ "${#CSEC}" -lt 20 || "$CSEC" == *[[:space:]]* ]]; then
-  echo 'ERROR: Client Secret appears incomplete or contains whitespace. No change.'
-  exit 4
-fi
-printf 'Credential formats valid. Save in project %s? Type YES to proceed: ' "$PRJ"
-read -r CONFIRM
-if [[ "$CONFIRM" != 'YES' ]]; then echo 'Cancelled. No changes made.'; exit 0; fi
+# Enable API only if currently disabled (report without hiding errors).
+gcloud services enable iam.googleapis.com iamcredentials.googleapis.com sts.googleapis.com secretmanager.googleapis.com --project="$P" --quiet
 
-# Fail closed: no forced rotation, no automatic IAM, no backend deployment.
-gcloud secrets create "$N1" --project="$PRJ" --replication-policy=automatic
-printf '%s' "$CID" | gcloud secrets versions add "$N1" --project="$PRJ" --data-file=-
-unset CID
-gcloud secrets create "$N2" --project="$PRJ" --replication-policy=automatic
-printf '%s' "$CSEC" | gcloud secrets versions add "$N2" --project="$PRJ" --data-file=-
-unset CSEC
-echo
-echo 'PASS: Both FIDUNIO ADM sender secrets installed privately.'
-echo "Project: $PRJ"
-echo "Snapshot: $BACKUP"
-echo 'Production notifications are NOT changed yet.'
-echo 'Next: inspect and back up the deployed notification Functions before rollout.'
+# Separate pool prevents Android writers from inheriting iOS read-only audit grants.
+gcloud iam workload-identity-pools create "$POOL" --project="$P" --location=global --display-name='FIDUNIO ADM secrets sync'
+gcloud iam workload-identity-pools providers create-oidc "$PROV" \
+  --project="$P" --location=global --workload-identity-pool="$POOL" \
+  --display-name='Hermes Android OIDC only' \
+  --issuer-uri='https://token.actions.githubusercontent.com' \
+  --attribute-mapping='google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref' \
+  --attribute-condition="assertion.repository=='willyros01/hermes' && assertion.ref=='refs/heads/Android'"
+gcloud iam service-accounts create 'fidunio-adm-sync' --project="$P" --display-name='FIDUNIO ADM secret version writer'
+gcloud iam service-accounts add-iam-policy-binding "$SA" --project="$P" \
+  --role='roles/iam.workloadIdentityUser' \
+  --member="principalSet://iam.googleapis.com/projects/$NUM/locations/global/workloadIdentityPools/$POOL/attribute.repository/willyros01/hermes" >/dev/null
+
+# Create blank secrets only. Actual values arrive later directly from GitHub
+# Actions via OIDC; they are never present in this Cloud Shell or in source.
+for NAME in "$ONE" "$TWO"; do
+  gcloud secrets create "$NAME" --replication-policy=automatic --project="$P"
+  gcloud secrets add-iam-policy-binding "$NAME" --project="$P" \
+    --member="serviceAccount:$SA" \
+    --role='roles/secretmanager.secretVersionAdder' >/dev/null
+done
+echo 'PASS: Scoped GitHub-to-Firebase identity and empty secret containers configured.'
+echo "Backup: $BACKUP"
+echo 'No secrets were displayed, copied, or deployed.'
+echo 'Next: authorized GitHub Actions transfers the two values into Secret Manager.'
