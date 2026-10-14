@@ -62,7 +62,12 @@ export function getNotificationPlatformCapabilities(platformOptions){
 }
 
 export async function getNativeNotificationCapability(){
-  if(await activeAdm())return{supported:true,permission:"default"};
+  const adm=await activeAdm();
+  if(adm){
+    const result=await adm.available();
+    const permission=permissionValue(result?.permission);
+    return{supported:true,permission};
+  }
   const plugin=nativeMessagingPlugin();
   if(!plugin?.isSupported||!plugin?.checkPermissions)return{supported:false,permission:"unsupported"};
   try{
