@@ -28,7 +28,7 @@ export function isInvalidNotificationTokenError(error){
   return INVALID_TOKEN_CODES.has(String(error?.code||""));
 }
 
-export function createDirectMessageNotificationCore({conversationRepo,profileRepo,deviceRepo,blockRepo,messaging,logger=console}={}){
+export function createDirectMessageNotificationCore({conversationRepo,profileRepo,deviceRepo,blockRepo,messaging,admDelivery=null,logger=console}={}){
   if(typeof conversationRepo?.get!=="function"||typeof profileRepo?.getDisplayName!=="function"||typeof deviceRepo?.listActive!=="function"||typeof deviceRepo?.deleteIfTokenMatches!=="function"||typeof blockRepo?.isBlockedEitherDirection!=="function"||typeof messaging?.sendEachForMulticast!=="function")throw new Error("Direct notification core dependencies are incomplete.");
   return Object.freeze({async handleCreatedMessage({conversationId,messageId,message}={}){
     conversationId=boundedId(conversationId,"Conversation ID");
@@ -60,10 +60,30 @@ export function createDirectMessageNotificationCore({conversationRepo,profileRep
       sent+=Number(result?.successCount||responses.filter(x=>x?.success===true).length||0);
       failed+=Number(result?.failureCount||responses.filter(x=>x?.success!==true).length||0);
     }
-    const privateDevices=devices.filter(row=>row.showSenderName!==true);
-    const namedDevices=devices.filter(row=>row.showSenderName===true);
-    await sendBatch(privateDevices,FIDUNIO_NOTIFICATION_BODY);
-    await sendBatch(namedDevices,senderBody(senderDisplayName));
+    const fcmDevices=devices.filter(row=>row.platform!=="android-adm");
+    const admDevices=devices.filter(row=>row.platform==="android-adm");
+    await sendBatch(fcmDevices.filter(row=>row.showSenderName!==true),FIDUNIO_NOTIFICATION_BODY);
+    await sendBatch(fcmDevices.filter(row=>row.showSenderName===true),senderBody(senderDisplayName));
+    // An Amazon token MUST NEVER be handed to Firebase Messaging.
+    for(const row of admDevices){
+      if(typeof admDelivery?.send!=="function"){
+        failed++;
+        logger.warn?.("FIDUNIO ADM delivery unavailable; no FCM fallback",{
+          recipientUid,installationId:row.installationId});
+        continue;
+      }
+      try{
+        const result=await admDelivery.send({token:row.fcmToken,
+          data:{type:"direct-message",conversationId,messageId,
+            notificationBody:row.showSenderName===true?senderBody(senderDisplayName):FIDUNIO_NOTIFICATION_BODY}});
+        if(result?.success===true)sent++;
+        else{failed++;if(result?.invalid===true)stale.push(row);}
+      }catch(error){
+        failed++;
+        logger.warn?.("FIDUNIO ADM send failed",{
+          recipientUid,installationId:row.installationId,error:String(error?.message||error)});
+      }
+    }
     await Promise.all(stale.filter(Boolean).map(row=>deviceRepo.deleteIfTokenMatches(recipientUid,row.installationId,row.fcmToken)));
     if(failed>stale.length)logger.warn?.("FIDUNIO direct notification partial failure",{conversationId,messageId,recipientUid,failed,pruned:stale.length});
     return{status:"sent",recipientUid,sent,failed,pruned:stale.length};
