@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# FIDUNIO Android: one-time permanent signing material in Google Cloud Shell.
+# Run locally in Cloud Shell, NEVER commit any generated .p12 / .b64 files.
+set -euo pipefail
+umask 077
+gcloud config set project fidunio-fef13
+test ! -e fidunio.p12 || { echo 'fidunio.p12 already exists; reuse the existing PERMANENT key'; exit 1; }
+read -r -s -p 'Choose permanent FIDUNIO APK password: ' P; echo
+read -r -s -p 'Repeat FIDUNIO APK password: ' Q; echo
+test -n "$P" && [ "$P" = "$Q" ] || { echo 'Passwords must match and not be blank'; exit 1; }
+[ "${#P}" -ge 8 ] || { echo 'Password must contain at least 8 characters'; exit 1; }
+keytool -genkeypair -storetype PKCS12 -keystore fidunio.p12 -alias fidunio \
+  -keyalg RSA -keysize 3072 -validity 10000 \
+  -dname 'CN=FIDUNIO Android, OU=Cuberoot, O=Cuberoot Systems' \
+  -storepass "$P" -keypass "$P" -noprompt
+base64 -w0 fidunio.p12 > fidunio.b64
+sha256sum fidunio.p12
+echo 'SAVE fidunio.p12 and password in PRIVATE BACKUP.'
+echo 'GitHub Actions secret 1: FIDUNIO_ANDROID_KEYSTORE_BASE64 (contents of fidunio.b64)'
+echo 'GitHub Actions secret 2: FIDUNIO_ANDROID_PASSWORD (the password you entered)'
+echo 'GitHub Actions secret 3: FIDUNIO_GOOGLE_SERVICES_JSON_B64'
+echo 'For secret 3, register io.github.willyros01.fidunio as ANDROID app in Firebase project fidunio-fef13,'
+echo 'download google-services.json, then run: base64 -w0 google-services.json > fcfg.b64'
+echo 'Use the text in fcfg.b64 as the value of secret 3.'
+echo 'NO secrets were uploaded and NO build was started by this script.'
+unset P Q
