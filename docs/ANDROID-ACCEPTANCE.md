@@ -23,6 +23,14 @@ Recorded: 2026-10-14 (owner-provided Google Cloud Shell logs and device/browser 
 - Android Firebase registration must target the existing Firebase project `fidunio-fef13`, Android package `io.github.willyros01.fidunio`. Never create a second Firebase project.
 - Do **not** run an unrelated Cloud Storage CORS script while configuring Firebase Android. The correct registration process only reads/creates a matching Firebase Android app and downloads `google-services.json`; **CORS is not part of Android app registration**. In Cloud Shell, filename `f3.txt` has been reused for different scripts; avoid ambiguous filenames.
 
+## Android signed APK and Cuberoot publication — 2026-10-14
+
+- GitHub Actions Android workflow run `38596933723` **PASS**, source `15a1152bb75b7c513a829f860f106c46de532f1b`, signed artifact `11909923773`. App and native-adapter verification passed; APK signing passed with certificate SHA256 `fbff41947e477e0b4df65bd741b550d7b30d7b18636a47c10853d789c4937a1d`.
+- Automatic Cuberoot publisher had not executed since earlier failed builds, so its required `downloads/fidunio.apk` and `downloads/fidunio-build.json` were absent. An unchanged-logic workflow comment commit `10d34fef0745647dee24f3eae72c824b760ae98b` triggered the existing Cuberoot publisher.
+- Publisher run `38599459960` **PASS**; Cuberoot `main` now contains the signed APK, .sha256 checksum and build manifest. Manifest identifies source run `38596933723`, APK SHA256 `0502d02637603f611d43e93dab5edc0b35f3b37e6d92f87676bc799c2ef1b63c`, size 10,064,732 bytes, signer digest listed above, origin GitHub Actions artifact.
+- Cuberoot Pages deployment `38599545498` was still **in progress** on the last inspection. Actual public website HTTP download/visibility was **not yet independently verified**; do not announce public availability until deployment finishes and HTTP succeeds.
+- The published beta is **FCM-only** (`android-fcm-beta`); Amazon Fire ADM has not been built or verified in this artifact. An ADM-enabled future build must be separately validated against Fire tablet, and the sender/server must support ADM. Never relabel the current APK as ADM-capable.
+
 ## Required release gates (not yet claimed PASS)
 
 1. Confirm the required three GitHub Actions secrets are present (keystore, password, Android `google-services.json` base64); keep private material out of the repository/chat.
