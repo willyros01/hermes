@@ -1,0 +1,180 @@
+name: FIDUNIO Android signed APK
+
+on:
+  push:
+    branches: [Android]
+    paths-ignore:
+      - 'build/android-last-run.json'
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: fidunio-android-signed-apk
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Verify shared application and native Android adapters
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Check Android scripts and platform contracts
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run ios:prepare
+          node build/test-android.mjs
+          node --check platform-runtime.js
+          node --check notification-platform-adapter.js
+          node --check firebase-platform-adapter.js
+          node --check settings-lifecycle.js
+          bash -n build/android-sign.sh
+          bash -n build/android-native.sh
+          bash -n build/android-build.sh
+          java build/AndroidIcons.java icon-512.png "$RUNNER_TEMP/fidunio-icons"
+          test -s "$RUNNER_TEMP/fidunio-icons/mipmap-xxxhdpi/ic_launcher.png"
+      - name: Validate shared FIDUNIO release tests
+        run: |
+          node platform-runtime.test.mjs
+          node build/verify-ios-foundation.mjs
+
+  apk:
+    name: Build permanently signed FIDUNIO APK
+    needs: [check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      FIDUNIO_ANDROID_KEYSTORE_BASE64: ${{ secrets.FIDUNIO_ANDROID_KEYSTORE_BASE64 }}
+      FIDUNIO_ANDROID_PASSWORD: ${{ secrets.FIDUNIO_ANDROID_PASSWORD }}
+      FIDUNIO_GOOGLE_SERVICES_JSON_B64: ${{ secrets.FIDUNIO_GOOGLE_SERVICES_JSON_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require owner-controlled signing and Firebase Android registration
+        run: |
+          set -euo pipefail
+          if [ -z "$FIDUNIO_ANDROID_KEYSTORE_BASE64" ] || [ -z "$FIDUNIO_ANDROID_PASSWORD" ]; then
+            echo "::error title=Permanent signing required::Manually add FIDUNIO_ANDROID_KEYSTORE_BASE64 and FIDUNIO_ANDROID_PASSWORD to Actions secrets. No temporary key will be used."
+            exit 1
+          fi
+          if [ -z "$FIDUNIO_GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "::error title=Android Firebase registration required::Add FIDUNIO_GOOGLE_SERVICES_JSON_B64 to Actions secrets for the existing fidunio-fef13 project."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Confirm Android SDK
+        run: |
+          test -n "${ANDROID_HOME:-}"
+          test -d "$ANDROID_HOME/platforms"
+      - name: Build and verify FIDUNIO Android APK
+        run: bash build/android-build.sh
+      - name: Upload verified signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-android-signed-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  report:
+    name: Record APK build result
+    if: ${{ always() }}
+    needs: [apk]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const runId = context.runId;
+            const result = '${{ needs.apk.result }}';
+            const report = {
+              workflow: 'FIDUNIO Android signed APK',
+              branch: 'Android',
+              run_id: runId,
+              run_attempt: process.env.GITHUB_RUN_ATTEMPT,
+              run_url: `https://github.com/${owner}/${repo}/actions/runs/${runId}`,
+              source_sha: context.sha,
+              outcome: result,
+              artifact_name: result === 'success' ? 'fidunio-android-signed-apk' : null,
+              publication: {
+                destination: 'https://www.cuberoot-systems.com/downloads/fidunio.apk',
+                state: result === 'success' ? 'queued-for-cuberoot-publisher' : 'not-requested',
+                mechanism: 'Cuberoot polls verified successful signed artifacts'
+              },
+              reported_at: new Date().toISOString(),
+              jobs: []
+            };
+            try {
+              const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, { owner, repo, run_id: runId, per_page: 100 });
+              report.jobs = jobs.filter(j => j.name !== 'Record APK build result').map(j => ({
+                name: j.name, conclusion: j.conclusion,
+                failed_steps: (j.steps || []).filter(s => s.conclusion === 'failure').map(s => s.name)
+              }));
+            } catch (error) { report.jobs_error = error.message; }
+            if (result === 'success') {
+              try {
+                const a = await github.rest.actions.listWorkflowRunArtifacts({owner,repo,run_id:runId,per_page:100});
+                report.artifact_id = a.data.artifacts.find(x=>x.name===report.artifact_name)?.id || null;
+              } catch (error) { report.artifact_error = error.message; }
+            }
+            const path='build/android-last-run.json';
+            let sha;
+            try {sha=(await github.rest.repos.getContent({owner,repo,path,ref:'Android'})).data.sha;}
+            catch (error) {if(error.status!==404)throw error;}
+            await github.rest.repos.createOrUpdateFileContents({
+              owner,repo,path,branch:'Android',
+              message:'ci(android): record latest signed APK result [skip ci]',
+              content:Buffer.from(JSON.stringify(report,null,2)+'\n').toString('base64'),sha
+            });
+            core.info('FIDUNIO APK outcome: '+result+'; run '+runId);
+
+  handoff:
+    name: Verify Cuberoot automatic publisher
+    needs: [apk]
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Verify signed artifact of THIS run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" -o artifacts.json
+          node - <<'JS'
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('artifacts.json','utf8')).artifacts||[];
+          if(!a.some(x=>x.name==='fidunio-android-signed-apk'&&!x.expired&&x.size_in_bytes>1000000))throw Error('Verified APK artifact missing');
+          console.log('PASS: signed APK artifact ready for Cuberoot publisher');
+          JS
+      - name: Check Cuberoot publisher contract
+        run: |
+          curl -fsSL --retry 3 'https://raw.githubusercontent.com/willyros01/Cuberoot/main/.github/workflows/publish-fidunio-apk.yml' -o publisher.yml
+          grep -Fq 'name: Publish FIDUNIO Android APK' publisher.yml
+          grep -Fq 'bash build/publish-fidunio.sh' publisher.yml
+          echo 'FIDUNIO signed APK queued for Cuberoot. Public availability requires successful Cuberoot Pages deployment.'
