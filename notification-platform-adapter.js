@@ -5,11 +5,11 @@
  * Web uses browser Firebase Messaging + Service Worker. Native iOS uses the
  * Capacitor Firebase Messaging plugin and never fakes navigator.serviceWorker.
  */
-import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {isNativeMobileRuntime,isNativeAndroidRuntime} from "./platform-runtime.js";
 import {FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,normalizeNotificationRoute} from "./notification-routing.js";
 
 function nativeMessagingPlugin(){
-  if(!isNativeIOSRuntime())return null;
+  if(!isNativeMobileRuntime())return null;
   return globalThis.Capacitor?.Plugins?.FirebaseMessaging||null;
 }
 
@@ -20,17 +20,19 @@ function permissionValue(value){
 }
 
 export function getNotificationPlatformCapabilities(platformOptions){
-  if(isNativeIOSRuntime(platformOptions)){
+  if(isNativeMobileRuntime(platformOptions)){
     return Object.freeze({
       registrationKind:"native-fcm",
       webPush:false,
       nativeRegistration:true,
+      nativePlatform:isNativeAndroidRuntime(platformOptions)?"android-native":"ios-native",
     });
   }
   return Object.freeze({
     registrationKind:"web-push",
     webPush:true,
     nativeRegistration:false,
+    nativePlatform:null,
   });
 }
 
@@ -105,5 +107,6 @@ export const NOTIFICATION_PLATFORM_ADAPTER_V1=Object.freeze({
   sharedOwner:"notification-registration",
   webTransport:"web-push-service-worker",
   iosTransport:"apns-fcm-capacitor",
+  androidTransport:"fcm-capacitor",
   fakeServiceWorker:false,
 });
