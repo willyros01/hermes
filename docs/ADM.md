@@ -2,6 +2,19 @@
 
 Last updated 2026-10-14. Source of truth: `hermes/Android`. Production `main`, iOS `ios`, and Wire are not modified by this port.
 
+## VERIFIED OCT 14 2026 — latest release and publication (supersedes older status below)
+
+- **Amazon API key complete:** owner created and manually stored `FIDUNIO_ADM_API_KEY`; signing input check passed; never copy the key into source.
+- **ADM-capable signed APK built:** Hermes Android run **38602612272**, attempt 2, passed all native, signing, artifact and publisher-contract jobs. Official A3L adapter compiled with release credentials and the same permanent signing certificate. This proves compilation only; **server-side ADM notification delivery and physical Fire acceptance are NOT yet tested**.
+- **Website release verified:** Cuberoot publish run **38640459634**, site Pages run **38640506041**, manifest references Hermes run **38602612272**, SHA-256 `9623ebe45ff2509bcc343d26ba67510b75a40ddf4cbb6b486a69722399410aa2`, existing permanent signer `fbff41947e477e0b4df65bd741b550d7b30d7b18636a47c10853d789c4937a1d`.
+- **GitHub notification PASS:** Cuberoot `build/notify-fidunio.mjs` compares live site manifest to the signed release, downloads the actual public APK, verifies SHA-256, then creates a deduplicated GitHub Issue assigned to `willyros01`. Initial test [issue #1](https://github.com/willyros01/Cuberoot/issues/1) verified and **owner confirmed receiving the GitHub email**. No message until site bytes match; separate from notification delivery inside FIDUNIO.
+- **Direct publishing handoff staged:** Hermes Android workflow adds `Dispatch immediate Cuberoot publication` after successful APK artifact verification. Cuberoot workflow accepts `workflow_dispatch.inputs.source_run_id` and checks this exact Hermes run is successful before publishing. **For direct dispatch to actually execute, Hermes Actions must have a cross-repository fine-grained GitHub token secret `CUBEROOT_DISPATCH_TOKEN`**. Token must be restricted to `willyros01/Cuberoot` with Actions **read and write**. Owner authorized changing workflows but **the secret has not been verified as configured**; an ordinary `GITHUB_TOKEN` cannot dispatch across repos. A missing direct credential causes an explicit warning and leaves the scheduled five-minute Cuberoot fallback in place; scheduled jobs can be delayed.
+- **New APK test underway:** Hermes Android run **38642098793** was automatically started by commit `48dae08a578137ca95a3bfccc27bd01e07631733` adding direct handoff. Test must verify signed build succeeds, publication references **that exact new run**, Pages deploys, and a **new** GitHub Issue/email is created. Do not claim this until verified.
+- Cuberoot website channel stays `android-fcm-beta` until end-to-end server ADM delivery and Fire acceptance have passed; don't claim the currently published APK is Fire notification ready just because A3L compiled.
+
+**Historical setup notes and blockers in following sections describe earlier state before the owner completed Amazon provisioning.**
+
+
 ## Current release separation
 
 - **Existing signed website APK**: FCM-only (`android-fcm-beta`), successful build 38596933723. DO NOT describe it as supporting background ADM notifications.
