@@ -5,13 +5,13 @@
  * This adapter only receives native iOS Universal Links and extracts the same
  * existing invitation token that the web app receives from ?invite=.
  */
-import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {isNativeMobileRuntime} from "./platform-runtime.js";
 
 export const FIDUNIO_INVITATION_UNIVERSAL_HOST="www.cuberoot-systems.com";
 export const FIDUNIO_INVITATION_UNIVERSAL_PATH="/fidunio/join/";
 
 function appPlugin(){
-  if(!isNativeIOSRuntime())return null;
+  if(!isNativeMobileRuntime())return null;
   return globalThis.Capacitor?.Plugins?.App||null;
 }
 
