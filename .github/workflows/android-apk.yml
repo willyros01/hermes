@@ -54,9 +54,45 @@ jobs:
           node platform-runtime.test.mjs
           node build/verify-ios-foundation.mjs
 
+  native:
+    name: Compile Fire ADM native bridge (no release APK)
+    needs: [check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FIDUNIO_GOOGLE_SERVICES_JSON_B64: ${{ secrets.FIDUNIO_GOOGLE_SERVICES_JSON_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Compile against official A3L without a release credential
+        run: |
+          set -Eeuo pipefail
+          test -n "$FIDUNIO_GOOGLE_SERVICES_JSON_B64"
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-package-lock --no-audit --no-fund @capacitor/android@8.5.2
+          npm run ios:prepare
+          npx cap add android
+          npx cap sync android
+          bash build/android-native.sh
+          # Synthetic key is used for compilation ONLY, never for a distributed APK.
+          export FIDUNIO_ADM_API_KEY="$(printf '0%.0s' {1..48})"
+          bash build/fadm.sh
+          test -s android/app/libs/A3LMessaging-1.1.1.aar
+          test -s android/app/src/main/java/io/github/willyros01/fidunio/FidunioAdmPlugin.java
+          cd android
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:compileDebugJavaWithJavac
+          echo "PASS: Fire ADM code compiled; signed APK still requires owner Amazon key."
+
   apk:
     name: Build permanently signed FIDUNIO APK
-    needs: [check]
+    needs: [check, native]
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
