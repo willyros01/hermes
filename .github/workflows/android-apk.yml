@@ -222,4 +222,23 @@ jobs:
           curl -fsSL --retry 3 'https://raw.githubusercontent.com/willyros01/Cuberoot/main/.github/workflows/publish-fidunio-apk.yml' -o publisher.yml
           grep -Fq 'name: Publish FIDUNIO Android APK' publisher.yml
           grep -Fq 'bash build/publish-fidunio.sh' publisher.yml
-          echo 'FIDUNIO signed APK queued for Cuberoot. Public availability requires successful Cuberoot Pages deployment.'
+          echo 'FIDUNIO signed APK verified. Cuberoot will check exact published content.'
+      - name: Dispatch immediate Cuberoot publication
+        env:
+          CUBEROOT_TOKEN: ${{ secrets.CUBEROOT_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CUBEROOT_TOKEN" ]; then
+            echo "::warning title=Direct publishing credential missing::Add Hermes Actions secret CUBEROOT_DISPATCH_TOKEN (fine-grained GitHub token: Actions write on willyros01/Cuberoot). Until then the scheduled Cuberoot publisher remains the automatic fallback."
+            exit 0
+          fi
+          PAYLOAD="$(node -p "JSON.stringify({ref:'main',inputs:{source_run_id:process.env.GITHUB_RUN_ID}})")"
+          curl --fail-with-body -fsSL --retry 3 --retry-delay 2 \
+            -X POST \
+            -H "Authorization: Bearer $CUBEROOT_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            https://api.github.com/repos/willyros01/Cuberoot/actions/workflows/publish-fidunio-apk.yml/dispatches
+          echo "PASS: directly dispatched Cuberoot for signed Hermes run $GITHUB_RUN_ID; website completion will be announced by a GitHub issue."
