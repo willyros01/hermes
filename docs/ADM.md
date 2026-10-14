@@ -1,3 +1,11 @@
+## 2026-10-14 — Latest ADM activation handoff (supersedes older prerequisites below)
+
+**Current status:** Permanent-signed Android APK and mock sender tests passed. Both private ADM OAuth secret versions were transferred to Firebase Secret Manager via GitHub run `38650650490`. The production ADM Cloud Functions sender remains **NOT DEPLOYED** and a fresh production backup is **NOT VERIFIED**. Earlier descriptions below of missing credentials or unsigned builds are historical only, not the latest release state.
+
+The user authorized a **targeted** backend rollout with a verified private, versioned, in-Firebase backup and rollback capability. Scripts on `Android`: `build/ab2614.txt` (backup), `build/ad2614.txt` (activate), `build/ar2614.txt` (rollback). Detailed gates: `docs/ADM-LIVE.md`. Do not alter `main`, `main-3`, `ios`, Wire, other Cloud Functions or Firebase rules. All iOS branches are frozen. Native Firebase ADM service must be accepted on physical Fire HD 8; backend mock PASS is not device PASS.
+
+---
+
 # FIDUNIO Android Fire HD 8 — Amazon ADM implementation
 
 Last updated 2026-10-14. Source of truth: `hermes/Android`. Production `main`, iOS `ios`, and Wire are not modified by this port.

@@ -1,3 +1,9 @@
+## 2026-10-14 — FIDUNIO Android/Fire ADM migration (branch-local)
+
+The `Android` branch contains native Android adapters and a **staged** Amazon Device Messaging backend. Existing `ios`, `main`, `main-3` branch code remains untouched by this Android migration. Both Amazon server OAuth secrets have been placed in Firebase Secret Manager, but the live shared Firebase notification functions **have not yet been deployed** to ADM. GitHub regression tests passed; no real-device Fire notification acceptance is claimed. All iOS branches/builds are frozen. For safe production backup → two-function activation → rollback, see `docs/ADM-LIVE.md`; the backup has **not** yet been verified. Do not promote Android source indiscriminately to other branches.
+
+---
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**

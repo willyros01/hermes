@@ -1,3 +1,15 @@
+## 2026-10-14 — Android/Fire ADM provider boundary (Android branch only)
+
+**No live Firebase sender update is yet verified.** The Android branch holds staged source for the existing two Gen2 Firestore sender Functions `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1`. The live Firebase project `fidunio-fef13` serves web, iOS, Google Android and Fire OS simultaneously, regardless of which GitHub branch supplied a deployment.
+
+Preserve exactly one notification policy: current server-authoritative recipients, block checks, membership, leased-token fencing, generic private payloads, sender-name preference, exact opaque route and stale-token handling. Transport selection alone varies: `platform=android-adm` uses Amazon ADM OAuth; all other existing platforms use Firebase Admin multicast (FCM/Web Push and APNs through FCM), with batching no greater than 500. No ADM token enters FCM, and provider failure must never silently fall back to a different provider.
+
+The client platform adapter may select a native Fire ADM plugin only on compatible Fire OS. This does not create new Firebase/E2EE/Outbox owners or change existing web/iOS app code. Underlying messaging, history, authorization and encrypted content remain Firestore/E2EE controlled.
+
+Both server OAuth secret versions have been stored in Secret Manager (GitHub Actions `38650650490` PASS); this does NOT mean they are mounted into deployed senders. Compatibility gate `38651372635` PASS proves mock contract tests only. The owner has authorized scoped live ADM activation, but it remains **BLOCKED until a fresh verified in-Firebase backup** of BOTH real deployed sender sources/configs is available. Use the fail-closed staged Cloud Shell backup/activation/rollback sequence in `docs/ADM-LIVE.md`. Verify Fire foreground/background/locked/cold notification + PIN + correct message, AND unchanged iOS/web receipt, before claiming device acceptance. Do not touch `ios` or launch TestFlight; all iOS branches are frozen.
+
+---
+
 ## 2026-10-09 DOCUMENTATION RECONCILIATION — main-3 / ios (documentation only)
 
 - The active reconciliation branches are `main-3` (web candidate) and `ios` (Capacitor candidate); `main` is protected and must not be modified by this work. `main2` is a distinct historical branch, not an alias for `main-3`.

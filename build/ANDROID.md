@@ -38,3 +38,12 @@ Use `build/fas.txt` in Google Cloud Shell to generate the permanent signing mate
 
 ## Failure handling
 The build fails closed if any required GitHub secret is missing or invalid. Publisher never fabricates, builds, or re-signs an APK; previous published APK remains unchanged. Keep the signing key in owner-controlled backup. An accidental key rotation will block future updates and publication.
+
+## 2026-10-14 — ADM and live Firebase state (supersedes outdated pending notes above)
+
+- Android APK workflows and server-side ADM mock regressions passed; most recent ADM backend gate run `38651372635` PASS. Test results are not device acceptance.
+- Amazon server credentials `FIDUNIO_ADM_CLIENT_ID` and `FIDUNIO_ADM_CLIENT_SECRET` transferred to Firebase Secret Manager successfully in run `38650650490`; no notification Function deployment occurred in that transfer.
+- The Android branch has its own modified copy of several shared modules. This does **not** modify other GitHub branch copies. A Firebase Functions deployment, however, would change the live shared backend for every client.
+- Scope for the authorized deployment is limited to the two existing direct/group notification sender Functions, after fresh actual-deployed-source and configuration backup in `fidunio-fef13` with restore verification.
+- Durable scripts: `build/ab2614.txt` backup; `build/ad2614.txt` activation; `build/ar2614.txt` rollback. See `docs/ADM-LIVE.md`. The Cloud Shell backup has **not** been run; the ADM sender is **not yet live**.
+- User cannot paste into Cloud Shell; provide verifiable nonempty downloadable TXT or ZIP, with short commands and filenames. All iOS repositories/branches are frozen.

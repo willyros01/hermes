@@ -1,3 +1,14 @@
+## 2026-10-14 — Android migration / shared Firebase protection
+
+- The user's iOS development freeze applies to **all** repositories. Do not modify `ios` branches, source or TestFlight pipelines; documentation about Android may be edited only in authorized `Android` branches.
+- Source shared by behavior is not physically shared between GitHub branches. Each branch's files are independent. The **Firebase production project IS shared**: any live Function/rules/Firestore/Secret Manager/IAM change must be treated as a global, cross-platform change.
+- An Android-only source patch must not imply production ADM activation. Preserve existing web and iOS contracts; place transport differences behind existing adapters; no duplicate Firebase/message owners, unsynchronized state writes, nondeterministic send results or privacy regressions.
+- Before touching the two production notification Cloud Functions, capture/verify a fresh rollback-capable backup of their *actual deployed source* and configuration, preserve current triggers/service account and allow a targeted revert. Production deployment authorization for this ADM change does not waive the backup and regression gates.
+- User has difficulty typing and cannot paste into Cloud Shell. Only supply real, checked, nonempty downloadable files and short, unique filenames/commands; never claim an uncreated attachment exists. Do not put sensitive credentials in files or chat. See `docs/ADM-LIVE.md`.
+- Distinguish mock/unit regression PASS from physical Android/Fire, web and iOS notification-to-unlock receipt acceptance. Only the former is proved so far.
+
+---
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
