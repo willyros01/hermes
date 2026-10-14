@@ -1,27 +1,132 @@
 #!/usr/bin/env bash
-# FIDUNIO Amazon ADM certificate identity — READ ONLY.
-# Upload this file into Google Cloud Shell, then: bash aadm.txt
+# FIDUNIO Amazon ADM: read the signing certificate from the VERIFIED public APK.
+# NO private keystore, password, GitHub login, signing or Firebase access needed.
+# READ ONLY: downloads into a disposable temporary directory, then deletes it.
 set -Eeuo pipefail
 umask 077
-KEY="$HOME/fidunio-sign/fidunio.p12"
-PASS="$HOME/fidunio-sign/fpas.txt"
-test -s "$KEY" && test -s "$PASS" || {
-  echo "STOP: original FIDUNIO keystore/password missing in ~/fidunio-sign.";exit 1;
+
+PROJECT='fidunio-fef13'
+PACKAGE='io.github.willyros01.fidunio'
+RUN='38596933723'
+EXPECTED_APK_SHA='0502d02637603f611d43e93dab5edc0b35f3b37e6d92f87676bc799c2ef1b63c'
+EXPECTED_SIGNER_SHA='fbff41947e477e0b4df65bd741b550d7b30d7b18636a47c10853d789c4937a1d'
+
+printf '\nFIDUNIO — Amazon ADM certificate (read-only)\n'
+printf 'Project: %s\nPackage: %s\nSource: permanently signed Android APK run %s\n\n' "$PROJECT" "$PACKAGE" "$RUN"
+command -v curl >/dev/null || { echo 'STOP: curl is not available.'; exit 1; }
+command -v python3 >/dev/null || { echo 'STOP: python3 is not available.'; exit 1; }
+command -v sha256sum >/dev/null || { echo 'STOP: sha256sum is not available.'; exit 1; }
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+APK="$TMP/fidunio.apk"
+URL='https://www.cuberoot-systems.com/downloads/fidunio.apk?build=38596933723'
+FALLBACK='https://raw.githubusercontent.com/willyros01/Cuberoot/main/downloads/fidunio.apk'
+
+echo 'STEP 1: Reading already signed APK (no signing files needed) ...'
+if ! curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+    --retry 2 --connect-timeout 15 --max-time 120 "$URL" -o "$APK"; then
+  echo 'Website download unavailable. Trying the original published GitHub copy ...'
+  rm -f "$APK"
+  curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+    --retry 2 --connect-timeout 15 --max-time 120 "$FALLBACK" -o "$APK" || {
+      echo 'STOP: Could not download the already-signed FIDUNIO APK.'; exit 1;
+    }
+fi
+
+echo 'STEP 2: Checking APK SHA-256 before trusting its certificate ...'
+printf '%s  %s\n' "$EXPECTED_APK_SHA" "$APK" | sha256sum --check --status || {
+  echo 'STOP: APK checksum differs from the signed release. No fingerprints displayed.'; exit 1;
 }
-echo "FIDUNIO ADM registration identity (no private key displayed)"
-echo "Package: io.github.willyros01.fidunio"
-echo "Signed APK run: 38596933723"
-CERT="$(keytool -list -v -storetype PKCS12 -keystore "$KEY" \
-  -storepass "$(cat "$PASS")" -alias fidunio)"
-MD5="$(printf '%s\n' "$CERT" | sed -n 's/^[[:space:]]*MD5: *//p' | head -1)"
-SHA="$(printf '%s\n' "$CERT" | sed -n 's/^[[:space:]]*SHA256: *//p' | head -1)"
-test -n "$MD5" && test -n "$SHA" || { echo "STOP: signing certificate hashes not found.";exit 1; }
-NORMALIZED="$(printf '%s' "$SHA" | tr -d ':' | tr A-F a-f)"
-test "$NORMALIZED" = "fbff41947e477e0b4df65bd741b550d7b30d7b18636a47c10853d789c4937a1d" || {
-  echo "STOP: certificate differs from the permanent signed FIDUNIO APK."; exit 1;
-}
-echo "MD5: $MD5"
-echo "SHA-256: $SHA"
-echo "RESULT: PASS — hashes match permanent FIDUNIO signing identity."
-echo "Use THIS package + MD5 + SHA-256 to create FIDUNIO's API key in Amazon Developer Console."
-echo "DO NOT use Wire's package, API key, or sender credentials."
+
+echo 'STEP 3: Reading public signing certificate from APK (no private key) ...'
+python3 - "$APK" "$EXPECTED_SIGNER_SHA" <<'PY'
+import hashlib, struct, sys
+from pathlib import Path
+
+apk = Path(sys.argv[1]).read_bytes()
+expected = sys.argv[2]
+magic = b'APK Sig Block 42'
+
+def u32(buf, at):
+    if at < 0 or at + 4 > len(buf):
+        raise ValueError('APK signature field is truncated.')
+    return struct.unpack_from('<I', buf, at)[0]
+
+def u64(buf, at):
+    if at < 0 or at + 8 > len(buf):
+        raise ValueError('APK signature field is truncated.')
+    return struct.unpack_from('<Q', buf, at)[0]
+
+def lp32(buf, at):
+    size = u32(buf, at)
+    start = at + 4
+    end = start + size
+    if end > len(buf):
+        raise ValueError('APK signature length is invalid.')
+    return buf[start:end], end
+
+def read_certificates(scheme):
+    signers, _ = lp32(scheme, 0)
+    pos = 0
+    while pos < len(signers):
+        signer, pos = lp32(signers, pos)
+        signed_data, _ = lp32(signer, 0)
+        _, after_digests = lp32(signed_data, 0)
+        cert_list, _ = lp32(signed_data, after_digests)
+        certificate, _ = lp32(cert_list, 0)
+        if not certificate or certificate[0] != 0x30:
+            raise ValueError('Signing certificate is not DER encoded.')
+        yield certificate
+
+try:
+    # ZIP end-of-central-directory may have a comment of up to 65535 bytes.
+    begin = max(0, len(apk) - 65557)
+    eocd = -1
+    for pos in range(len(apk)-22, begin-1, -1):
+        if (apk[pos:pos+4] == b'PK\x05\x06'
+            and pos+22+struct.unpack_from('<H',apk,pos+20)[0] == len(apk)):
+            eocd = pos
+            break
+    if eocd < 0:
+        raise ValueError('APK ZIP footer not found.')
+    central = u32(apk, eocd + 16)
+    if central < 32 or central > eocd:
+        raise ValueError('APK central directory offset is invalid.')
+    footer = central - 24
+    size = u64(apk, footer)
+    if apk[footer+8:central] != magic or size < 24:
+        raise ValueError('APK v2/v3 signature block not found.')
+    start = central - size - 8
+    if start < 0 or u64(apk, start) != size:
+        raise ValueError('APK signing block header does not match its footer.')
+    pair_pos = start + 8
+    signer_hashes = []
+    while pair_pos < footer:
+        pair_len = u64(apk, pair_pos)
+        if pair_len < 4 or pair_pos+8+pair_len > footer:
+            raise ValueError('APK signature pair is invalid.')
+        pair_id = u32(apk, pair_pos + 8)
+        if pair_id in (0x7109871a, 0xf05368c0, 0x1b93ad61):
+            payload = apk[pair_pos + 12:pair_pos + 8 + pair_len]
+            for certificate in read_certificates(payload):
+                signer_hashes.append((hashlib.sha256(certificate).hexdigest(),
+                                      hashlib.md5(certificate).hexdigest()))
+        pair_pos += 8 + pair_len
+    if pair_pos != footer or not signer_hashes:
+        raise ValueError('No Android APK v2/v3 signing certificate was found.')
+    hashes = next(((sha, md5) for sha, md5 in signer_hashes if sha == expected), None)
+    if hashes is None:
+        raise ValueError('APK signer differs from the permanent FIDUNIO certificate.')
+    sha, md5 = hashes
+    fmt = lambda s: ':'.join(s[i:i+2].upper() for i in range(0,len(s),2))
+    print('\nRESULT: PASS — Verified permanent FIDUNIO signer')
+    print('ANDROID PACKAGE: io.github.willyros01.fidunio')
+    print('MD5:     ' + fmt(md5))
+    print('SHA-256: ' + fmt(sha))
+    print('\nRegister THIS application and certificate in Amazon Developer Console.')
+    print('Do NOT copy an API key or a private signing key into ChatGPT.')
+except (ValueError, struct.error, IndexError) as error:
+    raise SystemExit('STOP: '+str(error))
+PY
+
+echo '\nNo keystore, passwords, GitHub Secrets, Firebase, or existing files were changed.'
