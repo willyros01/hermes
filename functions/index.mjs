@@ -22,6 +22,7 @@ import { createDirectMessageNotificationCore } from "./notification/direct-messa
 import { createGroupMessageNotificationCore } from "./notification/group-message-notification-core.mjs";
 import { createNotificationAdminRepositories } from "./notification/direct-message-notification-firestore-admin-adapter.mjs";
 import { createNotificationLeaseFirestoreAdmin } from "./notification/notification-lease-firestore-admin.mjs";
+import { createAmazonADMDelivery } from "./notification/adm-delivery.mjs";
 import { createLegalPolicyCore } from "./legal/legal-policy-core.mjs";
 import { createLegalPolicyFirestoreRepository } from "./legal/legal-policy-firestore-admin-adapter.mjs";
 import { createAccountDeletionCore } from "./account-deletion/account-deletion-core.mjs";
@@ -32,6 +33,9 @@ import { createSystemOwnershipFirestoreRepository } from "./access/system-owners
 if (!getApps().length) initializeApp();
 
 const RECOVERY_MASTER = defineSecret("FIDUNIO_RECOVERY_MASTER_V1");
+// ADM secrets belong only to the notification Cloud Functions; never to the APK.
+const ADM_CLIENT_ID = defineSecret("FIDUNIO_ADM_CLIENT_ID");
+const ADM_CLIENT_SECRET = defineSecret("FIDUNIO_ADM_CLIENT_SECRET");
 const RECOVERY_SERVICE_ACCOUNT = "fidunio-recovery@fidunio-fef13.iam.gserviceaccount.com";
 const MESSAGE_DELETE_SERVICE_ACCOUNT = "fidunio-message-delete@fidunio-fef13.iam.gserviceaccount.com";
 const DISAPPEARING_PURGE_SERVICE_ACCOUNT = "fidunio-disappearing-purge@fidunio-fef13.iam.gserviceaccount.com";
@@ -53,8 +57,11 @@ const accountDeletionRepo=createAccountDeletionAdminRepository({db,auth:getAuth(
 const accountDeletionCore=createAccountDeletionCore({repo:accountDeletionRepo});
 const systemOwnershipRepo=createSystemOwnershipFirestoreRepository({db});
 const systemOwnershipCore=createSystemOwnershipCore({repo:systemOwnershipRepo});
-const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo,messaging:getMessaging()});
-const groupNotificationCore=createGroupMessageNotificationCore({groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging()});
+const admDelivery=createAmazonADMDelivery({getCredentials:()=>({
+  clientId:ADM_CLIENT_ID.value(),clientSecret:ADM_CLIENT_SECRET.value()
+})});
+const directNotificationCore=createDirectMessageNotificationCore({conversationRepo:notificationConversationRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,blockRepo:notificationBlockRepo,messaging:getMessaging(),admDelivery});
+const groupNotificationCore=createGroupMessageNotificationCore({groupRepo:notificationGroupRepo,profileRepo:notificationProfileRepo,deviceRepo:notificationDeviceRepo,messaging:getMessaging(),admDelivery});
 
 function decodeMasterSecret() {
   const raw = String(RECOVERY_MASTER.value() || "");
@@ -139,6 +146,6 @@ export const purgeInactiveNotificationLeasesV1=onSchedule({
   region:"us-central1",schedule:"every day 03:00",timeZone:"UTC",
   serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:120,memory:"256MiB"
 },async()=>notificationLeaseRepo.purgeInactive({limit:200}));
-export const notifyDirectMessageCreatedV1 = onDocumentCreated({document:"conversations/{conversationId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});});
-export const notifyGroupMessageCreatedV1 = onDocumentCreated({document:"groups/{groupId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false},async event=>{const message=event.data?.data?.();if(!message)return null;return groupNotificationCore.handleCreatedMessage({groupId:event.params.groupId,messageId:event.params.messageId,message});});
+export const notifyDirectMessageCreatedV1 = onDocumentCreated({document:"conversations/{conversationId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false,secrets:[ADM_CLIENT_ID,ADM_CLIENT_SECRET]},async event=>{const message=event.data?.data?.();if(!message)return null;return directNotificationCore.handleCreatedMessage({conversationId:event.params.conversationId,messageId:event.params.messageId,message});});
+export const notifyGroupMessageCreatedV1 = onDocumentCreated({document:"groups/{groupId}/messages/{messageId}",region:"us-central1",serviceAccount:NOTIFICATION_SERVICE_ACCOUNT,timeoutSeconds:30,memory:"256MiB",maxInstances:20,retry:false,secrets:[ADM_CLIENT_ID,ADM_CLIENT_SECRET]},async event=>{const message=event.data?.data?.();if(!message)return null;return groupNotificationCore.handleCreatedMessage({groupId:event.params.groupId,messageId:event.params.messageId,message});});
 export const purgeDisappearingMessagesV1 = onSchedule({region:"us-central1",schedule:"every 1 minutes",timeZone:"UTC",serviceAccount:DISAPPEARING_PURGE_SERVICE_ACCOUNT,timeoutSeconds:120,memory:"256MiB"},async()=>runDisappearingPurgeSweep({db,executor:disappearingPurgeExecutor,limit:200}));
