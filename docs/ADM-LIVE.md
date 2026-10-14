@@ -30,7 +30,7 @@ Prepared `fa.txt` requires the actual GCS backup and SHA-256 verification, confi
 
 Prepared `fr.txt` reads `latest.txt` in the same private Firebase bucket, checks all SHA-256 digests, compares live identities and event filters to baseline, and uses the archived **pre-ADM source** to restore each function with only its ADM secret mounts removed. It verifies ACTIVE state, trigger, runtime, service account and absence of ADM mounts. After both functions restore it removes the new runtime accessor bindings; the private backup bucket and secret versions remain preserved. This operation needs an authorized Cloud Shell session.
 
-The scripts are conversation attachments; they are not yet committed into repository source or executed. **No backup, deployment, or physical-device PASS may be claimed yet.**
+The scripts are installed and source-verified in the Hermes `Android` branch at `build/fb.txt` (backup), `build/fa.txt` (activation) and `build/fr.txt` (rollback). Their Bash and embedded Python syntax were checked offline, but they have **not** been executed in Firebase. **No backup, deployment, or physical-device PASS may be claimed yet.**
 
 ## Post-deployment device acceptance
 
