@@ -36,6 +36,9 @@ jobs:
           npm ci --no-audit --no-fund
           npm run ios:prepare
           node build/test-android.mjs
+          node build/test-adm.mjs
+          node --check build/install-fidunio-adm.mjs
+          node --check functions/notification/adm-delivery.mjs
           node --check platform-runtime.js
           node --check notification-platform-adapter.js
           node --check firebase-platform-adapter.js
@@ -43,6 +46,7 @@ jobs:
           bash -n build/android-sign.sh
           bash -n build/android-native.sh
           bash -n build/android-build.sh
+          bash -n build/fadm.sh
           java build/AndroidIcons.java icon-512.png "$RUNNER_TEMP/fidunio-icons"
           test -s "$RUNNER_TEMP/fidunio-icons/mipmap-xxxhdpi/ic_launcher.png"
       - name: Validate shared FIDUNIO release tests
