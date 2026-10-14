@@ -4,12 +4,12 @@
  * Shared lock/PIN state remains owned by local-security.js. This module only
  * bridges native iOS biometry and never owns unlock state or E2EE material.
  */
-import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {isNativeMobileRuntime} from "./platform-runtime.js";
 
-export function isNativeBiometricRuntime(){return isNativeIOSRuntime();}
+export function isNativeBiometricRuntime(){return isNativeMobileRuntime();}
 
 function nativePlugin(){
-  if(!isNativeIOSRuntime())return null;
+  if(!isNativeMobileRuntime())return null;
   return globalThis.Capacitor?.Plugins?.BiometricAuthNative||null;
 }
 
@@ -49,6 +49,7 @@ export async function authenticateNativeBiometric(){
 export const NATIVE_BIOMETRIC_PLATFORM_ADAPTER_V1=Object.freeze({
   sharedOwner:"local-security",
   iosPlugin:"BiometricAuthNative",
+  androidPlugin:"BiometricAuthNative",
   pinFallback:true,
   ownsUnlockState:false,
   ownsE2EE:false,
