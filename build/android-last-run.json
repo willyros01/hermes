@@ -1,10 +1,10 @@
 {
   "workflow": "FIDUNIO Android signed APK",
   "branch": "Android",
-  "run_id": 38655032855,
+  "run_id": 38655052135,
   "run_attempt": "1",
-  "run_url": "https://github.com/willyros01/hermes/actions/runs/38655032855",
-  "source_sha": "a6b88b37d6c895d2bcd2fd14e812c4236147d51d",
+  "run_url": "https://github.com/willyros01/hermes/actions/runs/38655052135",
+  "source_sha": "0e543f41e4ed6a9676edd1575a6f1051be7ae795",
   "outcome": "cancelled",
   "artifact_name": null,
   "publication": {
@@ -12,16 +12,16 @@
     "state": "not-requested",
     "mechanism": "Cuberoot polls verified successful signed artifacts"
   },
-  "reported_at": "2026-10-14T23:36:08.289Z",
+  "reported_at": "2026-10-14T23:40:28.899Z",
   "jobs": [
     {
       "name": "Verify shared application and native Android adapters",
-      "conclusion": "cancelled",
+      "conclusion": "success",
       "failed_steps": []
     },
     {
       "name": "Compile Fire ADM native bridge (no release APK)",
-      "conclusion": "cancelled",
+      "conclusion": "success",
       "failed_steps": []
     },
     {
