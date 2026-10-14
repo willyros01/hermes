@@ -3,10 +3,10 @@
  * The shared bootstrap owns sequencing; this adapter owns platform-specific
  * startup timeout/failure presentation only.
  */
-import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {isNativeMobileRuntime} from "./platform-runtime.js";
 
 export function createPlatformStartupWatchdog({host,timeoutMs=30000,reload=()=>location.reload(),platformOptions}={}){
-  if(!isNativeIOSRuntime(platformOptions)||!host)return Object.freeze({fail:()=>{},clear:()=>{}});
+  if(!isNativeMobileRuntime(platformOptions)||!host)return Object.freeze({fail:()=>{},clear:()=>{}});
   const show=message=>{
     if(!host.isConnected)return;
     host.querySelector(".startup-spinner")?.remove();
@@ -25,4 +25,5 @@ export const STARTUP_PLATFORM_ADAPTER_V1=Object.freeze({
   sharedOwner:"bootstrap-sequencing",
   webPresentation:"none",
   iosPresentation:"bounded-startup-watchdog",
+  androidPresentation:"bounded-startup-watchdog",
 });
