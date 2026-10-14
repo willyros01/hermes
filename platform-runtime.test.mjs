@@ -48,7 +48,7 @@ assert.doesNotMatch(settings,/isNativeIOSRuntime/);
 assert.match(notificationPlatformAdapter,/isNativeMobileRuntime/);
 assert.match(notificationPlatformAdapter,/registrationKind:"native-fcm"/);
 assert.match(notificationPlatformAdapter,/registrationKind:"web-push"/);
-assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
+assert.match(install,/nativeApp=isNativeMobileRuntime\(\)/);
 assert.match(localSecurity,/platformAuthenticatorAvailable\(\)\{if\(isNativeBiometricRuntime\(\)\)return \(await nativeBiometricAvailability\(\)\)\.available/);assert.match(localSecurity,/import \{[^}]*\bisNativeBiometricRuntime\b[^}]*\} from "\.\/biometric-platform-adapter\.js";/);assert.doesNotMatch(localSecurity,/isNativeIOSRuntime|platform-runtime\.js/,"local-security detects native biometric runtime only through the biometric adapter");assert.match(localSecurity,/authenticateNativeBiometric/);
 assert.match(app,/security\.hasBiometric\?\x27<button class="primary" id="deviceUnlockBtn">Unlock with Face ID or Biometric<\/button>\x27/);
 if(payload){
