@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# FIDUNIO Amazon ADM sender credentials — one-time Cloud Shell setup.
+# Project is fixed. No Firestore, Function, IAM, APK or website changes.
+set -Eeuo pipefail
+umask 077
+PRJ='fidunio-fef13'
+N1='FIDUNIO_ADM_CLIENT_ID'
+N2='FIDUNIO_ADM_CLIENT_SECRET'
+TMP="$(mktemp -d)"
+CID=''
+CSEC=''
+trap 'unset CID CSEC; rm -rf "$TMP"' EXIT
+
+echo 'FIDUNIO ADM sender credentials — safe preparation'
+echo "Firebase project: $PRJ"
+echo 'This script does NOT deploy functions or change notification routing.'
+command -v gcloud >/dev/null || { echo 'ERROR: Run in Google Cloud Shell.'; exit 1; }
+gcloud projects describe "$PRJ" --format='value(projectId)' > "$TMP/project"
+grep -Fxq "$PRJ" "$TMP/project" || { echo 'ERROR: Wrong Firebase project.'; exit 1; }
+ACCOUNT="$(gcloud auth list --filter='status:ACTIVE' --format='value(account)' | head -n1)"
+test -n "$ACCOUNT" || { echo 'ERROR: Sign into Google Cloud Shell first.'; exit 1; }
+echo "Google account: $ACCOUNT"
+
+echo 'Preflight: inspect BOTH secret names before changing anything...'
+for NAME in "$N1" "$N2"; do
+  if gcloud secrets describe "$NAME" --project="$PRJ" --format='value(name)' >"$TMP/one" 2>"$TMP/error"; then
+    echo "STOP: $NAME already exists. Nothing was changed."
+    echo 'Do not overwrite or rotate an existing production secret.'
+    exit 2
+  elif grep -Eqi '(not found|NOT_FOUND)' "$TMP/error"; then
+    echo "$NAME: absent, may safely create after confirmation"
+  else
+    echo "ERROR: Could not inspect $NAME. No changes made."
+    cat "$TMP/error"
+    exit 3
+  fi
+done
+
+BACKUP="$HOME/fsbk.txt"
+if test -e "$BACKUP"; then BACKUP="$(mktemp "$HOME/fsbk.XXXXXX.txt")"; fi
+{
+  date -u '+Firebase sender preflight UTC %Y-%m-%dT%H:%M:%SZ'
+  echo "project=$PRJ"
+  echo "$N1=absent"
+  echo "$N2=absent"
+  echo 'Before this operation no FIDUNIO ADM sender secrets existed.'
+  echo 'Rollback if no Functions have yet bound these new secrets:'
+  echo "  gcloud secrets versions disable 1 --secret=$N1 --project=$PRJ"
+  echo "  gcloud secrets versions disable 1 --secret=$N2 --project=$PRJ"
+  echo 'Do NOT delete production data, secrets or IAM roles automatically.'
+} > "$BACKUP"
+chmod 600 "$BACKUP"
+echo "Preflight snapshot saved: $BACKUP"
+
+echo
+echo 'Paste your saved Amazon CLIENT ID below (typing is hidden).'
+IFS= read -r -s -p 'Client ID, then Enter: ' CID
+printf '\n'
+echo 'Paste your saved Amazon CLIENT SECRET below (typing is hidden).'
+IFS= read -r -s -p 'Client Secret, then Enter: ' CSEC
+printf '\n'
+if [[ "$CID" != amzn1.application-oa2-client.* || "${#CID}" -lt 25 ]]; then
+  echo 'ERROR: Client ID does not have the expected Amazon format. No change.'
+  exit 4
+fi
+if [[ "${#CSEC}" -lt 20 || "$CSEC" == *[[:space:]]* ]]; then
+  echo 'ERROR: Client Secret appears incomplete or contains whitespace. No change.'
+  exit 4
+fi
+printf 'Credential formats valid. Save in project %s? Type YES to proceed: ' "$PRJ"
+read -r CONFIRM
+if [[ "$CONFIRM" != 'YES' ]]; then echo 'Cancelled. No changes made.'; exit 0; fi
+
+# Fail closed: no forced rotation, no automatic IAM, no backend deployment.
+gcloud secrets create "$N1" --project="$PRJ" --replication-policy=automatic
+printf '%s' "$CID" | gcloud secrets versions add "$N1" --project="$PRJ" --data-file=-
+unset CID
+gcloud secrets create "$N2" --project="$PRJ" --replication-policy=automatic
+printf '%s' "$CSEC" | gcloud secrets versions add "$N2" --project="$PRJ" --data-file=-
+unset CSEC
+echo
+echo 'PASS: Both FIDUNIO ADM sender secrets installed privately.'
+echo "Project: $PRJ"
+echo "Snapshot: $BACKUP"
+echo 'Production notifications are NOT changed yet.'
+echo 'Next: inspect and back up the deployed notification Functions before rollout.'
