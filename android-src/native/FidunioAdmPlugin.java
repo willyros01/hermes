@@ -29,8 +29,12 @@ public final class FidunioAdmPlugin extends Plugin {
   }
   @PluginMethod public void available(PluginCall call){
     JSObject ret=new JSObject();
-    ret.put("supported",isAdm());
-    ret.put("provider",isAdm()?"adm":"");
+    final boolean supported=isAdm();
+    ret.put("supported",supported);
+    ret.put("provider",supported?"adm":"");
+    final PermissionState state=getPermissionState("notice");
+    ret.put("permission",Build.VERSION.SDK_INT<33||state==PermissionState.GRANTED
+      ?"granted":state==PermissionState.DENIED?"denied":"default");
     call.resolve(ret);
   }
   private void issueToken(PluginCall call){
