@@ -1,26 +1,46 @@
 #!/usr/bin/env bash
-# FIDUNIO Android: one-time permanent signing material in Google Cloud Shell.
-# Run locally in Cloud Shell, NEVER commit any generated .p12 / .b64 files.
+# FIDUNIO Android: create ONE permanent APK key and copy-ready secret text files.
+# Run in YOUR Google Cloud Shell. Do not commit, upload or paste keys into chat.
 set -euo pipefail
 umask 077
 gcloud config set project fidunio-fef13
-test ! -e fidunio.p12 || { echo 'fidunio.p12 already exists; reuse the existing PERMANENT key'; exit 1; }
-read -r -s -p 'Choose permanent FIDUNIO APK password: ' P; echo
-read -r -s -p 'Repeat FIDUNIO APK password: ' Q; echo
-test -n "$P" && [ "$P" = "$Q" ] || { echo 'Passwords must match and not be blank'; exit 1; }
-[ "${#P}" -ge 8 ] || { echo 'Password must contain at least 8 characters'; exit 1; }
+
+# A previous signing identity must NEVER be replaced automatically.
+if [ -e "$HOME/fidunio.p12" ]; then
+  echo "Existing fidunio.p12 found in home. STOP: do not create a second signing key."
+  exit 1
+fi
+DIR="$HOME/fidunio-sign"
+mkdir -p "$DIR"
+cd "$DIR"
+if [ -e fidunio.p12 ] || [ -e fkey.txt ] || [ -e fpas.txt ]; then
+  echo "FIDUNIO signing files already exist. STOP: preserve your original permanent key."
+  echo "Location: $DIR"
+  exit 1
+fi
+
+# Generate a strong unique password without manual typing.
+openssl rand -hex 24 > fpas.txt
+P="$(cat fpas.txt)"
 keytool -genkeypair -storetype PKCS12 -keystore fidunio.p12 -alias fidunio \
   -keyalg RSA -keysize 3072 -validity 10000 \
   -dname 'CN=FIDUNIO Android, OU=Cuberoot, O=Cuberoot Systems' \
   -storepass "$P" -keypass "$P" -noprompt
-base64 -w0 fidunio.p12 > fidunio.b64
-sha256sum fidunio.p12
-echo 'SAVE fidunio.p12 and password in PRIVATE BACKUP.'
-echo 'GitHub Actions secret 1: FIDUNIO_ANDROID_KEYSTORE_BASE64 (contents of fidunio.b64)'
-echo 'GitHub Actions secret 2: FIDUNIO_ANDROID_PASSWORD (the password you entered)'
-echo 'GitHub Actions secret 3: FIDUNIO_GOOGLE_SERVICES_JSON_B64'
-echo 'For secret 3, register io.github.willyros01.fidunio as ANDROID app in Firebase project fidunio-fef13,'
-echo 'download google-services.json, then run: base64 -w0 google-services.json > fcfg.b64'
-echo 'Use the text in fcfg.b64 as the value of secret 3.'
-echo 'NO secrets were uploaded and NO build was started by this script.'
-unset P Q
+keytool -list -keystore fidunio.p12 -storetype PKCS12 \
+  -storepass "$P" -alias fidunio > /dev/null
+base64 -w0 fidunio.p12 > fkey.txt
+printf '\n' >> fkey.txt
+chmod 600 fidunio.p12 fkey.txt fpas.txt
+unset P
+
+echo
+echo "SUCCESS: permanent FIDUNIO Android signing key created."
+echo "Secret 1 name: FIDUNIO_ANDROID_KEYSTORE_BASE64"
+echo "Secret 1 value: entire contents of $DIR/fkey.txt"
+echo "Secret 2 name: FIDUNIO_ANDROID_PASSWORD"
+echo "Secret 2 value: entire contents of $DIR/fpas.txt"
+echo
+echo "Use: cat $DIR/fkey.txt   (copy everything shown for Secret 1)"
+echo "Use: cat $DIR/fpas.txt   (copy everything shown for Secret 2)"
+echo "PRIVATE BACKUP REQUIRED: $DIR/fidunio.p12 plus fpas.txt"
+echo "No GitHub secrets were uploaded. No APK build was started by this script."
