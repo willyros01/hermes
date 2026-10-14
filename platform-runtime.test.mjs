@@ -34,18 +34,18 @@ assert.doesNotMatch(bootstrap,/shouldUseWebServiceWorker|navigator\.serviceWorke
 assert.match(app,/subscribePlatformBackgroundMessages/);
 assert.doesNotMatch(app,/shouldUseWebServiceWorker|navigator\.serviceWorker|serviceWorker\.register/);
 assert.match(backgroundAdapter,/navigator\.serviceWorker\.register/);
-assert.match(backgroundAdapter,/isNativeIOSRuntime/);
+assert.match(backgroundAdapter,/isNativeMobileRuntime/);
 
 assert.match(firebase,/from "\.\/firebase-platform-adapter\.js"/);
 assert.match(firebase,/createPlatformFirebaseAuth\(\{app,authSdk\}\)/);
 assert.match(firebase,/createPlatformFirebaseAppCheck\(/);
 assert.doesNotMatch(firebase,/isNativeIOSRuntime|shouldUseWebAppCheck|initializeAuth\(|indexedDBLocalPersistence|browserSessionPersistence/);
-assert.match(firebaseAdapter,/isNativeIOSRuntime/);
+assert.match(firebaseAdapter,/isNativeMobileRuntime/);
 assert.match(firebaseAdapter,/initializeAuth\(app,\{persistence:authSdk\.browserLocalPersistence\}\)/);
 
 assert.match(settings,/getNotificationPlatformCapabilities\(\)/);
 assert.doesNotMatch(settings,/isNativeIOSRuntime/);
-assert.match(notificationPlatformAdapter,/isNativeIOSRuntime/);
+assert.match(notificationPlatformAdapter,/isNativeMobileRuntime/);
 assert.match(notificationPlatformAdapter,/registrationKind:"native-fcm"/);
 assert.match(notificationPlatformAdapter,/registrationKind:"web-push"/);
 assert.match(install,/nativeApp=isNativeIOSRuntime\(\)/);
@@ -61,4 +61,4 @@ assert.match(firebase,/FIDUNIO_INVITATION_WEB_LINK_BASE/);
 assert.match(firebase,/new URL\(FIDUNIO_INVITATION_WEB_LINK_BASE\)/);
 assert.match(settings,/fidunioPublicUrl\("\.\/quick-start\.html"\)/);
 assert.match(settings,/fidunioPublicUrl\("\.\/account-recovery\.html"\)/);
-console.log("PASS: bounded web/Capacitor iOS runtime selection and platform-adapter integration guards");
+console.log("PASS: bounded web/Capacitor iOS and Android runtime selection and platform-adapter integration guards");
