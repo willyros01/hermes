@@ -22,21 +22,29 @@ command -v gcloud >/dev/null || { echo 'ERROR: Google Cloud Shell required.'; ex
 test "$(gcloud projects describe "$P" --format='value(projectNumber)')" = "$NUM" || { echo 'ERROR: Wrong project number.'; exit 1; }
 test -n "$(gcloud auth list --filter='status:ACTIVE' --format='value(account)' | head -n1)" || { echo 'ERROR: No active Google Cloud account.'; exit 1; }
 
-# Check existing resources without reading any secret payloads.
-for NAME in "$ONE" "$TWO"; do
-  if gcloud secrets describe "$NAME" --project="$P" >/dev/null 2>&1; then
-    echo "STOP: $NAME already exists; will not edit an existing secret."
+# Check existing resources without reading secret payloads. Permission
+# errors and disabled APIs must NOT be mistaken for missing resources.
+check_absent() {
+  local error
+  error="$(mktemp)"
+  if "$@" >/dev/null 2>"$error"; then
+    echo 'STOP: existing Google resource; no existing secret or IAM setup will be overwritten.'
+    rm -f "$error"
     exit 2
   fi
+  if ! grep -Eqi '(NOT_FOUND|not found)' "$error"; then
+    echo 'STOP: unable to verify that a Google resource is absent.'
+    cat "$error"
+    rm -f "$error"
+    exit 3
+  fi
+  rm -f "$error"
+}
+for NAME in "$ONE" "$TWO"; do
+  check_absent gcloud secrets describe "$NAME" --project="$P"
 done
-if gcloud iam workload-identity-pools describe "$POOL" --location=global --project="$P" >/dev/null 2>&1; then
-  echo 'STOP: dedicated identity pool already exists. Inspect before retrying.'
-  exit 2
-fi
-if gcloud iam service-accounts describe "$SA" --project="$P" >/dev/null 2>&1; then
-  echo 'STOP: dedicated service account already exists. Inspect before retrying.'
-  exit 2
-fi
+check_absent gcloud iam workload-identity-pools describe "$POOL" --location=global --project="$P"
+check_absent gcloud iam service-accounts describe "$SA" --project="$P"
 {
   date -u '+Firebase PRE-CHANGE snapshot UTC %Y-%m-%dT%H:%M:%SZ'
   echo "project=$P number=$NUM"
