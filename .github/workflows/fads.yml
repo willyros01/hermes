@@ -1,0 +1,66 @@
+name: FIDUNIO ADM private secret transfer
+
+# One-time transfer of owner-provided GitHub Actions secrets.
+# This file contains no credentials. Do not modify live Firebase functions.
+on:
+  push:
+    branches: [Android]
+    paths:
+      - '.github/workflows/fads.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: fidunio-adm-secret-transfer
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'willyros01/hermes' && github.ref == 'refs/heads/Android'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      FIDUNIO_ADM_CLIENT_ID: ${{ secrets.FIDUNIO_ADM_CLIENT_ID }}
+      FIDUNIO_ADM_CLIENT_SECRET: ${{ secrets.FIDUNIO_ADM_CLIENT_SECRET }}
+    steps:
+      - name: Check both credentials privately
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          if [[ -z "$FIDUNIO_ADM_CLIENT_ID" || -z "$FIDUNIO_ADM_CLIENT_SECRET" ]]; then
+            echo '::error title=Missing credentials::Both saved GitHub secrets are required.'
+            exit 1
+          fi
+          if [[ "$FIDUNIO_ADM_CLIENT_ID" != amzn1.application-oa2-client.* || ${#FIDUNIO_ADM_CLIENT_ID} -lt 30 || ${#FIDUNIO_ADM_CLIENT_SECRET} -lt 20 ]]; then
+            echo '::error title=Credential format::One stored secret appears incomplete.'
+            exit 1
+          fi
+          echo 'PASS: Credential presence and format verified without displaying values.'
+
+      - name: Authenticate using dedicated Google Cloud identity
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: fidunio-fef13
+          workload_identity_provider: projects/130339622893/locations/global/workloadIdentityPools/fidunio-adm-sync/providers/hermes-android
+          service_account: fidunio-adm-sync@fidunio-fef13.iam.gserviceaccount.com
+          token_format: access_token
+
+      - name: Install Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: fidunio-fef13
+
+      - name: Save secret versions without displaying contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          printf '%s' "$FIDUNIO_ADM_CLIENT_ID" | gcloud secrets versions add FIDUNIO_ADM_CLIENT_ID --project=fidunio-fef13 --data-file=- >/dev/null
+          echo 'PASS: Client ID stored in Firebase Secret Manager.'
+          printf '%s' "$FIDUNIO_ADM_CLIENT_SECRET" | gcloud secrets versions add FIDUNIO_ADM_CLIENT_SECRET --project=fidunio-fef13 --data-file=- >/dev/null
+          echo 'PASS: Client Secret stored in Firebase Secret Manager.'
+          echo 'PASS: Both values transferred. No Cloud Functions deployed.'
