@@ -9,6 +9,16 @@ Last updated 2026-10-14. Source of truth: `hermes/Android`. Production `main`, i
 - Native platform `android-adm` is distinct from `android-native`. Authenticated claim/revoke and the single 30-day token lease authority are reused; a Fire token must NEVER be sent to Firebase FCM.
 - The `functions/notification/adm-delivery.mjs` code and Cloud Functions wiring are **STAGED SOURCE ONLY** on `Android`. They are **not deployed** to Firebase. In particular, native compilation or APK signature SUCCESS is not evidence of delivery, sender credentials, server deployment, or notification-to-PIN device acceptance.
 
+## Verified CI result — 2026-10-14
+
+GitHub Actions run **38602612272**, source commit `e7d6d53ea88515de73eb6977ce54f086ede3dd9f`:
+
+- `Verify shared application and native Android adapters`: **PASS**.
+- `Compile Fire ADM native bridge (no release APK)`: **PASS**. Official Amazon A3L 1.1.1 Android library compiled against the FIDUNIO native adapter with a synthetic compile-only key; this is **not** a real ADM device authorization.
+- `Build permanently signed FIDUNIO APK`: **BLOCKED (intended)**, confirmed by job logs: missing `FIDUNIO_ADM_API_KEY`. Permanent signing and Firebase Android secrets passed their prerequisite checks.
+- No new ADM APK signed or published. The last Cuberoot release remains the earlier FCM-only APK from run 38596933723.
+- After the owner registers FIDUNIO's Amazon app and manually adds `FIDUNIO_ADM_API_KEY`, a new `Android` build can produce the ADM-capable signed APK. This still does not establish live server delivery; backend OAuth credentials, deployment and physical Fire acceptance remain separate gates.
+
 ## Amazon owner setup — REQUIRED before the ADM APK
 
 1. Open [Amazon Developer Console](https://developer.amazon.com/), sign in with the same developer account used for your other Fire OS apps.
