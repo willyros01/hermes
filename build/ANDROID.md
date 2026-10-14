@@ -1,0 +1,31 @@
+# FIDUNIO Android — owner checklist
+Android source branch: `Android` copied from `ios` at commit `0e222ef9a358133274bdec48f7a6ed3fab104bd2`.
+Do not push this Android-only port to `main` or `ios`.
+Bundle ID: `io.github.willyros01.fidunio`. Firebase project: `fidunio-fef13`.
+
+## One-time required GitHub Actions secrets (entered manually by owner)
+Repository Settings > Secrets and variables > Actions > New repository secret.
+
+- `FIDUNIO_ANDROID_KEYSTORE_BASE64`: base64 of the PERMANENT Android PKCS12 signing keystore with alias `fidunio`.
+- `FIDUNIO_ANDROID_PASSWORD`: the password protecting that keystore (used for both store/key).
+- `FIDUNIO_GOOGLE_SERVICES_JSON_B64`: base64 of Firebase Android app's `google-services.json`, registered for package `io.github.willyros01.fidunio` in Firebase project `fidunio-fef13`.
+
+Use `build/fas.txt` in Google Cloud Shell to generate the permanent signing material. Back up the PRIVATE keystore and password securely before any public release. Do not commit them. Existing other-app signing keys must not be reused.
+
+## Chain
+1. Push to `Android` triggers `.github/workflows/android-apk.yml`.
+2. Verify original iOS-based web assets plus Android adapters.
+3. Build native Capacitor 8 Android APK, sign with permanent FIDUNIO certificate, validate signer, upload artifact `fidunio-android-signed-apk`.
+4. Record build outcome in `build/android-last-run.json`; failed or skipped build is never published.
+5. Cuberoot `.github/workflows/publish-fidunio-apk.yml` polls every five minutes, selects the latest successful build from `hermes/Android`, downloads that exact artifact, verifies APK integrity and certificate continuity, and publishes `downloads/fidunio.apk`, `downloads/fidunio.apk.sha256`, `downloads/fidunio-build.json`. GitHub Pages then serves the file.
+6. Homepage exposes the FIDUNIO Android download only after the verified artifact and manifest exist.
+
+## Outstanding pre-release acceptance
+- Test on Android phone and Fire tablet; Google Play Services/FCM is not equivalent to Amazon ADM. Amazon Fire native notification support requires separate engineering/testing.
+- Verify Firebase server accepts the `android-native` notification platform, token lease and FCM delivery. This step is not proven by compilation. No Firebase backend changes were made in this port.
+- Verify PIN, biometric unlock, account login/deletion, iOS/web parity, attachment send/receive/zoom, native notification-to-PIN routing, group history, and Android hardware Back.
+- To enable verified Android App Links for the invitation URL, Cuberoot must include Android Digital Asset Links with the new permanent app signing certificate. The Android intent filter alone does NOT establish verified links.
+- No tests on a physical device are claimed by this setup.
+
+## Failure handling
+The build fails closed if any required GitHub secret is missing or invalid. Publisher never fabricates, builds, or re-signs an APK; previous published APK remains unchanged. Keep the signing key in owner-controlled backup. An accidental key rotation will block future updates and publication.
