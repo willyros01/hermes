@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# FIDUNIO Android Firebase setup in the EXISTING Hermes project.
+# Run with the owner's existing authenticated Google Cloud Shell session.
+# Idempotent: reuse the matching Android app; create only if absent.
+# Never creates another Firebase project or service-account key.
+set -euo pipefail
+umask 077
+PROJECT=fidunio-fef13
+PACKAGE=io.github.willyros01.fidunio
+WORK="$HOME/fidunio-fb"
+mkdir -p "$WORK"
+chmod 700 "$WORK"
+cd "$WORK"
+echo "STEP 1: Select the existing Hermes/FIDUNIO Firebase project"
+gcloud config set project "$PROJECT" >/dev/null
+ACTUAL="$(gcloud config get-value project 2>/dev/null)"
+if [ "$ACTUAL" != "$PROJECT" ]; then
+  echo "FAILED: Refusing work on incorrect Google Cloud project: $ACTUAL"
+  exit 1
+fi
+echo "Confirmed project: $ACTUAL"
+TOKEN="$(gcloud auth print-access-token)"
+if [ -z "$TOKEN" ]; then
+  echo "FAILED: Google Cloud Shell login unavailable."
+  exit 1
+fi
+export FIDUNIO_FB_TOKEN="$TOKEN"
+unset TOKEN
+python3 - <<'PY'
+import base64,json,os,sys,time,urllib.error,urllib.request
+project="fidunio-fef13"
+package="io.github.willyros01.fidunio"
+number="130339622893"
+root="https://firebase.googleapis.com/v1beta1/"
+token=os.environ.pop("FIDUNIO_FB_TOKEN")
+out=os.path.expanduser("~/fidunio-fb")
+def api(path,method="GET",payload=None):
+    data=json.dumps(payload).encode() if payload is not None else None
+    req=urllib.request.Request(root+path,data=data,method=method,
+        headers={"Authorization":"Bearer "+token,"Accept":"application/json",
+                 "Content-Type":"application/json"})
+    try:
+        with urllib.request.urlopen(req,timeout=45) as res:
+            return json.load(res)
+    except urllib.error.HTTPError as exc:
+        details=exc.read().decode(errors="replace")
+        raise RuntimeError(f"Firebase HTTP {exc.code}: {details[:1000]}") from None
+def existing():
+    apps=[]
+    next_page=""
+    for _ in range(30):
+        suffix="?pageSize=100"+("&pageToken="+urllib.parse.quote(next_page) if next_page else "")
+        result=api("projects/"+project+"/androidApps"+suffix)
+        apps.extend(result.get("apps",[]))
+        next_page=result.get("nextPageToken","")
+        if not next_page: return apps
+    raise RuntimeError("Firebase app pagination limit reached")
+print("STEP 2: Read registrations and preserve a before-change snapshot")
+apps=existing()
+with open(os.path.join(out,"fb-before.json"),"w") as file:
+    json.dump(apps,file,indent=2)
+matches=[a for a in apps if a.get("packageName")==package and a.get("state","ACTIVE")=="ACTIVE"]
+if len(matches)>1: raise RuntimeError("Duplicate Android app registrations found: STOP")
+if len(matches)==1:
+    app=matches[0]
+    print("REUSED existing FIDUNIO Android registration")
+else:
+    print("STEP 3: Android registration absent; creating ONLY this package in the existing project")
+    response=api("projects/"+project+"/androidApps","POST",
+                 {"packageName":package,"displayName":"FIDUNIO Android"})
+    with open(os.path.join(out,"fb-create-receipt.json"),"w") as file:
+        json.dump(response,file,indent=2)
+    app=None
+    for attempt in range(24):
+        time.sleep(5)
+        candidates=[a for a in existing() if a.get("packageName")==package and a.get("state","ACTIVE")=="ACTIVE"]
+        if len(candidates)==1:
+            app=candidates[0]
+            break
+    if app is None:
+        raise RuntimeError("Registration requested but not yet visible. Preserve fb-create-receipt.json; rerun later to reuse.")
+    print("CREATED Android registration; no existing app or database was changed")
+name=app.get("name","")
+if not name.startswith("projects/"+project+"/androidApps/"):
+    raise RuntimeError("Unexpected Firebase Android app identity: "+name)
+print("STEP 4: Download and verify Google's actual Android configuration")
+reply=api(name+"/config")
+config=base64.b64decode(reply["configFileContents"],validate=True)
+cfg=json.loads(config)
+if cfg.get("project_info",{}).get("project_id")!=project:
+    raise RuntimeError("Wrong Firebase project ID in Android configuration")
+if str(cfg.get("project_info",{}).get("project_number"))!=number:
+    raise RuntimeError("Wrong project number in Android configuration")
+if not any(c.get("client_info",{}).get("android_client_info",{}).get("package_name")==package for c in cfg.get("client",[])):
+    raise RuntimeError("Android package missing/wrong in downloaded configuration")
+with open(os.path.join(out,"f3.json"),"wb") as file:file.write(config)
+with open(os.path.join(out,"f3.txt"),"w") as file:
+    file.write(base64.b64encode(config).decode()+"\n")
+for name in ("f3.txt","f3.json","fb-before.json"):
+    os.chmod(os.path.join(out,name),0o600)
+print("SUCCESS: correct, registered Firebase Android config retrieved and verified.")
+print("No new project, service-account key, database change or code change.")
+print("GitHub Actions secret NAME: FIDUNIO_GOOGLE_SERVICES_JSON_B64")
+print("GitHub Actions secret VALUE is the whole contents of ~/fidunio-fb/f3.txt")
+print("To copy the value in Cloud Shell: cat ~/fidunio-fb/f3.txt")
+print("The value has NOT been uploaded to GitHub.")
+PY
+unset FIDUNIO_FB_TOKEN
