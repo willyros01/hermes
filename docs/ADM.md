@@ -19,6 +19,16 @@ GitHub Actions run **38602612272**, source commit `e7d6d53ea88515de73eb6977ce54f
 - No new ADM APK signed or published. The last Cuberoot release remains the earlier FCM-only APK from run 38596933723.
 - After the owner registers FIDUNIO's Amazon app and manually adds `FIDUNIO_ADM_API_KEY`, a new `Android` build can produce the ADM-capable signed APK. This still does not establish live server delivery; backend OAuth credentials, deployment and physical Fire acceptance remain separate gates.
 
+## Owner verified signer fingerprints — 2026-10-14
+
+The owner ran the revised read-only `build/aadm.txt` in Google Cloud Shell. Screenshot confirms `RESULT: PASS — Verified permanent FIDUNIO signer` after downloading the already-signed APK and validating its SHA-256. Amazon API-key registration inputs:
+
+- Android package: `io.github.willyros01.fidunio`
+- MD5 certificate fingerprint: `0C:DC:EB:48:A4:51:ED:02:8A:9C:99:CC:85:4F:08:1C`
+- SHA-256 certificate fingerprint: `FB:FF:41:94:7E:47:7E:0B:4D:F6:5B:D7:41:B5:50:D7:B3:0D:7B:18:63:6A:47:C1:08:53:D7:89:C4:93:7A:1D`
+
+Only public certificate fingerprints were extracted; the original private signing files were not found in Cloud Shell, and **no new keystore must be generated**. Still pending: FIDUNIO-specific Amazon API key in Actions secrets, distinct server OAuth Client ID/Secret in Firebase Secret Manager, deployment approval, and physical Fire tablet acceptance. Do not claim signed ADM APK or ADM delivery PASS.
+
 ## Amazon owner setup — REQUIRED before the ADM APK
 
 1. Open [Amazon Developer Console](https://developer.amazon.com/), sign in with the same developer account used for your other Fire OS apps.
