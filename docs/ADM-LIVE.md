@@ -1,3 +1,11 @@
+## 2026-10-14 21:46 EDT — Read-only registration diagnosis (owner Cloud Shell result)
+
+`admchk.txt` reported a clean read-only completion against `fidunio-fef13`. Five user documents scanned. Native device rows **1**: platform `android-native`, enabled, unexpired, token-owner MATCH, eligible as native/FCM. `ADM ROWS 0`, `ELIGIBLE ADM ROWS 0`. Thus there is **no server-eligible Amazon ADM registration** among scanned users; Amazon sender priority is not a useful fix before a token exists. The audit cannot associate that native/FCM registration with a physical Fire installation, nor can it prove why ADM capability was not selected. In available matched Cloud Function logs: direct 7, group 6, claim 28 entries; no diagnostic errors matched, but send success NOT demonstrated. No tokens, credentials or message content displayed and no changes made.
+
+Inspect installed ADM-capable APK/provider selection, registration and authenticated `android-adm` lease renewal read-only/with minimum device action. Only once a valid lease exists can a meaningful Amazon send and receipt test proceed. Preserve original backup and live deployment; no repeat backup/deploy.
+
+---
+
 ## 2026-10-14 ~21:30 EDT — Verified execution result (supersedes prepared-state text below)
 
 **BACKUP PASS:** Owner's Cloud Shell report verified original direct/group deployed source archives, configuration, metadata and checksums under private versioned `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`. Do not repeat backup/checks as a separate owner task. Keep private rollback package.
