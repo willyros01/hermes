@@ -35,7 +35,14 @@ patch(pkg+'MainActivity.java',
   '  }\n'+
   '}');
 const manifest=APP+'/src/main/AndroidManifest.xml';
+// A3L 1.1.1 ships a fixed provider authority. The working Wire Fire APK
+// declares that SAME authority, which Android forbids across installed apps.
+// Only FIDUNIO overrides its merged authority; Wire stays untouched.
+patch(manifest,'<manifest ','<manifest xmlns:tools="http://schemas.android.com/tools" ');
 patch(manifest,'</application>',
+  '    <provider android:name="com.amazon.A3L.messaging.util.A3LMessagingInitProvider"\n'+
+  '      android:authorities="io.github.willyros01.fidunio.a3l-init"\n'+
+  '      tools:replace="android:authorities"/>\n'+
   '    <receiver android:name=".FidunioAdmService" android:exported="false" android:enabled="true">\n'+
   '      <intent-filter>\n'+
   '        <action android:name="com.amazon.A3L.messaging.intent.REGISTRATION"/>\n'+
