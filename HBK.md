@@ -1,3 +1,9 @@
+## 2026-10-15 — Backup documentation maintenance note
+
+This is the `hermes/main` authoritative Firestore/Auth backup and branch/code variance procedure, **separate** from the one-time verified Firebase Gen2 notification-function rollback archive used for Fire ADM migration on `hermes/Android`. Do not mistake daily database backup artifacts for deployment backups of notification function revisions, and do not re-run backup, recreate secrets, change workflow schedules or alter production data merely to keep documentation current. Each backup job and code variance check must be reported independently as PASS/FAIL/UNVERIFIED from its own actual run; the present documentation edit does **not** attest that today's scheduled backup succeeded. Production web `main`, parity `main-3`, iOS `ios` and Fire `Android` remain distinct. Owner's development freeze permits documentary records, not live infrastructure changes.
+
+---
+
 # FIDUNIO Firebase database backup and code variance
 
 ## Correction — 2026-10-11
