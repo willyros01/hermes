@@ -1,3 +1,11 @@
+## 2026-10-15 — iOS migration audit addendum
+
+**Owner policy:** ios source remains frozen; docs may be maintained. All future approved iOS functionality requires equivalent behavior in `main-3` through browser/native abstraction; verify errors, offline, PIN/unlock/notification deep links, account/privacy permissions and large-font layouts on each platform. Record actual physical device PASS or FAIL, never infer acceptance from code presence. Earlier migration steps below describe how the present iOS baseline was reached, not new work authorization.
+
+**Pending independent checks:** recent full iPhone/iPad notification→unlock→correct message acceptance, iOS/web notification regression after the shared Amazon ADM Cloud Function change, and any App Store readiness gaps not marked accepted in separate test logs. Fire HD 8 ADM receipt was owner-confirmed separately on `Android` 2026-10-15; it is not an iOS acceptance result.
+
+---
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
