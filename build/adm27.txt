@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# FIDUNIO — controlled two-function ADM activation. Run only after FB BACKUP PASS.
+# Upload into Google Cloud Shell; run: bash adm27.txt
+# No user secrets, Firebase rules, databases, web deployment or iOS branches.
+set -Eeuo pipefail
+umask 077
+P='fidunio-fef13'
+N='130339622893'
+R='us-central1'
+S='fidunio-notification@fidunio-fef13.iam.gserviceaccount.com'
+B='gs://fidunio-fef13-notify-backup-130339622893'
+BASE='0e222ef9a358133274bdec48f7a6ed3fab104bd2'
+PIN='e0bf291c8d5e6a3a234bca73b6935bb46e1cabce'
+D="$HOME/fidunio-adm-$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$D"
+echo 'FIDUNIO AMAZON ADM: CHECKED TWO-FUNCTION ACTIVATION'
+trap 'echo "STOPPED: If a function was deployed, run rbu27.txt to restore the verified Firebase backup."' ERR
+command -v node >/dev/null && command -v git >/dev/null || { echo 'STOP: Cloud Shell requires Node.js and git'; exit 1; }
+test "$(gcloud projects describe "$P" --format='value(projectNumber)')" = "$N" || { echo 'STOP: wrong Firebase project'; exit 1; }
+
+gcloud storage cp "$B/latest.txt" "$D/latest.txt" --project="$P" --quiet >/dev/null
+PREFIX="$(cat "$D/latest.txt")"
+[[ "$PREFIX" =~ ^gs://fidunio-fef13-notify-backup-130339622893/[0-9]{8}T[0-9]{6}Z$ ]] || { echo 'STOP: invalid backup identity'; exit 1; }
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  for E in .json .source.zip; do gcloud storage cp "$PREFIX/$F$E" "$D/$F$E" --project="$P" --quiet >/dev/null; done
+done
+for K in FIDUNIO_ADM_CLIENT_ID FIDUNIO_ADM_CLIENT_SECRET; do
+  for E in .info.json .iam.json; do gcloud storage cp "$PREFIX/$K$E" "$D/$K$E" --project="$P" --quiet >/dev/null; done
+done
+gcloud storage cp "$PREFIX/SHA256SUMS.txt" "$D/SHA256SUMS.txt" --project="$P" --quiet >/dev/null
+(cd "$D" && sha256sum --check SHA256SUMS.txt >/dev/null)
+echo "PASS: Firebase rollback backup downloaded and SHA-256 verified: $PREFIX"
+
+# Check neither live function has changed since the verified backup.
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  gcloud functions describe "$F" --gen2 --project="$P" --region="$R" --format=json > "$D/$F.now.json"
+  python3 - "$D/$F.json" "$D/$F.now.json" "$F" <<'PY'
+import json,sys
+b,n=(json.load(open(p)) for p in sys.argv[1:3]); name=sys.argv[3]
+assert n.get('state')=='ACTIVE',name+' not active'
+for path in [('serviceConfig','revision'),('updateTime',),('buildConfig','entryPoint'),('buildConfig','runtime'),('serviceConfig','serviceAccountEmail'),('eventTrigger','eventType'),('eventTrigger','eventFilters')]:
+ def get(x):
+  for k in path:x=x.get(k) if isinstance(x,dict) else None
+  return x
+ assert (sorted(get(b),key=str)==sorted(get(n),key=str) if path==("eventTrigger","eventFilters") else get(b)==get(n)),f'{name} changed since backup at {".".join(path)}'
+print('PASS: '+name+' has not changed since Firebase backup')
+PY
+done
+
+# Checkout one exact reviewed Git SHA; never use an unpinned moving branch head.
+mkdir -p "$D/repo"
+git -C "$D/repo" init -q
+git -C "$D/repo" remote add origin https://github.com/willyros01/hermes.git
+git -C "$D/repo" fetch -q --depth=1 origin "$PIN"
+git -C "$D/repo" checkout --detach -q FETCH_HEAD
+test "$(git -C "$D/repo" rev-parse HEAD)" = "$PIN" || { echo 'STOP: Android source changed'; exit 1; }
+# Comparison base fetched separately; only approved ADM backend paths may change.
+git -C "$D/repo" fetch -q --depth=1 origin "$BASE"
+git -C "$D/repo" diff --name-only "$BASE" "$PIN" -- functions/ | sort > "$D/backend.changed"
+cat > "$D/backend.allowed" <<'ALLOW'
+functions/index.mjs
+functions/notification/adm-compat.test.mjs
+functions/notification/adm-delivery.mjs
+functions/notification/direct-message-notification-core.mjs
+functions/notification/group-message-notification-core.mjs
+ALLOW
+cmp -s "$D/backend.changed" "$D/backend.allowed" || { echo 'STOP: backend file changes do not match reviewed ADM list'; cat "$D/backend.changed"; exit 1; }
+# Compare live deployed notification baseline against original shared source.
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  mkdir -p "$D/$F.original"
+  python3 - "$D/$F.source.zip" "$D/$F.original" <<'PYZIP'
+import pathlib,stat,sys,zipfile
+src,dest=sys.argv[1:]
+assert zipfile.is_zipfile(src),'Not a verified deployed-source ZIP'
+with zipfile.ZipFile(src) as z:
+  assert z.testzip() is None,'Corrupt deployed-source ZIP'
+  for i in z.infolist():
+    p=pathlib.PurePosixPath(i.filename)
+    assert not p.is_absolute() and '..' not in p.parts and '\\' not in i.filename,'Unsafe ZIP path'
+    assert stat.S_IFMT(i.external_attr>>16)!=stat.S_IFLNK,'Source ZIP contains symlink'
+  z.extractall(dest)
+PYZIP
+  for X in index.mjs notification/direct-message-notification-core.mjs notification/group-message-notification-core.mjs notification/direct-message-notification-firestore-admin-adapter.mjs notification/notification-lease-policy.mjs; do
+    test -s "$D/$F.original/$X" || { echo "STOP: backup has no $X"; exit 1; }
+    git -C "$D/repo" show "$BASE:functions/$X" > "$D/expected.tmp"
+    cmp -s "$D/$F.original/$X" "$D/expected.tmp" || { echo "STOP: deployed source differs from audited shared baseline: $F/$X"; exit 1; }
+  done
+done
+node --check "$D/repo/functions/index.mjs"
+node --check "$D/repo/functions/notification/adm-delivery.mjs"
+(cd "$D/repo" && node --test functions/notification/*.test.mjs > "$D/tests.log") || { cat "$D/tests.log"; echo 'STOP: notification regression failed'; exit 1; }
+echo 'PASS: source pinned, backend drift absent, regression tests green'
+
+# Credentials were placed in Secret Manager by GitHub workflow 38650650490.
+for K in FIDUNIO_ADM_CLIENT_ID FIDUNIO_ADM_CLIENT_SECRET; do
+  test -n "$(gcloud secrets versions list "$K" --project="$P" --filter='state:ENABLED' --format='value(name)' --limit=1)" || { echo "STOP: missing enabled ADM secret: $K"; exit 1; }
+done
+# Only new privileges: the EXISTING runtime notification SA can read the TWO ADM secrets.
+for K in FIDUNIO_ADM_CLIENT_ID FIDUNIO_ADM_CLIENT_SECRET; do
+  gcloud secrets add-iam-policy-binding "$K" --project="$P" \
+    --member="serviceAccount:$S" --role=roles/secretmanager.secretAccessor --quiet >/dev/null
+  echo "PASS: runtime identity allowed to read $K only"
+done
+
+# Deploy only these named EXISTING Gen2 Firestore functions. Existing triggers
+# are retained by gcloud when not specified; no global firebase deploy.
+SECS='FIDUNIO_ADM_CLIENT_ID=FIDUNIO_ADM_CLIENT_ID:latest,FIDUNIO_ADM_CLIENT_SECRET=FIDUNIO_ADM_CLIENT_SECRET:latest'
+for F in notifyDirectMessageCreatedV1 notifyGroupMessageCreatedV1; do
+  echo "DEPLOYING: $F (rollback backup $PREFIX)"
+  gcloud functions deploy "$F" --gen2 --project="$P" --region="$R" \
+    --source="$D/repo/functions" --entry-point="$F" \
+    --service-account="$S" --update-secrets="$SECS" --quiet
+  gcloud functions describe "$F" --gen2 --region="$R" --project="$P" --format=json > "$D/$F.after.json"
+  python3 - "$D/$F.json" "$D/$F.after.json" "$F" <<'PY'
+import json,sys
+b,a=(json.load(open(p)) for p in sys.argv[1:3]); name=sys.argv[3]
+assert a.get('state')=='ACTIVE',name+' not ACTIVE after deploy'
+assert a.get('serviceConfig',{}).get('revision')!=b.get('serviceConfig',{}).get('revision'),name+' has no new revision'
+assert a.get('serviceConfig',{}).get('serviceAccountEmail')==b.get('serviceConfig',{}).get('serviceAccountEmail'),name+' service identity changed'
+assert a.get('eventTrigger',{}).get('eventType')==b.get('eventTrigger',{}).get('eventType'),name+' trigger kind changed'
+assert sorted(a.get('eventTrigger',{}).get('eventFilters',[]),key=str)==sorted(b.get('eventTrigger',{}).get('eventFilters',[]),key=str),name+' trigger filters changed'
+assert a.get('buildConfig',{}).get('runtime')==b.get('buildConfig',{}).get('runtime'),name+' runtime changed'
+assert a.get('buildConfig',{}).get('entryPoint')==b.get('buildConfig',{}).get('entryPoint'),name+' entrypoint changed'
+keys={s.get('key') for s in a.get('serviceConfig',{}).get('secretEnvironmentVariables',[])}
+assert {'FIDUNIO_ADM_CLIENT_ID','FIDUNIO_ADM_CLIENT_SECRET'}.issubset(keys),name+' missing ADM secret mounts'
+print('PASS: '+name+' active with secret mounts, unchanged trigger/identity, and new revision')
+PY
+done
+printf '\nADM BACKEND DEPLOYMENT PASS\nBackup: %s\nCode: %s\n' "$PREFIX" "$PIN"
+echo 'NEXT: send a direct and group message to Fire and confirm notification to PIN to correct message; test existing iOS/web delivery.'
+echo 'If device acceptance fails, use the separate rbu27.txt rollback script. No iOS or web source changes were made.'
