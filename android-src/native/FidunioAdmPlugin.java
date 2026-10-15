@@ -18,27 +18,31 @@ import com.getcapacitor.annotation.PermissionCallback;
   @Permission(alias="notice",strings={Manifest.permission.POST_NOTIFICATIONS})
 })
 public final class FidunioAdmPlugin extends Plugin {
-  private boolean isAdm(){
+  // Mirror Wire's proven A3L platform detection. Never infer FCM from
+  // an absent, failed or unsupported ADM probe.
+  private String provider(){
     try {
-      return String.valueOf(A3LMessaging.getCurrentPlatform(getContext()))
-        .toUpperCase(java.util.Locale.ROOT).contains("ADM");
+      final String p=String.valueOf(A3LMessaging.getCurrentPlatform(getContext()))
+        .toUpperCase(java.util.Locale.ROOT);
+      if(p.contains("ADM"))return "adm";
+      if(p.contains("FCM"))return "fcm";
     }catch(Exception error){
-      android.util.Log.w("FidunioAdm","ADM capability check failed",error);
-      return false;
+      android.util.Log.w("FidunioAdm","A3L provider detection failed",error);
     }
+    return "";
   }
   @PluginMethod public void available(PluginCall call){
     JSObject ret=new JSObject();
-    final boolean supported=isAdm();
-    ret.put("supported",supported);
-    ret.put("provider",supported?"adm":"");
+    final String p=provider();
+    ret.put("supported",!p.isEmpty());
+    ret.put("provider",p);
     final PermissionState state=getPermissionState("notice");
     ret.put("permission",Build.VERSION.SDK_INT<33||state==PermissionState.GRANTED
       ?"granted":state==PermissionState.DENIED?"denied":"default");
     call.resolve(ret);
   }
   private void issueToken(PluginCall call){
-    if(!isAdm()){call.reject("Amazon ADM unavailable on this device.");return;}
+    if(!"adm".equals(provider())){call.reject("Amazon ADM unavailable on this device.");return;}
     A3LMessaging.getToken().addOnCompleteListener(task->{
       if(!task.isSuccessful()||task.getResult()==null||task.getResult().isEmpty()){
         call.reject("Amazon ADM registration returned no token.");return;
@@ -50,7 +54,7 @@ public final class FidunioAdmPlugin extends Plugin {
     });
   }
   @PluginMethod public void register(PluginCall call){
-    if(!isAdm()){call.reject("Amazon ADM is not available.");return;}
+    if(!"adm".equals(provider())){call.reject("This device is not using Amazon ADM.");return;}
     if(Build.VERSION.SDK_INT>=33&&getPermissionState("notice")!=PermissionState.GRANTED){
       if(Boolean.TRUE.equals(call.getBoolean("silent",false))){
         call.reject("Notification permission is disabled.");return;
