@@ -1,3 +1,12 @@
+## 2026-10-15 — Web parity continuation (documentation only)
+
+- Owner reported completion of current `ios` → `main-3` reconciliation on 11 October; this is an owner report, **not a new functional regression-test certificate**.
+- The definitive requirement is **functionality equal** to iOS, even when web and native require different adapter code. Changes must be implemented in both `ios` and `main-3` during any future owner-authorized feature/fix; keep `main` production protected until explicitly approved.
+- Specifically compare notification-to-unlock/correct-message routing, lease ownership/revocation, account deletion and abuse-report permissions, blocked users, disappearing-message scope, media/audio, offline/reconnection, group membership, high contrast/large fonts and landscape iPad/browser layouts. Mark each branch/device as PASS, FAIL, or UNTESTED based on real evidence.
+- Shared Firebase Gen2 notification functions were altered for Fire ADM; direct Fire receipt passed 15 Oct, while iOS/web regression is **not yet reconfirmed**. Do not infer the latter from Fire success or deploy any additional function in a documentation pass.
+
+---
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
