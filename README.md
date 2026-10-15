@@ -1,3 +1,17 @@
+## Current documentation snapshot — 2026-10-15 (documentation-only)
+
+**Standing change policy:** Product development is frozen unless the owner explicitly authorizes a build or fix; documentation, analysis, testing records and backups may continue. Documentation edits must not change application code, workflows, Firebase data/rules, signing or release artifacts. Do not trigger a TestFlight or APK build for documentation. Historical notes below remain a record of earlier states, not current authorization.
+
+**Branch boundaries:** `main` = protected web production authority; `main-3` = web reconciliation/functional-parity branch; `ios` = iOS/TestFlight native line; capital-`Android` = isolated Fire/Android native migration. Never conflate `Android` with lowercase `android`, touch `main2` legacy branch, blindly merge platform-specific fixes, or introduce new repositories. The required rule is **functional equivalence, not identical code**: any iOS user-facing behavior change must be evaluated and implemented in `main-3` through its browser/platform-adapter boundary in the same work item, with tests on both branches. One deterministic feature/state owner; preserve E2EE, serialized resource ownership, large readable fonts and high contrast.
+
+**Migration acceptance:** The user-confirmed Fire HD 8 FIDUNIO direct-notification **receipt is PASS (15 Oct)**, after a wrong Firebase `FIDUNIO_ADM_CLIENT_ID` was corrected. The matching Client Secret was already right; post-repair private comparison PASS and Amazon OAuth HTTP 200. Group ADM receipt and notification tap → PIN/biometric → **correct** message have **not** been separately confirmed. The two notification functions share a Firebase backend; avoid broad deployment or claiming cross-platform iOS/web regression PASS without testing. Amazon detailed chronology is documented **only on `Android`**, in `docs/ADM-LIVE.md` and `docs/ANDROID-ACCEPTANCE.md`.
+
+**Documentation reliability:** A passing build, ACTIVE function or file's existence never proves device behavior. Label CI PASS, owner device PASS, FAILED and UNTESTED separately. Keep secrets out of documentation; the OAuth Client Secret shared during diagnosis should be rotated in a separately authorized, low-risk maintenance window after continuity planning. Only the Android branch should describe its app installation steps as current.
+
+---
+
+**This branch:** Fire HD 8 Android/A3L implementation and permanently signed published APK; owner confirmed installed alongside Wire after fixing a conflicting A3L provider authority. Device provider Amazon ADM and eligible lease verified, direct notification receipt PASS. Client ID mismatch diagnosis and live correction are documented in `docs/ADM-LIVE.md`; `docs/ANDROID-ACCEPTANCE.md` keeps explicit pending tap/PIN/deep-link, group push and cross-platform regression tests. Never rerun the earlier `af.txt` repair/rollback blindly. The GitHub Actions Client ID secret was subsequently corrected by owner, without redeploying Firebase. Do not print or commit credentials.
+
 ## 2026-10-14 ~21:30 EDT — FIDUNIO Android ADM live handoff (latest)
 
 The owner verified a full, private, versioned backup of both original deployed notification function sources/configurations/checksums at `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`, then deployed ADM support with `adm33.txt`: both existing Gen2 direct/group notification functions are **ACTIVE**, the two ADM sender secrets are mounted, and triggers/service account were preserved. **Do not repeat backup or activation.**
