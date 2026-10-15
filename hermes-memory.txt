@@ -1,3 +1,13 @@
+## 2026-10-14 ~22:07 EDT — FIDUNIO Android ADM provider fix, signed CI PASS (latest)
+
+- Owner-authorized fix confined to `willyros01/hermes` case-sensitive `Android`: `FidunioAdmPlugin.java` now detects A3L `adm` or `fcm` as Wire does. `notification-platform-adapter.js` no longer defaults Android to FCM when A3L detection fails. Unknown/failed detector stops registration; valid Amazon token routes through authenticated `android-adm` lease; verified Google FCM token through `android-native`. Preserve FirebaseMessaging for Google Android, Web/iOS unaffected, one lease owner, fail closed for unknown.
+- Tests appended to `build/test-adm.mjs` assert real runtime provider selection, matching lease platform, fail-closed unknown/error and unmodified iOS transport. Android code/test commit `812c1bdd247f78f5fcb1ba034ba7eb1fa02822c3`.
+- All jobs of GitHub Actions signed Android APK run **38668803728** reported SUCCESS, including JS/ADM regression tests, Amazon A3L 1.1.1 Java compilation, permanent signing and publisher-contract checks. Reported signed artifact **11942369130**. **Physical ADM receipt still NOT VERIFIED**.
+- The Cuberoot descriptor `downloads/fidunio-build.json` still referenced the older run **38655432189** at the last check. Do NOT tell owner to install stale website APK. Wait until descriptor references run **38668803728**; then owner updates Fire tablet and verifies an authenticated eligible `android-adm` lease before direct/group notification→PIN→exact message. If registration still missing, inspect on-device selected provider; no blind Firebase modifications.
+- Existing Firebase Cloud Function ADM activation and backup both VERIFIED per prior record; do not repeat. Wire frozen; all iOS/TestFlight frozen; Hermes `main`/`main-3` untouched. Documentation status updates are not source-code edits and must not be used to claim delivery.
+
+---
+
 ## 2026-10-14 ~21:30 EDT — Fire ADM rollout verified, first device receipt FAIL (supersedes earlier pending entry)
 
 - **Verified owner Cloud Shell outcome:** `adm33.txt` completed targeted Gen2 deployment in Firebase project `fidunio-fef13`, region `us-central1`. Both `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1` report **ACTIVE** with ADM secrets `FIDUNIO_ADM_CLIENT_ID` and `FIDUNIO_ADM_CLIENT_SECRET` mounted. Existing triggers and service account `fidunio-notification@fidunio-fef13.iam.gserviceaccount.com` were preserved. Deployment PASS is not Amazon delivery PASS.
