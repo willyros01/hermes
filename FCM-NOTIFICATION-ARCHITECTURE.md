@@ -1,3 +1,9 @@
+## 2026-10-14 evening — Amazon ADM coexistence live checkpoint
+
+In `fidunio-fef13`, the owner verified an exact-deployed-source rollback backup of the original direct/group notification functions at `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`. The two existing Gen2 function revisions were then confirmed ACTIVE with the FIDUNIO Amazon secrets mounted. This does **not** establish message delivery. Fire HD 8 direct-message notification receipt **FAILED**; Fire group and iOS/web post-deployment delivery are pending. Keep the authenticated 30-day lease authority, `android-adm` Amazon routing vs existing FCM/APNs/Web Push routing, blocks, encrypted-message privacy and PIN/deep-link behavior intact. Diagnose live registration and sender results before modifying any backend. Earlier staged-only statements are pre-deployment chronology.
+
+---
+
 ## 2026-10-14 — Android/Fire ADM provider boundary (Android branch only)
 
 **No live Firebase sender update is yet verified.** The Android branch holds staged source for the existing two Gen2 Firestore sender Functions `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1`. The live Firebase project `fidunio-fef13` serves web, iOS, Google Android and Fire OS simultaneously, regardless of which GitHub branch supplied a deployment.
