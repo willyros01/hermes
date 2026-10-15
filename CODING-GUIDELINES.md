@@ -1,3 +1,9 @@
+## 2026-10-14 evening — Latest ADM state and diagnostic gate
+
+The owner's Cloud Shell verified a production backup of both original notification functions at `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`, followed by **ACTIVE** targeted ADM-enabled direct/group functions. **Do not repeat the backup or deployment.** The first physical Fire HD 8 direct-message notification **FAILED** despite device notifications being ON; group untested and post-change iOS/web notification delivery not yet reverified. Diagnose authenticated `android-adm` lease eligibility and live function/Amazon logs read-only before changing implementation. Earlier pending status below is historical; Android sender/receiver acceptance remains OPEN. All iOS/TestFlight work frozen; Android-only work must preserve native provider isolation, one owner/serialized writes, deterministic outcomes, privacy and rollback.
+
+---
+
 ## 2026-10-14 — Android migration / shared Firebase protection
 
 - The user's iOS development freeze applies to **all** repositories. Do not modify `ios` branches, source or TestFlight pipelines; documentation about Android may be edited only in authorized `Android` branches.
