@@ -1,3 +1,14 @@
+## 2026-10-14 21:46 EDT — READ-ONLY LIVE DIAGNOSTIC (owner screenshot)
+
+- Owner ran existing `admchk.txt` in Cloud Shell on project `fidunio-fef13`; result `CHECK COMPLETE — NO CHANGES MADE`.
+- Read-only window started `2026-10-15T00:30:00Z`. Log entries: direct trigger 7, group trigger 6, lease claim 28. Script reported `NO DIAGNOSTIC ERRORS IN MATCHED LOGS; success is NOT established`. Log counts do not prove individual pushes were sent.
+- Five user documents scanned. Exactly one enabled/unexpired/owner-matched native registration was found with **platform=`android-native`**, not `android-adm`; `NATIVE ROWS: 1`, `ADM ROWS: 0`, `ELIGIBLE ADM ROWS: 0`.
+- **Confirmed immediate blocker: No `android-adm` lease was saved among scanned users**, so the server has no eligible Amazon token to deliver to. Actual Fire installation identity is not yet correlated to the one `android-native` row; do not misattribute it. Why ADM registration is absent remains OPEN: current APK identity/provider detection, native plugin availability or authenticated claim failure.
+- Source shows `notification-platform-adapter.js` defaults to `selectedNativeProvider="fcm"`, promotes to `adm` only after native `FidunioAdm.available()` reports support, otherwise uses `android-native`. This is consistent with the live state, not full root-cause proof.
+- Next minimal gate: verify the Fire runs the published ADM-capable APK and foreground app registration actually establishes an owner-matched `android-adm` lease; only then test sender/receipt/tap/PIN. No code or Firebase deployment until cause established. Historical Fire DM receipt still FAIL.
+
+---
+
 ## 2026-10-14 ~21:30 EDT — ADM live physical test (latest acceptance evidence)
 
 - **Backend activation PASS (owner screenshot):** `adm33.txt`, Firebase `fidunio-fef13` / `us-central1`; both original Gen2 direct/group notification functions **ACTIVE** with two ADM secrets mounted, preserving triggers and service identity. No sender acceptance implied.
