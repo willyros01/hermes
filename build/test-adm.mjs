@@ -14,6 +14,9 @@ const direct=read('functions/notification/direct-message-notification-core.mjs')
 const group=read('functions/notification/group-message-notification-core.mjs');
 
 assert.match(plug,/A3LMessaging\.getToken/);
+assert.match(plug,/p\.contains\("ADM"\)/);
+assert.match(plug,/p\.contains\("FCM"\)/);
+assert.match(plug,/ret\.put\("provider",p\)/);
 assert.match(plug,/provider","adm"/);
 assert.match(plug,/takeRoute/);
 assert.match(recv,/A3LMessagingService/);
@@ -56,3 +59,45 @@ assert.equal(lastPayload.expiresAfter,1800);
 assert.deepEqual(Object.keys(lastPayload.data).sort(),['conversationId','messageId','notificationBody','type']);
 await assert.rejects(sender.send({token,data:{...data,notificationBody:'Secret conversation text'}}),/private notification body/);
 console.log('PASS: ADM native files, existing FCM separation, server OAuth/privacy, fail-closed signing gate');
+
+// Runtime regression: Wire-style A3L detection must produce a provider-matched
+// lease token, never silently assume FCM when ADM detection fails.
+const {getNativeMessagingToken,getNativeNotificationLeasePlatform,
+  getNativeNotificationCapability,requestNativeNotificationPermission}=
+  await import('../notification-platform-adapter.js');
+let runtime='android',provider='adm',fcmTokenCalls=0,admTokenCalls=0;
+const amazonToken='A'.repeat(64),googleToken='F'.repeat(64);
+const admBridge={
+  available:async()=>({supported:['adm','fcm'].includes(provider),provider,permission:'granted'}),
+  register:async()=>{admTokenCalls++;return {provider:'adm',token:amazonToken};}
+};
+const googleBridge={
+  isSupported:async()=>({isSupported:true}),
+  checkPermissions:async()=>({receive:'granted'}),
+  requestPermissions:async()=>({receive:'granted'}),
+  getToken:async()=>{fcmTokenCalls++;return{token:googleToken};}
+};
+globalThis.Capacitor={isNativePlatform:()=>true,getPlatform:()=>runtime,
+  Plugins:{FidunioAdm:admBridge,FirebaseMessaging:googleBridge}};
+assert.deepEqual(await getNativeNotificationCapability(),{supported:true,permission:'granted'});
+assert.equal(await requestNativeNotificationPermission(),'granted');
+assert.equal(await getNativeMessagingToken(),amazonToken);
+assert.equal(getNativeNotificationLeasePlatform(),'android-adm');
+assert.equal(admTokenCalls,1,'ADM pending token must be reused');
+assert.equal(fcmTokenCalls,0,'Amazon device must never request an FCM token');
+provider='fcm';
+assert.deepEqual(await getNativeNotificationCapability(),{supported:true,permission:'granted'});
+assert.equal(await getNativeMessagingToken(),googleToken);
+assert.equal(getNativeNotificationLeasePlatform(),'android-native');
+assert.equal(fcmTokenCalls,1);
+provider='';
+assert.deepEqual(await getNativeNotificationCapability(),{supported:false,permission:'unsupported'});
+await assert.rejects(getNativeMessagingToken(),/Neither Amazon ADM nor Google FCM/);
+assert.equal(fcmTokenCalls,1,'Unknown Android provider must not fall back to FCM');
+admBridge.available=async()=>{throw Error('A3L failed');};
+await assert.rejects(getNativeMessagingToken(),/provider detection failed/);
+assert.equal(fcmTokenCalls,1,'Failed A3L lookup must not fall back to FCM');
+runtime='ios';
+assert.equal(await getNativeMessagingToken(),googleToken);
+assert.equal(getNativeNotificationLeasePlatform(),'ios-native');
+console.log('PASS: actual provider ADM/FCM token lease routing, unknown fail-closed, iOS preserved');
