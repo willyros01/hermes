@@ -1,3 +1,13 @@
+## 2026-10-14 ~21:30 EDT — Live ADM deployed; physical Fire test FAIL (latest)
+
+The owner verified both original deployed production notification functions archived with metadata/checksums in private versioned `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`: **BACKUP PASS**. The owner then ran `adm33.txt`; both existing Gen2 functions `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1` were **ACTIVE**, with both FIDUNIO ADM secrets mounted, preserving region, triggers and runtime service identity: **BACKEND DEPLOYMENT PASS**. Do not redo either procedure.
+
+The first Fire HD 8 direct-message notification test **FAILED (no receipt)** although device notifications are ON. Fire group untested; post-deployment iOS/web notifications not yet reverified. Root cause **unconfirmed**: first inspect real authenticated `android-adm` leases and production sender logs, then native A3L receipt/identity. Wire on `balita/android` physically received ADM notification (0.17.58), but is frozen: reference only. Wire server uses priority `high`, FIDUNIO `normal`; this is not yet causation.
+
+Signed/published Android build `38655432189` / artifact `11937041460` / source `9bfae478f50f69eec5b4095f761fa7ace52a1438` appears in Cuberoot descriptor; its `android-fcm-beta` label is historical, not provider proof. No claim of ADM delivery PASS until Fire receipt → tap → PIN unlock → correct message is owner-confirmed. Preserve verified rollback and existing iOS/web/APNs/FCM functionality. The below staged/not-deployed notes document earlier chronology and are **superseded**.
+
+---
+
 ## 2026-10-14 — Latest ADM activation handoff (supersedes older prerequisites below)
 
 **Current status:** Permanent-signed Android APK and mock sender tests passed. Both private ADM OAuth secret versions were transferred to Firebase Secret Manager via GitHub run `38650650490`. The production ADM Cloud Functions sender remains **NOT DEPLOYED** and a fresh production backup is **NOT VERIFIED**. Earlier descriptions below of missing credentials or unsigned builds are historical only, not the latest release state.
