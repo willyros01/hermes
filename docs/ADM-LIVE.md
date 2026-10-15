@@ -1,3 +1,15 @@
+## 2026-10-15 ~00:27 EDT — Physical Fire ADM FAIL: Amazon OAuth HTTP 401 isolated
+
+Owner tested signed FIDUNIO Android APK 38679022748; native provider **Amazon ADM**, Settings status **Enabled**, physical background direct-message receipt **FAIL (no notification at all)**. Cloud Shell read-only `adl.txt` report scanned 5 users: **ADM ROWS 1, enabled/unexpired 1, token-owner eligible 1**. Gen2 `notifyDirectMessageCreatedV1` was **ACTIVE**, both ADM secrets mounted, Firestore trigger path correct. Sender logs show at **2026-10-15T04:12:46.800Z** **Amazon OAuth HTTP 401** plus downstream direct-notification partial failure; `ao123.txt` sanitized read-only follow-up matched 2 events: OAuth denied 1, Amazon ADM HTTP message rejected 0, secret unavailable 0. Therefore sender did not get an Amazon access token; do not ask for more APK installs, device settings toggles, or push tests until OAuth passes.
+
+Official Amazon ADM `Request an Access Token` docs say HTTP 401 is `INVALID_CLIENT`, i.e. Amazon rejected OAuth client authentication. Client request shape in `functions/notification/adm-delivery.mjs` matches Amazon required URL/content type/grant `client_credentials`/scope `messaging:push`. Audit original successful GitHub workflow **38650650490**, one-time `.github/workflows/fads.yml` at SHA `df92666b322a3e6f5c9810d7082a192dade6ac08`: transfer unconditionally checked `FIDUNIO_ADM_CLIENT_ID` starts `amzn1.application-oa2-client.`, which contrasts with `amzn1.iba-client.` **example** in Amazon ADM docs. This is a concrete validation mismatch, not by itself proof all `application-oa2-client` IDs fail. The actual credential pair from FIDUNIO's **attached** Amazon Developer Console > My Apps > FIDUNIO > App Services > Security Profile Management > Web Settings needs secure re-verification. NEVER ask owner to paste credentials in chat or expose them in logs.
+
+Fix boundary: use owner-entered exact FIDUNIO-associated ADM OAuth Client ID and Client Secret, validate directly against Amazon OAuth endpoint with no secret display, then update two Firebase Secret Manager versions and restart/update **only** targeted notification function revision(s) through existing verified rollback route. A new secret version alone may not refresh warm Cloud Run environment-variable bindings. Do not change shared Firebase before positive credential validation. Preserve Wire app, Hermes main/ios/main-3 and previous GCS function backup. No server changes have been made in this diagnosis.
+
+Sources: https://developer.amazon.com/docs/adm/request-access-token.html ; https://developer.amazon.com/docs/adm/obtain-credentials.html .
+
+---
+
 ## 2026-10-15 00:06 EDT — VERIFIED WIRE/FIDUNIO APK INSTALL COLLISION AND CORRECTION
 
 - User explicitly uninstalled FIDUNIO from Amazon Fire HD 8 then attempted clean install from Cuberoot; Android reported **"App not installed"**. User asked investigate Wire/ADM and had repeatedly confirmed prior APK installs. Do not blame user/download or request repeated install checks.
