@@ -1,5 +1,5 @@
 import {downloadPlatformAttachmentBytes} from "./attachment-download-platform-adapter.js";
-import {fidunioPublicUrl,FIDUNIO_INVITATION_WEB_LINK_BASE} from "./platform-runtime.js";
+import {fidunioPublicUrl,FIDUNIO_INVITATION_WEB_LINK_BASE,isNativeAndroidRuntime} from "./platform-runtime.js";
 import {getPlatformFirebaseSdkVersion,createPlatformFirebaseAuth,createPlatformFirebaseAppCheck} from "./firebase-platform-adapter.js";
 import { firebaseConfig } from "./firebase-config.js";
 import { normalizeDisappearSelection } from "./disappearing-content-policy.js";
@@ -34,7 +34,24 @@ export async function upsertCloudNotificationDevice({installationId,fcmToken,pla
 export async function updateCloudNotificationSenderName({installationId,showSenderName}={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),ref=s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id);await s.fsSdk.updateDoc(ref,{showSenderName:showSenderName===true,updatedAt:s.fsSdk.serverTimestamp(),lastSeenAt:s.fsSdk.serverTimestamp()});return{installationId:id,showSenderName:showSenderName===true};}
 export async function deleteCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId);await s.fsSdk.deleteDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return true;}
 
-async function callCloudFunction(name,data={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const callable=s.functionsSdk.httpsCallable(s.functions,name);const result=await callable(data);return result.data;}
+async function callCloudFunction(name,data={}){
+  const s=await ensureServices();
+  if(!authUser)throw new Error("Sign in first.");
+  // Wire refreshes the Firebase ID token before writing its native push
+  // subscription. Fire's live lease claim logged auth/id-token-expired (401).
+  // Refresh only Android notification claims/revocations, preserving all
+  // other callables and client platform behavior.
+  if(isNativeAndroidRuntime()&&
+     (name==="claimNotificationLeaseV1"||name==="revokeNotificationLeaseV1")){
+    const user=s.auth.currentUser;
+    if(!user||user.uid!==authUser.uid)
+      throw new Error("Firebase notification account session is unavailable.");
+    await user.getIdToken(true);
+  }
+  const callable=s.functionsSdk.httpsCallable(s.functions,name);
+  const result=await callable(data);
+  return result.data;
+}
 // Notification lease v2 client transport. The rollout owner determines when to use it.
 export async function claimCloudNotificationLease({installationId,fcmToken,platform,showSenderName=false}={}){
   return callCloudFunction("claimNotificationLeaseV1",{installationId,fcmToken,platform,showSenderName});

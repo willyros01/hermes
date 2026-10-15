@@ -12,6 +12,8 @@ export const FIDUNIO_INVITATION_WEB_LINK_BASE="https://www.cuberoot-systems.com/
 export function detectFidunioPlatform({
   capacitor=globalThis.Capacitor,
   protocol=globalThis.location?.protocol||"",
+  hostname=globalThis.location?.hostname||"",
+  userAgent=globalThis.navigator?.userAgent||"",
 }={}){
   try{
     if(capacitor?.isNativePlatform?.()===true&&capacitor?.getPlatform?.()==="ios")return FIDUNIO_PLATFORM.IOS_NATIVE;
@@ -19,6 +21,14 @@ export function detectFidunioPlatform({
     if(capacitor?.getPlatform?.()==="ios"&&String(protocol).toLowerCase()==="capacitor:")return FIDUNIO_PLATFORM.IOS_NATIVE;
   }catch{}
   if(String(protocol).toLowerCase()==="capacitor:")return FIDUNIO_PLATFORM.IOS_NATIVE;
+  // Capacitor Android serves signed APK assets from https://localhost.
+  // Detect it even during the short bridge-injection gap, before web
+  // service-worker initialization can incorrectly take ownership.
+  // A normal hosted website (including an Android browser) stays WEB.
+  if(String(protocol).toLowerCase()==="https:"&&
+     String(hostname).toLowerCase()==="localhost"&&
+     (/android/i.test(String(userAgent))||capacitor?.getPlatform?.()==="android"))
+    return FIDUNIO_PLATFORM.ANDROID_NATIVE;
   return FIDUNIO_PLATFORM.WEB;
 }
 

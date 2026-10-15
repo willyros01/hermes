@@ -4,6 +4,9 @@ import {FIDUNIO_PLATFORM,detectFidunioPlatform,isNativeMobileRuntime,isNativeAnd
 import {getNotificationPlatformCapabilities} from '../notification-platform-adapter.js';
 import {getBackgroundPlatformKind,ensurePlatformBackgroundRegistration} from '../background-platform-adapter.js';
 import {getPlatformFirebaseSdkVersion} from '../firebase-platform-adapter.js';
+import {ANDROID_SW_RETIRE_SOURCE,retireAndroidServiceWorker} from './retire-android-sw.mjs';
+import os from 'node:os';
+import path from 'node:path';
 const android={isNativePlatform:()=>true,getPlatform:()=> 'android'};
 const ios={isNativePlatform:()=>true,getPlatform:()=> 'ios'};
 const opts={capacitor:android,protocol:'https:'};
@@ -28,3 +31,34 @@ assert.match(fs.readFileSync('background-platform-adapter.js','utf8'),/isNativeM
 assert.match(fs.readFileSync('settings-lifecycle.js','utf8'),/nativePlatform/);
 assert.match(fs.readFileSync('invitation-platform-adapter.js','utf8'),/isNativeMobileRuntime/);
 console.log('PASS: FIDUNIO native Android runtime, notification, auth, invitation and source guards');
+
+const boot={capacitor:null,protocol:'https:',hostname:'localhost',userAgent:'Mozilla/5.0 (Linux; Android 11; Fire HD 8) AppleWebKit/537.36'};
+assert.equal(detectFidunioPlatform(boot),FIDUNIO_PLATFORM.ANDROID_NATIVE);
+assert.equal(getNotificationPlatformCapabilities(boot).nativeRegistration,true);
+assert.equal(shouldUseWebServiceWorker(boot),false);
+assert.equal(shouldUseWebPush(boot),false);
+assert.equal(shouldUseWebAppCheck(boot),false);
+assert.equal(detectFidunioPlatform({...boot,hostname:'willyros01.github.io'}),FIDUNIO_PLATFORM.WEB);
+assert.equal(detectFidunioPlatform({...boot,userAgent:'Mozilla/5.0 (Macintosh; Safari)'}),FIDUNIO_PLATFORM.WEB);
+assert.equal(detectFidunioPlatform({...boot,protocol:'http:'}),FIDUNIO_PLATFORM.WEB);
+assert.equal(detectFidunioPlatform({...boot,protocol:'capacitor:',userAgent:'Mozilla/5.0 (iPad)'}),FIDUNIO_PLATFORM.IOS_NATIVE);
+// Retire ONLY old app shell caches, and NEVER localStorage / IndexedDB.
+assert.match(ANDROID_SW_RETIRE_SOURCE,/registration\.unregister\(\)/);
+assert.match(ANDROID_SW_RETIRE_SOURCE,/startsWith\("fidunio-shell-"\)/);
+assert.ok(!ANDROID_SW_RETIRE_SOURCE.includes('localStorage'));
+assert.ok(!ANDROID_SW_RETIRE_SOURCE.includes('indexedDB'));
+assert.ok(!ANDROID_SW_RETIRE_SOURCE.includes('fetch",'));
+const temp=fs.mkdtempSync(path.join(os.tmpdir(),'fidunio-sw-test-'));
+try{
+  const asset=path.join(temp,'service-worker.js');
+  fs.writeFileSync(asset,'const CACHE=`fidunio-shell-legacy`;');
+  retireAndroidServiceWorker(asset);
+  assert.equal(fs.readFileSync(asset,'utf8'),ANDROID_SW_RETIRE_SOURCE);
+  retireAndroidServiceWorker(asset); // deterministic and idempotent
+  assert.equal(fs.readFileSync(asset,'utf8'),ANDROID_SW_RETIRE_SOURCE);
+}finally{fs.rmSync(temp,{recursive:true,force:true});}
+assert.match(fs.readFileSync('build/android-native.sh','utf8'),/node build\/retire-android-sw\.mjs/);
+console.log('PASS: Fire native origin detection, Web/iOS isolation, SW retirement and retained user data');
+
+assert.match(fs.readFileSync('firebase.js','utf8'),/await user\.getIdToken\(true\)/);
+console.log('PASS: Android native lease refreshes expired Firebase ID token before claim');

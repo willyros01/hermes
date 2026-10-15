@@ -50,4 +50,7 @@ cat >> "$APP/build.gradle" <<'GRADLE'
 
 apply plugin: 'com.google.gms.google-services'
 GRADLE
-echo "PASS: Android Firebase registration, invitation link, security and version wiring."
+# Keep the same https://localhost origin and account storage; only retire
+# stale PWA Service Workers from previous Android installations.
+node build/retire-android-sw.mjs
+echo "PASS: Android Firebase registration, native Service Worker retirement, invitation link, security and version wiring."
