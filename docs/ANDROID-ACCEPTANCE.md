@@ -1,3 +1,9 @@
+## 2026-10-14 ~22:50 EDT — FIRE HD 8 NOTIFICATION TEST FAIL (new APK)
+
+Owner reports **FAIL** testing Fire HD 8 notifications after installing Cuberoot-published signed Android build **38671172852** (artifact **11943617517**), whose publishing handoff, checksum/certificate verification and Pages deployment passed. **No physical ADM notification acceptance**. The user has not yet specified whether no notification appeared or whether arrival/tap/PIN/routing failed; do NOT fabricate specifics. Earlier read-only scans (before updated APK) showed zero eligible `android-adm` leases. Next minimal test: run existing read-only Cloud Shell `bash admchk.txt` after launching Fire app, inspect `ADM ROWS`, `ELIGIBLE ADM ROWS` and claim logs. Distinguish current device registration failure from Amazon delivery failure. Do not redeploy Firebase, rebackup or rebuild blindly.
+
+---
+
 ## 2026-10-14 ~22:07 EDT — Provider fix checks complete; waiting for website publication
 
 Commit `812c1bdd247f78f5fcb1ba034ba7eb1fa02822c3` implements explicit Wire-style A3L ADM/FCM detection and fail-closed unknown provider on **Hermes/Android** only. New test in `build/test-adm.mjs` exercises runtime ADM token lease `android-adm`, Google FCM `android-native`, unknown/error fail-closed and preserved iOS selection. Signed APK run **38668803728** reported all jobs SUCCESS; artifact **11942369130**. This is compilation/build PASS, **NOT physical Fire receipt PASS**.
