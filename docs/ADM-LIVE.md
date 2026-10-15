@@ -1,3 +1,13 @@
+## 2026-10-14 ~21:30 EDT — Verified execution result (supersedes prepared-state text below)
+
+**BACKUP PASS:** Owner's Cloud Shell report verified original direct/group deployed source archives, configuration, metadata and checksums under private versioned `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`. Do not repeat backup/checks as a separate owner task. Keep private rollback package.
+
+**DEPLOYMENT PASS:** Owner executed `adm33.txt`; both existing Gen2 `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1` report ACTIVE in project `fidunio-fef13` / `us-central1` with `FIDUNIO_ADM_CLIENT_ID` and `FIDUNIO_ADM_CLIENT_SECRET` mounted. Original triggers and notification service account retained. This is activation, **NOT verified delivery**.
+
+**PHYSICAL FAILURE:** Fire HD 8 direct-message test received **no notification**; device notification setting is already ON. Fire group NOT TESTED; iOS/web notification regressions NOT YET REVERIFIED. Correct follow-up is read-only inspection of authenticated `android-adm` token leases, direct-message trigger/Amazon sender logs and only then Fire native receiver/security identity. Never use normal Firebase messaging for ADM tokens. `priority:normal` differs from Wire `high` but is not a proven cause. Do not redeploy, recreate backups or rollback blindly. The rollback instructions below remain available if a cross-platform regression is established; the older 'not executed' sections are historical preparation records.
+
+---
+
 # FIDUNIO Amazon Device Messaging — live activation handoff (14 October 2026)
 
 ## Authorized scope
