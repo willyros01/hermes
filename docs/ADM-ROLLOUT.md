@@ -1,3 +1,11 @@
+## 2026-10-14 ~21:30 EDT — Production rollout completed; receipt acceptance OPEN
+
+**Backup verified** by owner: two original deployed functions plus configuration and checksums in `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z` (private, versioned). **Targeted activation verified** via `adm33.txt`: both direct and group Gen2 notification functions ACTIVE with the two FIDUNIO ADM secrets mounted; same region/triggers/service account.
+
+**Device result:** Fire HD 8 direct-message notification **FAIL — no receipt**. Android notifications ON per owner. Group notification NOT TESTED; existing web/iOS notification delivery after rollout NOT YET REVERIFIED. Do not infer send/receipt success from ACTIVE functions. Investigate actual eligible `android-adm` lease and logs, then Amazon result, then receiver/manifest/identity. No repeat provisioning/backup/deployment. Keep Wire frozen as a reference, maintain the verified emergency rollback route, and preserve shared FCM/APNs/Web Push. Below deployment-pending statements reflect the earlier state and are superseded.
+
+---
+
 # FIDUNIO ADM notification sender — deployment gate (14 October 2026)
 
 ## Scope
