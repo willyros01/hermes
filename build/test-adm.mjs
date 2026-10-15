@@ -5,6 +5,10 @@ import {createAmazonADMDelivery} from '../functions/notification/adm-delivery.mj
 const read=path=>fs.readFileSync(path,'utf8');
 const plug=read('android-src/native/FidunioAdmPlugin.java');
 const recv=read('android-src/native/FidunioAdmService.java');
+const installer=read('build/install-fidunio-adm.mjs');
+assert.ok(installer.includes('io.github.willyros01.fidunio.a3l-init'),'A3L provider authority must be app-specific to coexist with Wire');
+assert.ok(installer.includes('tools:replace="android:authorities"'),'A3L merged provider must replace fixed library authority');
+assert.ok(installer.includes('A3LMessagingInitProvider'),'A3L provider identity must remain intact');
 const builder=read('build/android-build.sh');
 const workflow=read('.github/workflows/android-apk.yml');
 const adapter=read('notification-platform-adapter.js');
