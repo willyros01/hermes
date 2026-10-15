@@ -1,3 +1,11 @@
+## 2026-10-14 evening — ADM live sender and Fire acceptance status (latest)
+
+- Signed, ADM-capable Hermes `Android` workflow `38655432189` PASS, source `9bfae478f50f69eec5b4095f761fa7ace52a1438`. Cuberoot descriptor references artifact `11937041460` and verified publication at 2026-10-15T00:16:19Z; release label `android-fcm-beta` is historically retained and does not identify physical Fire provider.
+- Private/versioned production deployed-function backup **PASS** under `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`. Targeted direct/group Gen2 ADM activation via `adm33.txt` **PASS**; ACTIVE with both sender secrets, existing triggers and runtime account.
+- Owner's first Fire HD 8 **direct-message notification FAIL** (nothing received), notifications already ON. Group NOT TESTED; post-rollout iOS/web delivery NOT REVERIFIED. Investigate actual Fire `android-adm` token and authenticated lease + backend delivery logs before code/Firebase edits. Physical receipt/tap/PIN/correct-message acceptance remains OPEN. Do not repeat backup or activation. Older FCM-only/not-deployed notes below are historical.
+
+---
+
 # FIDUNIO Android — owner checklist
 Android source branch: `Android` copied from `ios` at commit `0e222ef9a358133274bdec48f7a6ed3fab104bd2`.
 Do not push this Android-only port to `main` or `ios`.
