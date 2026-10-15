@@ -1,3 +1,12 @@
+## 2026-10-15 — Android/Fire release acceptance checkpoint
+
+- Current signed Fire APK: `hermes/Android` workflow **38679022748**, installed next to Wire after Android A3L provider-authority collision was fixed (Wire unchanged). A passing signed build is a packaging pass, not a notification pass.
+- Amazon ADM: Fire provider and eligible lease confirmed; wrong Firebase OAuth Client ID corrected, Client Secret unchanged, Amazon HTTP 200, **direct notification receipt PASS on physical Fire HD 8** (owner report 15 Oct). The owner subsequently corrected the **GitHub Actions Client ID secret**; no additional transfer/run is required. Existing APK does **not** need rebuilding for this credential fix.
+- Remaining separate gates: tap notification → unlock PIN/biometrics → correct conversation/message, group ADM notifications, shared iOS/web APNs/FCM regression, background/cold start behavior. Group Gen2 sender's older Client ID reference was retained in last audit; **never claim group receipt PASS without direct test**.
+- **Change freeze:** Never launch a build solely because this checklist was updated. No current authorization for more Android code, APK/signing, Firebase deploy or branch merge. Audit first, narrowest correct change only, preserve rollback and known-good device behavior.
+
+---
+
 ## 2026-10-11 — ios 1.1.78: web Service Worker registration retry (functional equivalence with main-3)
 
 - Change: `background-platform-adapter.js` no longer caches a failed web Service Worker registration; the next notification enable/retry registers again. Success remains cached (one registration owner).
