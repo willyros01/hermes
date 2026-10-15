@@ -1,3 +1,9 @@
+## 2026-10-15 — Browser parity acceptance reminder
+
+This `main-3` copy is a **web implementation target** rather than a native iOS release guide. The owner reported iOS→main-3 reconciliation complete on 11 Oct; that is not a fresh physical regression certification. Approved iOS changes must have **functionally equal web behavior** implemented through browser platform adapters in the same work item, with explicit PASS/FAIL/UNTESTED test evidence for both branches. Preserve protected `main`; no feature/code builds authorized by this docs pass. The separate Amazon Fire Android branch reports direct ADM receipt PASS but the iOS/web shared push regression remains independently UNVERIFIED.
+
+---
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
