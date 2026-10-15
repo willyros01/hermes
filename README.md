@@ -1,3 +1,17 @@
+## Current documentation snapshot — 2026-10-15 (documentation-only)
+
+**Standing change policy:** Product development is frozen unless the owner explicitly authorizes a build or fix; documentation, analysis, testing records and backups may continue. Documentation edits must not change application code, workflows, Firebase data/rules, signing or release artifacts. Do not trigger a TestFlight or APK build for documentation. Historical notes below remain a record of earlier states, not current authorization.
+
+**Branch boundaries:** `main` = protected web production authority; `main-3` = web reconciliation/functional-parity branch; `ios` = iOS/TestFlight native line; capital-`Android` = isolated Fire/Android native migration. Never conflate `Android` with lowercase `android`, touch `main2` legacy branch, blindly merge platform-specific fixes, or introduce new repositories. The required rule is **functional equivalence, not identical code**: any iOS user-facing behavior change must be evaluated and implemented in `main-3` through its browser/platform-adapter boundary in the same work item, with tests on both branches. One deterministic feature/state owner; preserve E2EE, serialized resource ownership, large readable fonts and high contrast.
+
+**Migration acceptance:** The user-confirmed Fire HD 8 FIDUNIO direct-notification **receipt is PASS (15 Oct)**, after a wrong Firebase `FIDUNIO_ADM_CLIENT_ID` was corrected. The matching Client Secret was already right; post-repair private comparison PASS and Amazon OAuth HTTP 200. Group ADM receipt and notification tap → PIN/biometric → **correct** message have **not** been separately confirmed. The two notification functions share a Firebase backend; avoid broad deployment or claiming cross-platform iOS/web regression PASS without testing. Amazon detailed chronology is documented **only on `Android`**, in `docs/ADM-LIVE.md` and `docs/ANDROID-ACCEPTANCE.md`.
+
+**Documentation reliability:** A passing build, ACTIVE function or file's existence never proves device behavior. Label CI PASS, owner device PASS, FAILED and UNTESTED separately. Keep secrets out of documentation; the OAuth Client Secret shared during diagnosis should be rotated in a separately authorized, low-risk maintenance window after continuity planning. Only the Android branch should describe its app installation steps as current.
+
+---
+
+**This branch:** Existing iOS/TestFlight native implementation; preserve Apple signing, APNs/FCM, Face ID/PIN behavior, iPhone/iPad accessibility and notification-to-message routing. No TestFlight build or iOS code change is authorized by these notes. See `IOS-MIGRATION-CHECKLIST.md` and `IOS-RELEASE-READINESS.md`.
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
