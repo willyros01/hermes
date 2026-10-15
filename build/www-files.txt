@@ -27,6 +27,7 @@ legal-acceptance-client.js
 group-reply-policy.js
 notification-policy.js
 notification-platform-adapter.js
+notification-native-status-policy.js
 notification-registration.js
 notification-lease-session.js
 notification-config.js
