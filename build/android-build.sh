@@ -23,6 +23,21 @@ APK=app/build/outputs/apk/debug/app-debug.apk
 test -s "$APK"
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 test -n "$SDK"
+# Android rejects FIDUNIO if Wire is installed when Amazon A3L's
+# default provider authority is present in BOTH packages. Verify the
+# actual compiled APK, not merely the source manifest.
+AAPT="$(find "$SDK/build-tools" -name aapt -type f | sort -V | tail -1)"
+test -n "$AAPT" || { echo "::error title=Cannot verify APK manifest::Android aapt unavailable"; exit 1; }
+MANIFEST_DUMP="$("$AAPT" dump xmltree "$APK" AndroidManifest.xml)"
+if ! printf '%s\n' "$MANIFEST_DUMP" | grep -F 'android:authorities' | grep -Fq 'io.github.willyros01.fidunio.a3l-init'; then
+  echo "::error title=Amazon ADM provider conflict::Compiled APK missing unique FIDUNIO A3L authority"
+  exit 1
+fi
+if printf '%s\n' "$MANIFEST_DUMP" | grep -F 'android:authorities' | grep -Fq 'com.amazon.A3L.messaging.util.A3LMessagingInitProvider'; then
+  echo "::error title=Amazon ADM provider collision::Compiled APK still uses Wire's fixed A3L authority"
+  exit 1
+fi
+echo "PASS: FIDUNIO Amazon A3L provider authority does not collide with Wire."
 SIGNER="$(find "$SDK/build-tools" -name apksigner -type f | sort -V | tail -1)"
 test -n "$SIGNER"
 "$SIGNER" verify --verbose "$APK"
