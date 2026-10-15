@@ -1,3 +1,11 @@
+## 2026-10-14 21:54 EDT — ADM lease still absent after Fire foreground
+
+Owner's **second** `admchk.txt` run, performed after foregrounding FIDUNIO on Fire HD 8, again scanned five users and found **zero `android-adm` leases**. One `android-native` lease remains enabled, valid and owner-matched, but tablet identity remains unverified. Matched log entry counts: direct 12, group 6, claim 43; no diagnostic errors matched and send success NOT established. The repeated test confirms no passive ADM lease creation.
+
+Amazon's A3L manifest documentation matches `build/install-fidunio-adm.mjs`'s generated receiver and metadata. FIDUNIO's adapter tries ADM first, but on unavailable/failing detection can fall back to FCM without a clear Fire-specific error. The precise reason for no ADM registration on this Fire tablet is still unproved. Next: inspect actual in-app FIDUNIO Settings → Notifications status and installed APK/provider contract before any Android-only code changes. No Cloud/Firebase changes or further backup needed.
+
+---
+
 ## 2026-10-14 21:46 EDT — Read-only registration diagnosis (owner Cloud Shell result)
 
 `admchk.txt` reported a clean read-only completion against `fidunio-fef13`. Five user documents scanned. Native device rows **1**: platform `android-native`, enabled, unexpired, token-owner MATCH, eligible as native/FCM. `ADM ROWS 0`, `ELIGIBLE ADM ROWS 0`. Thus there is **no server-eligible Amazon ADM registration** among scanned users; Amazon sender priority is not a useful fix before a token exists. The audit cannot associate that native/FCM registration with a physical Fire installation, nor can it prove why ADM capability was not selected. In available matched Cloud Function logs: direct 7, group 6, claim 28 entries; no diagnostic errors matched, but send success NOT demonstrated. No tokens, credentials or message content displayed and no changes made.
