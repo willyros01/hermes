@@ -1,3 +1,12 @@
+## 2026-10-15 ~08:38 EDT — Final owner follow-up after direct Fire ADM receipt PASS
+
+- The owner confirmed that **`FIDUNIO_ADM_CLIENT_ID` GitHub Actions secret was corrected manually** after the Firebase direct sender was already repaired and Fire HD 8 notifications physically received. **Do not rerun** the one-time GitHub-to-Firebase transfer workflow just because the GitHub secret now matches.
+- Current proven: submitted FIDUNIO Client ID + Client Secret PASS against Amazon OAuth (HTTP 200); live Firebase latest/deployed direct references matched; **direct Fire ADM receipt owner-confirmed PASS**. Not proven: tapped notification → PIN/biometric → correct message, group-notification ADM route and fresh iOS/web APNs/FCM regression.
+- The earlier transfer workflow accepted syntactically valid but mismatched Client ID because it did not test the *pair* against Amazon. Any future transfer must perform a read-only OAuth acceptance probe before new versions, and only be undertaken in a separately authorized, tested maintenance window. Client Secret was shared while diagnosing; do not paste or expose it in docs; schedule low-risk rotation only with clear rollback and owner approval.
+- Source-code and live function revisions must not be refreshed solely to clean build metadata. Preserve Fire device PASS, group function baseline, existing Firebase backup, signed APK and Wire.
+
+---
+
 ## 2026-10-15 ~02:01 EDT — Fire HD 8 Amazon ADM notification RECEIPT PASS (owner confirmed)
 
 **Physical result:** owner reports **"notifications are working now"** on FIDUNIO Fire HD 8 after the backend credential correction. Mark **ADM notification receipt: PASS (owner confirmed)**. Do **not** yet claim notification tap → PIN/biometric → correct message, group-message notification, or iOS/web notification regression PASS; those require separate owner acceptance. Wire and installed APK were not changed for this repair.
