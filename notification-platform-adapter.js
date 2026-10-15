@@ -14,28 +14,30 @@ function nativeMessagingPlugin(){
 }
 
 // ADM is a separate transport. Do not replace or hijack Google's FCM plugin.
-let selectedNativeProvider="fcm";
+// Selection starts UNKNOWN and is committed only after acquiring a token from
+// the matching transport. Never record an Amazon token as android-native.
+let selectedNativeProvider="";
 let pendingAdmToken="";
 function admPlugin(){
   if(!isNativeAndroidRuntime())return null;
   return globalThis.Capacitor?.Plugins?.FidunioAdm||null;
 }
-async function activeAdm(){
+async function detectAndroidProvider(){
+  if(!isNativeAndroidRuntime())return null;
   const plugin=admPlugin();
-  if(!plugin?.available)return null;
-  try{
-    const status=await plugin.available();
-    if(status?.supported===true&&status?.provider==="adm"){
-      selectedNativeProvider="adm";
-      return plugin;
-    }
-  }catch(error){console.warn("FIDUNIO ADM capability check failed",error);}
-  return null;
+  if(!plugin?.available)throw new Error("Android native A3L notification bridge is unavailable.");
+  let status;
+  try{status=await plugin.available();}
+  catch{throw new Error("Android A3L notification provider detection failed.");}
+  if(status?.supported!==true||!["adm","fcm"].includes(status?.provider))
+    throw new Error("Neither Amazon ADM nor Google FCM was detected on this Android device.");
+  return {plugin,provider:status.provider,permission:permissionValue(status.permission)};
 }
 export function getNativeNotificationLeasePlatform(){
-  return isNativeAndroidRuntime()
-    ?selectedNativeProvider==="adm"?"android-adm":"android-native"
-    :"ios-native";
+  if(!isNativeAndroidRuntime())return "ios-native";
+  if(selectedNativeProvider==="adm")return "android-adm";
+  if(selectedNativeProvider==="fcm")return "android-native";
+  throw new Error("Android notification provider has not been verified.");
 }
 
 function permissionValue(value){
@@ -62,11 +64,13 @@ export function getNotificationPlatformCapabilities(platformOptions){
 }
 
 export async function getNativeNotificationCapability(){
-  const adm=await activeAdm();
-  if(adm){
-    const result=await adm.available();
-    const permission=permissionValue(result?.permission);
-    return{supported:true,permission};
+  if(isNativeAndroidRuntime()){
+    let selected;
+    try{selected=await detectAndroidProvider();}
+    catch{return{supported:false,permission:"unsupported"};}
+    if(selected.provider==="adm")
+      return{supported:true,permission:selected.permission};
+    // A3L selected FCM; keep the existing FirebaseMessaging FCM owner.
   }
   const plugin=nativeMessagingPlugin();
   if(!plugin?.isSupported||!plugin?.checkPermissions)return{supported:false,permission:"unsupported"};
@@ -81,38 +85,47 @@ export async function getNativeNotificationCapability(){
 }
 
 export async function requestNativeNotificationPermission(){
-  const adm=await activeAdm();
-  if(adm){
-    const response=await adm.register();
-    if(response?.provider!=="adm"||!String(response?.token||"").trim())
+  const selected=await detectAndroidProvider();
+  if(selected?.provider==="adm"){
+    const response=await selected.plugin.register();
+    if(response?.provider!=="adm"||String(response?.token||"").trim().length<20)
       throw new Error("ADM registration returned no valid token.");
-    pendingAdmToken=response.token;
+    pendingAdmToken=String(response.token).trim();
     return "granted";
   }
+  pendingAdmToken="";
   const plugin=nativeMessagingPlugin();
-  if(!plugin?.requestPermissions)throw new Error("Native notification adapter is unavailable.");
+  if(!plugin?.requestPermissions)throw new Error("Native Firebase notification adapter is unavailable.");
   const result=await plugin.requestPermissions();
   return permissionValue(result?.receive);
 }
 
 export async function getNativeMessagingToken(){
-  const adm=await activeAdm();
-  if(adm){
-    if(pendingAdmToken){const token=pendingAdmToken;pendingAdmToken="";return token;}
-    const response=await adm.register({silent:true});
-    if(response?.provider!=="adm")throw new Error("ADM returned wrong provider.");
-    return String(response?.token||"").trim();
+  const selected=await detectAndroidProvider();
+  if(selected?.provider==="adm"){
+    const response=pendingAdmToken?{provider:"adm",token:pendingAdmToken}
+      :await selected.plugin.register({silent:true});
+    pendingAdmToken="";
+    const token=String(response?.token||"").trim();
+    if(response?.provider!=="adm"||token.length<20)
+      throw new Error("ADM registration did not supply a valid Amazon token.");
+    selectedNativeProvider="adm";
+    return token;
   }
+  pendingAdmToken="";
   const plugin=nativeMessagingPlugin();
   if(!plugin?.getToken)throw new Error("Native Firebase Messaging is unavailable.");
   const result=await plugin.getToken();
-  return String(result?.token||"");
+  const token=String(result?.token||"").trim();
+  if(token.length<20)throw new Error("FCM registration did not supply a valid Google token.");
+  if(selected?.provider==="fcm")selectedNativeProvider="fcm";
+  return token;
 }
 
 export async function deleteNativeMessagingToken(){
-  if(await activeAdm()){
-    // ADM does not expose Firebase's local deleteToken action. Authenticated
-    // lease revocation, confirmed by the server, owns delivery cancellation.
+  const selected=await detectAndroidProvider();
+  if(selected?.provider==="adm"){
+    // Only the authenticated lease authority revokes Amazon delivery.
     pendingAdmToken="";
     return true;
   }
