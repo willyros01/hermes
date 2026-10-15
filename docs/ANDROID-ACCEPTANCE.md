@@ -1,3 +1,13 @@
+## 2026-10-14 ~22:02 EDT — Provider-selection correction (Android source only)
+
+Owner authorized immediate Android-only implementation following working Wire's A3L provider identification. Java `FidunioAdmPlugin` now checks Amazon A3L `getCurrentPlatform` and returns explicitly `adm`, `fcm` or unsupported (unknown), mirroring Wire's decision logic. Java `register()` remains ADM-only; Google's existing FirebaseMessaging owner is used for confirmed FCM, preserving the Google Android receiver. Java does not auto-register an unauthenticated ADM token.
+
+`notification-platform-adapter.js` no longer starts with implicit `fcm` on Android: unknown/failed A3L detection fails closed, ADM acquires an Amazon token and sets lease platform `android-adm`, confirmed FCM acquires Firebase Messaging token and sets `android-native`, and the provider label is set only after successful matching token retrieval. iOS/Web branches/source and the live Firebase functions remain unchanged. Regression tests added to `build/test-adm.mjs` for ADM, Google FCM, unknown/error conditions and iOS invariance. GitHub CI started for latest `Android` commit `812c1bdd247f78f5fcb1ba034ba7eb1fa02822c3`; latest known workflow run `38668803728` was **pending** on initial inspection. No device receipt claim or functional PASS yet; once signed artifact is published, install it on Fire and confirm authenticated eligible `android-adm` lease, direct/group notification, tap/PIN/route.
+
+No extra Firebase backup, deployment, Wire change or TestFlight actions were authorized or performed.
+
+---
+
 ## 2026-10-14 21:54 EDT — Second read-only audit after Fire foreground
 
 The owner opened FIDUNIO on Fire HD 8, waited, and re-ran `admchk.txt` in Cloud Shell. Output: `CHECK COMPLETE — NO CHANGES MADE`. Five user documents scanned; one enabled, unexpired, owner-matched `android-native` row; **`ADM ROWS: 0`, `ELIGIBLE ADM ROWS: 0` again**. It is not yet established whether the `android-native` row belongs to the Fire tablet. Logs in the query window: direct 12, group 6, claim 43; no matching diagnostic errors, send success not established. This repeat excludes a simple passive-foreground ADM lease recovery, not all other causes.
