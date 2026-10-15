@@ -1,3 +1,13 @@
+## 2026-10-15 — iOS migration governance and release readiness
+
+- The current `ios` branch remains frozen for code changes/builds until explicit owner authorization. Latest branch head at documentation audit: `0e222ef9a358` (pre-documentation edits). A successful CI workflow does not prove iPhone/iPad acceptance or App Store review.
+- **Functional equivalence rule:** every iOS user-facing feature/fix must have a functionally equivalent `main-3` browser implementation via platform adapters in the same approved work item; source identity is not required. Record the tests separately for the two branches. Keep `main` protected.
+- Preserve notification-to-PIN/biometrics routing (correct message after unlock), notification token leases and logout/revocation, blocked-user delivery, report abuse and account deletion permissions, disappearing-message per-conversation scope, media and accessibility. Existing historical passing tests remain historical; no fresh end-to-end iOS regression run is claimed on this date.
+- Android Fire ADM direct notification receipt passed in the **`Android`** branch after Firebase Client ID repair; this **does not** prove iOS APNs/FCM or shared-notification paths pass. Do not merge Android native A3L/Fire OS implementations here.
+- Documentation-only update; no TestFlight build or source revision claim.
+
+---
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
