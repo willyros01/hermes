@@ -1,35 +1,35 @@
 {
   "workflow": "FIDUNIO Android signed APK",
   "branch": "Android",
-  "run_id": 38674977821,
+  "run_id": 38675060568,
   "run_attempt": "1",
-  "run_url": "https://github.com/willyros01/hermes/actions/runs/38674977821",
-  "source_sha": "d9a9de68b955a86a9e4c30f01c52d95e51a23f83",
-  "outcome": "skipped",
+  "run_url": "https://github.com/willyros01/hermes/actions/runs/38675060568",
+  "source_sha": "bf0c9302f85da0d4cffca87b625f449f8d5fb5ba",
+  "outcome": "failure",
   "artifact_name": null,
   "publication": {
     "destination": "https://www.cuberoot-systems.com/downloads/fidunio.apk",
     "state": "not-requested",
     "mechanism": "Cuberoot polls verified successful signed artifacts"
   },
-  "reported_at": "2026-10-15T03:12:07.761Z",
+  "reported_at": "2026-10-15T03:15:48.585Z",
   "jobs": [
     {
       "name": "Verify shared application and native Android adapters",
-      "conclusion": "failure",
-      "failed_steps": [
-        "Check Android scripts and platform contracts"
-      ]
-    },
-    {
-      "name": "Build permanently signed FIDUNIO APK",
-      "conclusion": "skipped",
+      "conclusion": "success",
       "failed_steps": []
     },
     {
       "name": "Compile Fire ADM native bridge (no release APK)",
-      "conclusion": "skipped",
+      "conclusion": "success",
       "failed_steps": []
+    },
+    {
+      "name": "Build permanently signed FIDUNIO APK",
+      "conclusion": "failure",
+      "failed_steps": [
+        "Build and verify FIDUNIO Android APK"
+      ]
     },
     {
       "name": "Verify Cuberoot automatic publisher",
