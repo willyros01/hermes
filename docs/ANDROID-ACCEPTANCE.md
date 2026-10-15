@@ -1,3 +1,13 @@
+## 2026-10-14 21:54 EDT — Second read-only audit after Fire foreground
+
+The owner opened FIDUNIO on Fire HD 8, waited, and re-ran `admchk.txt` in Cloud Shell. Output: `CHECK COMPLETE — NO CHANGES MADE`. Five user documents scanned; one enabled, unexpired, owner-matched `android-native` row; **`ADM ROWS: 0`, `ELIGIBLE ADM ROWS: 0` again**. It is not yet established whether the `android-native` row belongs to the Fire tablet. Logs in the query window: direct 12, group 6, claim 43; no matching diagnostic errors, send success not established. This repeat excludes a simple passive-foreground ADM lease recovery, not all other causes.
+
+Source review: `FidunioAdmPlugin` uses Amazon A3L's `getCurrentPlatform` + `getToken`, similar to working Wire; generated `FidunioAdmService` receiver and `com.a3l.clsName` metadata match Amazon's documented A3L manifest. Client `notification-platform-adapter.js` silently falls back to Firebase Messaging when `activeAdm()` is unavailable, while Settings shows saved cloud registration separately from an authoritative eligible lease. This is a **potential fail-open/provider-observability defect**, not proved to be the exact tablet cause.
+
+Next zero-cloud-change device check: inspect **FIDUNIO's own Settings → Notifications → Status** on Fire (not the system-wide OS notifications toggle); then relate to current installed APK/build and token selection. Do not repeat ADM sender deployment, backups or blind priority edits. Amazon reference: https://developer.amazon.com/docs/a3l-messaging/integrate.html
+
+---
+
 ## 2026-10-14 21:46 EDT — READ-ONLY LIVE DIAGNOSTIC (owner screenshot)
 
 - Owner ran existing `admchk.txt` in Cloud Shell on project `fidunio-fef13`; result `CHECK COMPLETE — NO CHANGES MADE`.
