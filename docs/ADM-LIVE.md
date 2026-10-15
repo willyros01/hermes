@@ -1,3 +1,9 @@
+## 2026-10-14 ~22:34 EDT — Direct publisher authorization not yet accepted
+
+User created Hermes Actions secret `CUBEROOT_DISPATCH_TOKEN`; GitHub job environment confirms it is populated and masked. Initial handoff retry on APK run `38668803728` exposed malformed curl flags `--fail-with-body -fsSL`, fixed in `Android` workflow commit `dbd2542cc29912236be93f666638f756c66a0a99` to `--fail-with-body -sSL`, and missing-secret guard now fails explicitly. This CI workflow edit initiated signed run `38671172852`; check/native/APK compilation PASS, direct dispatch handoff failed with **HTTP 403: `Resource not accessible by personal access token`**. Therefore installed token exists but has insufficient access to `willyros01/Cuberoot` or its workflow dispatch endpoint. GitHub documentation specifies fine-grained token must include Cuberoot repository and **Actions: Read and write**. Owner must inspect/adjust personal token's selected repository and Actions permission, and if GitHub regenerates a token replace the Hermes secret. Then use rerun **ONLY** the handoff job for successful run `38671172852` (avoid extra APK build) and check a `workflow_dispatch`-event Cuberoot publisher run. Do not claim automatic publication yet. Website's last confirmed successful APK (prior source run `38668803728`) was safely published and may be manually tested separately.
+
+---
+
 ## 2026-10-14 21:54 EDT — ADM lease still absent after Fire foreground
 
 Owner's **second** `admchk.txt` run, performed after foregrounding FIDUNIO on Fire HD 8, again scanned five users and found **zero `android-adm` leases**. One `android-native` lease remains enabled, valid and owner-matched, but tablet identity remains unverified. Matched log entry counts: direct 12, group 6, claim 43; no diagnostic errors matched and send success NOT established. The repeated test confirms no passive ADM lease creation.
