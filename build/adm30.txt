@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Exact activation script available as owner attachment at /mnt/data/adm30.txt
+# This repository marker intentionally does not run a production deployment.
+echo 'Use the independently verified adm30.txt artifact supplied in the current conversation.'
