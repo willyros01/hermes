@@ -1,3 +1,12 @@
+## 2026-10-14 ~22:47 EDT — FIDUNIO Android auto-publication recovery confirmed
+
+- After Amazon ADM/FCM provider fix, Hermes signed APK run **38671172852** successfully built from `Android` commit `dbd2542cc29912236be93f666638f756c66a0a99`.
+- Hermes Actions secret `CUBEROOT_DISPATCH_TOKEN` was set by owner but initially had zero Cuberoot repo permission (HTTP 403) and command erroneously combined conflicting curl `--fail-with-body -fsSL`. Curl invocation corrected to `--fail-with-body -sSL`, and missing token now fails clearly rather than returning a misleading success. Owner selected Cuberoot repository and Actions read/write for the GitHub fine-grained PAT.
+- Targeted rerun of Hermes publishing handoff for **38671172852** reported dispatch PASS, launching Cuberoot publisher **38672732129** as `workflow_dispatch`. Cuberoot release record updated to exact run **38671172852**, signed artifact **11943617517**, APK hash `2fb869c190164683da1f949485d06c760caf5346310d002e791ea06bf94eab5f`, unchanged permanent signing cert hash `fbff41947e477e0b4df65bd741b550d7b30d7b18636a47c10853d789c4937a1d`; Pages deployment **38672756917 SUCCESS**.
+- User cleared to update Fire HD 8 via Cuberoot website **without uninstalling** and test direct notification background → tap → PIN → exact conversation/message. Must not confuse APK/website PASS with physical ADM notification PASS. No Firebase, Wire, Web or iOS changes. Prior original backup preserved.
+
+---
+
 ## 2026-10-14 ~22:07 EDT — FIDUNIO Android ADM provider fix, signed CI PASS (latest)
 
 - Owner-authorized fix confined to `willyros01/hermes` case-sensitive `Android`: `FidunioAdmPlugin.java` now detects A3L `adm` or `fcm` as Wire does. `notification-platform-adapter.js` no longer defaults Android to FCM when A3L detection fails. Unknown/failed detector stops registration; valid Amazon token routes through authenticated `android-adm` lease; verified Google FCM token through `android-native`. Preserve FirebaseMessaging for Google Android, Web/iOS unaffected, one lease owner, fail closed for unknown.
