@@ -101,3 +101,20 @@ runtime='ios';
 assert.equal(await getNativeMessagingToken(),googleToken);
 assert.equal(getNativeNotificationLeasePlatform(),'ios-native');
 console.log('PASS: actual provider ADM/FCM token lease routing, unknown fail-closed, iOS preserved');
+
+// The native Settings UI must reject stale/expired/cross-provider registrations.
+const {confirmedNativeNotificationLease}=await import('../notification-native-status-policy.js');
+const now=1750000000000,installId='install-android-0001',uid='user-1',leaseId='lease-1';
+const row={ownerUid:uid,installationId:installId,leaseId,fcmToken:amazonToken,enabled:true,platform:'android-adm',leaseUntilMs:now+100000};
+const retainedLease={uid,installationId:installId,leaseId,fcmToken:amazonToken};
+const valid=registration=>confirmedNativeNotificationLease({uid,provider:'adm',registration,retainedLease,nowMs:now});
+assert.equal(valid(row),true);
+assert.equal(valid({...row,platform:'android-native'}),false);
+assert.equal(valid({...row,leaseUntilMs:now-1}),false);
+assert.equal(valid({...row,leaseId:'old'}),false);
+assert.equal(valid({...row,ownerUid:'different'}),false);
+assert.equal(valid({...row,leaseUntilMs:undefined,leaseId:undefined}),false);
+assert.equal(confirmedNativeNotificationLease({uid,provider:'adm',registration:row,retainedLease:null,nowMs:now}),false);
+assert.equal(confirmedNativeNotificationLease({uid,provider:'fcm',registration:row,retainedLease,nowMs:now}),false);
+assert.equal(confirmedNativeNotificationLease({uid,provider:'',registration:row,retainedLease,nowMs:now}),false);
+console.log('PASS: Fire native status needs current authenticated and matching provider lease');

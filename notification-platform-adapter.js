@@ -33,6 +33,10 @@ async function detectAndroidProvider(){
     throw new Error("Neither Amazon ADM nor Google FCM was detected on this Android device.");
   return {plugin,provider:status.provider,permission:permissionValue(status.permission)};
 }
+export async function getNativeNotificationProvider(){
+  const selected=await detectAndroidProvider();
+  return selected?.provider||"";
+}
 export function getNativeNotificationLeasePlatform(){
   if(!isNativeAndroidRuntime())return "ios-native";
   if(selectedNativeProvider==="adm")return "android-adm";

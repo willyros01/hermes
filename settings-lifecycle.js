@@ -53,7 +53,8 @@ import {completeSelfAccountDeletion} from "./account-deletion-finalize-client.js
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
 import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";
 import {mountSixDigitPinInput} from "./pin-input.js";
-import {fidunioPublicUrl} from "./platform-runtime.js";
+import {fidunioPublicUrl,isNativeAndroidRuntime} from "./platform-runtime.js";
+import {confirmedNativeNotificationLease} from "./notification-native-status-policy.js";
 import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";
 import {
   getNotificationPlatformCapabilities,
@@ -63,6 +64,7 @@ import {
   deleteNativeMessagingToken,
   subscribeNativeMessagingTokens,
   getNativeNotificationLeasePlatform,
+  getNativeNotificationProvider,
 } from "./notification-platform-adapter.js";
 
 let mutationTail=Promise.resolve();
@@ -487,7 +489,26 @@ async function renderNotifications(notificationsHost,info){
   if(!platformNotifications.webPush&&!platformNotifications.nativeRegistration){notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note"><strong>Status:</strong> Unsupported on this installation</p></div>';return;}
   notificationsHost.innerHTML='<div class="card" id="fidunioNotificationsCard"><h2>Notifications</h2><p class="small-note">Loading notification status…</p></div>';
   const card=notificationsHost.querySelector("#fidunioNotificationsCard");
-  try{const state=await notificationRegistrationOwner.getStatus(info.user.uid);if(!card.isConnected)return;const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&!state.enabled;card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(notificationStatusText(state.status))}</p><p class="small-note">Private is the default: <strong>FIDUNIO — New message</strong>. You may optionally show only the sender's FIDUNIO display name. Message text, attachment names, email addresses, UIDs, and decrypted content are never placed in the notification.</p>${state.enabled?`<label class="form-label" style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="showNotificationSenderName" ${notificationLeaseSession.showSenderName()?"checked":""}> Show sender's FIDUNIO display name</label><p class="small-note">When enabled on this installation, the card may say <strong>New message from Display Name</strong>.</p>`:""}${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${state.enabled?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
+  try{
+    const state=await notificationRegistrationOwner.getStatus(info.user.uid);
+    if(!card.isConnected)return;
+    // Native Fire/Android needs a confirmed lease, not a legacy enabled flag.
+    const android=isNativeAndroidRuntime();
+    let provider="";
+    if(android)try{provider=await getNativeNotificationProvider();}catch{}
+    if(!card.isConnected)return;
+    const live=android?confirmedNativeNotificationLease({
+      uid:info.user.uid,registration:state.registration,
+      retainedLease:notificationLeaseSession.retainedLease(),provider
+    }):state.enabled;
+    const visibleStatus=android
+      ? !provider?"Provider unavailable":live?"Enabled":
+        notificationLeaseSession.preferred(info.user.uid)||state.enabled?"Registration needed":"Off"
+      : notificationStatusText(state.status);
+    const providerLabel=provider==="adm"?"Amazon ADM":provider==="fcm"?"Google FCM":"Undetected";
+    const nativeInfo=android?`<p class="small-note"><strong>Provider:</strong> ${esc(providerLabel)}</p>${!live&&state.enabled?'<p class="warning-note">A saved setting is not a confirmed active notification registration. Tap Enable Notifications to register this device.</p>':""}`:"";
+    const canEnable=state.supported&&state.permission!=="denied"&&state.configured&&(!android||Boolean(provider))&&!live;
+    card.innerHTML=`<h2>Notifications</h2><p class="small-note"><strong>Status:</strong> ${esc(visibleStatus)}</p>${nativeInfo}<p class="small-note">Private is the default: <strong>FIDUNIO — New message</strong>. You may optionally show only the sender's FIDUNIO display name. Message text, attachment names, email addresses, UIDs, and decrypted content are never placed in the notification.</p>${live?`<label class="form-label" style="display:flex;gap:10px;align-items:center;margin-top:14px"><input type="checkbox" id="showNotificationSenderName" ${notificationLeaseSession.showSenderName()?"checked":""}> Show sender's FIDUNIO display name</label><p class="small-note">When enabled on this installation, the card may say <strong>New message from Display Name</strong>.</p>`:""}${!state.configured?'<p class="warning-note">Web Push configuration must be completed before notifications can be enabled.</p>':""}<button class="primary" id="enableNotificationsBtn" ${canEnable?"":"disabled"}>Enable Notifications</button><button class="secondary" id="disableNotificationsBtn" ${live?"":"disabled"} style="margin-top:10px">Turn Off Notifications</button><div id="notificationNote"></div>`;
     const enable=card.querySelector("#enableNotificationsBtn"),disable=card.querySelector("#disableNotificationsBtn"),senderToggle=card.querySelector("#showNotificationSenderName"),note=card.querySelector("#notificationNote");
     if(senderToggle)senderToggle.onchange=async()=>{senderToggle.disabled=true;const previous=notificationLeaseSession.showSenderName();try{await updateCloudNotificationSenderName({installationId:getOrCreateNotificationInstallationId(),showSenderName:senderToggle.checked});notificationLeaseSession.setShowSenderName(senderToggle.checked);note.textContent="Notification privacy preference saved.";senderToggle.disabled=false;}catch(err){senderToggle.checked=previous;note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;senderToggle.disabled=false;}};
     // Commit semantics: the local lease preference stands only once the server confirmed the change;
@@ -496,7 +517,9 @@ async function renderNotifications(notificationsHost,info){
         const permission=await requestNativeNotificationPermission();
         if(permission!=="granted")throw new Error("Notifications permission not granted.");
         notificationLeaseSession.setPreference(info.user.uid,true);rollbackPreference=true;
-        await notificationLeaseSession.activate(info.user.uid);rollbackPreference=false;
+        const activation=await notificationLeaseSession.activate(info.user.uid);
+        if(activation?.activated!==true)throw new Error("Native notification lease did not activate.");
+        rollbackPreference=false;
       }else await notificationRegistrationOwner.enableFromUserGesture({uid:info.user.uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});await renderNotifications(notificationsHost,info);}catch(err){if(rollbackPreference)notificationLeaseSession.setPreference(info.user.uid,false);note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;enable.disabled=false;enable.textContent="Enable Notifications";}};
     disable.onclick=async()=>{disable.disabled=true;disable.textContent="Turning off…";let rollbackPreference=false;try{if(FIDUNIO_NOTIFICATION_LEASE_ROLLOUT&&notificationTransport.nativeRegistration){
         notificationLeaseSession.setPreference(info.user.uid,false);rollbackPreference=true;
