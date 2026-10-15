@@ -1,3 +1,15 @@
+## 2026-10-15 — Active change-control requirements (documentation update)
+
+1. **Surgical scope:** identify and prove an actual defect before changing code; only the smallest required owner/adapter may change. No refactors/renames/rebuilds just because a nearby function is being inspected. Preserve existing messages, Firestore, E2EE, accounts, notifications, signing and all other apps.
+2. **Branch-per-platform:** `main` production web protected; `main-3` web parity; `ios` native TestFlight; `Android` Fire A3L. Never touch unrelated branch, auto-merge or reuse another app's ADM credentials. Document and validate on the **same branch as the change**.
+3. **Functional equality:** after an approved `ios` change, implement the equivalent user outcome on `main-3` through the correct adapter, not necessarily identical code. Compare both real executions, including failure/retry/offline/authorization, PIN and notification routing. Report unresolved gaps rather than assuming parity.
+4. **Determinism/accessibility:** one owner per resource, serialized writes/state transitions, fail-closed explicit errors rather than hanging, high contrast, large text and short straightforward names/scripts. Verify real iPhone/iPad/Fire user behavior and not merely passing source/CI tests.
+5. **Production safety:** user-approved builds only; perform read-only inspection first. Any change to shared Firebase Gen2 notification functions must preserve existing source/config and backed-up rollback, and explicitly regression-test APNs/FCM/web/ADM separately. The Oct 15 Amazon ADM root cause was a mismatched **Firebase Client ID**, while the Client Secret matched; correct pair returned OAuth HTTP 200 and owner-confirmed direct Fire receipt PASS. Do not automatically redeploy group function or run old `af.txt` repair/rollback. Github ID secret owner corrected; transfer workflow originally validated only string format, not real Amazon OAuth.
+6. **Credentials:** never put OAuth secrets, API keys, keystores or PINs into docs/source/test logs. Any secret exposed during diagnosis requires a separate, explicitly authorized rotation plan with verified delivery and rollback so the working Fire installation is not disrupted.
+7. **Freeze:** as of this snapshot, only documentation, auditing and non-development records may proceed without explicit authorization; no automatic TestFlight/APK run for a docs-only change. Distinguish test **PASS**, **FAIL** and **UNTESTED** in dated branch-local docs.
+
+---
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
