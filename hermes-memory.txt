@@ -1,3 +1,12 @@
+## 2026-10-15 ~08:38 EDT — ADM delivery repaired; Fire receipt PASS; GitHub Client ID corrected
+
+- The initial FIDUNIO Fire HD 8 missing-notification diagnosis found one eligible ADM lease but Amazon OAuth **HTTP 401 INVALID_CLIENT**. The owner's uploaded FIDUNIO-attached Amazon profile pair authenticated directly with **HTTP 200**. Read-only credential comparison proved the Firebase Secret Manager Client ID was DIFFERENT while Client Secret MATCHED. Secret values must never be echoed or committed.
+- The targeted Cloud Shell `af.txt` attempt added the corrected **Client ID** version and revised the direct-notification function. Its too-strict build-config guard stopped and rollback was NOT confirmed; DO NOT rerun it/its rollback. Follow-up `az.txt` verified the direct function's new Client ID reference and preserved service settings; group function remained on original revision/reference at the last read-only audit. Follow-up `ax.txt` showed matching Client ID/Secret across uploaded credentials, latest Firebase secrets and deployed direct-function references, plus Amazon OAuth **HTTP 200**.
+- **Owner-confirmed real Fire HD 8 FIDUNIO direct notification RECEIPT PASS** at ~02:01 EDT 15 October 2026. PIN/biometric→correct-message navigation, group ADM notifications and iOS/web regression remain UNTESTED/UNCONFIRMED. Owner later changed ONLY the incorrect `FIDUNIO_ADM_CLIENT_ID` GitHub Actions secret; no transfer rerun or Firebase deploy was authorized. Root cause: original one-time GitHub-to-Firebase workflow checked ID/secret string shape only and did NOT authenticate pair with Amazon. Future transfers MUST pass live Amazon OAuth test and never blindly overwrite known working Firebase credentials.
+- **Freeze:** application code and builds paused unless expressly authorized; documentation/testing may continue. Change only what is defective; prove cause, preserve verified rollback, compare exact before/after, test on physical hardware. Wire, iOS, main/main-3, APK, Firestore and signing were not changed to correct OAuth. Confirm App Store/APNs/FCM separately.
+
+---
+
 ## 2026-10-15 00:06 EDT — VERIFIED WIRE/FIDUNIO APK INSTALL COLLISION AND CORRECTION
 
 - User explicitly uninstalled FIDUNIO from Amazon Fire HD 8 then attempted clean install from Cuberoot; Android reported **"App not installed"**. User asked investigate Wire/ADM and had repeatedly confirmed prior APK installs. Do not blame user/download or request repeated install checks.
