@@ -1,3 +1,11 @@
+## 2026-10-14 ~22:07 EDT — Wire-style native provider fix BUILT
+
+Owner authorized immediate narrowly scoped Android-only fix after two read-only Cloud Shell audits both found `ADM ROWS:0`. The Fire tablet had not created an eligible Amazon ADM server lease even on foreground. As requested, `android-src/native/FidunioAdmPlugin.java` now uses Wire's A3L capability detection: explicit `adm`, `fcm`, unknown. `notification-platform-adapter.js` no longer assumes FCM on detection failure: unknown fails closed, Amazon tokens receive `android-adm`, Google tokens `android-native`, and the provider label is only set after valid token acquisition. A3L Java `register` remains ADM-only and Google's existing FirebaseMessaging owns FCM; no duplicate notification owner.
+
+**Confirmed CI:** `hermes/Android` commit `812c1bdd247f78f5fcb1ba034ba7eb1fa02822c3`, signed workflow run **38668803728 SUCCESS**, native A3L compile PASS, native provider regression tests PASS, permanent signing PASS, signed artifact **11942369130**. No Firebase redeployment, backup, Wire, iOS or production web changes. Cuberoot `downloads/fidunio-build.json` still pointed to prior run `38655432189` at last check; **do not install via website until descriptor identifies run `38668803728`**. No Amazon delivery/device acceptance PASS until new published APK installed on Fire, eligible `android-adm` lease verified and direct/group receipt/tap/PIN/correct message tested. Earlier paragraphs are chronological.
+
+---
+
 ## 2026-10-14 ~21:30 EDT — Live ADM deployed; physical Fire test FAIL (latest)
 
 The owner verified both original deployed production notification functions archived with metadata/checksums in private versioned `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`: **BACKUP PASS**. The owner then ran `adm33.txt`; both existing Gen2 functions `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1` were **ACTIVE**, with both FIDUNIO ADM secrets mounted, preserving region, triggers and runtime service identity: **BACKEND DEPLOYMENT PASS**. Do not redo either procedure.
