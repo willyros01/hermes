@@ -1,3 +1,11 @@
+## 2026-10-14 ~21:30 EDT — FIDUNIO Android ADM live handoff (latest)
+
+The owner verified a full, private, versioned backup of both original deployed notification function sources/configurations/checksums at `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`, then deployed ADM support with `adm33.txt`: both existing Gen2 direct/group notification functions are **ACTIVE**, the two ADM sender secrets are mounted, and triggers/service account were preserved. **Do not repeat backup or activation.**
+
+The first physical Fire HD 8 direct-message notification **FAILED**: no notification received despite notifications ON. Fire group and post-deployment web/iOS notifications are NOT YET TESTED/REVERIFIED. Root cause is not proven: inspect actual authenticated `android-adm` token lease and live direct sender/Amazon logs before changing code/Firebase. Signed APK build `38655432189` / artifact `11937041460` is published in Cuberoot metadata under historical `android-fcm-beta` label. Preserve emergency rollback, existing FCM/APNs/Web Push, E2EE, token ownership, blocking and PIN/deep-link routing. All iOS/TestFlight builds frozen; Hermes `main`/`main-3` and Wire remain untouched. The earlier staged/not-deployed paragraph below is retained as rollout history and superseded.
+
+---
+
 ## 2026-10-14 — FIDUNIO Android/Fire ADM migration (branch-local)
 
 The `Android` branch contains native Android adapters and a **staged** Amazon Device Messaging backend. Existing `ios`, `main`, `main-3` branch code remains untouched by this Android migration. Both Amazon server OAuth secrets have been placed in Firebase Secret Manager, but the live shared Firebase notification functions **have not yet been deployed** to ADM. GitHub regression tests passed; no real-device Fire notification acceptance is claimed. All iOS branches/builds are frozen. For safe production backup → two-function activation → rollback, see `docs/ADM-LIVE.md`; the backup has **not** yet been verified. Do not promote Android source indiscriminately to other branches.
