@@ -1,3 +1,15 @@
+## 2026-10-14 ~21:30 EDT — ADM live physical test (latest acceptance evidence)
+
+- **Backend activation PASS (owner screenshot):** `adm33.txt`, Firebase `fidunio-fef13` / `us-central1`; both original Gen2 direct/group notification functions **ACTIVE** with two ADM secrets mounted, preserving triggers and service identity. No sender acceptance implied.
+- **Original deployed-function backup PASS (owner screenshot):** two source archives and metadata/checksums in private versioned `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`. Do not redo.
+- **Signed Android artifact PASS:** Hermes `Android` run `38655432189`, source `9bfae478f50f69eec5b4095f761fa7ace52a1438`, artifact `11937041460`, confirmed Cuberoot descriptor; the site's old `android-fcm-beta` channel label is not native provider verification.
+- **Physical Amazon Fire HD 8 direct notification FAIL:** owner received no notice; Fire notification setting confirmed ON. Do not ask user to enable again.
+- **NOT TESTED:** Fire group notifications; post-change web/iOS regression; Fire ADM lease state; Amazon delivery HTTP result; Fire notification tap/PIN/correct-message routing.
+- **Next:** read-only cloud logs and authenticated lease eligibility, then sender vs device receive isolation. Wire `balita/android` 0.17.58 ADM physical receipt PASS is reference only (frozen). No code/Cloud Functions edits until root cause is proved; preserve rollback.
+- Below historical status blocks record earlier build and migration stages; they are not current release verdicts.
+
+---
+
 # FIDUNIO Android migration — acceptance evidence and open gates
 
 Project: FIDUNIO / Hermes.
