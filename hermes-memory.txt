@@ -1,3 +1,15 @@
+## 2026-10-14 ~21:30 EDT — Fire ADM rollout verified, first device receipt FAIL (supersedes earlier pending entry)
+
+- **Verified owner Cloud Shell outcome:** `adm33.txt` completed targeted Gen2 deployment in Firebase project `fidunio-fef13`, region `us-central1`. Both `notifyDirectMessageCreatedV1` and `notifyGroupMessageCreatedV1` report **ACTIVE** with ADM secrets `FIDUNIO_ADM_CLIENT_ID` and `FIDUNIO_ADM_CLIENT_SECRET` mounted. Existing triggers and service account `fidunio-notification@fidunio-fef13.iam.gserviceaccount.com` were preserved. Deployment PASS is not Amazon delivery PASS.
+- **Verified owner backup outcome:** BACKUP PASS — both original live function source archives and configuration, metadata and checksums saved and verified in private versioned storage at `gs://fidunio-fef13-notify-backup-130339622893/20261015T002242Z`. Do not repeat backup. Retain as emergency rollback source only if warranted by confirmed regression.
+- **Physical Fire HD 8:** Direct-message notification **FAIL** (nothing received). Device notifications confirmed ON by owner; do not ask again. Group notifications **NOT TESTED**. Post-deployment web/iOS notification regression **NOT YET REVERIFIED**.
+- **Read-only next gate:** Compare Wire's accepted ADM behavior without editing `willyros01/balita`. Inspect whether the Fire has an authenticated eligible `android-adm` token lease; then actual production direct-message trigger/ADM OAuth/delivery logs, then Java A3L receiver and APK identity. Amazon `priority:normal` vs Wire `priority:high` is a difference, not a proven cause. Do not assume physical acceptance from function ACTIVE or successful APK signing.
+- **Installed APK reference:** Hermes `Android` successful build run `38655432189`, source `9bfae478f50f69eec5b4095f761fa7ace52a1438`; Cuberoot `downloads/fidunio-build.json` records publication and corresponding artifact `11937041460`, but its historical `android-fcm-beta` channel label is not proof of the installed push provider.
+- **Restrictions:** iOS/TestFlight all repos frozen; no edits to Hermes `main`/`main-3`, Wire, other repos, or live Firebase without a proved cause and targeted approval. Preserve lease ownership, E2EE, blocks, web/iOS routing, PIN navigation and recovery. Do not claim ADM PASS until owner physically verifies receipt, tap, PIN and correct conversation/message.
+- **Documentation-only checkpoint:** This latest entry supersedes prior same-day text claiming there was no backup or ADM deployment. Older entries retained for chronology. No sender, APK or Firebase code/config changed by this record.
+
+---
+
 ## 2026-10-14 — FIDUNIO Android/Fire ADM isolated migration and rollback gate
 
 - **Scope/freeze:** Development explicitly authorized on case-sensitive `Android` only. Do not edit `ios` or launch TestFlight in ANY repository: user has frozen iOS changes. Do not change `main`, `main-3`, Wire, or shared Firebase production Functions/rules/data without a verified fresh rollback-capable backup and the owner's explicit live-deployment approval (given for this specific ADM rollout, still subject to backup gate).
