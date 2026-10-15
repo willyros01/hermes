@@ -229,11 +229,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$CUBEROOT_TOKEN" ]; then
-            echo "::warning title=Direct publishing credential missing::Add Hermes Actions secret CUBEROOT_DISPATCH_TOKEN (fine-grained GitHub token: Actions write on willyros01/Cuberoot). Until then the scheduled Cuberoot publisher remains the automatic fallback."
-            exit 0
+            echo "::error title=Direct publishing credential missing::Hermes Actions secret CUBEROOT_DISPATCH_TOKEN is required to launch the Cuberoot publisher immediately."
+            exit 1
           fi
           PAYLOAD="$(node -p "JSON.stringify({ref:'main',inputs:{source_run_id:process.env.GITHUB_RUN_ID}})")"
-          curl --fail-with-body -fsSL --retry 3 --retry-delay 2 \
+          curl --fail-with-body -sSL --retry 3 --retry-delay 2 \
             -X POST \
             -H "Authorization: Bearer $CUBEROOT_TOKEN" \
             -H "Accept: application/vnd.github+json" \
