@@ -1,3 +1,11 @@
+## 2026-10-14 ~22:07 EDT — Provider fix checks complete; waiting for website publication
+
+Commit `812c1bdd247f78f5fcb1ba034ba7eb1fa02822c3` implements explicit Wire-style A3L ADM/FCM detection and fail-closed unknown provider on **Hermes/Android** only. New test in `build/test-adm.mjs` exercises runtime ADM token lease `android-adm`, Google FCM `android-native`, unknown/error fail-closed and preserved iOS selection. Signed APK run **38668803728** reported all jobs SUCCESS; artifact **11942369130**. This is compilation/build PASS, **NOT physical Fire receipt PASS**.
+
+Cuberoot web release descriptor was still pointing to old run **38655432189** when last read. Do not ask owner to reinstall until publisher has replaced website APK with exact artifact from **38668803728**. Next: verify web descriptor / signed build identity; owner install Fire APK; check live eligible `android-adm` row, then direct/group notifications, tap/PIN/message. No other branches, Firebase or Wire changed.
+
+---
+
 ## 2026-10-14 ~22:02 EDT — Provider-selection correction (Android source only)
 
 Owner authorized immediate Android-only implementation following working Wire's A3L provider identification. Java `FidunioAdmPlugin` now checks Amazon A3L `getCurrentPlatform` and returns explicitly `adm`, `fcm` or unsupported (unknown), mirroring Wire's decision logic. Java `register()` remains ADM-only; Google's existing FirebaseMessaging owner is used for confirmed FCM, preserving the Google Android receiver. Java does not auto-register an unauthenticated ADM token.
