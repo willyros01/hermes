@@ -243,14 +243,34 @@ try{
         (async()=>{await d.sleep(900);await d.tapText(/^OK$/);})(),
       ]);
     }else{
+      // Simulator Web Inspector loses its page target (and the hosted iOS
+      // simulator returns to SpringBoard) when this JavaScript window.confirm
+      // opens a native alert. Approve exactly ONE expected dialog in the
+      // disposable test session. The underlying app block/unblock operations,
+      // Firestore assertions, and WebView controls remain real. This is NOT
+      // evidence of the physical iOS confirmation dialog's visual behavior.
+      const armed=await expr(`(() => {
+        if(typeof window.confirm!=='function')return false;
+        const original=window.confirm;
+        window.confirm=(question)=>{
+          window.confirm=original;
+          globalThis.FIDUNIO_SIMULATOR_ONLY_CONFIRM_PROMPT=String(question);
+          return true;
+        };
+        return true;
+      })()`);
+      if(!armed)throw new Error('Could not arm one-time iPhone simulator confirmation adapter');
       await d.press('#blockUserBtn');
+      const prompt=String(await expr('globalThis.FIDUNIO_SIMULATOR_ONLY_CONFIRM_PROMPT||""'));
+      if(!prompt.startsWith('Block this user?'))throw new Error('Unexpected iOS block confirmation prompt: '+prompt);
+      log('  SIMULATOR ONLY: approved the expected Block User confirmation programmatically because the hosted iOS native alert disconnects Web Inspector; physical native dialog NOT VERIFIED');
     }
     await wait(()=>present(`.unblockUserBtn[data-uid="${bob}"]`),'blocked user row',60000);
     await shot('native-user-blocked');
     await d.press(`.unblockUserBtn[data-uid="${bob}"]`);
     await wait(async()=>!(await present(`.unblockUserBtn[data-uid="${bob}"]`)),'user unblocked',55000);
     await shot('native-user-unblocked');
-    return 'Real native Safety UI blocked then unblocked an existing FIDUNIO account';
+    return 'Real native Safety UI blocked then unblocked an existing FIDUNIO account'+(platform==='ios'?' (one expected OS confirmation was simulator-autoaccepted)':'');
   },{requires:t12});
   const t14=await test('N14','A++ and Dark settings survive leaving and reopening native Settings',async()=>{
     await d.press('#backBtn');
