@@ -45,3 +45,39 @@ export async function readLocalAccountE2EEIdentity(uid, {keyId,revision}={}){
 source = source.replace(save, '').replace(read, substitute);
 fs.writeFileSync(file, source);
 console.log('SIMULATOR ONLY: patched generated iOS web asset for optional volatile CryptoKey fallback; production source untouched');
+
+// Localize a remaining error without changing app behavior: phase markers are
+// session-only strings and contain no private keys, PINs or email addresses.
+function annotate(filename, markers){
+  const target=path.join(folder,filename);
+  if(!fs.existsSync(target))throw new Error('Missing generated diagnostic target: '+filename);
+  let js=fs.readFileSync(target,'utf8');
+  for(const [uniqueCode,label] of markers){
+    const pieces=js.split(uniqueCode);
+    if(pieces.length!==2)throw new Error('Ambiguous simulator diagnostic checkpoint '+label+' in '+filename);
+    js=pieces.join(`globalThis.FIDUNIO_SIMULATOR_ONLY_PHASE=${JSON.stringify(label)};\n    `+uniqueCode);
+  }
+  fs.writeFileSync(target,js);
+  console.log('SIMULATOR ONLY: inserted non-sensitive enrollment checkpoints into generated '+filename);
+}
+annotate('auth-ui-clean.js',[
+  ['const bound=await bindAuthenticatedAccountE2EE(user.uid);\n      await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});','join:bind-identity'],
+  ['await unlockAccountForMessaging(user,password,pin,{hasIdentity:bound.hasIdentity});','join:unlock-messaging'],
+  ['      await startAppAfterLegalAcceptance(user);\n    };','join:start-app'],
+  ['const identity=getAccountE2EERuntimeIdentity();','unlock:runtime-identity'],
+  ['if(!local.hasPin)await setLocalPin(pin);','unlock:save-pin'],
+  ['await saveLocalAccountE2EEIdentity(identity);','unlock:save-local-key'],
+  ['const storageStatus=await getAccountStorageStatus();','start:storage-status'],
+  ['await activateAccountStorage(user.uid,{legacyOwnerUid});','start:activate-storage'],
+  ['const appModule=await import("./app.js");','start:import-app'],
+  ['await appModule.FIDUNIO_APP_READY;','start:app-ready'],
+]);
+annotate('e2ee-account-identity-manager.js',[
+  ['const existing=await identityStore.readIdentity(clean);','enroll:read-existing'],
+  ['generated=await generateAccountIdentity();','enroll:generate-key'],
+  ['const normalWrapper=await wrapPrivateKeyNormal({privatePkcs8:generated.privatePkcs8,password,pin,uid:clean,keyId});','enroll:wrap-normal'],
+  ['const recoveryWrapperLocal=await wrapPrivateKeyRecovery({privatePkcs8:generated.privatePkcs8,recoveryUnlockKey:ruk,uid:clean,keyId});','enroll:wrap-recovery'],
+  ['const protectedRecovery=await recoveryService.protectRecoveryKey({uid:clean,keyId,pin,recoveryUnlockKey:ruk});','enroll:protect-recovery'],
+  ['const created=await identityStore.createIdentity({uid:clean,privateIdentity:privateDoc({keyId,normalWrapper,recoveryWrapper}),publicIdentity:publicDoc({uid:clean,keyId,publicJwk:generated.publicJwk})});','enroll:write-identity'],
+  ['const privateKey=await unwrapPrivateKeyNormal({wrapper:normalWrapper,password,pin,uid:clean,keyId});','enroll:unwrap-runtime'],
+]);

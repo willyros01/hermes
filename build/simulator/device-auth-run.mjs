@@ -31,7 +31,16 @@ async function test(id,label,fn,{requires=true}={}){
   log('\n'+id+': '+label);
   if(!requires){tests.push({id,label,status:'BLOCKED',detail:'Earlier prerequisite failed'});log('BLOCKED '+id);return false;}
   try{const detail=await fn();tests.push({id,label,status:'PASS',detail:String(detail||'Observed on native device')});log('PASS '+id);return true;}
-  catch(e){const detail=String(e?.stack||e).slice(0,1100);tests.push({id,label,status:'FAIL',detail});log('FAIL '+id+': '+detail);try{await shot(id+'-failure');}catch(err){log('Capture failed: '+err.message);}return false;}
+  catch(e){
+    let phase='';
+    if(platform==='ios'){
+      try{phase=String(await expr('globalThis.FIDUNIO_SIMULATOR_ONLY_PHASE||"unavailable"'));}catch{}
+    }
+    const detail=(String(e?.stack||e).slice(0,1050))+(phase?'\nSIMULATOR DIAGNOSTIC PHASE: '+phase:'');
+    tests.push({id,label,status:'FAIL',detail});log('FAIL '+id+': '+detail);
+    try{await shot(id+'-failure');}catch(err){log('Capture failed: '+err.message);}
+    return false;
+  }
 }
 function summarize(){
   const passed=tests.filter(t=>t.status==='PASS').length,failed=tests.filter(t=>t.status==='FAIL').length,blocked=tests.filter(t=>t.status==='BLOCKED').length;
