@@ -1,0 +1,5 @@
+FILE disappearing-authoritative-projection.test.mjs
+SOURCE Android
+EXIT 0
+Authoritative disappearing projection convergence gate passed
+

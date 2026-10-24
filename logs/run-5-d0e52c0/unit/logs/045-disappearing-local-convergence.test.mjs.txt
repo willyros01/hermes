@@ -1,0 +1,13 @@
+FILE disappearing-local-convergence.test.mjs
+SOURCE Android
+EXIT 0
+PASS server-backed disappearing source absent from authoritative snapshot is purged
+PASS authoritative remote presence retains disappearing source
+PASS cache-only or never-server-backed pending work is never treated as expired
+PASS ordinary non-disappearing history is not removed merely because remote snapshot lacks it
+PASS invalid disappearing metadata cannot authorize local purge
+PASS projection physically omits planned local IDs without tombstone rows
+PASS contract rejects cache and device-clock authority
+
+7/7 local disappearing convergence assertions passed.
+

@@ -1,0 +1,5 @@
+FILE build/ios-runtime-syntax.test.mjs
+SOURCE Android
+EXIT 0
+PASS: all 95 packaged JavaScript files parse before iOS packaging
+
