@@ -82,7 +82,7 @@ function writeReport(){
     '# FIDUNIO '+(platform==='ios'?'iPhone':'Android')+' native simulator report','',
     '**Result: '+status+' — '+passed+' passed, '+failed+' failed**','',
     '- GitHub run: https://github.com/'+(process.env.GITHUB_REPOSITORY||'willyros01/hermes')+'/actions/runs/'+(process.env.GITHUB_RUN_ID||'local'),
-    '- Simulator: '+(platform==='ios'?'iPhone':'Pixel Android')+' disposable debug app',
+    '- Simulator: '+(platform==='ios'?'iPhone':'Android API 34 AOSP')+' disposable debug app',
     '- Source branch: '+(platform==='ios'?'ios':'Android')+' (read-only source checkout)',
     '- Backend: Firebase project demo-fidunio-simulator-tests; local emulators only',
     '- No authenticated user, production message, real push receipt, or actual camera capture was exercised','',

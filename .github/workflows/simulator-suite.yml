@@ -137,7 +137,7 @@ jobs:
           if-no-files-found: warn
 
   native-android:
-    name: Disposable Android Pixel app and local Firebase emulator
+    name: Disposable Android API 34 app and local Firebase emulator
     runs-on: ubuntu-latest
     timeout-minutes: 85
     steps:
@@ -174,7 +174,10 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
-          target: google_apis
+          # The Google APIs image repeatedly showed an unrelated Pixel Launcher
+          # ANR over screenshots, despite the app WebView responding normally.
+          # The standard AOSP system image uses its normal launcher and WebView.
+          target: default
           arch: x86_64
           profile: pixel_6
           ram-size: 4096M
