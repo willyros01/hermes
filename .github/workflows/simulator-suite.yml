@@ -1,0 +1,266 @@
+name: FIDUNIO isolated simulator and Firebase regression suite
+
+# TEST-ONLY: never run on main, main-3, ios, or Android release branches.
+# This suite never uses deployment, Apple signing, Firebase prod auth, APNs,
+# ADM, GitHub publishing, or the Cuberoot APK publisher.
+on:
+  push:
+    branches: [simulator-tests]
+    paths:
+      - 'build/simulator/**'
+      - '.github/workflows/simulator-suite.yml'
+      - 'firebase.simulator.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fidunio-isolated-simulator-suite
+  cancel-in-progress: false
+
+jobs:
+  reviewed-regressions:
+    name: 135 reviewed FIDUNIO functional test files
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact dependencies and generate web assets
+        run: |
+          set -Eeuo pipefail
+          npm ci --no-audit --no-fund
+          npm run ios:prepare
+      - name: Run every reviewed source regression, fail on ANY failed file
+        run: |
+          set -Eeuo pipefail
+          node build/simulator/run-reviewed.mjs unit out-fidunio
+      - name: Save complete functional evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-sim-unit
+          path: out-fidunio/
+          retention-days: 90
+          if-no-files-found: warn
+
+  firebase-rules:
+    name: Nine Firestore rules suites against demo Firebase emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Execute exact repository Firestore rules in local emulator
+        run: |
+          set -Eeuo pipefail
+          ./node_modules/.bin/firebase emulators:exec \
+            --config firebase.simulator.json \
+            --only firestore \
+            --project demo-fidunio-simulator-tests \
+            "node build/simulator/run-reviewed.mjs rules out-fidunio"
+      - name: Save Firestore rule assertions and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-sim-rules
+          path: out-fidunio/
+          retention-days: 90
+          if-no-files-found: warn
+
+  browser-journeys:
+    name: Chromium and WebKit, Android-shared and iOS-shared code
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      FIDUNIO_AUTH_EMULATOR_URL: http://127.0.0.1:9099
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: ios
+          path: ios-src
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install test browser engines and both shared builds
+        run: |
+          set -Eeuo pipefail
+          npm ci --no-audit --no-fund
+          npm run ios:prepare
+          npm --prefix ios-src ci --no-audit --no-fund
+          npm --prefix ios-src run ios:prepare
+          npx playwright install --with-deps chromium webkit
+      - name: Run real-browser startup, Join, PIN and biometric simulations
+        run: |
+          set -Eeuo pipefail
+          ./node_modules/.bin/firebase emulators:exec \
+            --config firebase.simulator.json \
+            --only auth,firestore,storage \
+            --project demo-fidunio-simulator-tests \
+            "node build/simulator/run-browser.mjs out-fidunio/browser ios-src"
+      - name: Save real-browser screenshots and checks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-sim-browser
+          path: out-fidunio/
+          retention-days: 90
+          if-no-files-found: warn
+
+  native-android:
+    name: Disposable Android Pixel app and local Firebase emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Compile unsigned-for-release disposable Android debug app
+        run: |
+          set -Eeuo pipefail
+          mkdir -p out-fidunio/android
+          {
+            npm ci --no-audit --no-fund
+            npm install --no-save --no-package-lock --no-audit --no-fund @capacitor/android@8.5.2
+            npm run ios:prepare
+            node build/simulator/patch-sandbox.mjs . android
+            npx cap add android
+            npx cap sync android
+            java build/AndroidIcons.java icon-512.png android/app/src/main/res
+            chmod +x android/gradlew
+            ( cd android && ./gradlew --no-daemon assembleDebug )
+            test -s android/app/build/outputs/apk/debug/app-debug.apk
+          } 2>&1 | tee out-fidunio/android/build.log
+      - name: Permit hardware-assisted Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Native UI journey with ONLY localhost Firebase emulators
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 4096M
+          disable-animations: true
+          script: bash build/simulator/device-with-backend.sh android out-fidunio/android android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Save actual Android screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-sim-android
+          path: out-fidunio/
+          retention-days: 90
+          if-no-files-found: warn
+
+  native-ios:
+    name: Disposable iPhone app and local Firebase emulator
+    runs-on: macos-26
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: ios
+          path: ios-src
+          persist-credentials: false
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare disposable iOS build and inspector bridge
+        run: |
+          set -Eeuo pipefail
+          mkdir -p out-fidunio/ios
+          brew install ios-webkit-debug-proxy
+          {
+            npm ci --no-audit --no-fund
+            cd ios-src
+            npm ci --no-audit --no-fund
+            npm run ios:prepare
+            node ../build/simulator/patch-sandbox.mjs . ios
+            npx cap add ios
+            npx cap sync ios
+            plutil -replace NSFaceIDUsageDescription -string 'Test FIDUNIO simulator PIN and biometric UI' ios/App/App/Info.plist
+            UDID="$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const all=Object.entries(d).filter(([rt])=>/iOS/.test(rt)).flatMap(([,list])=>list);const pick=all.reverse().find(x=>/^iPhone \d+$/.test(x.name));if(!pick)process.exit(1);console.log(pick.udid)')"
+            echo "UDID=$UDID" >> "$GITHUB_ENV"
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination "id=$UDID" -derivedDataPath "$RUNNER_TEMP/fidunio-sim-dd" CODE_SIGNING_ALLOWED=NO build
+          } 2>&1 | tee out-fidunio/ios/build.log
+      - name: Boot iPhone and attach Web Inspector
+        run: |
+          set -Eeuo pipefail
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          SOCKET="$(lsof -aUc launchd_sim 2>/dev/null | grep -o '/private/tmp/com.apple.launchd[^ ]*/com.apple.webinspectord_sim.socket' | head -1)"
+          test -n "$SOCKET"
+          nohup ios_webkit_debug_proxy -s "unix:$SOCKET" -F > out-fidunio/ios/inspector.log 2>&1 &
+          sleep 3
+      - name: Native iPhone UI journey with ONLY localhost Firebase emulators
+        run: |
+          set -Eeuo pipefail
+          APP="$(find "$RUNNER_TEMP/fidunio-sim-dd/Build/Products" -maxdepth 2 -name App.app | head -1)"
+          test -d "$APP"
+          bash build/simulator/device-with-backend.sh ios out-fidunio/ios "$APP"
+      - name: Save actual iPhone screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-sim-ios
+          path: out-fidunio/
+          retention-days: 90
+          if-no-files-found: warn
+
+  archive:
+    name: Preserve results and screenshots without touching release branches
+    needs: [reviewed-regressions, firebase-rules, browser-journeys, native-android, native-ios]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: fidunio-sim-*
+          path: evidence
+          merge-multiple: true
+      - name: Index failed, missing and passing stages honestly
+        run: node build/simulator/index-evidence.mjs evidence
+      - name: Preserve every screenshot and report in simulator-evidence branch
+        run: bash build/simulator/publish-evidence.sh evidence
