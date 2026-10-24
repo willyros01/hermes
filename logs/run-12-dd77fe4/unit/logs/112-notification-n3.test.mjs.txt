@@ -1,0 +1,5 @@
+FILE notification-n3.test.mjs
+SOURCE Android
+EXIT 0
+FCM N3 web/native registration, token rotation, deterministic background-adapter ownership, and bounded timeout gate passed
+

@@ -1,0 +1,5 @@
+FILE group-sender-label.test.mjs
+SOURCE Android
+EXIT 0
+Group sender-label gate passed
+

@@ -1,0 +1,5 @@
+FILE mass-message-delete.test.mjs
+SOURCE Android
+EXIT 0
+Mass sender-owned direct and group message deletion wiring gate passed
+

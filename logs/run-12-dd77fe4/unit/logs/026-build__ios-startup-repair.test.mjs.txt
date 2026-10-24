@@ -1,0 +1,5 @@
+FILE build/ios-startup-repair.test.mjs
+SOURCE Android
+EXIT 0
+PASS: firebase.js delegates platform bootstrap to the bounded adapter; shared Firebase owner has no native branch; opaque app icon validated
+
