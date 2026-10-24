@@ -1,0 +1,69 @@
+{
+  "label": "ios-shared",
+  "engine": "webkit",
+  "source": "/home/runner/work/hermes/hermes/ios-src",
+  "passed": 6,
+  "failed": 6,
+  "cases": [
+    {
+      "id": "FN-001",
+      "status": "PASS",
+      "detail": "Disposable Owner signs in using the original FIDUNIO API and demo Auth/Firestore"
+    },
+    {
+      "id": "FN-002",
+      "status": "FAIL",
+      "detail": "Cannot read properties of undefined (reading 'status')"
+    },
+    {
+      "id": "FN-003",
+      "status": "PASS",
+      "detail": "Used/revoked invitation rejected; User cannot issue/list invites; Admin can issue and Owner revokes"
+    },
+    {
+      "id": "FN-004",
+      "status": "PASS",
+      "detail": "Original direct-conversation API creates shared record; outsider read denied by real rules"
+    },
+    {
+      "id": "FN-005",
+      "status": "FAIL",
+      "detail": "Cannot read properties of undefined (reading 'text')"
+    },
+    {
+      "id": "FN-006",
+      "status": "PASS",
+      "detail": "Block denies direct transport in actual Firestore rules; unblock removes restriction"
+    },
+    {
+      "id": "FN-007",
+      "status": "PASS",
+      "detail": "Original group creation writes owner, two members and membership metadata; outsider denied"
+    },
+    {
+      "id": "FN-008",
+      "status": "FAIL",
+      "detail": "Cannot read properties of undefined (reading 'name')"
+    },
+    {
+      "id": "FN-009",
+      "status": "FAIL",
+      "detail": "Cannot read properties of undefined (reading 'receiptRevision')"
+    },
+    {
+      "id": "FN-010",
+      "status": "PASS",
+      "detail": "Web notification device registration, sender privacy preference, cross-user isolation, deletion; ADM direct write denied (lease API only)"
+    },
+    {
+      "id": "FN-011",
+      "status": "FAIL",
+      "detail": "Cannot read properties of undefined (reading 'status')"
+    },
+    {
+      "id": "FN-012",
+      "status": "FAIL",
+      "detail": "Cannot read properties of undefined (reading 'active')"
+    }
+  ]
+}

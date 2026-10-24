@@ -1,0 +1,14 @@
+{
+  "label": "Android-shared",
+  "engine": "chromium",
+  "source": "/home/runner/work/hermes/hermes",
+  "passed": 0,
+  "failed": 2,
+  "cases": [
+    {
+      "id": "FN-001",
+      "status": "FAIL",
+      "detail": "page.evaluate: FirebaseError: Firebase: Error (auth/network-request-failed).\n    at createErrorInternal (https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js:1:29725)\n    at _fail (https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js:1:28841)\n    at _performFetchWithErrorHandling (https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js:1:36492)\n    at async _performSignInRequest (https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js:1:36606)\n    at async _signInWithCredential (https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js:1:94988)\n    at async Module.signInFidunio (http://127.0.0.1:36733/firebase.js:90:242)\n    at async <anonymous>:337:30"
+    }
+  ]
+}

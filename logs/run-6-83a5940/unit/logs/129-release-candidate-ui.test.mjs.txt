@@ -1,0 +1,5 @@
+FILE release-candidate-ui.test.mjs
+SOURCE Android
+EXIT 0
+FIDUNIO release-candidate UI and lifecycle gate passes
+

@@ -1,0 +1,5 @@
+FILE build/auth-transition-boundary.test.mjs
+SOURCE Android
+EXIT 0
+PASS: authentication, recovery, enrollment and app startup use separate retry-safe failure boundaries
+

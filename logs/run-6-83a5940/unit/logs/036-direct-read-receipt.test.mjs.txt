@@ -1,0 +1,5 @@
+FILE direct-read-receipt.test.mjs
+SOURCE Android
+EXIT 0
+Direct Read-receipt recovery gate passed
+
