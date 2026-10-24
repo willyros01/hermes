@@ -1,0 +1,129 @@
+{
+  "platform": "android",
+  "passed": 10,
+  "failed": 1,
+  "blocked": 0,
+  "result": "FAIL",
+  "tests": [
+    {
+      "id": "N01",
+      "label": "Accept legal Terms and open actual Join form",
+      "status": "PASS",
+      "detail": "Observed on native device"
+    },
+    {
+      "id": "N02",
+      "label": "Consume a real single-use admin invite, set PIN, create E2EE identity through native Join",
+      "status": "PASS",
+      "detail": "Admin invitation accepted; real Auth profile and account E2EE identity created in local Firebase"
+    },
+    {
+      "id": "N03",
+      "label": "Change actual native Settings: A++, Dark, and preview option",
+      "status": "PASS",
+      "detail": "On-device Settings widgets changed and rendered selected values"
+    },
+    {
+      "id": "N04",
+      "label": "Admin creates a new user invitation from native Settings",
+      "status": "PASS",
+      "detail": "Admin UI created an authentic single-use invitation in local Firestore"
+    },
+    {
+      "id": "N05",
+      "label": "Start a native direct conversation with Bob",
+      "status": "PASS",
+      "detail": "Observed on native device"
+    },
+    {
+      "id": "N06",
+      "label": "Send encrypted direct text and confirm NO plaintext in emulator",
+      "status": "PASS",
+      "detail": "Native composer sent an encrypted message with no plaintext in Firestore"
+    },
+    {
+      "id": "N07",
+      "label": "Set disappearing timer in real native direct conversation",
+      "status": "PASS",
+      "detail": "Actual per-conversation disappearing selector changed to 300 seconds"
+    },
+    {
+      "id": "N08",
+      "label": "React with an emoji to an accepted direct message",
+      "status": "PASS",
+      "detail": "Native message action displayed and applied emoji reaction"
+    },
+    {
+      "id": "N09",
+      "label": "Create group from native app and verify admin controls",
+      "status": "PASS",
+      "detail": "Real group creation and group-admin rename/add/remove controls visible in native app"
+    },
+    {
+      "id": "N10",
+      "label": "Send a native group message and verify encrypted group record",
+      "status": "PASS",
+      "detail": "Actual native group composer wrote encrypted content to local Firestore"
+    },
+    {
+      "id": "N11",
+      "label": "Show native notification configuration controls (delivery requires real devices)",
+      "status": "FAIL",
+      "detail": "Error: no button #backBtn; the app shows: Messages Sign Out Archived (0) NS Native Simulator Group Group • NATIVE_GROUP_1792877180479 ••• SB Simulator Bob NATIVE_DIRECT_1792877162395 9:26 PM •••\n    at Module.press (file:///home/runner/work/hermes/hermes/build/simulator/adb.mjs:139:18)\n    at async test.requires (file:///home/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:194:31)\n    at async test (file:///home/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:33:20)\n    at async file:///home/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:193:13"
+    }
+  ],
+  "shots": [
+    {
+      "label": "native-join-screen",
+      "file": "01-native-join-screen.png"
+    },
+    {
+      "label": "native-join-completed",
+      "file": "02-native-join-completed.png"
+    },
+    {
+      "label": "native-authenticated-messages",
+      "file": "03-native-authenticated-messages.png"
+    },
+    {
+      "label": "native-settings-large-dark",
+      "file": "04-native-settings-large-dark.png"
+    },
+    {
+      "label": "native-admin-invitation",
+      "file": "05-native-admin-invitation.png"
+    },
+    {
+      "label": "native-direct-chat",
+      "file": "06-native-direct-chat.png"
+    },
+    {
+      "label": "native-direct-message-sent",
+      "file": "07-native-direct-message-sent.png"
+    },
+    {
+      "label": "native-disappearing-setting",
+      "file": "08-native-disappearing-setting.png"
+    },
+    {
+      "label": "native-emoji-reaction",
+      "file": "09-native-emoji-reaction.png"
+    },
+    {
+      "label": "native-group-created",
+      "file": "10-native-group-created.png"
+    },
+    {
+      "label": "native-group-admin",
+      "file": "11-native-group-admin.png"
+    },
+    {
+      "label": "native-group-message-sent",
+      "file": "12-native-group-message-sent.png"
+    },
+    {
+      "label": "N11-failure",
+      "file": "13-N11-failure.png"
+    }
+  ]
+}

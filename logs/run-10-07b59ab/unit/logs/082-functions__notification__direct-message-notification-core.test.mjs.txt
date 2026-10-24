@@ -1,0 +1,5 @@
+FILE functions/notification/direct-message-notification-core.test.mjs
+SOURCE Android
+EXIT 0
+FCM direct data-only notification privacy and blocking gate passed
+

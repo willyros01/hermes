@@ -1,0 +1,53 @@
+Native authenticated android suite. LOCAL demo-only accounts.
+
+N01: Accept legal Terms and open actual Join form
+  Actual native screenshot: 01-native-join-screen.png
+PASS N01
+  Local Firestore HTTP probe: {"state":"reachable"}
+
+N02: Consume a real single-use admin invite, set PIN, create E2EE identity through native Join
+  Actual native screenshot: 02-native-join-completed.png
+  Actual native screenshot: 03-native-authenticated-messages.png
+PASS N02
+
+N03: Change actual native Settings: A++, Dark, and preview option
+  Actual native screenshot: 04-native-settings-large-dark.png
+PASS N03
+
+N04: Admin creates a new user invitation from native Settings
+  Actual native screenshot: 05-native-admin-invitation.png
+PASS N04
+
+N05: Start a native direct conversation with Bob
+  Actual native screenshot: 06-native-direct-chat.png
+PASS N05
+
+N06: Send encrypted direct text and confirm NO plaintext in emulator
+  Actual native screenshot: 07-native-direct-message-sent.png
+PASS N06
+
+N07: Set disappearing timer in real native direct conversation
+  Actual native screenshot: 08-native-disappearing-setting.png
+PASS N07
+
+N08: React with an emoji to an accepted direct message
+  Actual native screenshot: 09-native-emoji-reaction.png
+PASS N08
+
+N09: Create group from native app and verify admin controls
+  Actual native screenshot: 10-native-group-created.png
+  Actual native screenshot: 11-native-group-admin.png
+PASS N09
+
+N10: Send a native group message and verify encrypted group record
+  Actual native screenshot: 12-native-group-message-sent.png
+PASS N10
+
+N11: Show native notification configuration controls (delivery requires real devices)
+FAIL N11: Error: no button #backBtn; the app shows: Messages Sign Out Archived (0) NS Native Simulator Group Group • NATIVE_GROUP_1792877180479 ••• SB Simulator Bob NATIVE_DIRECT_1792877162395 9:26 PM •••
+    at Module.press (file:///home/runner/work/hermes/hermes/build/simulator/adb.mjs:139:18)
+    at async test.requires (file:///home/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:194:31)
+    at async test (file:///home/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:33:20)
+    at async file:///home/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:193:13
+  Actual native screenshot: 13-N11-failure.png
+Native authenticated suite found failures or blocked checks — no production code modified.
