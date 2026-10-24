@@ -21,11 +21,17 @@ concurrency:
 
 jobs:
   reviewed-regressions:
-    name: 135 reviewed FIDUNIO functional test files
+    name: 131 Android + 4 iOS-specific reviewed functional test files
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: ios
+          path: ios-src
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -35,6 +41,8 @@ jobs:
           set -Eeuo pipefail
           npm ci --no-audit --no-fund
           npm run ios:prepare
+          npm --prefix ios-src ci --no-audit --no-fund
+          npm --prefix ios-src run ios:prepare
       - name: Run every reviewed source regression, fail on ANY failed file
         run: |
           set -Eeuo pipefail
@@ -249,6 +257,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+    env:
+      FIDUNIO_NEEDS_JSON: ${{ toJSON(needs) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

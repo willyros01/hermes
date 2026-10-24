@@ -11,6 +11,8 @@ const stages=[
   ['android','Android native simulator'],
   ['ios','iPhone native simulator']
 ];
+const jobByStage={unit:'reviewed-regressions',rules:'firebase-rules',browser:'browser-journeys',android:'native-android',ios:'native-ios'};
+const needs=JSON.parse(process.env.FIDUNIO_NEEDS_JSON||'{}');
 const results=[];
 for(const [name,label] of stages){
   const file=path.join(root,name,'REPORT.md');
@@ -29,7 +31,9 @@ for(const [name,label] of stages){
     };
     recur(path.join(root,name));
   }
-  results.push({name,label,status:!exists?'NOT RUN':pass?'PASS':'FAIL',images:images.length});
+  const jobResult=needs[jobByStage[name]]?.result||'unknown';
+  const status=!exists?(jobResult==='failure'?'FAIL':'NOT RUN'):pass?'PASS':'FAIL';
+  results.push({name,label,status,jobResult,images:images.length});
 }
 const success=results.every(x=>x.status==='PASS');
 const url=(process.env.GITHUB_SERVER_URL||'https://github.com')+'/'+(process.env.GITHUB_REPOSITORY||'willyros01/hermes')+'/actions/runs/'+(process.env.GITHUB_RUN_ID||'local');
@@ -46,7 +50,7 @@ const lines=[
   '## Verification stages','',
   '| Stage | Status | PNG captures | Detailed evidence |',
   '| --- | --- | ---: | --- |',
-  ...results.map(x=>'| '+x.label+' | **'+x.status+'** | '+x.images+' | ['+x.name+'/REPORT.md]('+x.name+'/REPORT.md) |'),
+  ...results.map(x=>'| '+x.label+' | **'+x.status+'** | '+x.images+' | '+(fs.existsSync(path.join(root,x.name,'REPORT.md'))?'['+x.name+'/REPORT.md]('+x.name+'/REPORT.md)':'No detailed report; inspect GitHub job ('+x.jobResult+')')+' |'),
   '',
   '## Interpretation','',
   '- Native device captures prove the specified pre-auth screens on disposable phone simulators, not full authenticated messaging.',

@@ -16,9 +16,18 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !/^(localhost|127\.0\.0\.1):\d+$/.te
   throw new Error('Browser tests refuse to run outside the localhost Firebase emulators');
 }
 fs.mkdirSync(out,{recursive:true});
+async function resetLocalBrowserAccounts(){
+  // The existing iOS browser regression uses one fixed synthetic user email.
+  // Each browser/source case must have an independent Auth emulator state.
+  // This endpoint exists ONLY on localhost Firebase Auth Emulator, never live.
+  const url='http://127.0.0.1:9099/emulator/v1/projects/demo-fidunio-ios-auth/accounts';
+  const response=await fetch(url,{method:'DELETE',signal:AbortSignal.timeout(10000)});
+  if(!response.ok)throw new Error('Could not clear local browser-only Auth accounts: HTTP '+response.status);
+}
 const cases = [];
 for(const source of sources){
   for(const browser of ['chromium','webkit']){
+    await resetLocalBrowserAccounts();
     const dest=path.join(out,source.name,browser);
     fs.mkdirSync(dest,{recursive:true});
     const env={...process.env,TEST_BROWSER:browser};

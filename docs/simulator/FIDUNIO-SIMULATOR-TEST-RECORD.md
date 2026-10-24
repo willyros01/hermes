@@ -20,7 +20,7 @@
 
 | Evidence class | What an actual PASS proves | What it does **not** prove |
 | --- | --- | --- |
-| Reviewed source regressions | 135 known source test files execute with zero failed exits, preserving individual logs | Real two-user chat, real network, physical sensors |
+| Reviewed source regressions | 131 shared/Android test files plus four iOS-specific test files execute from their correct source branches with zero failed exits, preserving individual logs | Real two-user chat, real network, physical sensors |
 | Firebase rules emulator | 9 Firestore test files execute the repository's actual security rules against local demo Firestore | Deployed production rules or callable Cloud Functions behaving live |
 | Chromium and WebKit | 4 browser/source combinations exercise startup, Terms, invitation deep links, authentication validation, PIN/biometric mocks, IndexedDB/E2EE initialization, and recovery behavior | The physical iPhone lock sensor or APNs |
 | Android native simulator | Disposable Android app launches and traverses 7 pre-auth validation scenarios, with real PNG device captures | Amazon Fire HD ADM, notification receipt, real camera, signed APK installation |

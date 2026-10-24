@@ -12,10 +12,12 @@ const manifest = JSON.parse(fs.readFileSync(new URL('./reviewed-tests.json', imp
 const unit = manifest.unit;
 const rules = manifest.firestoreRules;
 const browser = manifest.browser;
+const iosSourceOnly = manifest.iosSourceOnly || [];
+for (const file of iosSourceOnly) if (!unit.includes(file)) throw new Error('iOS test classification is not in reviewed unit inventory: ' + file);
 const expected = [...unit, ...rules, ...browser].sort();
 function walk(dir, rel = '') {
   return fs.readdirSync(dir, {withFileTypes: true}).flatMap(x => {
-    if (x.name === 'node_modules' || x.name === '.git' || x.name === 'www' || x.name === 'ios' || x.name === 'android') return [];
+    if (x.name === 'node_modules' || x.name === '.git' || x.name === 'www' || x.name === 'ios' || x.name === 'android' || x.name === 'ios-src') return [];
     const next = path.posix.join(rel, x.name);
     if (x.isDirectory()) return walk(path.join(dir, x.name), next);
     return x.isFile() && x.name.endsWith('.test.mjs') ? [next] : [];
@@ -39,13 +41,19 @@ if (mode === 'rules') env.GCLOUD_PROJECT = 'demo-fidunio-simulator-tests';
 fs.mkdirSync(output, {recursive: true});
 fs.mkdirSync(path.join(output, 'logs'), {recursive: true});
 const selected = mode === 'unit' ? unit : rules;
+if (mode === 'unit' && !fs.statSync(path.join(root, 'ios-src', 'package.json'), {throwIfNoEntry: false})?.isFile()) {
+  throw new Error('iOS read-only source checkout required for the four iOS-specific regression gates');
+}
 const results = [];
 const started = Date.now();
 for (let i = 0; i < selected.length; i++) {
   const file = selected[i];
   const begin = Date.now();
+  const source = mode === 'unit' && iosSourceOnly.includes(file) ? 'ios' : 'Android';
+  const sourceRoot = source === 'ios' ? path.join(root, 'ios-src') : root;
+  if (!fs.existsSync(path.join(sourceRoot,file))) throw new Error('Missing reviewed '+source+' test file: '+file);
   const result = spawnSync(process.execPath, [file], {
-    cwd: root,
+    cwd: sourceRoot,
     env,
     encoding: 'utf8',
     timeout: 120000,
@@ -57,11 +65,11 @@ for (let i = 0; i < selected.length; i++) {
   const count = (combined.match(/(?:^|\n)PASS(?:[:\s]|$)/g) || []).length;
   const name = String(i + 1).padStart(3, '0') + '-' + file.replaceAll('/', '__') + '.txt';
   fs.writeFileSync(path.join(output, 'logs', name),
-    'FILE ' + file + '\nEXIT ' + result.status + '\n' +
+    'FILE ' + file + '\nSOURCE ' + source + '\nEXIT ' + result.status + '\n' +
     (result.error ? 'ERROR ' + result.error.message + '\n' : '') + combined);
-  results.push({file, pass: success, assertionsReported: count, ms: Date.now() - begin, log: 'logs/' + name,
+  results.push({file, source, pass: success, assertionsReported: count, ms: Date.now() - begin, log: 'logs/' + name,
     error: result.error?.message || (success ? null : 'exit ' + result.status)});
-  console.log((success ? 'PASS ' : 'FAIL ') + file + ' (' + count + ' PASS markers)');
+  console.log((success ? 'PASS ' : 'FAIL ') + '['+source+'] '+file + ' (' + count + ' PASS markers)');
   // Preserve an incremental record if the CI runner stops unexpectedly.
   fs.writeFileSync(path.join(output, 'results.json'), JSON.stringify({mode, reviewed: selected.length, results}, null, 2) + '\n');
 }
@@ -79,9 +87,9 @@ const lines = [
   '- PASS markers emitted: ' + results.reduce((a, x) => a + x.assertionsReported, 0),
   '- Firebase: ' + (mode === 'rules' ? 'localhost Firestore emulator; exclusively demo- project IDs' : 'no live backend required'),
   '',
-  '| Status | Reviewed test file | PASS markers | Log |',
-  '| --- | --- | ---: | --- |',
-  ...results.map(x => '| ' + (x.pass ? 'PASS' : 'FAIL') + ' | `' + x.file + '` | ' +
+  '| Status | Branch whose expectations apply | Reviewed test file | PASS markers | Log |',
+  '| --- | --- | --- | ---: | --- |',
+  ...results.map(x => '| ' + (x.pass ? 'PASS' : 'FAIL') + ' | '+x.source+' | `' + x.file + '` | ' +
     x.assertionsReported + ' | [' + x.log + '](' + x.log + ') |'),
   '',
   'A passing source test does not prove a physical notification, camera, native file picker, or multi-user end-to-end journey.',

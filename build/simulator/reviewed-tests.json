@@ -2,6 +2,12 @@
   "schema": 1,
   "reviewedFrom": "willyros01/hermes Android f6f56055e6b3faae01319cfa370402843973ccb0",
   "safety": "Use only disposable test accounts, demo- Firebase projects, and local emulators. New files require explicit review before they run.",
+  "iosSourceOnly": [
+    "build/ios-native-notification-stack.test.mjs",
+    "build/platform-boundary-adapters.test.mjs",
+    "firebase-app-check.test.mjs",
+    "notification-token-lease.test.mjs"
+  ],
   "unit": [
     "abuse-report-display.test.mjs",
     "abuse-report-wiring.test.mjs",
