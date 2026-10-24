@@ -1,0 +1,5 @@
+FILE conversation-delete.test.mjs
+SOURCE Android
+EXIT 0
+Permanent shared conversation deletion authority gate passed
+
