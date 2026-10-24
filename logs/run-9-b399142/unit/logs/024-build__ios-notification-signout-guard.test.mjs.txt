@@ -1,0 +1,5 @@
+FILE build/ios-notification-signout-guard.test.mjs
+SOURCE Android
+EXIT 0
+PASS: both iOS sign-out paths remove notification registration before authentication sign-out
+
