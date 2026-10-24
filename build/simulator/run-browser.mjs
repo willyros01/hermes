@@ -16,25 +16,32 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !/^(localhost|127\.0\.0\.1):\d+$/.te
   throw new Error('Browser tests refuse to run outside the localhost Firebase emulators');
 }
 fs.mkdirSync(out,{recursive:true});
-async function resetLocalBrowserAccounts(){
-  // The existing iOS browser regression uses one fixed synthetic user email.
-  // Each browser/source case must have an independent Auth emulator state.
-  // This endpoint exists ONLY on localhost Firebase Auth Emulator, never live.
-  const url='http://127.0.0.1:9099/emulator/v1/projects/demo-fidunio-ios-auth/accounts';
-  const response=await fetch(url,{method:'DELETE',signal:AbortSignal.timeout(10000)});
-  if(!response.ok)throw new Error('Could not clear local browser-only Auth accounts: HTTP '+response.status);
-}
 const cases = [];
 for(const source of sources){
   for(const browser of ['chromium','webkit']){
-    await resetLocalBrowserAccounts();
     const dest=path.join(out,source.name,browser);
     fs.mkdirSync(dest,{recursive:true});
     const env={...process.env,TEST_BROWSER:browser};
     for(const key of ['GOOGLE_APPLICATION_CREDENTIALS','FIREBASE_TOKEN','GH_TOKEN','GITHUB_TOKEN','FIREBASE_CONFIG'])delete env[key];
-    const result=spawnSync(process.execPath,['build/ios-browser-release.test.mjs'],{
-      cwd:source.dir,env,encoding:'utf8',timeout:300000,maxBuffer:12*1024*1024
-    });
+    // The historical standalone test deliberately uses one fixed demo email.
+    // Four engines/branches run against one Auth emulator, so give each copied
+    // test script its OWN disposable email (the one guarded substitution).
+    // Do not mutate the reviewed source test, web app, or Firebase accounts.
+    const original=path.join(source.dir,'build/ios-browser-release.test.mjs');
+    const script=fs.readFileSync(original,'utf8');
+    const anchor="'ios-persistence@fidunio.test'";
+    if(script.split(anchor).length!==2)throw new Error('Reviewed browser test synthetic-account anchor changed');
+    const token=[source.name,browser,process.env.GITHUB_RUN_ID||'local'].join('-').toLowerCase().replace(/[^a-z0-9-]/g,'');
+    const unique='sim-'+token+'@fidunio.test';
+    const copy=path.join(source.dir,'build/ios-browser-simulator-temp.mjs');
+    const derived=script.replace(anchor,JSON.stringify(unique));
+    fs.writeFileSync(copy,derived);
+    let result;
+    try{
+      result=spawnSync(process.execPath,['build/ios-browser-simulator-temp.mjs'],{
+        cwd:source.dir,env,encoding:'utf8',timeout:300000,maxBuffer:12*1024*1024
+      });
+    }finally{fs.rmSync(copy,{force:true});}
     const combined=String(result.stdout||'')+'\n'+String(result.stderr||'');
     fs.writeFileSync(path.join(dest,'console.log'),combined);
     const captures=path.join(source.dir,'browser-release-evidence');
