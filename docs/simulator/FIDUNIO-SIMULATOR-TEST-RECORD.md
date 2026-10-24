@@ -83,7 +83,7 @@ In this table **source** means regression checks; **rules** means genuine local 
 | D09 | Report abuse, administrator list/resolution | FN-011, firestore-abuse-report, display tests | Actual moderation UX and closeout |
 | G01 | New group: name, creator, at least two other users | FN-007, group-e2ee rules | Native member selector and chat UX |
 | G02 | Group-admin rename allowed, member rename denied | FN-008, group-e2ee rules | Native group info controls |
-| G03 | Add/remove member, admin/owner rules, rotate E2EE epoch | group-membership-lifecycle, group E2EE source/rules | End-to-end rotated key and revoked member access |
+| G03 | Add/remove member, admin/owner rules, rotate E2EE epoch | FN-014, group-membership-lifecycle, group E2EE source/rules | Actual new encrypted group key distribution and decryption |
 | G04 | Owner cannot be removed/leave prematurely | FN-008, group E2EE source tests | Device group info permissions |
 | G05 | Group encrypted send/receive | FN-009 synthetic envelope, group crypto source/rules | Three-way actual decrypt/display |
 | G06 | Group Delivered/Read and reaction add/remove | FN-009, group receipt/reaction source/rules | Multi-device visibility receipt accuracy |
@@ -97,14 +97,14 @@ In this table **source** means regression checks; **rules** means genuine local 
 | M05 | Audio record/upload/playback | audio-source-recorder, attachment source tests | Physical microphone and player |
 | M06 | Video/file attach, share/download/save/open | attachment policy/source tests | Native picker and download destinations |
 | M07 | Offline outbox, LTE, reconnect, retry after restart | outbox and LTE suites | Airplane-mode test on real devices |
-| S01 | Appearance: Auto/Light/Dark with persistence | release-candidate-ui, settings lifecycle source checks | Real platform theme-change and restore |
-| S02 | Text sizes A/A+/A++ | release-candidate-ui, iPad UI source checks | Physical font/render accessibility |
-| S03 | Notification previews enabled/disabled | settings UI/source tests, notification policy | Actual lock-screen privacy |
+| S01 | Appearance: Auto/Light/Dark with persistence | FN-013 real Settings UI/browser reload, release-candidate-ui | Real platform theme-change and restore |
+| S02 | Text sizes A/A+/A++ | FN-013 real Settings UI/browser reload, iPad UI source checks | Physical font/render accessibility |
+| S03 | Notification previews enabled/disabled | FN-013 real Settings UI/browser reload, notification policy | Actual lock-screen privacy |
 | S04 | Sender-name notification privacy toggle | FN-010, notification rules | APNs/ADM/FCM banner text on handset |
 | S05 | Notification device register, update, delete, account isolation | FN-010, notification rules | Physical token and lease confirmation |
 | S06 | Native notification lease/revoke, sign-out cleanup | lease/policy/source tests | Live callable + ADM/APNs provider reception |
 | S07 | Direct/group push, muted/background, tap→PIN/Face ID | notification route and core source tests | Real hardware provider and navigation |
-| S08 | Wi-Fi-only large attachments, cellular warning | large-attachment-network-policy tests | Wi-Fi/cellular detection on device |
+| S08 | Wi-Fi-only large attachments, cellular warning | FN-013 preference toggle/reload, large-attachment-network-policy tests | Wi-Fi/cellular detection on device |
 | S09 | Auto-lock timeout, lock now, PIN vs biometric | local-security source tests | Native background timing |
 | S10 | Signed-in profile name/email/password, version label | settings lifecycle, password tests, FN-001 | Profile UI/password email change end to end |
 | S11 | Admin user suspend/restore/expiry | FN-012, account access rules | Live admin console UX |

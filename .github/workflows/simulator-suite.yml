@@ -114,7 +114,9 @@ jobs:
           set -Eeuo pipefail
           npm ci --no-audit --no-fund
           npm run ios:prepare
-          node build/simulator/patch-sandbox.mjs . android
+          # A browser test, even of Android-shared source, must target 127.0.0.1;
+          # Android's 10.0.2.2 alias works only INSIDE the native AVD.
+          node build/simulator/patch-sandbox.mjs . ios
           npm --prefix ios-src ci --no-audit --no-fund
           npm --prefix ios-src run ios:prepare
           node build/simulator/patch-sandbox.mjs ios-src ios

@@ -12,7 +12,7 @@ for(const [dir,label] of jobs){
     continue;
   }
   const row=JSON.parse(fs.readFileSync(file,'utf8'));
-  results.push({label,status:row.failed===0&&row.cases.length>=12?'PASS':'FAIL',cases:row.cases.length,passed:row.passed,path:dir+'/REPORT.md'});
+  results.push({label,status:row.failed===0&&row.cases.length>=14?'PASS':'FAIL',cases:row.cases.length,passed:row.passed,path:dir+'/REPORT.md'});
 }
 const success=results.every(r=>r.status==='PASS');
 const lines=[

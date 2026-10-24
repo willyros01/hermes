@@ -117,10 +117,12 @@ async function seedE2eeKeys(people){
   });
 }
 async function readAdmin(collectionPath){
-  return testEnv.withSecurityRulesDisabled(async ctx=>{
+  let value=null;
+  await testEnv.withSecurityRulesDisabled(async ctx=>{
     const snap=await ctx.firestore().doc(collectionPath).get();
-    return snap.exists?snap.data():null;
+    value=snap.exists?snap.data():null;
   });
+  return value;
 }
 const contentTypes={'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.svg':'image/svg+xml','.json':'application/json','.webmanifest':'application/manifest+json'};
 let base;
@@ -129,7 +131,7 @@ try{
     try{
       const pathname=decodeURIComponent(new URL(req.url,origin).pathname);
       if(pathname==='/__fidunio_simulator__.html'){
-        res.setHeader('Content-Type','text/html');res.end('<!doctype html><html lang="en"><meta charset="utf-8"><title>FIDUNIO isolated emulator client</title><body><h1>FIDUNIO emulator API test</h1></body></html>');return;
+        res.setHeader('Content-Type','text/html');res.end('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FIDUNIO isolated emulator client</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/styles-0.9.0.css"><link rel="stylesheet" href="/local-security-ui.css"><link rel="stylesheet" href="/settings-sidebar.css"><body><div id="app"></div></body></html>');return;
       }
       const file=path.resolve(root,'.'+pathname);
       if(!file.startsWith(root+path.sep))throw new Error('outside test root');
@@ -283,6 +285,65 @@ try{
     await invoke(admin.page,'updateFidunioUserLifecycle',bob.uid,'active');
     assert.equal((await readAdmin('users/'+bob.uid)).active,true);
     return 'System Admin suspends/restores user; suspended user cannot write group';
+  });
+  await check('FN-013',async()=>{
+    const page=owner.page;
+    await page.evaluate(async()=>{const app=await import('/app.js');await app.FIDUNIO_APP_READY;});
+    await page.locator('#continueBtn').waitFor({state:'visible',timeout:30000});
+    await page.locator('#continueBtn').click();
+    await page.locator('#settingsBtn').waitFor({state:'visible',timeout:30000});
+    await page.locator('#settingsBtn').click();
+    await page.locator('#fidunioSettingsShell').waitFor({state:'visible',timeout:30000});
+    await page.screenshot({path:path.join(out,'settings-before.png'),fullPage:true});
+    await page.locator('.fidunio-settings-nav-btn[data-group="general"]').click();
+    await page.locator('.text-size-btn[data-text-size="xlarge"]').click();
+    assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('text-aplusplus')),true);
+    await page.locator('.appearance-btn[data-appearance="dark"]').click();
+    assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');
+    await page.locator('.toggle[data-key="previews"]').click();
+    assert.equal(await page.locator('.toggle[data-key="previews"]').getAttribute('class').then(x=>x.includes('on')),true);
+    await page.locator('.toggle[data-key="wifiAttachments"]').click();
+    await page.screenshot({path:path.join(out,'settings-changed.png'),fullPage:true});
+    await page.waitForTimeout(700); // Local encrypted IndexedDB debounce, NOT network delivery.
+    await page.reload();
+    await page.evaluate(async()=>{const app=await import('/app.js');await app.FIDUNIO_APP_READY;});
+    await page.locator('#continueBtn').waitFor({state:'visible',timeout:30000});
+    await page.locator('#continueBtn').click();
+    await page.locator('#settingsBtn').click();
+    await page.locator('#fidunioSettingsShell').waitFor({state:'visible',timeout:30000});
+    assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('text-aplusplus')),true);
+    assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');
+    assert.equal(await page.locator('.toggle[data-key="previews"]').getAttribute('class').then(x=>x.includes('on')),true);
+    assert.equal(await page.locator('.toggle[data-key="wifiAttachments"]').getAttribute('class').then(x=>x.includes('on')),false);
+    await page.screenshot({path:path.join(out,'settings-reloaded.png'),fullPage:true});
+    return 'Rendered Settings A++, Dark, notification previews and Wi-Fi attachment option; persisted after browser reload (3 PNGs)';
+  });
+  await check('FN-014',async()=>{
+    const record=(epoch,memberList)=>({
+      format:'fidunio-group-key-v1',groupId,keyEpoch:epoch,createdByUid:owner.uid,
+      createdByKeyId:owner.keyId,
+      memberKeyIds:Object.fromEntries(memberList.map(x=>[x.uid,x.keyId])),
+      envelopes:Object.fromEntries(memberList.map(x=>[x.uid,'synthetic-group-key-envelope']))
+    });
+    await rejected(()=>invoke(alice.page,'commitCloudGroupMembershipEpoch',{
+      groupId,operation:'remove',targetUid:bob.uid,expectedEpoch:0,newEpoch:1,
+      record:record(1,[owner,alice])
+    }),'Only a group administrator');
+    const removed=await invoke(owner.page,'commitCloudGroupMembershipEpoch',{
+      groupId,operation:'remove',targetUid:bob.uid,expectedEpoch:0,newEpoch:1,
+      record:record(1,[owner,alice])
+    });
+    assert.equal(removed.keyEpoch,1);
+    await rejected(()=>invoke(bob.page,'readCloudGroupAuthority',groupId));
+    const added=await invoke(owner.page,'commitCloudGroupMembershipEpoch',{
+      groupId,operation:'add',targetUid:carol.uid,expectedEpoch:1,newEpoch:2,
+      record:record(2,[owner,alice,carol])
+    });
+    assert.equal(added.keyEpoch,2);
+    const authority=await invoke(carol.page,'readCloudGroupAuthority',groupId);
+    assert.equal(authority.memberUids.includes(carol.uid),true);
+    assert.equal(authority.memberUids.includes(bob.uid),false);
+    return 'Non-admin removal denied; Owner removes/adds; E2EE key epoch increments; former member loses access';
   });
 }catch(error){
   const msg=String(error?.stack||error);
