@@ -1,0 +1,11 @@
+FILE invitation-policy.test.mjs
+SOURCE Android
+EXIT 0
+PASS pending unexpired invitation usable
+PASS used invitation rejected
+PASS revoked invitation rejected
+PASS expired invitation rejected
+PASS user/admin roles allowed
+PASS invalid role rejected
+PASS only owner/admin can issue
+

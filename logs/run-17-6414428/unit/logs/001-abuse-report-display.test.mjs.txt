@@ -1,0 +1,5 @@
+FILE abuse-report-display.test.mjs
+SOURCE Android
+EXIT 0
+PASS: abuse moderation renders readable participant names instead of raw Firebase UIDs
+
