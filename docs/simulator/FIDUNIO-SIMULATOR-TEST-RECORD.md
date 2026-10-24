@@ -77,6 +77,7 @@ In this table **source** means regression checks; **rules** means genuine local 
 - **FAIL:** any assertion, compilation, emulator startup, or driver failure; preserve the failed screenshot and log.
 - **NOT RUN:** absent runner or report, timed-out job before results, or missing screenshot evidence.
 - **NOT VERIFIED:** feature beyond the simulator's demonstrated scope, even when its source regression passes.
+- Android screenshots must also pass an OS-level accessibility check; a host-emulator launcher not-responding dialog is dismissed using **Wait**, or the capture is failed. Passing WebView/DOM assertions alone is insufficient when another OS window covers the app.
 - Report failures individually. Never silently convert a failed capability into a skipped test.
 - If the user authorizes application fixes, make them only on the separately agreed product branch with branch-specific release gates; this test branch must not deploy.
 

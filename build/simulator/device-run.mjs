@@ -21,7 +21,25 @@ function log(message) {
   events.push(message);console.log(message);
   fs.writeFileSync(path.join(out,'report.txt'),events.join('\n')+'\n');
 }
-function capture(name) {
+async function capture(name) {
+  if(platform==='android'){
+    // A busy hosted Pixel emulator can display an OS-level 'Pixel Launcher
+    // isn't responding' dialog over an otherwise working FIDUNIO WebView.
+    // CDP DOM assertions alone would miss it. Inspect the REAL screen before
+    // taking evidence; choose harmless 'Wait', never Close app, and fail closed.
+    const anr=/(?:Pixel Launcher|System UI|FIDUNIO).*(?:isn't responding|is not responding)/i;
+    for(let attempt=0;attempt<3;attempt++){
+      const visible=d.screenText();
+      if(!anr.test(visible))break;
+      log('    Emulator OS dialog detected; selecting Wait to preserve the app');
+      if(attempt===2)throw new Error('Android system not-responding dialog remained over the app screen');
+      await d.tapText(/^Wait$/);
+      await sleep(1200);
+    }
+    if(anr.test(d.screenText()))throw new Error('Android system warning covers the final screen capture');
+    if(name==='terms-before-consent')await d.waitText(/Terms of Use/,30000);
+  }
+  await sleep(450);
   const file = String(shots.length + 1).padStart(2,'0') + '-' + name + '.png';
   d.shot(path.join(out,file));
   shots.push({name,file});
@@ -49,7 +67,7 @@ async function assertText(fragment){
 async function step(id,label,fn){
   log('\n'+id+': '+label);
   try{await fn();passed++;log('PASS '+id);}
-  catch(e){failed++;try{capture(id+'-failure');}catch{}log('FAIL '+id+': '+String(e.stack||e).slice(0,900));throw e;}
+  catch(e){failed++;try{await capture(id+'-failure');}catch{}log('FAIL '+id+': '+String(e.stack||e).slice(0,900));throw e;}
 }
 async function checkDemoFirebase(){
   const ok=await read('(() => {window.__fidunioDemoCheck={done:false};import("./firebase-config.js").then(m=>window.__fidunioDemoCheck={done:true,project:m.firebaseConfig?.projectId||""},e=>window.__fidunioDemoCheck={done:true,error:String(e)});return true;})()');
@@ -89,26 +107,26 @@ try{
     if(!await read('!!document.querySelector("#startupTermsTick")'))throw new Error('Terms checkbox missing');
     if(await read('!!document.querySelector("#loginEmail")'))throw new Error('Login shown before Terms');
     if(!await read('document.querySelector("#startupTermsAccept")?.disabled'))throw new Error('Accept enabled before consent');
-    capture('terms-before-consent');
+    await capture('terms-before-consent');
   });
   await step('S2','Declining Terms locks the app; Read Again resets consent',async()=>{
     await click('#startupTermsDecline');
     await assertText('cannot be used unless you accept');
     if(await read('!!document.querySelector("#loginEmail")'))throw new Error('Declined Terms bypassed');
-    capture('terms-declined-locked');
+    await capture('terms-declined-locked');
     await click('#startupTermsAgain');
     await waitFor(async()=>!!(await read('!!document.querySelector("#startupTermsTick")')),'Terms visible again');
     if(!await read('document.querySelector("#startupTermsAccept")?.disabled'))throw new Error('Read Again left Accept enabled');
-    capture('terms-read-again');
+    await capture('terms-read-again');
   });
   await step('S3','Accept Terms and reach native Sign In without live backend',async()=>{
     await click('#startupTermsTick');
     if(await read('document.querySelector("#startupTermsAccept")?.disabled'))throw new Error('Checked consent did not unlock Accept');
-    capture('terms-ready-to-accept');
+    await capture('terms-ready-to-accept');
     await click('#startupTermsAccept');
     await waitFor(async()=>!!(await read('!!document.querySelector("#loginEmail")')),'Sign In screen after Terms',75000);
     if(!await read('!!document.querySelector("#loginPassword[type=password]")'))throw new Error('Password not initially hidden');
-    capture('sign-in');
+    await capture('sign-in');
   });
   await step('S4','Password visibility toggles without submitting credentials',async()=>{
     // Auth screen inserts fields after the password-visibility module loads.
@@ -117,22 +135,22 @@ try{
     await waitFor(async()=>!!(await read('!!document.querySelector("#loginPassword-show-password")')),'password visibility control');
     await click('#loginPassword-show-password');
     if(!await read('document.querySelector("#loginPassword")?.type==="text"'))throw new Error('Show password failed');
-    capture('password-visible');
+    await capture('password-visible');
     await click('#loginPassword-show-password');
     if(!await read('document.querySelector("#loginPassword")?.type==="password"'))throw new Error('Hide password failed');
   });
   await step('S5','Forgot Password rejects blank email without network write',async()=>{
     await click('#forgotBtn');
     await assertText('Enter your email address first');
-    capture('forgot-password-validation');
+    await capture('forgot-password-validation');
   });
   await step('S6','Join flow requires six-digit PIN; no account is created',async()=>{
     await click('#joinTab');
     await waitFor(async()=>!!(await read('!!document.querySelector("#inviteCode")')),'Join page');
-    capture('join-page');
+    await capture('join-page');
     await click('#redeemBtn');
     await assertText('six-digit FIDUNIO PIN');
-    capture('join-pin-required');
+    await capture('join-pin-required');
   });
   await step('S7','App restart preserves Terms and does not expose a chat',async()=>{
     await click('#signInTab');
@@ -144,7 +162,7 @@ try{
     await waitFor(async()=>!!(await read('!!document.querySelector("#loginEmail")')),'Sign In after restart',65000);
     if(await read('!!document.querySelector("#startupTermsTick")'))throw new Error('Previously accepted Terms lost');
     if(await read('!!document.querySelector(".conversation-list")'))throw new Error('An unauthenticated chat was displayed');
-    capture('sign-in-after-restart');
+    await capture('sign-in-after-restart');
   });
 }catch(e){
   if(!failed)failed++;
