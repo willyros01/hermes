@@ -1,0 +1,5 @@
+FILE pin-attachment-forward-progress.test.mjs
+SOURCE Android
+EXIT 0
+PIN and direct-attachment forward-progress gate passed
+

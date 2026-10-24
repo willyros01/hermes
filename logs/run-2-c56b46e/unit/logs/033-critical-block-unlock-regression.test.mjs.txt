@@ -1,0 +1,5 @@
+FILE critical-block-unlock-regression.test.mjs
+SOURCE Android
+EXIT 0
+PASS: blocked-direct client barrier and Face ID-first/PIN fallback source contract
+

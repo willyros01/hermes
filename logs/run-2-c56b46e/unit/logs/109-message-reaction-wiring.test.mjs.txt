@@ -1,0 +1,5 @@
+FILE message-reaction-wiring.test.mjs
+SOURCE Android
+EXIT 0
+Message reaction wiring tests passed
+

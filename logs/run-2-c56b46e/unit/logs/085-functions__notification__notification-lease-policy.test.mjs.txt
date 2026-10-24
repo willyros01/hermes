@@ -1,0 +1,5 @@
+FILE functions/notification/notification-lease-policy.test.mjs
+SOURCE Android
+EXIT 0
+PASS: lease expires, single current owner, generation fencing, inactive cleanup
+

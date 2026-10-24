@@ -1,0 +1,5 @@
+FILE message-safety-policy.test.mjs
+SOURCE Android
+EXIT 0
+PASS: local message safety policy blocks high-confidence abusive text before encryption without a server plaintext path
+

@@ -1,0 +1,5 @@
+FILE activation-composer-ownership.test.mjs
+SOURCE Android
+EXIT 0
+Activation and composer single-owner gate passed
+
