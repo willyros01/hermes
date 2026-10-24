@@ -1,0 +1,14 @@
+FIDUNIO ANDROID native simulator, disposable data only
+
+S1: Real native cold start shows legal Terms before Firebase login
+    Emulator OS dialog detected; selecting Wait to preserve the app
+    Emulator OS dialog detected; selecting Wait to preserve the app
+FAIL S1: Error: Android system warning covers the final screen capture
+    at capture (file:///home/runner/work/hermes/hermes/build/simulator/device-run.mjs:39:39)
+    at async file:///home/runner/work/hermes/hermes/build/simulator/device-run.mjs:110:5
+    at async step (file:///home/runner/work/hermes/hermes/build/simulator/device-run.mjs:69:7)
+    at async file:///home/runner/work/hermes/hermes/build/simulator/device-run.mjs:105:3
+
+Stopped: Android system warning covers the final screen capture
+
+FINAL 0 passed, 1 failed
