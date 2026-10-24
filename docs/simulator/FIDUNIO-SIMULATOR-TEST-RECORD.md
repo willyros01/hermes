@@ -4,7 +4,7 @@
 
 **Baseline:** `willyros01/hermes`, release source `Android` at `f6f56055e6b3faae01319cfa370402843973ccb0`; iPhone source is checked out read-only from current `ios` for each run. The exact `ios` checkout SHA and all runner SHAs are preserved by GitHub Actions. This test infrastructure is committed **only** to branch `simulator-tests`; the result archive is **only** branch `simulator-evidence`.
 
-**Status of this document:** A coverage register, not a claim that tests have passed. Each actual run creates its own `REPORT.md`, detailed logs, and screenshots. Always use the archived run report as the authoritative outcome.
+**Status of this document:** A coverage and execution register. Actual GitHub runs now exist; the latest verified run and the earlier failures are documented below. Each run creates its own `REPORT.md`, detailed logs, and screenshots. Always use the archived run report as the authoritative outcome.
 
 ## How to run
 
@@ -54,22 +54,58 @@ In this table **source** means regression checks; **rules** means genuine local 
 | Storage/rules isolation and security | Source + local Firestore emulator | Deployed Storage/Auth/App Check configuration |
 | App restart and return to Sign In | Browser + native pre-auth | Native signed production-package continuity |
 
-## Execution record template
+## Reusable real-device acceptance checklist (not executed by this simulator)
+
+Keep this list with the simulator record; check an item **PASS** only after collecting a dated screenshot, device/build version, test accounts, and the actual outcome. For a failure, retain the unexpected screen and do not mark it complete. Use authorized nonproduction accounts and test-only data.
+
+1. **Invites, enrollment, and login:** Invite two fresh test accounts; join on iOS and Android; enforce a unique six-digit PIN and recover from an incorrect password without exposing an account.
+2. **Direct encrypted chat:** Send text in both directions; verify ciphertext-at-rest, Queued → Sent → Read transitions, background/minimized view protection, and read only after the message is genuinely visible.
+3. **Group encrypted chat:** Create a group of three accounts; test join, add/remove, message delivery, authorization of former members, history, and group notifications.
+4. **Replies and message controls:** React, reply, delete for me, delete for everyone, delete a conversation, and verify effects from the other account and after relaunch.
+5. **Camera, microphone, and files:** Capture a photo and record audio on each device; attach an existing image, video, and file; verify remote decrypt/open/playback, file limits, and failure handling.
+6. **Offline and reconnect:** Turn Wi-Fi off mid-send; queue multiple messages/attachments; restart the app; reconnect; confirm exactly-once replay and accurate status transitions.
+7. **Disappear and block:** Set per-conversation disappearance; check expiry on both devices; block, attempt to send, unblock and recover; confirm Report Abuse is correctly formatted and authorized.
+8. **Native push and privacy:** For iOS APNs, Android FCM where supported, and Amazon Fire ADM, verify foreground/background delivery, no stale-session token delivery, sender-name preference, notification tap-to-PIN, and logout revocation.
+9. **Lock and accessibility:** On hardware, check Face ID/fingerprint first, canceled/failing biometric fallback to PIN, wrong PIN rejection, background lock, A/A+/A++, screen reader and light/dark/auto persistence.
+10. **Recovery, moderation, deletion:** Verify identity/E2EE recovery using another device; role-restricted admin actions, self-delete authorization, cleanup and encryption-safe backup/restore.
+11. **Release-package checks:** Install an actual signed APK and a TestFlight build; check update/reinstall, rotation, app resume, deep links, app version, and crash-free behavior. These are never inferred from an unsigned simulator build.
+
+All eleven acceptance groups remain **NOT VERIFIED by this automated suite**. They are an explicit follow-up gate, not hidden omissions.
+
+## Execution history — 24 October 2026 (Toronto)
+
+The report must distinguish automated test exit status from **readable screen evidence**. A source-level PASS cannot substitute for real app screenshots or a physical-device test.
+
+| Run | Actual results | Evidence lesson |
+| --- | --- | --- |
+| [40113305588](https://github.com/willyros01/hermes/actions/runs/40113305588) | Nine Firebase suites PASS; Android and iPhone native pre-auth PASS (7/7 each), with 10 clear phone PNGs each; only part of the source/browser matrix completed | Initial discovery: four iOS-only regression files must execute against `ios`, not Android; browser scenarios need isolated test accounts |
+| [40114062428](https://github.com/willyros01/hermes/actions/runs/40114062428) | 135/135 reviewed source files PASS; nine Firebase suites PASS; both native phone stages PASS; browser matrix FAIL | Auth emulator reused an earlier email; fixed by unique per-scenario synthetic accounts |
+| [40114605659](https://github.com/willyros01/hermes/actions/runs/40114605659) | Five GitHub stages exited PASS: 135 source files, nine rules files, four browser cases and 7/7 native checks per platform | Subsequent visual review rejected Android image evidence: the host's `Pixel Launcher isn't responding` dialog covered screenshots despite WebView assertions passing |
+| [40115750603](https://github.com/willyros01/hermes/actions/runs/40115750603) | Source, rules, browser and iPhone simulator PASS; Android simulator **FAIL (0/1)** | An added actual Android OS-screen gate correctly rejected the recurring Pixel Launcher overlay; this is a hosted-emulator failure, not proof of an app defect |
+| [40116773536](https://github.com/willyros01/hermes/actions/runs/40116773536) | **ALL FIVE STAGES PASS:** 135/135 source files, 9/9 Firestore rules files, 4/4 browser journeys, Android 7/7 and iPhone 7/7 native checks | Standard AOSP Android image eliminated the Pixel Launcher obstruction; all 36 genuine screenshot files archived and reviewed |
+
+The suite switched **only the disposable runner** from Google APIs Pixel system images to standard Android API 34 AOSP for native UI testing. It resolved the host screenshot obstruction in run 40116773536.
+
+## Latest verified execution
 
 | Required detail | Value from the current run |
 | --- | --- |
-| Date (Toronto) | Pending first run |
-| GitHub run number and URL | Pending first run |
-| Simulator suite test-branch SHA | Pending first run |
+| Date (Toronto) | 24 October 2026 |
+| GitHub run number and URL | [40116773536 — PASS](https://github.com/willyros01/hermes/actions/runs/40116773536) |
+| Simulator suite test-branch SHA | `d0e52c032248cad7edc988f48e0b932ff0e335f7` |
 | Android release-source base SHA | `f6f56055e6b3faae01319cfa370402843973ccb0` |
 | iOS checkout SHA | Read from the run, not guessed |
-| Source regression result | NOT RUN |
-| Firebase emulator security rules | NOT RUN |
-| Chromium/WebKit browser journeys | NOT RUN |
-| Android native UI/screenshot evidence | NOT RUN |
-| iPhone native UI/screenshot evidence | NOT RUN |
-| Open functional defects | Update from full logs |
+| Source regression result | **PASS: 135/135 test files, 405 printed PASS markers** |
+| Firebase emulator security rules | **PASS: 9/9 test files, 216 printed PASS markers** |
+| Chromium/WebKit browser journeys | **PASS: 4/4 browser/source combinations, 36 PASS markers, 16 PNG captures** |
+| Android native UI/screenshot evidence | **PASS: 7/7 scenarios, 10 unobstructed PNG captures** |
+| iPhone native UI/screenshot evidence | **PASS: 7/7 scenarios, 10 PNG captures** |
+| Open functional defects | No simulated functional assertion failed in run 40116773536; hardware tests remain unverified |
 | Real-device acceptance | NOT VERIFIED by this suite |
+
+**Full saved evidence:** [run 5 record](https://github.com/willyros01/hermes/blob/simulator-evidence/logs/run-5-d0e52c0/REPORT.md) and its `unit/`, `rules/`, `browser/`, `android/`, and `ios/` folders. For transparency, the earlier failed native screenshot run remains archived.
+
+**Manual layout observation:** On the iPhone's initial Terms screenshot, the upper portion of the emblem appears partly obscured near the Dynamic Island. No automated functional test failed; this is flagged for an iPhone/iPad safe-area appearance review, **not diagnosed as a code defect**. Do not adjust a protected release branch without separate authorization.
 
 ## Result policy
 
