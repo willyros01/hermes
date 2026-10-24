@@ -63,6 +63,14 @@ try{
     await wait(()=>present('#joinPinHost'),'six-digit native PIN input');
     await shot('native-join-screen');
   });
+  if(t1){
+    const host=platform==='android'?'10.0.2.2':'127.0.0.1';
+    // Network probe is diagnostic only and never substitutes for authentic
+    // Firebase API assertions. no-cors avoids false failures from CORS rules.
+    await expr(`(() => {window.__nativeSimulatorNet={state:'pending'};fetch('http://${host}:8080/',{mode:'no-cors'}).then(()=>window.__nativeSimulatorNet={state:'reachable'},e=>window.__nativeSimulatorNet={state:'failed',error:String(e)});return true})()`);
+    await d.sleep(2500);
+    log('  Local Firestore HTTP probe: '+String(await expr('JSON.stringify(window.__nativeSimulatorNet)')));
+  }
   const t2=await test('N02','Consume a real single-use admin invite, set PIN, create E2EE identity through native Join',async()=>{
     await d.fill('#inviteCode',fixture.inviteToken);
     await d.fill('#joinName',fixture.alice.name);

@@ -209,6 +209,7 @@ jobs:
             node build/simulator/patch-sandbox.mjs . android
             npx cap add android
             npx cap sync android
+            node build/simulator/permit-emulator-http.mjs .
             java build/AndroidIcons.java icon-512.png android/app/src/main/res
             chmod +x android/gradlew
             ( cd android && ./gradlew --no-daemon assembleDebug )
