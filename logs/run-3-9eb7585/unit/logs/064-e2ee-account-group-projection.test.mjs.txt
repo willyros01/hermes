@@ -1,0 +1,5 @@
+FILE e2ee-account-group-projection.test.mjs
+SOURCE Android
+EXIT 0
+PASS deterministic group projection preserves pending Outbox and accepts server authority
+

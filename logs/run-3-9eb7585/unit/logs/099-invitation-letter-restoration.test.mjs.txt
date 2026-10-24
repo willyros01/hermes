@@ -1,0 +1,5 @@
+FILE invitation-letter-restoration.test.mjs
+SOURCE Android
+EXIT 0
+Accepted full invitation letter restoration gate passed
+

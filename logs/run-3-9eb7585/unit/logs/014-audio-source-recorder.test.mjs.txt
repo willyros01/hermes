@@ -1,0 +1,5 @@
+FILE audio-source-recorder.test.mjs
+SOURCE Android
+EXIT 0
+Audio source chooser and recorder gate passed
+
