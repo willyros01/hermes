@@ -190,16 +190,56 @@ try{
     await shot('native-group-message-sent');
     return 'Actual native group composer wrote encrypted content to local Firestore';
   },{requires:t9});
-  const t11=await test('N11','Show native notification configuration controls (delivery requires real devices)',async()=>{
-    await d.press('#backBtn');await d.press('#backBtn');
-    await wait(()=>present('#settingsBtn'),'Messages after group');await d.press('#settingsBtn');
+  const t11=await test('N11','Use native group administrator to add a member',async()=>{
+    await d.press('#infoBtn');await wait(()=>present('#addMemberBtn'),'Group Info administrator');
+    await d.press('#addMemberBtn');await wait(()=>present('#modalConfirm'),'Add Member list',60000);
+    const owner=fixture.peers.find(x=>x.label==='Owner').uid;
+    if(!await present(`input[name="newMember"][value="${owner}"]`))throw new Error('Owner not listed as eligible new member');
+    await d.press(`input[name="newMember"][value="${owner}"]`);
+    await d.press('#modalConfirm');
+    const groups=await readCollection('groups');const group=groups.find(g=>g.name==='Native Simulator Group');
+    if(!group)throw new Error('Native group missing');
+    await wait(async()=>!!(await readDoc(`groups/${group.id}/members/${owner}`)),'member addition stored',60000);
+    await shot('native-group-member-added');
+    return 'Native Group Info added Owner account as a new member; Firestore membership confirmed';
+  },{requires:t10});
+  const t12=await test('N12','Show native notification configuration controls (delivery requires real devices)',async()=>{
+    // Group Info -> Chat -> Messages is two levels. Other app layouts can
+    // already have returned to Messages, so inspect before each transition.
+    for(let n=0;n<3 && !(await present('#settingsBtn')) && !(await present('#tabletSettingsBtn'));n++){
+      if(!await present('#backBtn'))throw new Error('No Settings or Back control during navigation');
+      await d.press('#backBtn');
+    }
+    const settings=await present('#settingsBtn')?'#settingsBtn':'#tabletSettingsBtn';
+    await d.press(settings);
     await wait(()=>present('#fidunioSettingsShell'),'Settings');
     await d.press('.fidunio-settings-nav-btn[data-group="notifications"]');
     if(!await present('#fidunioSettingsPanel-notifications'))throw new Error('Notification settings section missing');
     await shot('native-notification-settings');
     return 'Notification UI exists and renders. Actual ADM/APNs push reception NOT tested';
-  },{requires:t9});
-  if([t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11].some(x=>!x))log('Native authenticated suite found failures or blocked checks — no production code modified.');
+  },{requires:t10});
+  const t13=await test('N13','Block and unblock a native user in Safety settings',async()=>{
+    await d.press('.fidunio-settings-nav-btn[data-group="safety"]');
+    const bob=fixture.peers.find(x=>x.label==='Bob').uid;
+    await wait(()=>present(`#blockUserSelect option[value="${bob}"]`),'blockable user directory',55000);
+    await d.fill('#blockUserSelect',bob);await d.press('#blockUserBtn');
+    await wait(()=>present(`.unblockUserBtn[data-uid="${bob}"]`),'blocked user row',60000);
+    await shot('native-user-blocked');
+    await d.press(`.unblockUserBtn[data-uid="${bob}"]`);
+    await wait(async()=>!(await present(`.unblockUserBtn[data-uid="${bob}"]`)),'user unblocked',55000);
+    await shot('native-user-unblocked');
+    return 'Real native Safety UI blocked then unblocked an existing FIDUNIO account';
+  },{requires:t12});
+  const t14=await test('N14','A++ and Dark settings survive leaving and reopening native Settings',async()=>{
+    await d.press('#backBtn');
+    await wait(()=>present('#settingsBtn'),'Messages navigation');await d.press('#settingsBtn');
+    await wait(()=>present('.text-size-btn[data-text-size="xlarge"]'),'text size setting');
+    if(!await expr('document.querySelector(".text-size-btn[data-text-size=xlarge]")?.classList.contains("active")'))throw new Error('A++ reverted after navigation');
+    if(!await expr('document.querySelector(".appearance-btn[data-appearance=dark]")?.classList.contains("active")'))throw new Error('Dark reverted after navigation');
+    await shot('native-persisted-settings');
+    return 'A++ and Dark retained after navigating away and back within actual native app';
+  },{requires:t13});
+  if([t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14].some(x=>!x))log('Native authenticated suite found failures or blocked checks — no production code modified.');
 }catch(e){log('FATAL native test setup: '+String(e.stack||e).slice(0,1500));tests.push({id:'SETUP',status:'FAIL',label:'Native test setup',detail:String(e.stack||e)});}
 finally{summarize();await env.cleanup();d.disconnect?.();}
 process.exit(tests.some(t=>t.status!=='PASS')?1:0);
