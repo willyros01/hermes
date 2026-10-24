@@ -1,0 +1,4 @@
+FILE large-attachment-network-policy.test.mjs
+EXIT 0
+Large attachment network policy and integration regression gate passed
+

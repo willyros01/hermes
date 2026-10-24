@@ -1,0 +1,4 @@
+FILE functions/legal/legal-policy-core.test.mjs
+EXIT 0
+PASS: legal policy core requires current version and authenticated acceptance
+

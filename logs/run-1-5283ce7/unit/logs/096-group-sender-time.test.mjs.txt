@@ -1,0 +1,4 @@
+FILE group-sender-time.test.mjs
+EXIT 0
+Group sender-time gate passed
+

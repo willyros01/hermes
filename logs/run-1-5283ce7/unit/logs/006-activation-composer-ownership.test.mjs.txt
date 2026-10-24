@@ -1,0 +1,4 @@
+FILE activation-composer-ownership.test.mjs
+EXIT 0
+Activation and composer single-owner gate passed
+

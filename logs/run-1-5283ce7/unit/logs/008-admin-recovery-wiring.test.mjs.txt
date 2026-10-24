@@ -1,0 +1,4 @@
+FILE admin-recovery-wiring.test.mjs
+EXIT 0
+Administrator-authorized recovery wiring gate passes
+

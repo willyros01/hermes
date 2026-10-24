@@ -1,0 +1,4 @@
+FILE user-access-key-ux.test.mjs
+EXIT 0
+Single visible FIDUNIO PIN and hidden-key UX gate passed
+

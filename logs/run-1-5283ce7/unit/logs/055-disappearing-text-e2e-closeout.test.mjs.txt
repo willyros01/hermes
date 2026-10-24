@@ -1,0 +1,4 @@
+FILE disappearing-text-e2e-closeout.test.mjs
+EXIT 0
+Disappearing text end-to-end closeout matrix passed
+

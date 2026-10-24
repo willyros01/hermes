@@ -1,0 +1,4 @@
+FILE group-receipt-purge-barrier.test.mjs
+EXIT 0
+PASS straightforward group receipt source/rules authority
+

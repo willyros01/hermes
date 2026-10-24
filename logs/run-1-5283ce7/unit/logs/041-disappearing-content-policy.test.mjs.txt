@@ -1,0 +1,4 @@
+FILE disappearing-content-policy.test.mjs
+EXIT 0
+Disappearing content policy tests passed
+

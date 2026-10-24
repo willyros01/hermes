@@ -1,0 +1,4 @@
+FILE e2ee-account-group-conversation.test.mjs
+EXIT 0
+Account group conversation receipt/history projection owner gate passed
+

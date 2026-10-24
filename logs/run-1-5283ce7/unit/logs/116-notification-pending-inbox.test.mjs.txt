@@ -1,0 +1,4 @@
+FILE notification-pending-inbox.test.mjs
+EXIT 0
+Installation-local pending notification inbox gate passed
+

@@ -1,0 +1,4 @@
+FILE functions/notification/group-message-notification-core.test.mjs
+EXIT 0
+FCM group notification membership, fan-out, privacy, and stale-token gates passed
+

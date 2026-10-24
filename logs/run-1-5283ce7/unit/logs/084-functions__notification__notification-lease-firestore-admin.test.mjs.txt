@@ -1,0 +1,4 @@
+FILE functions/notification/notification-lease-firestore-admin.test.mjs
+EXIT 0
+PASS: atomic account handoff, stale revoke fencing, logout and expiry
+

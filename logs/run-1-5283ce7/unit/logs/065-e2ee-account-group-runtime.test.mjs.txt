@@ -1,0 +1,4 @@
+FILE e2ee-account-group-runtime.test.mjs
+EXIT 0
+17/17 group runtime assertions passed.
+

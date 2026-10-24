@@ -1,0 +1,11 @@
+FILE storage-deployment-wiring.test.mjs
+EXIT 0
+PASS firebase.json registers only the reviewed Storage rules file
+PASS reviewed Storage rules retain authenticated membership checks
+PASS reviewed Storage rules retain attachment namespace
+PASS reviewed Storage rules retain client-delete denial
+PASS protected Firebase config retains the expected default bucket
+PASS normal baseline permanently runs this deployment-wiring gate
+
+6/6 Firebase Storage deployment-wiring assertions passed.
+

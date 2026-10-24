@@ -1,0 +1,4 @@
+FILE disappearing-conversation-preference.test.mjs
+EXIT 0
+PASS: disappearing-message compose preference is isolated per conversation
+

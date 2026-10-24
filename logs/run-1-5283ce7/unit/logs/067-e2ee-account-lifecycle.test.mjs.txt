@@ -1,0 +1,12 @@
+FILE e2ee-account-lifecycle.test.mjs
+EXIT 0
+PASS duplicate bind joins one in-flight load
+PASS empty UID is rejected
+PASS sign-out resets synchronously
+PASS account switch resets before loading next UID
+PASS manager invalidation is normalized as stale
+PASS ordinary manager errors propagate
+PASS settled bind may reload same authenticated UID
+
+7/7 account E2EE lifecycle assertions passed.
+

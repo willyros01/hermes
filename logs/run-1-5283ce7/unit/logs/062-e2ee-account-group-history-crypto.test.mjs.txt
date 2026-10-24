@@ -1,0 +1,4 @@
+FILE e2ee-account-group-history-crypto.test.mjs
+EXIT 0
+8/8 group history grant crypto assertions passed.
+

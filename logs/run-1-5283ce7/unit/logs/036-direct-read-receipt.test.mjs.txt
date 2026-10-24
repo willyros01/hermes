@@ -1,0 +1,4 @@
+FILE direct-read-receipt.test.mjs
+EXIT 0
+Direct Read-receipt recovery gate passed
+

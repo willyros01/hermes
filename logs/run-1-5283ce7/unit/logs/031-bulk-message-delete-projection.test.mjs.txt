@@ -1,0 +1,4 @@
+FILE bulk-message-delete-projection.test.mjs
+EXIT 0
+Bulk message-delete projection convergence passed
+

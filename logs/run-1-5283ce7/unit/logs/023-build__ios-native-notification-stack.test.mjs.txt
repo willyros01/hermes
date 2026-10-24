@@ -1,0 +1,310 @@
+FILE build/ios-native-notification-stack.test.mjs
+EXIT 1
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\(\)=>"ios-native"/. Input:
+
+'/*\n' +
+  ' * FIDUNIO Settings lifecycle owner.\n' +
+  ' *\n' +
+  ' * MANDATORY OWNERSHIP CONTRACT (CODING-GUIDELINES.md):\n' +
+  ' * Resource owner: this module owns Settings structural layout and the late-added\n' +
+  ' * Profile, User Administration, and Invitations sections.\n' +
+  ' * Scope: only .content.settings, its named section hosts, and Settings-owned modals.\n' +
+  ' * Lifecycle trigger: app.js calls mountSettingsLifecycle() after every renderSettings().\n' +
+  ' * Serialized write path: all account/admin/invitation mutations pass through\n' +
+  ' * serializeSettingsMutation(). Reads are generation-gated so stale async work\n' +
+  ' * cannot write into a replaced Settings DOM.\n' +
+  ' */\n' +
+  'import {\n' +
+  '  getFidunioAccessInfo,\n' +
+  '  claimLegacyOwner,\n' +
+  '  updateFidunioProfile,\n' +
+  '  changeFidunioPassword,\n' +
+  '  listFidunioUsersForAdmin,\n' +
+  '  updateFidunioUserLifecycle,\n' +
+  '  getFidunioNotificationCapability,\n' +
+  '  getFidunioMessagingToken,\n' +
+  '  deleteFidunioMessagingToken,\n' +
+  '  getCloudNotificationDevice,\n' +
+  '  upsertCloudNotificationDevice,\n' +
+  '  updateCloudNotificationSenderName,\n' +
+  '  deleteCloudNotificationDevice,\n' +
+  '  claimCloudNotificationLease,\n' +
+  '  revokeCloudNotificationLease,\n' +
+  '  listCloudUsers,\n' +
+  '  getCloudUserProfile,\n' +
+  '  submitFidunioAbuseReport,\n' +
+  '  listFidunioAbuseReportsForAdmin,\n' +
+  '  resolveFidunioAbuseReport,\n' +
+  '  listFidunioBlockedUsers,\n' +
+  '  blockFidunioUser,\n' +
+  '  unblockFidunioUser,\n' +
+  '  requestFidunioAccountDeletion,\n' +
+  '  getFidunioAccountDeletionRequest,\n' +
+  '  cancelFidunioAccountDeletionRequest,\n' +
+  '  listFidunioAccountDeletionRequestsForAdmin,\n' +
+  '  updateFidunioAccountDeletionRequestForAdmin,\n' +
+  '  transferCloudSystemOwnership,\n' +
+  '} from "./firebase.js";\n' +
+  'import {createNotificationRegistrationOwner} from "./notification-registration.js";\n' +
+  'import {getOrCreateNotificationInstallationId} from "./notification-registration.js";\n' +
+  'import {createNotificationLeaseSession,FIDUNIO_NOTIFICATION_LEASE_ROLLOUT} from "./notification-lease-session.js";\n' +
+  'import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";\n' +
+  'import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";\n' +
+  'import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeAdminRecoveryAuthorization} from "./admin-recovery-client.js";\n' +
+  'import {mountInstallGuidance} from "./install-guidance.js";\n' +
+  'import {prepareSelfAccountDeletion} from "./account-deletion-service.js";\n' +
+  'import {completeSelfAccountDeletion} from "./account-deletion-finalize-client.js";\n' +
+  'import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";\n' +
+  'import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";\n' +
+  'import {mountSixDigitPinInput} from "./pin-input.js";\n' +
+  'import {fidunioPublicUrl,isNativeAndroidRuntime} from "./platform-runtime.js";\n' +
+  'import {confirmedNativeNotificationLease} from "./notification-native-status-policy.js";\n' +
+  'import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";\n' +
+  'import {\n' +
+  '  getNotificationPlatformCapabilities,\n' +
+  '  getNativeNotificationCapability,\n' +
+  '  requestNativeNotificationPermission,\n' +
+  '  getNativeMessagingToken,\n' +
+  '  deleteNativeMessagingToken,\n' +
+  '  subscribeNativeMessagingTokens,\n' +
+  '  getNativeNotificationLeasePlatform,\n' +
+  '  getNativeNotificationProvider,\n' +
+  '} from "./notification-platform-adapter.js";\n' +
+  '\n' +
+  'let mutationTail=Promise.resolve();\n' +
+  'let generation=0;\n' +
+  `function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}\n` +
+  'function initials(name){return String(name||"U").trim().split(/\\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("")||"U";}\n' +
+  'function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Administrator":"User";}\n' +
+  'function prettyAbuseCategory(category){return({"harassment":"Harassment or bullying","objectionable-content":"Objectionable content","spam-scam":"Spam or scam","impersonation":"Impersonation","other":"Other"})[String(category||"")]||"Report";}\n' +
+  'function profileStatus(p){if(p?.active===false)return p?.status||"deactivated";return p?.status||"active";}\n' +
+  'function dateText(v){const d=v?.toDate?.()||v;if(!d)return"—";try{return new Date(d).toLocaleString();}catch{return String(d);}}\n' +
+  'function guideUrl(){return fidunioPublicUrl("./quick-start.html").href;}\n' +
+  `function inviteSubject(){return "You're invited to join FIDUNIO";}\n` +
+  'function inviteMessage(invite){const inviter=invite.invitedByName||"A FIDUNIO administrator",role=invite.role==="admin"?"Admin":"User";return `You\'re invited to FIDUNIO — Private Messaging\\n\\n${inviter} has invited you to join FIDUNIO, an invitation-only private messaging app for one-to-one and group conversations.\\n\\nYour role: ${role}\\nInvitation expires: ${invite.expiresAt.toLocaleString()}\\n\\nJOIN FIDUNIO\\n${invite.link}\\n\\nThis invitation is personal and can be used only once. After your account is created, the invitation becomes invalid. Please do not forward the invitation link.\\n\\nQUICK START GUIDE\\n${guideUrl()}\\n\\nThe guide explains account setup, privacy and security basics, messaging, device identity, and PIN/biometric unlocking.\\n\\nFIDUNIO • Private Messaging`;}\n' +
+  'function recoveryLink(token){const url=fidunioPublicUrl("./account-recovery.html");url.searchParams.set("recovery",token);return url.href;}\n' +
+  'function recoverySubject(){return "FIDUNIO account recovery authorization";}\n' +
+  'function recoveryMessage(result){return `FIDUNIO Account Recovery\\n\\nAn administrator has authorized account recovery for ${result.targetDisplayName||result.targetEmail||"your FIDUNIO account"}.\\n\\nThis authorization expires ${new Date(result.expiresAtMs).toLocaleString()} and can be used only once.\\n\\nRECOVER ACCOUNT\\n${recoveryLink(result.token)}\\n\\nUse the recovery page to reset/sign in with your own account password and enter your existing six-digit FIDUNIO PIN. Your administrator does not receive your password, PIN, encryption key, messages, or attachments.\\n\\nFIDUNIO • Private Messaging`;}\n' +
+  '\n' +
+  'function serializeSettingsMutation(label,work){\n' +
+  '  const run=mutationTail.then(()=>work());\n' +
+  '  mutationTail=run.catch(err=>{console.warn(`Settings mutation failed: ${label}`,err);});\n' +
+  '  return run;\n' +
+  '}\n' +
+  '\n' +
+  'const GROUPS=[\n' +
+  '  {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},\n' +
+  '  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},\n' +
+  '  {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},\n' +
+  '  {id:"safety",label:"Safety",icon:"!",subtitle:"Report abusive behavior or objectionable content to FIDUNIO administrators."},\n' +
+  '  {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},\n' +
+  '  {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},\n' +
+  '  {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},\n' +
+  '  {id:"install",label:"Install",icon:"▣",subtitle:"Optional browser and Home Screen installation guidance."},\n' +
+  '  {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},\n' +
+  '  {id:"legal",label:"Legal & Support",icon:"ⓘ",subtitle:"Privacy, terms, support, safety, and account rights."},\n' +
+  '  {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}\n' +
+  '];\n' +
+  'const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","legal","about"];\n' +
+  'let activeGroup="profile";\n' +
+  'let mountedAccountVaultOwner=null;\n' +
+  '\n' +
+  'function directCards(settings){return[...settings.querySelectorAll(":scope > .card")];}\n' +
+  'function cardByTitle(settings,title){return directCards(settings).find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}\n' +
+  'function updateSelection(shell){\n' +
+  '  shell.querySelectorAll(".fidunio-settings-nav-btn").forEach(btn=>{\n' +
+  '    const active=btn.dataset.group===activeGroup;\n' +
+  '    btn.classList.toggle("is-active",active);\n' +
+  '    btn.setAttribute("aria-current",active?"page":"false");\n' +
+  '  });\n' +
+  '  shell.querySelectorAll(".fidunio-settings-panel").forEach(panel=>panel.classList.toggle("is-active",panel.dataset.group===activeGroup));\n' +
+  '}\n' +
+  'function createShell(settings){\n' +
+  '  const shell=document.createElement("div");\n' +
+  '  shell.id="fidunioSettingsShell";\n' +
+  `  shell.innerHTML='<aside id="fidunioSettingsNav" aria-label="Settings sections"><h2>Settings</h2><div class="fidunio-settings-nav-list"></div></aside><div class="fidunio-settings-panels"></div>';\n` +
+  '  const nav=shell.querySelector(".fidunio-settings-nav-list");\n' +
+  '  for(const group of GROUPS){\n' +
+  '    const btn=document.createElement("button");\n' +
+  '    btn.type="button";btn.className="fidunio-settings-nav-btn";btn.dataset.group=group.id;\n' +
+  '    btn.innerHTML=`<span class="fidunio-settings-nav-icon" aria-hidden="true">${group.icon}</span><span>${group.label}</span><span class="fidunio-settings-nav-arrow" aria-hidden="true">›</span>`;\n' +
+  '    btn.onclick=()=>{activeGroup=group.id;updateSelection(shell);shell.querySelector(`#fidunioSettingsPanel-${group.id}`)?.scrollIntoView({block:"start"});};\n' +
+  '    nav.appendChild(btn);\n' +
+  '  }\n' +
+  '  const panels=shell.querySelector(".fidunio-settings-panels");\n' +
+  '  for(const id of PANEL_ORDER){\n' +
+  '    const group=GROUPS.find(g=>g.id===id);\n' +
+  '    const panel=document.createElement("section");\n' +
+  '    panel.id=`fidunioSettingsPanel-${group.id}`;panel.className="fidunio-settings-panel";panel.dataset.group=group.id;\n' +
+  '    panel.innerHTML=`<h2 class="fidunio-settings-panel-title">${esc(group.label)}</h2><p class="fidunio-settings-panel-subtitle">${esc(group.subtitle)}</p><div class="fidunio-settings-section-host" id="fidunioSettingsHost-${group.id}" data-settings-owner="${group.id}"></div>`;\n' +
+  '    panels.appendChild(panel);\n' +
+  '  }\n' +
+  '  settings.prepend(shell);\n' +
+  '  updateSelection(shell);\n' +
+  '  return shell;\n' +
+  '}\n' +
+  'function collapseTechnicalCard(card,title){\n' +
+  '  if(!card||card.dataset.fidunioCollapsed==="1")return;\n' +
+  '  const heading=car'... 64305 more characters
+
+    at file:///home/runner/work/hermes/hermes/build/ios-native-notification-stack.test.mjs:27:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '/*\n' +
+    ' * FIDUNIO Settings lifecycle owner.\n' +
+    ' *\n' +
+    ' * MANDATORY OWNERSHIP CONTRACT (CODING-GUIDELINES.md):\n' +
+    ' * Resource owner: this module owns Settings structural layout and the late-added\n' +
+    ' * Profile, User Administration, and Invitations sections.\n' +
+    ' * Scope: only .content.settings, its named section hosts, and Settings-owned modals.\n' +
+    ' * Lifecycle trigger: app.js calls mountSettingsLifecycle() after every renderSettings().\n' +
+    ' * Serialized write path: all account/admin/invitation mutations pass through\n' +
+    ' * serializeSettingsMutation(). Reads are generation-gated so stale async work\n' +
+    ' * cannot write into a replaced Settings DOM.\n' +
+    ' */\n' +
+    'import {\n' +
+    '  getFidunioAccessInfo,\n' +
+    '  claimLegacyOwner,\n' +
+    '  updateFidunioProfile,\n' +
+    '  changeFidunioPassword,\n' +
+    '  listFidunioUsersForAdmin,\n' +
+    '  updateFidunioUserLifecycle,\n' +
+    '  getFidunioNotificationCapability,\n' +
+    '  getFidunioMessagingToken,\n' +
+    '  deleteFidunioMessagingToken,\n' +
+    '  getCloudNotificationDevice,\n' +
+    '  upsertCloudNotificationDevice,\n' +
+    '  updateCloudNotificationSenderName,\n' +
+    '  deleteCloudNotificationDevice,\n' +
+    '  claimCloudNotificationLease,\n' +
+    '  revokeCloudNotificationLease,\n' +
+    '  listCloudUsers,\n' +
+    '  getCloudUserProfile,\n' +
+    '  submitFidunioAbuseReport,\n' +
+    '  listFidunioAbuseReportsForAdmin,\n' +
+    '  resolveFidunioAbuseReport,\n' +
+    '  listFidunioBlockedUsers,\n' +
+    '  blockFidunioUser,\n' +
+    '  unblockFidunioUser,\n' +
+    '  requestFidunioAccountDeletion,\n' +
+    '  getFidunioAccountDeletionRequest,\n' +
+    '  cancelFidunioAccountDeletionRequest,\n' +
+    '  listFidunioAccountDeletionRequestsForAdmin,\n' +
+    '  updateFidunioAccountDeletionRequestForAdmin,\n' +
+    '  transferCloudSystemOwnership,\n' +
+    '} from "./firebase.js";\n' +
+    'import {createNotificationRegistrationOwner} from "./notification-registration.js";\n' +
+    'import {getOrCreateNotificationInstallationId} from "./notification-registration.js";\n' +
+    'import {createNotificationLeaseSession,FIDUNIO_NOTIFICATION_LEASE_ROLLOUT} from "./notification-lease-session.js";\n' +
+    'import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";\n' +
+    'import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";\n' +
+    'import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeAdminRecoveryAuthorization} from "./admin-recovery-client.js";\n' +
+    'import {mountInstallGuidance} from "./install-guidance.js";\n' +
+    'import {prepareSelfAccountDeletion} from "./account-deletion-service.js";\n' +
+    'import {completeSelfAccountDeletion} from "./account-deletion-finalize-client.js";\n' +
+    'import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";\n' +
+    'import {getLocalSecurityStatus,setLocalPin,verifyLocalPin} from "./local-security.js";\n' +
+    'import {mountSixDigitPinInput} from "./pin-input.js";\n' +
+    'import {fidunioPublicUrl,isNativeAndroidRuntime} from "./platform-runtime.js";\n' +
+    'import {confirmedNativeNotificationLease} from "./notification-native-status-policy.js";\n' +
+    'import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";\n' +
+    'import {\n' +
+    '  getNotificationPlatformCapabilities,\n' +
+    '  getNativeNotificationCapability,\n' +
+    '  requestNativeNotificationPermission,\n' +
+    '  getNativeMessagingToken,\n' +
+    '  deleteNativeMessagingToken,\n' +
+    '  subscribeNativeMessagingTokens,\n' +
+    '  getNativeNotificationLeasePlatform,\n' +
+    '  getNativeNotificationProvider,\n' +
+    '} from "./notification-platform-adapter.js";\n' +
+    '\n' +
+    'let mutationTail=Promise.resolve();\n' +
+    'let generation=0;\n' +
+    `function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}\n` +
+    'function initials(name){return String(name||"U").trim().split(/\\s+/).filter(Boolean).slice(0,2).map(x=>x[0]?.toUpperCase()||"").join("")||"U";}\n' +
+    'function prettyRole(role){return role==="owner"?"Owner":role==="admin"?"Administrator":"User";}\n' +
+    'function prettyAbuseCategory(category){return({"harassment":"Harassment or bullying","objectionable-content":"Objectionable content","spam-scam":"Spam or scam","impersonation":"Impersonation","other":"Other"})[String(category||"")]||"Report";}\n' +
+    'function profileStatus(p){if(p?.active===false)return p?.status||"deactivated";return p?.status||"active";}\n' +
+    'function dateText(v){const d=v?.toDate?.()||v;if(!d)return"—";try{return new Date(d).toLocaleString();}catch{return String(d);}}\n' +
+    'function guideUrl(){return fidunioPublicUrl("./quick-start.html").href;}\n' +
+    `function inviteSubject(){return "You're invited to join FIDUNIO";}\n` +
+    'function inviteMessage(invite){const inviter=invite.invitedByName||"A FIDUNIO administrator",role=invite.role==="admin"?"Admin":"User";return `You\'re invited to FIDUNIO — Private Messaging\\n\\n${inviter} has invited you to join FIDUNIO, an invitation-only private messaging app for one-to-one and group conversations.\\n\\nYour role: ${role}\\nInvitation expires: ${invite.expiresAt.toLocaleString()}\\n\\nJOIN FIDUNIO\\n${invite.link}\\n\\nThis invitation is personal and can be used only once. After your account is created, the invitation becomes invalid. Please do not forward the invitation link.\\n\\nQUICK START GUIDE\\n${guideUrl()}\\n\\nThe guide explains account setup, privacy and security basics, messaging, device identity, and PIN/biometric unlocking.\\n\\nFIDUNIO • Private Messaging`;}\n' +
+    'function recoveryLink(token){const url=fidunioPublicUrl("./account-recovery.html");url.searchParams.set("recovery",token);return url.href;}\n' +
+    'function recoverySubject(){return "FIDUNIO account recovery authorization";}\n' +
+    'function recoveryMessage(result){return `FIDUNIO Account Recovery\\n\\nAn administrator has authorized account recovery for ${result.targetDisplayName||result.targetEmail||"your FIDUNIO account"}.\\n\\nThis authorization expires ${new Date(result.expiresAtMs).toLocaleString()} and can be used only once.\\n\\nRECOVER ACCOUNT\\n${recoveryLink(result.token)}\\n\\nUse the recovery page to reset/sign in with your own account password and enter your existing six-digit FIDUNIO PIN. Your administrator does not receive your password, PIN, encryption key, messages, or attachments.\\n\\nFIDUNIO • Private Messaging`;}\n' +
+    '\n' +
+    'function serializeSettingsMutation(label,work){\n' +
+    '  const run=mutationTail.then(()=>work());\n' +
+    '  mutationTail=run.catch(err=>{console.warn(`Settings mutation failed: ${label}`,err);});\n' +
+    '  return run;\n' +
+    '}\n' +
+    '\n' +
+    'const GROUPS=[\n' +
+    '  {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},\n' +
+    '  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},\n' +
+    '  {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},\n' +
+    '  {id:"safety",label:"Safety",icon:"!",subtitle:"Report abusive behavior or objectionable content to FIDUNIO administrators."},\n' +
+    '  {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},\n' +
+    '  {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},\n' +
+    '  {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},\n' +
+    '  {id:"install",label:"Install",icon:"▣",subtitle:"Optional browser and Home Screen installation guidance."},\n' +
+    '  {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},\n' +
+    '  {id:"legal",label:"Legal & Support",icon:"ⓘ",subtitle:"Privacy, terms, support, safety, and account rights."},\n' +
+    '  {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}\n' +
+    '];\n' +
+    'const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","legal","about"];\n' +
+    'let activeGroup="profile";\n' +
+    'let mountedAccountVaultOwner=null;\n' +
+    '\n' +
+    'function directCards(settings){return[...settings.querySelectorAll(":scope > .card")];}\n' +
+    'function cardByTitle(settings,title){return directCards(settings).find(card=>card.querySelector("h2")?.textContent?.trim()===title)||null;}\n' +
+    'function updateSelection(shell){\n' +
+    '  shell.querySelectorAll(".fidunio-settings-nav-btn").forEach(btn=>{\n' +
+    '    const active=btn.dataset.group===activeGroup;\n' +
+    '    btn.classList.toggle("is-active",active);\n' +
+    '    btn.setAttribute("aria-current",active?"page":"false");\n' +
+    '  });\n' +
+    '  shell.querySelectorAll(".fidunio-settings-panel").forEach(panel=>panel.classList.toggle("is-active",panel.dataset.group===activeGroup));\n' +
+    '}\n' +
+    'function createShell(settings){\n' +
+    '  const shell=document.createElement("div");\n' +
+    '  shell.id="fidunioSettingsShell";\n' +
+    `  shell.innerHTML='<aside id="fidunioSettingsNav" aria-label="Settings sections"><h2>Settings</h2><div class="fidunio-settings-nav-list"></div></aside><div class="fidunio-settings-panels"></div>';\n` +
+    '  const nav=shell.querySelector(".fidunio-settings-nav-list");\n' +
+    '  for(const group of GROUPS){\n' +
+    '    const btn=document.createElement("button");\n' +
+    '    btn.type="button";btn.className="fidunio-settings-nav-btn";btn.dataset.group=group.id;\n' +
+    '    btn.innerHTML=`<span class="fidunio-settings-nav-icon" aria-hidden="true">${group.icon}</span><span>${group.label}</span><span class="fidunio-settings-nav-arrow" aria-hidden="true">›</span>`;\n' +
+    '    btn.onclick=()=>{activeGroup=group.id;updateSelection(shell);shell.querySelector(`#fidunioSettingsPanel-${group.id}`)?.scrollIntoView({block:"start"});};\n' +
+    '    nav.appendChild(btn);\n' +
+    '  }\n' +
+    '  const panels=shell.querySelector(".fidunio-settings-panels");\n' +
+    '  for(const id of PANEL_ORDER){\n' +
+    '    const group=GROUPS.find(g=>g.id===id);\n' +
+    '    const panel=document.createElement("section");\n' +
+    '    panel.id=`fidunioSettingsPanel-${group.id}`;panel.className="fidunio-settings-panel";panel.dataset.group=group.id;\n' +
+    '    panel.innerHTML=`<h2 class="fidunio-settings-panel-title">${esc(group.label)}</h2><p class="fidunio-settings-panel-subtitle">${esc(group.subtitle)}</p><div class="fidunio-settings-section-host" id="fidunioSettingsHost-${group.id}" data-settings-owner="${group.id}"></div>`;\n' +
+    '    panels.appendChild(panel);\n' +
+    '  }\n' +
+    '  settings.prepend(shell);\n' +
+    '  updateSelection(shell);\n' +
+    '  return shell;\n' +
+    '}\n' +
+    'function collapseTechnicalCard(card,title){\n' +
+    '  if(!card||card.dataset.fidunioCollapsed==="1")return;\n' +
+    '  const heading=car'... 64305 more characters,
+  expected: /\(\)=>"ios-native"/,
+  operator: 'match',
+  diff: 'simple'
+}
+
+Node.js v22.23.3

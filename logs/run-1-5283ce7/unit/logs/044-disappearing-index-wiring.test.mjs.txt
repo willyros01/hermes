@@ -1,0 +1,4 @@
+FILE disappearing-index-wiring.test.mjs
+EXIT 0
+Disappearing collection-group index wiring gate passed
+

@@ -1,0 +1,4 @@
+FILE ipad-rc-stabilization.test.mjs
+EXIT 0
+iPad RC stabilization ownership and accessibility gate passed
+

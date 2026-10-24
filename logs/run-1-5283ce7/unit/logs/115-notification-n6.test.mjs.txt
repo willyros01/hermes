@@ -1,0 +1,4 @@
+FILE notification-n6.test.mjs
+EXIT 0
+FCM N6 group notification single-owner and privacy integration gate passed
+

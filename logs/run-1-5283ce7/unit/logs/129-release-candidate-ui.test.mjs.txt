@@ -1,0 +1,4 @@
+FILE release-candidate-ui.test.mjs
+EXIT 0
+FIDUNIO release-candidate UI and lifecycle gate passes
+

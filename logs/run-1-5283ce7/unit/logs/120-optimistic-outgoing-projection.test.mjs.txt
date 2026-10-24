@@ -1,0 +1,4 @@
+FILE optimistic-outgoing-projection.test.mjs
+EXIT 0
+Group-only optimistic projection and direct-isolation gate passed
+

@@ -1,0 +1,12 @@
+FILE disappearing-purge-executor.test.mjs
+EXIT 0
+PASS direct eligible source commits once
+PASS direct unread source does not enter delete owner
+PASS group waits for each still-entitled original recipient
+PASS removed original recipient does not block group commit
+PASS stale repository basis fails closed and is not retried
+PASS one executor serializes direct and group purge attempts
+PASS executor requires explicit server time authority
+
+7/7 disappearing purge executor assertions passed.
+

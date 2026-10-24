@@ -1,0 +1,4 @@
+FILE notification-route-projection.test.mjs
+EXIT 0
+Notification route, latest-only projection, and deterministic newest-message gates passed
+

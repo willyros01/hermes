@@ -1,0 +1,20 @@
+FILE e2ee-account-group-service.test.mjs
+EXIT 0
+PASS group adapter delegates to central Firebase owner
+PASS group adapter does not initialize Firebase
+PASS adapter wires readCloudGroupAuthority
+PASS adapter wires getCloudAccountE2EEPublicKey
+PASS adapter wires createCloudGroupEpochRecord
+PASS adapter wires readCloudGroupEpochRecord
+PASS adapter wires sendCloudEncryptedGroupMessage
+PASS adapter wires readCloudRetainedGroupMessages
+PASS history source read requires a separate administrator-only server source
+PASS service uses sole group runtime
+PASS service uses durable account runtime identity
+PASS service has no device-identity dependency
+PASS runtime exposes queued epoch revalidation
+PASS runtime obtains history sources from transport authority
+PASS history grant API accepts intent plus optional runtime/testing grant ID, not caller source rows
+PASS runtime securely owns production history grant ID generation
+Group E2EE service ownership wiring passes
+

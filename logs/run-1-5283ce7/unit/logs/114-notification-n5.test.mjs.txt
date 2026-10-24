@@ -1,0 +1,4 @@
+FILE notification-n5.test.mjs
+EXIT 0
+FCM N5 data-only notification tap routing gate passed
+

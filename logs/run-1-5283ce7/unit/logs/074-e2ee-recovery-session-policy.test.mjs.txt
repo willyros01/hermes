@@ -1,0 +1,31 @@
+FILE e2ee-recovery-session-policy.test.mjs
+EXIT 0
+PASS session starts PENDING
+PASS session contains no supplemental verifier state
+PASS session lifetime is exactly 10 minutes
+PASS session starts with zero PIN failures
+PASS valid pending attempt allowed
+PASS wrong UID denied
+PASS changed keyId marks session stale
+PASS changed revision marks session stale
+PASS account hold blocks attempts at 10 failures
+PASS PIN attempt moves PENDING to VERIFYING before crypto
+PASS VERIFYING session cannot start a parallel attempt
+PASS VERIFYING session is not generally attempt-eligible
+PASS wrong PIN returns VERIFYING session to PENDING and increments counters
+PASS fifth wrong PIN locks session
+PASS locked session cannot continue
+PASS account failure counter persists independently
+PASS tenth account failure raises account hold flag
+PASS session expires at boundary
+PASS expired session attempt denied
+PASS successful verification moves VERIFYING to CONSUMED
+PASS consumed session cannot be reused
+PASS PENDING session cannot be consumed before verification reservation
+PASS PENDING session cannot register a failed PIN without verification reservation
+PASS successful recovery resets account failure counter
+PASS policy constants match binding spec
+PASS obsolete AUTHORIZED status is absent
+
+26/26 recovery session assertions passed.
+

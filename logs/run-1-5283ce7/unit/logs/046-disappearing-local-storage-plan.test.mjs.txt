@@ -1,0 +1,4 @@
+FILE disappearing-local-storage-plan.test.mjs
+EXIT 0
+PASS local physical purge wiring, exact retention, UID guard, serialization, no tombstone
+

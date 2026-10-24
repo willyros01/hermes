@@ -1,0 +1,4 @@
+FILE notification-priority-delivery.test.mjs
+EXIT 0
+Notification priority semaphore integration gate passed
+

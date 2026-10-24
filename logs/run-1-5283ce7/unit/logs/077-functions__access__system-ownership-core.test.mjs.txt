@@ -1,0 +1,4 @@
+FILE functions/access/system-ownership-core.test.mjs
+EXIT 0
+PASS: system ownership transfer requires current owner and active administrator
+

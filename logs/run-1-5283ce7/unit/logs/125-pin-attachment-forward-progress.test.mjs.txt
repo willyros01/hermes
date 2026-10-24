@@ -1,0 +1,4 @@
+FILE pin-attachment-forward-progress.test.mjs
+EXIT 0
+PIN and direct-attachment forward-progress gate passed
+

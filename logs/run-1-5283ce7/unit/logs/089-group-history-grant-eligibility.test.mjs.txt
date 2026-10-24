@@ -1,0 +1,7 @@
+FILE group-history-grant-eligibility.test.mjs
+EXIT 0
+PASS: grant source filters to current E2EE v4 group envelopes
+PASS: legacy-only selection fails clearly before Firestore write
+PASS: grant boundary still applies after eligibility filter
+Group history grant eligibility gate passed.
+

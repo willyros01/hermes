@@ -1,0 +1,6 @@
+FILE build/attachment-download-platform-adapter.test.mjs
+EXIT 0
+PASS: native bridge, unchanged web fetch, URL bounds, errors, size, timeout, abort and cache semantics
+PASS: web/native multi-chunk encrypted photo round trip and tamper rejection
+PASS: native encrypted video round trip across multi-megabyte chunk set
+

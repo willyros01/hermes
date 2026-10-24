@@ -1,0 +1,13 @@
+FILE build/firebase-platform-adapter.test.mjs
+EXIT 0
+PASS: Firebase platform adapter owns web reCAPTCHA Enterprise, native App Attest/DeviceCheck bridging, and standby fail-open bootstrap
+
+FIDUNIO App Check standby: native adapter unavailable; continuing because backend enforcement is OFF.
+FIDUNIO App Check standby: native initialization failed; continuing because backend enforcement is OFF. Error: native unavailable
+    at Object.initialize (file:///home/runner/work/hermes/hermes/build/firebase-platform-adapter.test.mjs:94:135)
+    at createPlatformFirebaseAppCheck (file:///home/runner/work/hermes/hermes/firebase-platform-adapter.js:46:22)
+    at file:///home/runner/work/hermes/hermes/build/firebase-platform-adapter.test.mjs:90:9
+FIDUNIO App Check standby: native token bridge failed; continuing because backend enforcement is OFF. Error: token unavailable
+    at Object.getToken (file:///home/runner/work/hermes/hermes/build/firebase-platform-adapter.test.mjs:104:156)
+    at createPlatformFirebaseAppCheck (file:///home/runner/work/hermes/hermes/firebase-platform-adapter.js:52:32)
+    at async file:///home/runner/work/hermes/hermes/build/firebase-platform-adapter.test.mjs:100:3

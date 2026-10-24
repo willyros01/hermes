@@ -1,0 +1,4 @@
+FILE account-vault.test.mjs
+EXIT 0
+Portable FIDUNIO Vault cryptography, binding, tamper rejection, cloud reconciliation, deletion convergence, and Outbox replay barriers pass
+

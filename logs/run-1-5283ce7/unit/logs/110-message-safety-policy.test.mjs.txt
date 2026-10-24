@@ -1,0 +1,4 @@
+FILE message-safety-policy.test.mjs
+EXIT 0
+PASS: local message safety policy blocks high-confidence abusive text before encryption without a server plaintext path
+

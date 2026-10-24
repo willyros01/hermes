@@ -1,0 +1,25 @@
+FILE e2ee-recovery-server-crypto.test.mjs
+EXIT 0
+PASS round trip returns same RUK
+PASS leading-zero PIN preserved in KDF context
+PASS AAD binds uid and keyId
+PASS same inputs derive same wrapping key
+PASS different PIN derives different key
+PASS different UID derives different key
+PASS different keyId derives different key
+PASS different master derives different key
+PASS wrong PIN cannot recover RUK
+PASS wrong UID cannot recover RUK
+PASS wrong keyId cannot recover RUK
+PASS wrong master cannot recover RUK
+PASS malformed PIN rejected
+PASS short RUK rejected
+PASS short master rejected
+PASS tampered wrappedRecoveryKey rejected
+PASS tampered IV rejected
+PASS wrong authority version rejected
+PASS wrong wrapping algorithm rejected
+PASS fresh wraps use different IV/ciphertext
+
+20/20 recovery crypto assertions passed.
+

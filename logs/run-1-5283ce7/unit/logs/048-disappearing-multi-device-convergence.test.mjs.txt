@@ -1,0 +1,4 @@
+FILE disappearing-multi-device-convergence.test.mjs
+EXIT 0
+Multi-device disappearing convergence gate passed
+

@@ -1,0 +1,4 @@
+FILE group-sender-label.test.mjs
+EXIT 0
+Group sender-label gate passed
+

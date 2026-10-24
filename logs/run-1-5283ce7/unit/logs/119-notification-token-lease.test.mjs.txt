@@ -1,0 +1,37 @@
+FILE notification-token-lease.test.mjs
+EXIT 1
+PASS 1 token registration creates one owner record bound to account, installation and token
+PASS 1b a too-short or missing token is rejected before any claim
+PASS 2 renewal issues a new lease, extends expiry, carries sender-name preference and fences the old lease
+PASS 2b lease length is 30 days, matching the inactive-retention period (user decision 2026-10-09)
+PASS 3 an unrenewed lease stops delivery exactly at expiry and renewal restores it
+PASS 4 logout revokes the exact lease at once, releases ownership and keeps the preference
+PASS 5a a hanging revoke is retried a bounded number of times and returns within the bound
+PASS 5b transient failures are retried and the revoke succeeds on a later attempt
+PASS 5c an unfinished turn-off is completed automatically at the next activation
+PASS 5d a revoke the server answers as superseded is final and is not retried
+PASS 6 cleanup removes only expired, 30-day-inactive leases and never an active one
+PASS 6b cleanup re-checks inside its transaction and skips a lease renewed after the query
+PASS 7 a second account on the same device takes the token; the first stops receiving at once
+PASS 7b a pre-lease (legacy) registration of another account cannot receive on a device whose lease was revoked
+PASS 7c policy: a leased registration without its owner record fails closed; foreign owner blocks legacy rows
+PASS 8 after A logs out, B claims the token; when A returns, ownership moves back cleanly
+PASS 8b FCM token rotation moves the lease to the new token and retires the old token owner
+PASS 9 per-account preference and per-installation sender name survive logout and app restart
+PASS 10b web registration owner: enable registers this browser, disable removes token and registration
+PASS 10c web sign-out fails safely (blocks) when the registration cannot be removed, and never hangs
+PASS 10d a legacy web registration and an iOS lease for the same account both deliver
+
+21 passed, 2 failed
+
+FAIL 9b Settings commits the lease preference only after the server confirms, otherwise rolls back
+  AssertionError [ERR_ASSERTION]: enable: rollback armed until claim succeeds
+    at file:///home/runner/work/hermes/hermes/notification-token-lease.test.mjs:294:10
+    at test (file:///home/runner/work/hermes/hermes/notification-token-lease.test.mjs:22:40)
+    at file:///home/runner/work/hermes/hermes/notification-token-lease.test.mjs:292:7
+FAIL 10a iOS sign-out is refused offline or when the server has not confirmed; a signed-out phone gets no notifications
+  AssertionError [ERR_ASSERTION]: native lease session reports the ios-native platform
+    at file:///home/runner/work/hermes/hermes/notification-token-lease.test.mjs:312:10
+    at test (file:///home/runner/work/hermes/hermes/notification-token-lease.test.mjs:22:40)
+    at file:///home/runner/work/hermes/hermes/notification-token-lease.test.mjs:303:7
+FAILED: 9b Settings commits the lease preference only after the server confirms, otherwise rolls back; 10a iOS sign-out is refused offline or when the server has not confirmed; a signed-out phone gets no notifications

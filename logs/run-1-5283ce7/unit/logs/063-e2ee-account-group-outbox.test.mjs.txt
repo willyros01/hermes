@@ -1,0 +1,14 @@
+FILE e2ee-account-group-outbox.test.mjs
+EXIT 0
+PASS: encrypted-local payload discriminator
+PASS: captures the initialized authority epoch rather than an undefined wrapper field
+PASS: persists normalized disappearing duration in encrypted Outbox payload
+PASS: forwards immutable duration on retry
+PASS: revalidates queued epoch
+PASS: repairs legacy null epochs against current server authority
+PASS: sends through group E2EE service
+PASS: serialized write path
+PASS: does not import Firebase
+PASS: does not own IndexedDB
+PASS: 10 group Outbox ownership assertions
+

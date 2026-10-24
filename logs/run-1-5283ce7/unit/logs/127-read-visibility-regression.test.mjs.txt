@@ -1,0 +1,4 @@
+FILE read-visibility-regression.test.mjs
+EXIT 0
+PASS: hidden direct Read blocked; visible direct Read written; group visibility and recovery wired.
+

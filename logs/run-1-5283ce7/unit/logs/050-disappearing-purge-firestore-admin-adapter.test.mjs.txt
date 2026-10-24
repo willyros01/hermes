@@ -1,0 +1,16 @@
+FILE disappearing-purge-firestore-admin-adapter.test.mjs
+EXIT 0
+PASS direct state derives recipient and opaque update-time basis
+PASS direct commit revalidates basis and physically deletes source
+PASS direct commit rejects stale message version without deletion
+PASS direct commit is idempotent when source already absent
+PASS group state derives complete authoritative trace plan
+PASS group commit atomically removes receipts copies empty grant and source while reconciling retained grant
+PASS group commit rejects stale basis before any trace mutation
+PASS group commit is idempotent after source absence
+PASS incomplete grant metadata blocks group purge planning
+PASS group physical delete is server-only and ready without client delete rules
+PASS adapter requires Admin Firestore capability but imports no Firebase SDK
+
+11/11 disappearing purge Firestore admin adapter assertions passed.
+

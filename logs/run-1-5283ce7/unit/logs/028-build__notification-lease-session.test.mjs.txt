@@ -1,0 +1,4 @@
+FILE build/notification-lease-session.test.mjs
+EXIT 0
+PASS: staged lease lifecycle, account preference retention, bounded offline logout
+

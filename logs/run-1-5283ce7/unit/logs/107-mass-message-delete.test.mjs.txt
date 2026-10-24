@@ -1,0 +1,4 @@
+FILE mass-message-delete.test.mjs
+EXIT 0
+Mass sender-owned direct and group message deletion wiring gate passed
+

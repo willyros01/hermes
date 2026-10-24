@@ -1,0 +1,4 @@
+FILE group-history-admin-ui.test.mjs
+EXIT 0
+Group earlier-history admin UI wiring passed
+

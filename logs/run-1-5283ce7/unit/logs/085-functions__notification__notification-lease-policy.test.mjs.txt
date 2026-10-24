@@ -1,0 +1,4 @@
+FILE functions/notification/notification-lease-policy.test.mjs
+EXIT 0
+PASS: lease expires, single current owner, generation fencing, inactive cleanup
+

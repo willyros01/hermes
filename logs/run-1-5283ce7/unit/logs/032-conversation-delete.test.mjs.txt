@@ -1,0 +1,4 @@
+FILE conversation-delete.test.mjs
+EXIT 0
+Permanent shared conversation deletion authority gate passed
+

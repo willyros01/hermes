@@ -1,0 +1,4 @@
+FILE invitation-letter-restoration.test.mjs
+EXIT 0
+Accepted full invitation letter restoration gate passed
+

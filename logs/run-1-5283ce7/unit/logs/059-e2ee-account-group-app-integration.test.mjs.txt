@@ -1,0 +1,27 @@
+FILE e2ee-account-group-app-integration.test.mjs
+EXIT 0
+PASS bridge delegates group send preparation with outer disappearing metadata
+PASS bridge persists only through injected encrypted Outbox callback
+PASS bridge flushes before Outbox removal
+PASS bridge rejects non-group Outbox payloads after compatibility normalization
+PASS bridge repairs legacy conversationId-only group payloads
+PASS bridge owns no Firebase
+PASS bridge owns no cryptography
+PASS bridge exposes bounded conversation open-close
+PASS bridge imports all delegated administration owners
+PASS bridge delegates administration through controller
+PASS bridge exposes intent-only history grant
+PASS sign-out reset reaches group messaging owner
+
+12/12 bounded group app-integration assertions passed.
+PASS legacy conversationId-only payload normalizes to groupId
+
+FIDUNIO local security config read failed ReferenceError: indexedDB is not defined
+    at file:///home/runner/work/hermes/hermes/local-security.js:22:174
+    at new Promise (<anonymous>)
+    at openDb (file:///home/runner/work/hermes/hermes/local-security.js:22:26)
+    at readStoredConfig (file:///home/runner/work/hermes/hermes/local-security.js:28:54)
+    at file:///home/runner/work/hermes/hermes/local-security.js:29:23
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)

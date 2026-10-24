@@ -1,0 +1,4 @@
+FILE disappearing-attachment-activation.test.mjs
+EXIT 0
+Disappearing attachment activation wiring gate passed
+

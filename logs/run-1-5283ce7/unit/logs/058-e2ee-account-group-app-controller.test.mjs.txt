@@ -1,0 +1,16 @@
+FILE e2ee-account-group-app-controller.test.mjs
+EXIT 0
+PASS controller uses group Outbox owner
+PASS controller uses group conversation owner
+PASS controller serializes send preparation and flush
+PASS controller serializes intent-only history grant
+PASS controller does not import Firebase
+PASS controller does not own IndexedDB
+PASS controller does not own crypto
+PASS controller recognizes recoverable group Outbox records by bounded identity
+PASS sign-out reset clears group messaging owners
+PASS app uses bounded real group administration bridge
+PASS app restores legacy groupId from authoritative Outbox conversation identity
+
+11/11 app group ownership assertions passed.
+

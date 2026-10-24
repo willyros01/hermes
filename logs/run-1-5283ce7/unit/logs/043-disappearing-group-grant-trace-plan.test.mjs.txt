@@ -1,0 +1,12 @@
+FILE disappearing-group-grant-trace-plan.test.mjs
+EXIT 0
+PASS single-copy grant is deleted with source copy
+PASS multi-copy grant is reconciled and earliest retained source becomes metadata first
+PASS unrelated grants remain untouched
+PASS multiple affected grants produce deterministic plan
+PASS metadata-copy count mismatch fails closed
+PASS cross-group copy fails closed
+PASS duplicate source copies fail closed
+
+7/7 group disappearing grant trace plan assertions passed.
+

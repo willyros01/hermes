@@ -1,0 +1,4 @@
+FILE group-subscription-error-recovery.test.mjs
+EXIT 0
+PASS: recovered group subscription clears only its scoped stale error
+

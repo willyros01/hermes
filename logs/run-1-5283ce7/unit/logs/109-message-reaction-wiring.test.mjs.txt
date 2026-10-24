@@ -1,0 +1,4 @@
+FILE message-reaction-wiring.test.mjs
+EXIT 0
+Message reaction wiring tests passed
+

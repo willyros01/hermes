@@ -1,0 +1,4 @@
+FILE disappearing-purge-write-bound.test.mjs
+EXIT 0
+Group purge transaction write-bound gate passed
+

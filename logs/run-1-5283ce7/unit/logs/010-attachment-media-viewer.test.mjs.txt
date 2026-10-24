@@ -1,0 +1,4 @@
+FILE attachment-media-viewer.test.mjs
+EXIT 0
+PASS: photo and video attachments can open in the shared large media viewer
+

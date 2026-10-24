@@ -1,0 +1,4 @@
+FILE audio-source-recorder.test.mjs
+EXIT 0
+Audio source chooser and recorder gate passed
+

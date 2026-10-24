@@ -1,0 +1,4 @@
+FILE notification-n2-foundation.test.mjs
+EXIT 0
+FCM N2 ownership foundation gate passed
+

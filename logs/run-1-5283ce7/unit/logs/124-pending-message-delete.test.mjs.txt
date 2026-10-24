@@ -1,0 +1,4 @@
+FILE pending-message-delete.test.mjs
+EXIT 0
+Pending encrypted-Outbox message deletion gate passed
+

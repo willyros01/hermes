@@ -1,0 +1,4 @@
+FILE disappearing-compose-policy.test.mjs
+EXIT 0
+Disappearing compose policy/UI wiring gate passed
+

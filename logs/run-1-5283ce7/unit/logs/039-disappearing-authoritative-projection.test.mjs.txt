@@ -1,0 +1,4 @@
+FILE disappearing-authoritative-projection.test.mjs
+EXIT 0
+Authoritative disappearing projection convergence gate passed
+

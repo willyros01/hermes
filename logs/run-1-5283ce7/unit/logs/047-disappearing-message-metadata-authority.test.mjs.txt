@@ -1,0 +1,15 @@
+FILE disappearing-message-metadata-authority.test.mjs
+EXIT 0
+PASS canonical metadata field
+PASS direct Firebase writer normalizes selection
+PASS group Firebase writer keeps duration and activation marker outside envelope
+PASS group runtime forwards separate disappearing metadata
+PASS group Outbox persists duration
+PASS direct encrypted Outbox persists duration
+PASS direct reconnect forwards duration
+PASS direct rules bound optional duration
+PASS group rules bound optional duration
+PASS crypto envelopes unchanged
+
+10/10 disappearing message metadata authority assertions passed.
+

@@ -1,0 +1,4 @@
+FILE outbox-reconciliation-boundary.test.mjs
+EXIT 0
+Bounded Firebase Outbox reconciliation gate passed
+

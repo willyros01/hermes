@@ -1,0 +1,23 @@
+FILE e2ee-recovery-firestore-admin-adapter.test.mjs
+EXIT 0
+PASS declares server-only recovery collections
+PASS identity repo reads durable account identity
+PASS missing account failure record reads zero
+PASS createSession creates server-owned session once
+PASS duplicate session create denied
+PASS readSession returns stored session
+PASS beginPinAttempt atomically reserves PENDING session
+PASS parallel beginPinAttempt is rejected
+PASS failed PIN increments session and account atomically and returns PENDING
+PASS fifth failed PIN persists LOCKED
+PASS tenth account failure persists hold
+PASS failed PIN cannot be recorded without VERIFYING reservation
+PASS stale session PIN counter update rejected
+PASS stale account PIN counter update rejected
+PASS consume requires VERIFYING and resets account failures
+PASS PENDING session cannot be consumed
+PASS session immutable UID cannot change
+PASS no supplemental persistence API remains
+
+18/18 recovery Firestore persistence assertions passed.
+

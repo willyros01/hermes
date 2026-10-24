@@ -1,0 +1,11 @@
+FILE attachment-phase-closeout.test.mjs
+EXIT 0
+PASS receive decrypts only after integrity checks
+PASS object URLs revoked
+PASS offline/account isolation
+PASS receipt is message-level only
+PASS purge enumerates every attachment trace and source last
+PASS purge has no client delete or tombstone
+PASS physical purge deletes storage and local traces before source
+PASS failed storage purge keeps source fail-closed
+

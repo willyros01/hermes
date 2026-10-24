@@ -1,0 +1,4 @@
+FILE build/invitation-universal-link.test.mjs
+EXIT 0
+PASS: one FIDUNIO invitation URL routes through native Universal Links or web fallback without duplicating invitation authority
+

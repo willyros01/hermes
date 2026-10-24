@@ -1,0 +1,4 @@
+FILE disappearing-purge-policy.test.mjs
+EXIT 0
+Disappearing purge policy tests passed
+

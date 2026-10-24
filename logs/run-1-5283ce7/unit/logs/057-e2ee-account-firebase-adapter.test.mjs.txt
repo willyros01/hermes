@@ -1,0 +1,16 @@
+FILE e2ee-account-firebase-adapter.test.mjs
+EXIT 0
+PASS adapter exposes only identity-store operations
+PASS readIdentity delegates exact uid
+PASS createIdentity delegates private and public records unchanged
+PASS updateNormalWrapper delegates keyId and expected revision
+PASS missing read API rejected
+PASS missing create API rejected
+PASS missing update API rejected
+PASS adapter module does not initialize Firebase
+PASS central firebase.js exports required bounded API
+PASS central create path uses one Firestore transaction
+PASS central normal update compares keyId and revision
+
+11/11 Firebase adapter contract assertions passed.
+

@@ -1,0 +1,15 @@
+FILE disappearing-read-authority.test.mjs
+EXIT 0
+PASS direct receipt write is transactional
+PASS direct first Read writes server timestamp
+PASS direct repeat Read preserves existing authority
+PASS direct bulk read delegates to authoritative writer
+PASS group receipt write is transactional
+PASS group first Read writes readAt with server authority
+PASS group repeat Read is a no-op
+PASS direct rules require first readAt request time
+PASS group rules require first readAt request time
+PASS rules reject sender-written direct receipt authority
+
+10/10 disappearing first-read authority assertions passed.
+

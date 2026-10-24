@@ -1,0 +1,4 @@
+FILE lte-optimistic-message.test.mjs
+EXIT 0
+LTE optimistic outgoing-message gate passed
+

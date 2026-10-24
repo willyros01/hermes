@@ -1,0 +1,4 @@
+FILE group-reply-policy.test.mjs
+EXIT 0
+Group reply descriptor policy passes
+

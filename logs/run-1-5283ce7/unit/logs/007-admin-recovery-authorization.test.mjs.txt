@@ -1,0 +1,4 @@
+FILE admin-recovery-authorization.test.mjs
+EXIT 0
+Admin-authorized recovery tests pass
+

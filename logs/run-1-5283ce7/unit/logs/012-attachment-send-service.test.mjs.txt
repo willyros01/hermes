@@ -1,0 +1,13 @@
+FILE attachment-send-service.test.mjs
+EXIT 0
+PASS photo stages before ciphertext upload and commit
+PASS photo upload contains no plaintext bytes field
+PASS file stages before ciphertext upload and commit
+PASS file upload contains no plaintext bytes field
+PASS audio stages before ciphertext upload and commit
+PASS audio upload contains no plaintext bytes field
+PASS video stages before ciphertext upload and commit
+PASS video upload contains no plaintext bytes field
+PASS oversize fails closed
+PASS failed upload retains encrypted Outbox
+

@@ -1,0 +1,4 @@
+FILE group-message-stream-lifecycle.test.mjs
+EXIT 0
+Group message stream terminal recovery gate passed
+

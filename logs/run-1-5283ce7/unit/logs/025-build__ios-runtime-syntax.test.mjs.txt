@@ -1,0 +1,4 @@
+FILE build/ios-runtime-syntax.test.mjs
+EXIT 0
+PASS: all 95 packaged JavaScript files parse before iOS packaging
+

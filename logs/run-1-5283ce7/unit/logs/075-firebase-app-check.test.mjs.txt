@@ -1,0 +1,157 @@
+FILE firebase-app-check.test.mjs
+EXIT 1
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /getIdToken\(true\)/. Input:
+
+'import {downloadPlatformAttachmentBytes} from "./attachment-download-platform-adapter.js";\n' +
+  'import {fidunioPublicUrl,FIDUNIO_INVITATION_WEB_LINK_BASE,isNativeAndroidRuntime} from "./platform-runtime.js";\n' +
+  'import {getPlatformFirebaseSdkVersion,createPlatformFirebaseAuth,createPlatformFirebaseAppCheck} from "./firebase-platform-adapter.js";\n' +
+  'import { firebaseConfig } from "./firebase-config.js";\n' +
+  'import { normalizeDisappearSelection } from "./disappearing-content-policy.js";\n' +
+  'import {assertInvitationUsable,normalizeInvitationRole,canIssueInvitation} from "./invitation-policy.js";\n' +
+  'import {createDirectMessageDeliveryOwner} from "./direct-message-delivery-owner.js";\n' +
+  'import {nextMessageReactions} from "./message-reaction-policy.js";\n' +
+  'import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";\n' +
+  '\n' +
+  '// Public reCAPTCHA Enterprise site key registered for FIDUNIO Web / willyros01.github.io.\n' +
+  '// This key is intentionally public and constrained by its Google Cloud configuration.\n' +
+  'export const FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY="6LfLaqstAAAAANNkEghVZ26a4vv8hXwC7KDI9rma";\n' +
+  'let sdkPromise=null;\n' +
+  'let services=null;\n' +
+  'let authUser=null;\n' +
+  'const messageStreams=new Map();\n' +
+  '\n' +
+  'export function isFirebaseConfigured(){return firebaseConfig&&!String(firebaseConfig.apiKey||"").includes("PASTE_")&&!String(firebaseConfig.projectId||"").includes("PASTE_")&&!String(firebaseConfig.appId||"").includes("PASTE_");}\n' +
+  'async function loadSdk(){if(sdkPromise)return sdkPromise;const version=getPlatformFirebaseSdkVersion();sdkPromise=Promise.all([import(`https://www.gstatic.com/firebasejs/${version}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-firestore.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-app-check.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-functions.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-storage.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-messaging.js`)]).then(([appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk])=>({appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk}));return sdkPromise;}\n' +
+  'async function ensureServices(){if(services)return services;if(!isFirebaseConfigured())throw new Error("Firebase is not configured yet.");const {appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk}=await loadSdk();const app=appSdk.initializeApp(firebaseConfig);const appCheck=await createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY});const auth=createPlatformFirebaseAuth({app,authSdk}),db=fsSdk.getFirestore(app),functions=functionsSdk.getFunctions(app,"us-central1"),storage=storageSdk.getStorage(app);services={app,appCheck,auth,db,functions,storage,authSdk,fsSdk,functionsSdk,storageSdk,messagingSdk,messaging:null};return services;}\n' +
+  'export async function initFirebase(onUserChanged){const s=await ensureServices();s.authSdk.onAuthStateChanged(s.auth,user=>{authUser=user||null;onUserChanged?.(authUser);});return s;}\n' +
+  'export function getFirebaseUser(){return authUser;}\n' +
+  'export async function ensureFirebaseAuthSession(){const s=await ensureServices(),user=s.auth.currentUser;if(!user||!authUser||user.uid!==authUser.uid)throw new Error("Firebase authentication session is unavailable.");await user.getIdToken();authUser=user;return{uid:user.uid};}\n' +
+  '\n' +
+  'async function ensureNotificationMessaging(){const s=await ensureServices();if(!(await s.messagingSdk.isSupported()))return null;if(!s.messaging)s.messaging=s.messagingSdk.getMessaging(s.app);return{s,messaging:s.messaging};}\n' +
+  'export async function getFidunioNotificationCapability(){if(typeof Notification==="undefined")return{supported:false,permission:"unsupported"};const pair=await ensureNotificationMessaging();return{supported:!!pair,permission:Notification.permission};}\n' +
+  'export async function getFidunioMessagingToken({vapidKey,serviceWorkerRegistration}={}){if(!authUser)throw new Error("Sign in first.");if(typeof Notification==="undefined"||Notification.permission!=="granted")throw new Error("Notification permission has not been granted.");const pair=await ensureNotificationMessaging();if(!pair)throw new Error("Notifications are not supported on this device/browser.");const key=String(vapidKey||"").trim();if(!key)throw new Error("FIDUNIO Web Push is not configured yet.");const options={vapidKey:key};if(serviceWorkerRegistration)options.serviceWorkerRegistration=serviceWorkerRegistration;return pair.s.messagingSdk.getToken(pair.messaging,options);}\n' +
+  'export async function deleteFidunioMessagingToken(){const pair=await ensureNotificationMessaging();if(!pair)return false;return pair.s.messagingSdk.deleteToken(pair.messaging);}\n' +
+  'function notificationDeviceId(value){const id=String(value||"").trim();if(id.length<8||id.length>128)throw new Error("Invalid notification installation ID.");return id;}\n' +
+  'function notificationPlatform(value){const platform=String(value||"");if(!["ios-native","android-native","android-adm","ios-pwa","ios-browser","android-browser","desktop-browser"].includes(platform))throw new Error("Invalid notification platform.");return platform;}\n' +
+  'export async function getCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return snap.exists()?{id:snap.id,...snap.data()}:null;}\n' +
+  'export async function upsertCloudNotificationDevice({installationId,fcmToken,platform,enabled=true,showSenderName=false}={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),token=String(fcmToken||"").trim(),kind=notificationPlatform(platform);if(token.length<20||token.length>4096)throw new Error("Invalid FCM registration token.");const ref=s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id),snap=await s.fsSdk.getDoc(ref),row={installationId:id,fcmToken:token,platform:kind,enabled:enabled===true,showSenderName:showSenderName===true,updatedAt:s.fsSdk.serverTimestamp(),lastSeenAt:s.fsSdk.serverTimestamp()};if(snap.exists())await s.fsSdk.updateDoc(ref,row);else await s.fsSdk.setDoc(ref,{...row,createdAt:s.fsSdk.serverTimestamp()});return{id,...row};}\n' +
+  'export async function updateCloudNotificationSenderName({installationId,showSenderName}={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),ref=s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id);await s.fsSdk.updateDoc(ref,{showSenderName:showSenderName===true,updatedAt:s.fsSdk.serverTimestamp(),lastSeenAt:s.fsSdk.serverTimestamp()});return{installationId:id,showSenderName:showSenderName===true};}\n' +
+  'export async function deleteCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId);await s.fsSdk.deleteDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return true;}\n' +
+  '\n' +
+  'async function callCloudFunction(name,data={}){\n' +
+  '  const s=await ensureServices();\n' +
+  '  if(!authUser)throw new Error("Sign in first.");\n' +
+  '  // Wire refreshes the Firebase ID token before writing its native push\n' +
+  "  // subscription. Fire's live lease claim logged auth/id-token-expired (401).\n" +
+  '  // Refresh only Android notification claims/revocations, preserving all\n' +
+  '  // other callables and client platform behavior.\n' +
+  '  if(isNativeAndroidRuntime()&&\n' +
+  '     (name==="claimNotificationLeaseV1"||name==="revokeNotificationLeaseV1")){\n' +
+  '    const user=s.auth.currentUser;\n' +
+  '    if(!user||user.uid!==authUser.uid)\n' +
+  '      throw new Error("Firebase notification account session is unavailable.");\n' +
+  '    await user.getIdToken(true);\n' +
+  '  }\n' +
+  '  const callable=s.functionsSdk.httpsCallable(s.functions,name);\n' +
+  '  const result=await callable(data);\n' +
+  '  return result.data;\n' +
+  '}\n' +
+  '// Notification lease v2 client transport. The rollout owner determines when to use it.\n' +
+  'export async function claimCloudNotificationLease({installationId,fcmToken,platform,showSenderName=false}={}){\n' +
+  '  return callCloudFunction("claimNotificationLeaseV1",{installationId,fcmToken,platform,showSenderName});\n' +
+  '}\n' +
+  'export async function revokeCloudNotificationLease({installationId,fcmToken,leaseId}={}){\n' +
+  '  return callCloudFunction("revokeNotificationLeaseV1",{installationId,fcmToken,leaseId});\n' +
+  '}\n' +
+  'export function enrollCloudE2EERecovery(data){return callCloudFunction("enrollRecoveryV1",data);}export function startCloudE2EERecovery(){return callCloudFunction("startE2EERecoveryV1",{});}export function completeCloudE2EERecovery(data){return callCloudFunction("completeE2EERecoveryV1",data);}\n' +
+  'export function deleteCloudDirectMessageForEveryone(conversationId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(conversationId||""),messageId:String(messageId||"")});}\n' +
+  'export function deleteCloudGroupMessageForEveryone(groupId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(groupId||""),messageId:String(messageId||""),messageKind:"group"});}\n' +
+  'export function deleteCloudMyMessagesForEveryone(conversationId,messageKind="direct"){return callCloudFunction("deleteMyMessagesForEveryoneV1",{conversationId:String(conversationId||""),messageKind:messageKind==="group"?"group":"direct"});}\n' +
+  'export function deleteCloudConversationForEveryone(conversationId,conversationKind="direct"){return callCloudFunction("deleteConversationForEveryoneV1",{conversationId:String(conversationId||""),conversationKind:conversationKind==="group"?"group":"direct"});}\n' +
+  'export function getCloudLegalAcceptance(){return callCloudFunction("getLegalAcceptanceV1",{});}\n' +
+  'export function acceptCloudLegalPolicy(data){return callCloudFunction("acceptLegalPolicyV1",data);}\n' +
+  'export function getCloudMyAccountDeletionRequest(){retu'... 60352 more characters
+
+    at file:///home/runner/work/hermes/hermes/firebase-app-check.test.mjs:40:8 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'import {downloadPlatformAttachmentBytes} from "./attachment-download-platform-adapter.js";\n' +
+    'import {fidunioPublicUrl,FIDUNIO_INVITATION_WEB_LINK_BASE,isNativeAndroidRuntime} from "./platform-runtime.js";\n' +
+    'import {getPlatformFirebaseSdkVersion,createPlatformFirebaseAuth,createPlatformFirebaseAppCheck} from "./firebase-platform-adapter.js";\n' +
+    'import { firebaseConfig } from "./firebase-config.js";\n' +
+    'import { normalizeDisappearSelection } from "./disappearing-content-policy.js";\n' +
+    'import {assertInvitationUsable,normalizeInvitationRole,canIssueInvitation} from "./invitation-policy.js";\n' +
+    'import {createDirectMessageDeliveryOwner} from "./direct-message-delivery-owner.js";\n' +
+    'import {nextMessageReactions} from "./message-reaction-policy.js";\n' +
+    'import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";\n' +
+    '\n' +
+    '// Public reCAPTCHA Enterprise site key registered for FIDUNIO Web / willyros01.github.io.\n' +
+    '// This key is intentionally public and constrained by its Google Cloud configuration.\n' +
+    'export const FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY="6LfLaqstAAAAANNkEghVZ26a4vv8hXwC7KDI9rma";\n' +
+    'let sdkPromise=null;\n' +
+    'let services=null;\n' +
+    'let authUser=null;\n' +
+    'const messageStreams=new Map();\n' +
+    '\n' +
+    'export function isFirebaseConfigured(){return firebaseConfig&&!String(firebaseConfig.apiKey||"").includes("PASTE_")&&!String(firebaseConfig.projectId||"").includes("PASTE_")&&!String(firebaseConfig.appId||"").includes("PASTE_");}\n' +
+    'async function loadSdk(){if(sdkPromise)return sdkPromise;const version=getPlatformFirebaseSdkVersion();sdkPromise=Promise.all([import(`https://www.gstatic.com/firebasejs/${version}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-auth.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-firestore.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-app-check.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-functions.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-storage.js`),import(`https://www.gstatic.com/firebasejs/${version}/firebase-messaging.js`)]).then(([appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk])=>({appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk}));return sdkPromise;}\n' +
+    'async function ensureServices(){if(services)return services;if(!isFirebaseConfigured())throw new Error("Firebase is not configured yet.");const {appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk}=await loadSdk();const app=appSdk.initializeApp(firebaseConfig);const appCheck=await createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY});const auth=createPlatformFirebaseAuth({app,authSdk}),db=fsSdk.getFirestore(app),functions=functionsSdk.getFunctions(app,"us-central1"),storage=storageSdk.getStorage(app);services={app,appCheck,auth,db,functions,storage,authSdk,fsSdk,functionsSdk,storageSdk,messagingSdk,messaging:null};return services;}\n' +
+    'export async function initFirebase(onUserChanged){const s=await ensureServices();s.authSdk.onAuthStateChanged(s.auth,user=>{authUser=user||null;onUserChanged?.(authUser);});return s;}\n' +
+    'export function getFirebaseUser(){return authUser;}\n' +
+    'export async function ensureFirebaseAuthSession(){const s=await ensureServices(),user=s.auth.currentUser;if(!user||!authUser||user.uid!==authUser.uid)throw new Error("Firebase authentication session is unavailable.");await user.getIdToken();authUser=user;return{uid:user.uid};}\n' +
+    '\n' +
+    'async function ensureNotificationMessaging(){const s=await ensureServices();if(!(await s.messagingSdk.isSupported()))return null;if(!s.messaging)s.messaging=s.messagingSdk.getMessaging(s.app);return{s,messaging:s.messaging};}\n' +
+    'export async function getFidunioNotificationCapability(){if(typeof Notification==="undefined")return{supported:false,permission:"unsupported"};const pair=await ensureNotificationMessaging();return{supported:!!pair,permission:Notification.permission};}\n' +
+    'export async function getFidunioMessagingToken({vapidKey,serviceWorkerRegistration}={}){if(!authUser)throw new Error("Sign in first.");if(typeof Notification==="undefined"||Notification.permission!=="granted")throw new Error("Notification permission has not been granted.");const pair=await ensureNotificationMessaging();if(!pair)throw new Error("Notifications are not supported on this device/browser.");const key=String(vapidKey||"").trim();if(!key)throw new Error("FIDUNIO Web Push is not configured yet.");const options={vapidKey:key};if(serviceWorkerRegistration)options.serviceWorkerRegistration=serviceWorkerRegistration;return pair.s.messagingSdk.getToken(pair.messaging,options);}\n' +
+    'export async function deleteFidunioMessagingToken(){const pair=await ensureNotificationMessaging();if(!pair)return false;return pair.s.messagingSdk.deleteToken(pair.messaging);}\n' +
+    'function notificationDeviceId(value){const id=String(value||"").trim();if(id.length<8||id.length>128)throw new Error("Invalid notification installation ID.");return id;}\n' +
+    'function notificationPlatform(value){const platform=String(value||"");if(!["ios-native","android-native","android-adm","ios-pwa","ios-browser","android-browser","desktop-browser"].includes(platform))throw new Error("Invalid notification platform.");return platform;}\n' +
+    'export async function getCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return snap.exists()?{id:snap.id,...snap.data()}:null;}\n' +
+    'export async function upsertCloudNotificationDevice({installationId,fcmToken,platform,enabled=true,showSenderName=false}={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),token=String(fcmToken||"").trim(),kind=notificationPlatform(platform);if(token.length<20||token.length>4096)throw new Error("Invalid FCM registration token.");const ref=s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id),snap=await s.fsSdk.getDoc(ref),row={installationId:id,fcmToken:token,platform:kind,enabled:enabled===true,showSenderName:showSenderName===true,updatedAt:s.fsSdk.serverTimestamp(),lastSeenAt:s.fsSdk.serverTimestamp()};if(snap.exists())await s.fsSdk.updateDoc(ref,row);else await s.fsSdk.setDoc(ref,{...row,createdAt:s.fsSdk.serverTimestamp()});return{id,...row};}\n' +
+    'export async function updateCloudNotificationSenderName({installationId,showSenderName}={}){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId),ref=s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id);await s.fsSdk.updateDoc(ref,{showSenderName:showSenderName===true,updatedAt:s.fsSdk.serverTimestamp(),lastSeenAt:s.fsSdk.serverTimestamp()});return{installationId:id,showSenderName:showSenderName===true};}\n' +
+    'export async function deleteCloudNotificationDevice(installationId){const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");const id=notificationDeviceId(installationId);await s.fsSdk.deleteDoc(s.fsSdk.doc(s.db,"users",authUser.uid,"notificationDevices",id));return true;}\n' +
+    '\n' +
+    'async function callCloudFunction(name,data={}){\n' +
+    '  const s=await ensureServices();\n' +
+    '  if(!authUser)throw new Error("Sign in first.");\n' +
+    '  // Wire refreshes the Firebase ID token before writing its native push\n' +
+    "  // subscription. Fire's live lease claim logged auth/id-token-expired (401).\n" +
+    '  // Refresh only Android notification claims/revocations, preserving all\n' +
+    '  // other callables and client platform behavior.\n' +
+    '  if(isNativeAndroidRuntime()&&\n' +
+    '     (name==="claimNotificationLeaseV1"||name==="revokeNotificationLeaseV1")){\n' +
+    '    const user=s.auth.currentUser;\n' +
+    '    if(!user||user.uid!==authUser.uid)\n' +
+    '      throw new Error("Firebase notification account session is unavailable.");\n' +
+    '    await user.getIdToken(true);\n' +
+    '  }\n' +
+    '  const callable=s.functionsSdk.httpsCallable(s.functions,name);\n' +
+    '  const result=await callable(data);\n' +
+    '  return result.data;\n' +
+    '}\n' +
+    '// Notification lease v2 client transport. The rollout owner determines when to use it.\n' +
+    'export async function claimCloudNotificationLease({installationId,fcmToken,platform,showSenderName=false}={}){\n' +
+    '  return callCloudFunction("claimNotificationLeaseV1",{installationId,fcmToken,platform,showSenderName});\n' +
+    '}\n' +
+    'export async function revokeCloudNotificationLease({installationId,fcmToken,leaseId}={}){\n' +
+    '  return callCloudFunction("revokeNotificationLeaseV1",{installationId,fcmToken,leaseId});\n' +
+    '}\n' +
+    'export function enrollCloudE2EERecovery(data){return callCloudFunction("enrollRecoveryV1",data);}export function startCloudE2EERecovery(){return callCloudFunction("startE2EERecoveryV1",{});}export function completeCloudE2EERecovery(data){return callCloudFunction("completeE2EERecoveryV1",data);}\n' +
+    'export function deleteCloudDirectMessageForEveryone(conversationId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(conversationId||""),messageId:String(messageId||"")});}\n' +
+    'export function deleteCloudGroupMessageForEveryone(groupId,messageId){return callCloudFunction("deleteDirectMessageForEveryoneV1",{conversationId:String(groupId||""),messageId:String(messageId||""),messageKind:"group"});}\n' +
+    'export function deleteCloudMyMessagesForEveryone(conversationId,messageKind="direct"){return callCloudFunction("deleteMyMessagesForEveryoneV1",{conversationId:String(conversationId||""),messageKind:messageKind==="group"?"group":"direct"});}\n' +
+    'export function deleteCloudConversationForEveryone(conversationId,conversationKind="direct"){return callCloudFunction("deleteConversationForEveryoneV1",{conversationId:String(conversationId||""),conversationKind:conversationKind==="group"?"group":"direct"});}\n' +
+    'export function getCloudLegalAcceptance(){return callCloudFunction("getLegalAcceptanceV1",{});}\n' +
+    'export function acceptCloudLegalPolicy(data){return callCloudFunction("acceptLegalPolicyV1",data);}\n' +
+    'export function getCloudMyAccountDeletionRequest(){retu'... 60352 more characters,
+  expected: /getIdToken\(true\)/,
+  operator: 'doesNotMatch',
+  diff: 'simple'
+}
+
+Node.js v22.23.3

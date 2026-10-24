@@ -1,0 +1,4 @@
+FILE attachment-image-compression.test.mjs
+EXIT 0
+Attachment image compression policy passed
+

@@ -1,0 +1,4 @@
+FILE direct-message-delivery-owner.test.mjs
+EXIT 0
+Direct-message priority delivery owner passed
+

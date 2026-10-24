@@ -1,0 +1,4 @@
+FILE startup-auth-resilience.test.mjs
+EXIT 0
+Startup and local PIN fail-closed resilience gate passed
+

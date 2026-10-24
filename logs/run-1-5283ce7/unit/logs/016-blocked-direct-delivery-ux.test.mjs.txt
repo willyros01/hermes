@@ -1,0 +1,4 @@
+FILE blocked-direct-delivery-ux.test.mjs
+EXIT 0
+PASS: blocked direct conversation, delivery and reaction denials are privacy-safe; rejected sends are terminal and not mislabeled as connectivity failures
+

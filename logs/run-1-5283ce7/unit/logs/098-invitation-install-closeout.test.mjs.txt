@@ -1,0 +1,27 @@
+FILE invitation-install-closeout.test.mjs
+EXIT 0
+PASS one invitation mutation owner
+PASS auth uses invitation owner
+PASS Join owns one complete account form
+PASS Sign In contains no PIN control
+PASS settings uses invitation owner
+PASS invitation mutations have no competing Settings queue
+PASS Firebase remains repository not second SDK owner
+PASS firebase delegates lifecycle validation to pure policy
+PASS invitation links use cross-platform Cuberoot route
+PASS invite policy guard status!=='pending'
+PASS invite policy guard already been used
+PASS invite policy guard expired
+PASS invite policy guard ['owner','admin']
+PASS invite policy guard ['user','admin']
+PASS redeem atomically associates profile to invitation
+PASS joined active profiles are discoverable
+PASS install owner has no invitation/account mutation
+PASS no automatic install prompt
+PASS manifest/icons foundation preserved
+PASS service worker stays semantic-free
+PASS Settings deterministic owner preserved
+PASS iPhone back/wrap assets preserved
+PASS two-pane architecture not replaced by install code
+PASS rejected invite-install implementation not restored
+

@@ -1,0 +1,4 @@
+FILE message-reaction-policy.test.mjs
+EXIT 0
+Message reaction policy tests passed
+
