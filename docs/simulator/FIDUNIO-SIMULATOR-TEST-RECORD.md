@@ -10,9 +10,9 @@
 
 1. Open [FIDUNIO Simulator Suite](https://github.com/willyros01/hermes/actions/workflows/simulator-suite.yml).
 2. Choose **Run workflow**, branch **`simulator-tests`**. Every push to the test harness also runs it automatically.
-3. Open the completed run. Check all five jobs, including any red jobs; do not infer success from the archive job alone.
+3. Open the completed run. Check all **six verification jobs**, including the new authenticated two-source functional stage; do not infer success from the archive job alone.
 4. Open [simulator-evidence](https://github.com/willyros01/hermes/tree/simulator-evidence/logs). Choose that run's `logs/run-N-SHA/REPORT.md` and the actual PNG captures. Job artifacts contain all raw assertions and build/emulator logs.
-5. Record the run number, source commits, five stage outcomes, and outstanding physical-device checks below or in a review issue. Never copy a prior run's PASS into a new run.
+5. Record the run number, source commits, all six stage outcomes, and outstanding physical-device checks below or in a review issue. Never copy a prior run's PASS into a new run.
 
 **No API keys, Firebase service account, Apple signing certificate, Android signing keystore, developer account, or real user's credentials are needed.** This suite refuses live Firebase endpoints. App builds are disposable simulator/debug binaries only.
 
@@ -22,6 +22,7 @@
 | --- | --- | --- |
 | Reviewed source regressions | 131 shared/Android test files plus four iOS-specific test files execute from their correct source branches with zero failed exits, preserving individual logs | Real two-user chat, real network, physical sensors |
 | Firebase rules emulator | 9 Firestore test files execute the repository's actual security rules against local demo Firestore | Deployed production rules or callable Cloud Functions behaving live |
+| **Authenticated FIDUNIO workflows (NEW)** | In both Android-shared Chromium and iOS-shared WebKit, fresh synthetic Owner/Admin/Users use the actual FIDUNIO client APIs to issue/redeem invitations, create direct and group records, exercise role boundaries, reactions, disappearing-message metadata, receipts, blocks, notification-device sender privacy, abuse reporting and user suspension against local Auth and Firestore | Physical/native chat screen rendering; real message cryptography (the transport envelope fixture is synthetic), APNs/ADM/FCM arrival, Cloud Function delivery and deletion |
 | Chromium and WebKit | 4 browser/source combinations exercise startup, Terms, invitation deep links, authentication validation, PIN/biometric mocks, IndexedDB/E2EE initialization, and recovery behavior | The physical iPhone lock sensor or APNs |
 | Android native simulator | Disposable Android app launches and traverses 7 pre-auth validation scenarios, with real PNG device captures | Amazon Fire HD ADM, notification receipt, real camera, signed APK installation |
 | iPhone native simulator | Disposable iOS app launches and traverses 7 pre-auth validation scenarios, with real PNG device captures | TestFlight signing, Face ID hardware, APNs receipt, real microphone/camera |
@@ -53,6 +54,65 @@ In this table **source** means regression checks; **rules** means genuine local 
 | Admin/owner permissions and account recovery | Source + Firestore rules where available | Authorized multi-role test accounts and functions |
 | Storage/rules isolation and security | Source + local Firestore emulator | Deployed Storage/Auth/App Check configuration |
 | App restart and return to Sign In | Browser + native pre-auth | Native signed production-package continuity |
+
+## Expanded exhaustive functionality register — requested coverage
+
+**The following are all separate checks.** `FN-NNN` identifies the new cross-user Auth/Firestore emulator API runner; source suites and Firebase rules have their own results. When a feature says *source*, it means code-level validation, **not** that it was exercised on a physical handset. The suite keeps `NOT VERIFIED` for capabilities requiring real hardware or providers. An FN case is **not** PASS until its latest GitHub run has actually finished green.
+
+| ID | Function or setting to verify | Automated evidence now available | Still NOT VERIFIED by simulation |
+| --- | --- | --- | --- |
+| A01 | Send User invitation: owner | FN-001/002, invitation-policy, invitation rules | Mail/message app sharing to recipient |
+| A02 | Send Admin invitation: owner | FN-002, invitation rules | Actual email/share recipients |
+| A03 | Send invitation: Admin, deny ordinary User | FN-003, invitation-policy | Native share sheet |
+| A04 | Consume invite; create Auth account and enrolled profile | FN-002, invitation rules | Real Join PIN/E2EE enrollment on hardware |
+| A05 | Reject reused, revoked, expired, invalid invite | FN-003, invitation-policy | Deep-link expiry on handset |
+| A06 | Invite Universal Link on Android/iOS | invitation-install-closeout, platform tests, pre-auth browser | Install→open→join on physical devices |
+| A07 | Sign-in, sign-out, wrong password, password visibility | FN-001, existing browser and source tests | Full account-vault roundtrip on device |
+| A08 | Forgot/change password, PIN/E2EE recovery | forgot-password-recovery, password-change-integration, account crypto tests | Email arrival and recovery after device change |
+| A09 | Legal terms: accept, refuse, reopening | native and browser journeys, legal-policy tests | Cross-install acceptance history |
+| A10 | PIN create/change/remove; inactivity lock | existing source/browser tests | Real background/resume and timing |
+| A11 | Face ID/biometric first, cancel, PIN fallback | biometric-unlock, iOS and browser mock tests | Physical Face ID/fingerprint sensor |
+| D01 | New direct chat, peer lookup and isolation | FN-004, firestore rules | Both users' fully rendered chat screen |
+| D02 | Direct E2EE v3 transport and ciphertext-only storage | FN-005 synthetic envelope, E2EE source/rules | Actual key agreement and decrypt on two devices |
+| D03 | Queued→Sent→Delivered→Read and visibility | FN-005, read-visibility-regression, receipt tests | Screen-minimized and real delivered UI |
+| D04 | Direct replies, message reply bubble | group-reply and direct-message source suites | Two signed-in device screens |
+| D05 | Emoji reactions: six allowed, change/remove, reject others | FN-005, reaction policy/rules | Tap picker and other person's live reaction view |
+| D06 | Delete for me, everyone; pending cancel | message-delete core, pending-message-delete, rules | Live callable deletion and remote result |
+| D07 | Delete/archive entire conversation, bulk delete | conversation-delete, mass-message-delete, rules | Cloud Function cleanup and UI after reload |
+| D08 | Block, denied delivery, unblock | FN-006, firestore-user-block, safety tests | Physical recipient push suppression |
+| D09 | Report abuse, administrator list/resolution | FN-011, firestore-abuse-report, display tests | Actual moderation UX and closeout |
+| G01 | New group: name, creator, at least two other users | FN-007, group-e2ee rules | Native member selector and chat UX |
+| G02 | Group-admin rename allowed, member rename denied | FN-008, group-e2ee rules | Native group info controls |
+| G03 | Add/remove member, admin/owner rules, rotate E2EE epoch | group-membership-lifecycle, group E2EE source/rules | End-to-end rotated key and revoked member access |
+| G04 | Owner cannot be removed/leave prematurely | FN-008, group E2EE source tests | Device group info permissions |
+| G05 | Group encrypted send/receive | FN-009 synthetic envelope, group crypto source/rules | Three-way actual decrypt/display |
+| G06 | Group Delivered/Read and reaction add/remove | FN-009, group receipt/reaction source/rules | Multi-device visibility receipt accuracy |
+| G07 | Group reply and sender name/time/date separators | group-reply, group-sender, group-date tests | Live visual conversation flow |
+| G08 | New member history starts at join; grant earlier history | group-history tests, group rules | Complete grant/decryption/re-key UX |
+| G09 | Leave group and former-member denial | group-membership source/rules | Native leave and push stop |
+| M01 | Set disappearing period independently per direct chat | FN-005 metadata, disappearing compose/preferences tests | Timed cross-device purge |
+| M02 | Set disappearing period independently per group | FN-009 metadata, disappearing compose/preferences tests | Timed cross-device purge |
+| M03 | Local and server expiry, queued messages, attachments | disappearing purge/reconnect/multi-device suites | Wall-clock expiry and cloud purge Function |
+| M04 | Photo gallery/camera, attachment compression | attachment-source and media viewer tests | Hardware picker/camera/image display |
+| M05 | Audio record/upload/playback | audio-source-recorder, attachment source tests | Physical microphone and player |
+| M06 | Video/file attach, share/download/save/open | attachment policy/source tests | Native picker and download destinations |
+| M07 | Offline outbox, LTE, reconnect, retry after restart | outbox and LTE suites | Airplane-mode test on real devices |
+| S01 | Appearance: Auto/Light/Dark with persistence | release-candidate-ui, settings lifecycle source checks | Real platform theme-change and restore |
+| S02 | Text sizes A/A+/A++ | release-candidate-ui, iPad UI source checks | Physical font/render accessibility |
+| S03 | Notification previews enabled/disabled | settings UI/source tests, notification policy | Actual lock-screen privacy |
+| S04 | Sender-name notification privacy toggle | FN-010, notification rules | APNs/ADM/FCM banner text on handset |
+| S05 | Notification device register, update, delete, account isolation | FN-010, notification rules | Physical token and lease confirmation |
+| S06 | Native notification lease/revoke, sign-out cleanup | lease/policy/source tests | Live callable + ADM/APNs provider reception |
+| S07 | Direct/group push, muted/background, tap→PIN/Face ID | notification route and core source tests | Real hardware provider and navigation |
+| S08 | Wi-Fi-only large attachments, cellular warning | large-attachment-network-policy tests | Wi-Fi/cellular detection on device |
+| S09 | Auto-lock timeout, lock now, PIN vs biometric | local-security source tests | Native background timing |
+| S10 | Signed-in profile name/email/password, version label | settings lifecycle, password tests, FN-001 | Profile UI/password email change end to end |
+| S11 | Admin user suspend/restore/expiry | FN-012, account access rules | Live admin console UX |
+| S12 | Owner transfer/admin recovery | system-ownership and admin-recovery suites | Live callable and new-owner login |
+| S13 | Self account deletion, cancellation, backend cleanup | account-deletion core/rules/wiring | Controlled full deletion Function |
+| S14 | Dark mode, app rotation, iPad layout, VoiceOver | iPad release UI source and browser tests | Physical iPhone, iPad and Fire tablet review |
+
+**Careful interpretation:** The new FN checks deliberately invoke the real application transport methods and actual local rules. Their message envelope values are *synthetic*; the separate encryption tests verify crypto logic. A real APNs/ADM notification or an actual disappearing-message purge is not inferred from a saved Firestore field. Every row's physical/remote column stays **NOT VERIFIED** until specifically signed off with that evidence.
 
 ## Reusable real-device acceptance checklist (not executed by this simulator)
 

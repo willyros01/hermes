@@ -7,11 +7,12 @@ fs.mkdirSync(root,{recursive:true});
 const stages=[
   ['unit','Reviewed functional and security regressions'],
   ['rules','Firebase emulator Firestore access rules'],
+  ['functional','Authenticated invite, direct, group, reactions and notification settings workflows'],
   ['browser','Browser-based native-mode UI journeys'],
   ['android','Android native simulator'],
   ['ios','iPhone native simulator']
 ];
-const jobByStage={unit:'reviewed-regressions',rules:'firebase-rules',browser:'browser-journeys',android:'native-android',ios:'native-ios'};
+const jobByStage={unit:'reviewed-regressions',rules:'firebase-rules',functional:'authenticated-flows',browser:'browser-journeys',android:'native-android',ios:'native-ios'};
 const needs=JSON.parse(process.env.FIDUNIO_NEEDS_JSON||'{}');
 const results=[];
 for(const [name,label] of stages){
@@ -54,6 +55,7 @@ const lines=[
   '',
   '## Interpretation','',
   '- Native device captures prove the specified pre-auth screens on disposable phone simulators, not full authenticated messaging.',
+  '- Authenticated flows exercise real exported app API transactions using disposable accounts and emulator rules; synthetic ciphertext is not an E2EE/decryption proof.',
   '- Firebase rules checks verify actual repository rules inside local emulators.',
   '- Existing source tests cover a wide range of E2EE, direct/group messages, attachments, deletion, retention, recovery, notification policy, settings, and platform boundaries.',
   '- A green script build is never treated as proof that APNs, Amazon ADM, physical biometrics, actual camera pickers, or real push-tap routing works.',

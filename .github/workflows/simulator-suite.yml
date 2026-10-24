@@ -89,6 +89,53 @@ jobs:
           retention-days: 90
           if-no-files-found: warn
 
+  authenticated-flows:
+    name: Real invite/direct/group/settings API transactions against demo Firebase
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: ios
+          path: ios-src
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare both disposable release-source copies and engines
+        run: |
+          set -Eeuo pipefail
+          npm ci --no-audit --no-fund
+          npm run ios:prepare
+          node build/simulator/patch-sandbox.mjs . android
+          npm --prefix ios-src ci --no-audit --no-fund
+          npm --prefix ios-src run ios:prepare
+          node build/simulator/patch-sandbox.mjs ios-src ios
+          npx playwright install --with-deps chromium webkit
+      - name: Authenticated API transactions with local Auth and Firestore rules
+        run: |
+          set -Eeuo pipefail
+          ./node_modules/.bin/firebase emulators:exec \
+            --config firebase.simulator.json \
+            --only auth,firestore,storage \
+            --project demo-fidunio-simulator-tests \
+            "bash build/simulator/run-functional-both.sh"
+      - name: Preserve complete Auth, invitation, direct/group and settings evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-sim-functional
+          path: out-fidunio/
+          retention-days: 90
+          if-no-files-found: warn
+
   browser-journeys:
     name: Chromium and WebKit, Android-shared and iOS-shared code
     runs-on: ubuntu-latest
@@ -254,7 +301,7 @@ jobs:
 
   archive:
     name: Preserve results and screenshots without touching release branches
-    needs: [reviewed-regressions, firebase-rules, browser-journeys, native-android, native-ios]
+    needs: [reviewed-regressions, firebase-rules, authenticated-flows, browser-journeys, native-android, native-ios]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
