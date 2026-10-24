@@ -1,0 +1,5 @@
+FILE biometric-unlock.test.mjs
+SOURCE Android
+EXIT 0
+FIDUNIO biometric unlock and Security-panel ownership gate passes
+

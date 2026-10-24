@@ -1,0 +1,5 @@
+FILE admin-recovery-wiring.test.mjs
+SOURCE Android
+EXIT 0
+Administrator-authorized recovery wiring gate passes
+
