@@ -222,7 +222,18 @@ try{
     await d.press('.fidunio-settings-nav-btn[data-group="safety"]');
     const bob=fixture.peers.find(x=>x.label==='Bob').uid;
     await wait(()=>present(`#blockUserSelect option[value="${bob}"]`),'blockable user directory',55000);
-    await d.fill('#blockUserSelect',bob);await d.press('#blockUserBtn');
+    await d.fill('#blockUserSelect',bob);
+    if(platform==='android'){
+      // The real Android app uses a native window.confirm() dialog here.
+      // Web Inspector pauses Runtime.evaluate while that OS dialog is open;
+      // accept it with OS accessibility/ADB, not by mocking confirm() in JS.
+      await Promise.all([
+        d.press('#blockUserBtn'),
+        (async()=>{await d.sleep(900);await d.tapText(/^OK$/);})(),
+      ]);
+    }else{
+      await d.press('#blockUserBtn');
+    }
     await wait(()=>present(`.unblockUserBtn[data-uid="${bob}"]`),'blocked user row',60000);
     await shot('native-user-blocked');
     await d.press(`.unblockUserBtn[data-uid="${bob}"]`);

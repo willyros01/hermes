@@ -4,7 +4,21 @@
 
 **Baseline:** `willyros01/hermes`, release source `Android` at `f6f56055e6b3faae01319cfa370402843973ccb0`; iPhone source is checked out read-only from current `ios` for each run. The exact `ios` checkout SHA and all runner SHAs are preserved by GitHub Actions. This test infrastructure is committed **only** to branch `simulator-tests`; the result archive is **only** branch `simulator-evidence`.
 
-**Status of this document:** A coverage and execution register. Actual GitHub runs now exist; the latest verified run and the earlier failures are documented below. Each run creates its own `REPORT.md`, detailed logs, and screenshots. Always use the archived run report as the authoritative outcome.
+**Status of this document:** A coverage and execution register. The native authenticated suite was added 24 October 2026. Run-level `REPORT.md`, native `auth/REPORT.md` and PNGs override any older PASS here. Do not treat the 7/7 native pre-auth passes as authentication, chat or Settings acceptance.
+
+## 24 October native authenticated test expansion
+
+The actual installed Android/iPhone apps now attempt authenticated UI journeys against disposable Firebase Auth, Firestore and Storage emulators. A separate, explicitly identified localhost substitute is required for `enrollRecoveryV1` because the suite does not deploy or impersonate the production Cloud Function. All operations run on synthetic accounts; production Firebase and release branches remain unchanged.
+
+New native checks `N01`–`N14` cover Join/PIN and account E2EE enrollment, invitation creation, native Settings text size and appearance, a genuine direct conversation and encrypted send, per-chat disappearance, emoji reaction, group create/send/admin/member addition, notification Settings display, block/unblock, and Settings navigation persistence. Each check is **PASS, FAIL, or BLOCKED** according to the actual installed-app outcome, with on-device screenshots. They are not an exhaustive substitute for multi-device and physical provider tests.
+
+| Execution | Native Android evidence | Native iPhone evidence |
+| --- | --- | --- |
+| [Run 9 — 40132730917](https://github.com/willyros01/hermes/actions/runs/40132730917) | Pre-auth 7/7 PASS. Native Join **FAIL: Firestore client offline**, then remaining N03–N11 BLOCKED. Network security settings in disposable debug app suspected. | Pre-auth 7/7 PASS. Account credentials accepted, then **FAIL: “The object can not be cloned.”** in secure messaging startup; remaining N03–N11 BLOCKED. |
+| [Run 10 — 40133796256](https://github.com/willyros01/hermes/actions/runs/40133796256) | Disposable Android cleartext emulator networking corrected: N01–N10 **PASS**, including genuine ciphertext-only direct/group writes and invite creation. N11 **FAIL due to a test-script extra Back press**; not an observed app defect. | Pre-auth 7/7 PASS; new authenticated N01 startup **FAIL: “Sign-in could not be loaded”**. Earlier run 9 secure-key cloning failure remains open. |
+| [Run 11 — 40134350042](https://github.com/willyros01/hermes/actions/runs/40134350042) | N01–N12 **PASS**, covering Join, direct/group send, group member addition and Settings; N13 **FAIL at native OS confirmation dialog** after the WebView driver waited 20 seconds; N14 BLOCKED. Screenshot proves the dialog was awaiting a user tap. The test-only driver has been corrected; retest pending. | Pre-auth S1/S2 PASS, S3 **FAIL** at Sign In after Terms. In the independent authenticated run N01 PASS; N02 **FAIL** after credentials accepted: “The object can not be cloned.” N03–N14 BLOCKED. |
+
+Review [the archived simulator run index](https://github.com/willyros01/hermes/tree/simulator-evidence/logs) for timestamps, native screen captures and full distinction between passing, failing and unexecuted steps. Further reruns must not overwrite failure history.
 
 ## How to run
 
@@ -24,33 +38,33 @@
 | Firebase rules emulator | 9 Firestore test files execute the repository's actual security rules against local demo Firestore | Deployed production rules or callable Cloud Functions behaving live |
 | **Authenticated FIDUNIO workflows (NEW)** | In both Android-shared Chromium and iOS-shared WebKit, fresh synthetic Owner/Admin/Users use the actual FIDUNIO client APIs to issue/redeem invitations, create direct and group records, exercise role boundaries, reactions, disappearing-message metadata, receipts, blocks, notification-device sender privacy, abuse reporting and user suspension against local Auth and Firestore | Physical/native chat screen rendering; real message cryptography (the transport envelope fixture is synthetic), APNs/ADM/FCM arrival, Cloud Function delivery and deletion |
 | Chromium and WebKit | 4 browser/source combinations exercise startup, Terms, invitation deep links, authentication validation, PIN/biometric mocks, IndexedDB/E2EE initialization, and recovery behavior | The physical iPhone lock sensor or APNs |
-| Android native simulator | Disposable Android app launches and traverses 7 pre-auth validation scenarios, with real PNG device captures | Amazon Fire HD ADM, notification receipt, real camera, signed APK installation |
-| iPhone native simulator | Disposable iOS app launches and traverses 7 pre-auth validation scenarios, with real PNG device captures | TestFlight signing, Face ID hardware, APNs receipt, real microphone/camera |
+| Android native simulator | 7 pre-auth validations plus a separately scored authenticated UI journey against genuine local Firestore rules. Run 11 passed N01–N12. | Amazon Fire HD ADM, notification receipt, real camera, signed APK installation, two-device decrypt; N13–N14 still unverified |
+| iPhone native simulator | Native pre-auth and independently scored authenticated UI steps. Run 11 verified a real native secure messaging startup error **after credentials were accepted**; later signed-in features are blocked. | TestFlight signing, Face ID hardware, APNs receipt, real microphone/camera; secure messaging not usable in this disposable simulator fixture |
 
 ## Functionality inventory
 
-In this table **source** means regression checks; **rules** means genuine local Firebase rules; **browser** means browser-rendered UI simulation; **native pre-auth** means installed app on a simulator. A function's full real-world acceptance remains **NOT VERIFIED** until the relevant end-to-end/physical-device evidence exists. Rows do not imply an automatic PASS.
+In this table **source** means regression checks; **rules** means genuine local Firebase rules; **browser** means browser-rendered UI simulation; **native pre-auth** means installed app before login; **native authenticated** means the test actually operated the installed app while signed in, with the run-specific PASS/FAIL. A function's full real-world acceptance remains **NOT VERIFIED** until relevant two-party or physical-device evidence exists. Rows do not imply an automatic PASS.
 
 | FIDUNIO function | Automated coverage | Remaining end-to-end acceptance |
 | --- | --- | --- |
 | Terms of Use acceptance, refusal, persistence | Source + browser + both native pre-auth | Repeated install/update behavior on owned devices |
 | Sign In, password visibility, Forgot Password validation | Source + browser + both native pre-auth | Real sign-in and real reset email |
-| Invite code, Join, six-digit PIN enrollment | Source + browser + both native pre-auth | Actual invited second account enrollment |
+| Invite code, Join, six-digit PIN enrollment | Source + browser + native authenticated N02 (Android run 10 PASS, iPhone run 9 FAIL) | Repeated cross-platform account recovery and two-device enrollment |
 | PIN unlock, app background/foreground, timeout | Source + browser mocked biometric fallback | Hardware PIN and lock-on-resume on iOS/Fire |
 | Face ID/biometric-first, fallback to PIN | Source + browser plugin simulation | Actual Face ID/fingerprint success and cancellation |
 | Local identity, E2EE enrollment and recovery | Source + browser local crypto/IndexedDB | Two-device verified message decryption and cloud recovery |
-| Direct chat send, queued/sent/read, visibility | Source + Firestore rules | Two physical accounts, online/offline and background |
-| Group creation, membership and shared history | Source + Firestore rules | Multiple accounts and devices, membership transitions |
-| Direct and group E2EE and ciphertext-only writes | Source + Firestore rules | Peer-to-peer message display and delivery |
+| Direct chat send, queued/sent/read, visibility | Source + Firestore rules + Android native N05/N06 encrypted send | Two physical accounts, Read visibility, online/offline and background |
+| Group creation, membership and shared history | Source + Firestore rules + Android native N09/N10 group create/send | Multiple accounts and devices, history grant and membership transitions |
+| Direct and group E2EE and ciphertext-only writes | Source + Firestore rules + Android native N06/N10 local Firebase ciphertext checks | Peer-to-peer message decryption and live delivery |
 | Attachments: photo, video, audio, files | Source crypto/transport and policy tests | Real picker, recording, upload, decrypt, playback |
 | Attachment offline/reconnect and Wi-Fi-only limit | Source | Physical Wi-Fi/cellular/Fire behavior |
 | Offline Outbox, restart, replay and reconciliation | Source | Physical airplane-mode recovery and multi-device reconciliation |
-| Message reaction, reply, delete for me/everyone | Source + Firestore rules for relevant authorization | Multiple physical participants confirming visibility |
+| Message reaction, reply, delete for me/everyone | Source + Firestore rules + native Android N08 emoji reaction | Multiple physical participants confirming reaction visibility, reply and delete |
 | Conversation deletion, self-service account deletion | Source + Firestore rules | Coordinated backend cleanup on nonproduction test accounts |
-| Disappearing messages and attachments | Source + rules | Multi-device elapsed-time persistence and purge |
+| Disappearing messages and attachments | Source + rules + Android native N07 duration selector | Multi-device elapsed-time persistence and purge |
 | Block/unblock, abuse reporting | Source | Blocked recipient on real second account and reporting moderation |
 | Notifications and lease safety, sender privacy | Source + platform adapter assertions | APNs, FCM and Amazon ADM delivery, notification tap-to-PIN |
-| Large fonts, accessibility, light/dark settings | Source UI/settings checks | Device rendering, VoiceOver/TalkBack, persistence |
+| Large fonts, accessibility, light/dark settings | Source UI/settings checks + Android native N03 text/theme switches | VoiceOver/TalkBack and app-restart persistence |
 | Admin/owner permissions and account recovery | Source + Firestore rules where available | Authorized multi-role test accounts and functions |
 | Storage/rules isolation and security | Source + local Firestore emulator | Deployed Storage/Auth/App Check configuration |
 | App restart and return to Sign In | Browser + native pre-auth | Native signed production-package continuity |
@@ -146,7 +160,7 @@ The report must distinguish automated test exit status from **readable screen ev
 
 The suite switched **only the disposable runner** from Google APIs Pixel system images to standard Android API 34 AOSP for native UI testing. It resolved the host screenshot obstruction in run 40116773536.
 
-## Latest verified execution
+## Earlier five-stage pre-auth baseline (historical, not current)
 
 | Required detail | Value from the current run |
 | --- | --- |
@@ -160,10 +174,14 @@ The suite switched **only the disposable runner** from Google APIs Pixel system 
 | Chromium/WebKit browser journeys | **PASS: 4/4 browser/source combinations, 36 PASS markers, 16 PNG captures** |
 | Android native UI/screenshot evidence | **PASS: 7/7 scenarios, 10 unobstructed PNG captures** |
 | iPhone native UI/screenshot evidence | **PASS: 7/7 scenarios, 10 PNG captures** |
-| Open functional defects | No simulated functional assertion failed in run 40116773536; hardware tests remain unverified |
+| Open functional defects at that time | No simulated functional assertion failed in the **earlier pre-auth-only** run 40116773536; subsequent native authenticated runs reproduced iOS failures |
 | Real-device acceptance | NOT VERIFIED by this suite |
 
 **Full saved evidence:** [run 5 record](https://github.com/willyros01/hermes/blob/simulator-evidence/logs/run-5-d0e52c0/REPORT.md) and its `unit/`, `rules/`, `browser/`, `android/`, and `ios/` folders. For transparency, the earlier failed native screenshot run remains archived.
+
+**Current exhaustive native run:** [run 11 — 40134350042](https://github.com/willyros01/hermes/actions/runs/40134350042), test SHA `e515bb9`, supersedes the five-stage baseline above for authenticated behavior. Six CI jobs: source regressions PASS; Firebase rules PASS; browser PASS; real authenticated API journeys PASS; Android native FAIL (12 PASS, 1 fail from OS confirmation-driver deadlock, 1 blocked); iPhone native FAIL (secure-messaging clone error after credentials accepted, all later steps blocked). The iPhone pre-auth S3 also timed out after accepting Terms. **Current release-readiness result: NOT ACCEPTED.**
+
+**Reproducible iPhone defect evidence:** Native app accepted email and password, but its subsequent startup displayed “FIDUNIO could not finish opening secure messaging” and “The object can not be cloned.” It appeared in independent run 9 and run 11. The likely CryptoKey→IndexedDB structured-clone boundary is a hypothesis requiring a separate authorized diagnostic/fix, not a proven root cause. No protected application branch was changed.
 
 **Manual layout observation:** On the iPhone's initial Terms screenshot, the upper portion of the emblem appears partly obscured near the Dynamic Island. No automated functional test failed; this is flagged for an iPhone/iPad safe-area appearance review, **not diagnosed as a code defect**. Do not adjust a protected release branch without separate authorization.
 
