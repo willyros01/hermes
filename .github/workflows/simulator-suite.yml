@@ -17,7 +17,9 @@ permissions:
 
 concurrency:
   group: fidunio-isolated-simulator-suite
-  cancel-in-progress: false
+  # The latest disposable diagnostic run supersedes an older stalled suite;
+  # prior screenshots and artifacts remain downloadable from those run IDs.
+  cancel-in-progress: true
 
 jobs:
   reviewed-regressions:
