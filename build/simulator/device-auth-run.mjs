@@ -93,7 +93,9 @@ try{
     const identity=await readDoc('users/'+invite.acceptedUid+'/e2ee/identity');
     if(!identity)throw new Error('No genuine native E2EE identity in emulator');
     await shot('native-authenticated-messages');
-    return 'Admin invitation accepted; real Auth profile and account E2EE identity created in local Firebase';
+    const volatileKeyFallback=platform==='ios'&&await expr('globalThis.FIDUNIO_SIMULATOR_ONLY_IDB_KEY_FALLBACK===true');
+    if(volatileKeyFallback)log('  SIMULATOR-ONLY iPhone volatile CryptoKey fallback was used; IndexedDB key persistence/restart NOT VERIFIED');
+    return 'Admin invitation accepted; real Auth profile and account E2EE identity created in local Firebase'+(volatileKeyFallback?' (iPhone volatile key-cache workaround used)':'');
   },{requires:t1});
   const me=(await readDoc('invitations/'+fixture.inviteId))?.acceptedUid;
   const t3=await test('N03','Change actual native Settings: A++, Dark, and preview option',async()=>{

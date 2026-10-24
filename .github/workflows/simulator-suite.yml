@@ -273,6 +273,10 @@ jobs:
             node ../build/simulator/patch-sandbox.mjs . ios
             npx cap add ios
             npx cap sync ios
+            # Test-only generated asset: recover from simulator WebKit's
+            # nonextractable CryptoKey structured-clone limitation. The real
+            # ios branch and actual release builds remain untouched.
+            node ../build/simulator/patch-ios-key-clone.mjs ios/App/App/public
             plutil -replace NSFaceIDUsageDescription -string 'Test FIDUNIO simulator PIN and biometric UI' ios/App/App/Info.plist
             UDID="$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const all=Object.entries(d).filter(([rt])=>/iOS/.test(rt)).flatMap(([,list])=>list);const pick=all.reverse().find(x=>/^iPhone \d+$/.test(x.name));if(!pick)process.exit(1);console.log(pick.udid)')"
             echo "UDID=$UDID" >> "$GITHUB_ENV"
