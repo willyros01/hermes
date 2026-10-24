@@ -295,7 +295,10 @@ try{
     await page.locator('#settingsBtn').click();
     await page.locator('#fidunioSettingsShell').waitFor({state:'visible',timeout:30000});
     await page.screenshot({path:path.join(out,'settings-before.png'),fullPage:true});
-    await page.locator('.fidunio-settings-nav-btn[data-group="general"]').click();
+    // The section sidebar exists but is intentionally hidden below 900px;
+    // on phones the General cards are stacked and already visible.
+    const generalNav=page.locator('.fidunio-settings-nav-btn[data-group="general"]');
+    if(await generalNav.isVisible())await generalNav.click();
     await page.locator('.text-size-btn[data-text-size="xlarge"]').click();
     assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('text-aplusplus')),true);
     await page.locator('.appearance-btn[data-appearance="dark"]').click();
@@ -362,14 +365,14 @@ try{
     '- Test accounts: synthetic and disposable; no production credentials',
     '- Tests invoke actual exported FIDUNIO client APIs and enforce real Firestore rules',
     '- Direct/group payloads use **synthetic ciphertext fixtures**; separate reviewed crypto tests check actual E2EE',
-    '- APNs/ADM/FCM arrival, callable leases, camera, live email, hardware biometrics and full settings UI are **NOT VERIFIED** here','',
+    '- APNs/ADM/FCM arrival, callable leases, camera, live email, hardware biometrics and settings beyond these four UI controls are **NOT VERIFIED** here','',
     '| ID | Result | Verified interaction |','| --- | --- | --- |',
     ...cases.map(c=>`| ${c.id} | **${c.status}** | ${c.detail.replaceAll('|','\\|')} |`),
     '', '## Unverified device/provider behaviour','',
     '- Actual email invitation sharing and Universal Link open on physical hardware',
     '- Real encrypted display, attachments, replies, history grants, purge execution, Firebase Functions deletion and lease endpoints',
     '- Native APNs and Amazon ADM push **arrival** and notification tap-to-PIN routing',
-    '- Hardware Face ID/biometric, camera, microphone, background, offline, settings screen persistence','',
+    '- Hardware Face ID/biometric, camera, microphone, background, offline, full settings coverage beyond the four rendered controls','',
     ...(failures.length?['## Failures','',...failures.map(f=>'- '+f.replaceAll('\n',' ')),'']:[])
   ];
   fs.writeFileSync(path.join(out,'REPORT.md'),summary.join('\n')+'\n');

@@ -23,7 +23,7 @@ const lines=[
   ...results.map(r=>`| ${r.label} | ${r.status} | ${r.passed}/${r.cases} | [${r.path}](${r.path}) |`),'',
   'These are real authenticated client API transactions against the Auth/Firestore emulators, not device chat-screen walkthroughs.',
   'All message ciphertext is synthetic test-fixture data; reviewed cryptography suites run separately.',
-  'Actual notification delivery, Cloud Function leases, email, physical biometrics, full settings UI, and native hardware acceptance remain **NOT VERIFIED**.',''
+  'Actual notification delivery, Cloud Function leases, email, physical biometrics, other settings controls, and native hardware acceptance remain **NOT VERIFIED**.',''
 ];
 fs.writeFileSync(path.join(root,'REPORT.md'),lines.join('\n'));
 fs.writeFileSync(path.join(root,'results.json'),JSON.stringify({pass:success,results},null,2)+'\n');
