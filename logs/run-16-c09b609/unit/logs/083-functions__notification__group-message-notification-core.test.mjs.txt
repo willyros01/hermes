@@ -1,0 +1,5 @@
+FILE functions/notification/group-message-notification-core.test.mjs
+SOURCE Android
+EXIT 0
+FCM group notification membership, fan-out, privacy, and stale-token gates passed
+
