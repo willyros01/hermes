@@ -54,10 +54,11 @@ const lines=[
   ...results.map(x=>'| '+x.label+' | **'+x.status+'** | '+x.images+' | '+(fs.existsSync(path.join(root,x.name,'REPORT.md'))?'['+x.name+'/REPORT.md]('+x.name+'/REPORT.md)':'No detailed report; inspect GitHub job ('+x.jobResult+')')+' |'),
   '',
   '## Interpretation','',
-  '- Native device captures prove the specified pre-auth screens on disposable phone simulators, not full authenticated messaging.',
+  '- The Android/iPhone native stages now include real authenticated Join, settings, direct/group composer, invitation and message UI operations, with independent pass/fail and on-device screen captures.',
+  '- Native enrollment uses a specifically disclosed localhost recovery-enrollment callable substitute; this does not prove production Cloud Functions or peer-side E2EE decryption.',
   '- Authenticated flows exercise real exported app API transactions using disposable accounts and emulator rules; synthetic ciphertext is not an E2EE/decryption proof.',
   '- Firebase rules checks verify actual repository rules inside local emulators.',
-  '- Existing source tests cover a wide range of E2EE, direct/group messages, attachments, deletion, retention, recovery, notification policy, settings, and platform boundaries.',
+  '- Existing source tests cover E2EE, direct/group messages, attachments, deletion, retention, recovery, notification policy, settings, and platform boundaries; not every control has a native automated UI journey.',
   '- A green script build is never treated as proof that APNs, Amazon ADM, physical biometrics, actual camera pickers, or real push-tap routing works.',
   '- Live Firebase messaging, external email delivery, physical Fire HD 8, iPhone/iPad acceptance, and real notification providers require separate controlled acceptance testing.',
   ''
