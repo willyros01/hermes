@@ -1,0 +1,5 @@
+FILE notification-route-projection.test.mjs
+SOURCE Android
+EXIT 0
+Notification route, latest-only projection, and deterministic newest-message gates passed
+

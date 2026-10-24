@@ -1,0 +1,12 @@
+FILE e2ee-account-attachment-crypto.test.mjs
+SOURCE Android
+EXIT 0
+PASS attachment split into bounded chunks
+PASS manifest carries safe metadata
+PASS ciphertext does not expose plaintext
+PASS attachment decrypts byte-for-byte
+PASS chunk binding tamper rejected
+PASS missing chunk rejected
+
+6/6 attachment crypto assertions passed.
+

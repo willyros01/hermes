@@ -1,0 +1,5 @@
+FILE disappearing-activation.test.mjs
+SOURCE Android
+EXIT 0
+Disappearing text + attachment activation gate passed
+

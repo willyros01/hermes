@@ -1,0 +1,79 @@
+{
+  "label": "Android-shared",
+  "engine": "chromium",
+  "source": "/home/runner/work/hermes/hermes",
+  "passed": 13,
+  "failed": 1,
+  "cases": [
+    {
+      "id": "FN-001",
+      "status": "PASS",
+      "detail": "Disposable Owner signs in using the original FIDUNIO API and demo Auth/Firestore"
+    },
+    {
+      "id": "FN-002",
+      "status": "PASS",
+      "detail": "Owner sends four actual invitations; recipients consume them; Auth accounts and Firestore profiles created"
+    },
+    {
+      "id": "FN-003",
+      "status": "PASS",
+      "detail": "Used/revoked invitation rejected; User cannot issue/list invites; Admin can issue and Owner revokes"
+    },
+    {
+      "id": "FN-004",
+      "status": "PASS",
+      "detail": "Original direct-conversation API creates shared record; outsider read denied by real rules"
+    },
+    {
+      "id": "FN-005",
+      "status": "PASS",
+      "detail": "Direct encrypted-envelope transport, disappearing metadata, sent→delivered→read, emoji add/remove/invalid"
+    },
+    {
+      "id": "FN-006",
+      "status": "PASS",
+      "detail": "Block denies direct transport in actual Firestore rules; unblock removes restriction"
+    },
+    {
+      "id": "FN-007",
+      "status": "PASS",
+      "detail": "Original group creation writes owner, two members and membership metadata; outsider denied"
+    },
+    {
+      "id": "FN-008",
+      "status": "PASS",
+      "detail": "Only group admin can rename; owner cannot be removed"
+    },
+    {
+      "id": "FN-009",
+      "status": "PASS",
+      "detail": "Encrypted group transport, member-only access, disappearing metadata, delivery/read receipts, emoji toggle"
+    },
+    {
+      "id": "FN-010",
+      "status": "PASS",
+      "detail": "Web notification device registration, sender privacy preference, cross-user isolation, deletion; ADM direct write denied (lease API only)"
+    },
+    {
+      "id": "FN-011",
+      "status": "PASS",
+      "detail": "Report abuse creates open report; authorized system Admin can view it"
+    },
+    {
+      "id": "FN-012",
+      "status": "PASS",
+      "detail": "System Admin suspends/restores user; suspended user cannot write group"
+    },
+    {
+      "id": "FN-013",
+      "status": "FAIL",
+      "detail": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.fidunio-settings-nav-btn[data-group=\"general\"]')\n    - locator resolved to <button type=\"button\" data-group=\"general\" aria-current=\"false\" class=\"fidunio-settings-nav-btn\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 500ms\n      - waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 500ms\n      - waiting for element to be visible, enabled and stable\n    - element was detached from the DOM, retrying\n      - locator resolved to <button type=\"button\" data-group=\"general\" aria-current=\"false\" class=\"fidunio-settings-nav-btn\">…</button>\n    - attempting click action\n      - waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 20ms\n      - waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n      - waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 100ms\n      - waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 500ms\n      - waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n      - waiting 500ms\n    48 × waiting for element to be visible, enabled and stable\n       - element is not visible\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "id": "FN-014",
+      "status": "PASS",
+      "detail": "Non-admin removal denied; Owner removes/adds; E2EE key epoch increments; former member loses access"
+    }
+  ]
+}
