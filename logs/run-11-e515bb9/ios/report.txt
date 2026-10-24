@@ -1,0 +1,23 @@
+FIDUNIO IOS native simulator, disposable data only
+
+S1: Real native cold start shows legal Terms before Firebase login
+    Capture: 01-terms-before-consent.png
+PASS S1
+
+S2: Declining Terms locks the app; Read Again resets consent
+    Capture: 02-terms-declined-locked.png
+    Capture: 03-terms-read-again.png
+PASS S2
+
+S3: Accept Terms and reach native Sign In without live backend
+    Capture: 04-terms-ready-to-accept.png
+    Capture: 05-S3-failure.png
+FAIL S3: Error: Timeout: Sign In screen after Terms
+    at waitFor (file:///Users/runner/work/hermes/hermes/build/simulator/device-run.mjs:55:9)
+    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-run.mjs:127:5
+    at async step (file:///Users/runner/work/hermes/hermes/build/simulator/device-run.mjs:69:7)
+    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-run.mjs:122:3
+
+Stopped: Timeout: Sign In screen after Terms
+
+FINAL 2 passed, 1 failed

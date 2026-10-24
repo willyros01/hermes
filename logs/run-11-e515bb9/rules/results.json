@@ -1,0 +1,87 @@
+{
+  "mode": "rules",
+  "reviewed": 9,
+  "results": [
+    {
+      "file": "firestore-abuse-report.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 12,
+      "ms": 3149,
+      "log": "logs/001-firestore-abuse-report.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-account-deletion.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 14,
+      "ms": 1190,
+      "log": "logs/002-firestore-account-deletion.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-account-message-v3.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 43,
+      "ms": 1844,
+      "log": "logs/003-firestore-account-message-v3.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-conversation-deletion.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 9,
+      "ms": 882,
+      "log": "logs/004-firestore-conversation-deletion.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-e2ee-v1.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 42,
+      "ms": 1200,
+      "log": "logs/005-firestore-e2ee-v1.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-group-e2ee-v1.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 55,
+      "ms": 1389,
+      "log": "logs/006-firestore-group-e2ee-v1.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-invitation.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 7,
+      "ms": 703,
+      "log": "logs/007-firestore-invitation.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-notification.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 22,
+      "ms": 796,
+      "log": "logs/008-firestore-notification.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-user-block.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 12,
+      "ms": 692,
+      "log": "logs/009-firestore-user-block.rules.test.mjs.txt",
+      "error": null
+    }
+  ]
+}

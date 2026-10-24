@@ -1,0 +1,107 @@
+{
+  "platform": "ios",
+  "passed": 1,
+  "failed": 1,
+  "blocked": 12,
+  "result": "FAIL",
+  "tests": [
+    {
+      "id": "N01",
+      "label": "Accept legal Terms and open actual Join form",
+      "status": "PASS",
+      "detail": "Observed on native device"
+    },
+    {
+      "id": "N02",
+      "label": "Consume a real single-use admin invite, set PIN, create E2EE identity through native Join",
+      "status": "FAIL",
+      "detail": "Error: Timed out waiting for authenticated Messages screen; ; screen:  FIDUNIO Private Messaging Signed in successfully. FIDUNIO could not finish opening secure messaging. Your email/password was accepted; this is not being reported as a credential failure. The object can not be cloned. Retry Opening FIDUNIOUse Another Account FIDUNIO 1.1.78 • Invite-only access\n    at wait (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:26:200)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async test.requires (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:88:5)\n    at async test (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:33:20)\n    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:74:12"
+    },
+    {
+      "id": "N03",
+      "label": "Change actual native Settings: A++, Dark, and preview option",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N04",
+      "label": "Admin creates a new user invitation from native Settings",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N05",
+      "label": "Start a native direct conversation with Bob",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N06",
+      "label": "Send encrypted direct text and confirm NO plaintext in emulator",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N07",
+      "label": "Set disappearing timer in real native direct conversation",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N08",
+      "label": "React with an emoji to an accepted direct message",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N09",
+      "label": "Create group from native app and verify admin controls",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N10",
+      "label": "Send a native group message and verify encrypted group record",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N11",
+      "label": "Use native group administrator to add a member",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N12",
+      "label": "Show native notification configuration controls (delivery requires real devices)",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N13",
+      "label": "Block and unblock a native user in Safety settings",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N14",
+      "label": "A++ and Dark settings survive leaving and reopening native Settings",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    }
+  ],
+  "shots": [
+    {
+      "label": "native-join-screen",
+      "file": "01-native-join-screen.png"
+    },
+    {
+      "label": "native-join-completed",
+      "file": "02-native-join-completed.png"
+    },
+    {
+      "label": "N02-failure",
+      "file": "03-N02-failure.png"
+    }
+  ]
+}
