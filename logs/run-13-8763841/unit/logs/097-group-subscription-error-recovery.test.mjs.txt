@@ -1,0 +1,5 @@
+FILE group-subscription-error-recovery.test.mjs
+SOURCE Android
+EXIT 0
+PASS: recovered group subscription clears only its scoped stale error
+

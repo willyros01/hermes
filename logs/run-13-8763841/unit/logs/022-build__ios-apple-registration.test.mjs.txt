@@ -1,0 +1,5 @@
+FILE build/ios-apple-registration.test.mjs
+SOURCE Android
+EXIT 0
+PASS: FIDUNIO Phase 2 Apple registration specification is internally consistent
+

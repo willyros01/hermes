@@ -1,0 +1,50 @@
+FILE firestore-notification.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS owner creates own notification installation
+PASS owner creates native iOS notification installation
+PASS owner reads own notification installation
+PASS other UID cannot read notification installation
+PASS anonymous cannot read notification installation
+PASS other UID cannot write notification installation
+PASS unexpected field denied
+PASS invalid token denied
+PASS invalid platform denied
+PASS owner enables sender-name presentation
+PASS non-boolean sender-name preference denied
+PASS owner rotates own token
+PASS owner cannot change installationId
+PASS other UID cannot delete
+PASS owner deletes own installation
+PASS owner changes sender-name on a server-leased installation (live since 2026-10-09)
+PASS live bounded legacy update may change enabled on a leased installation
+PASS legacy update path rejects an unknown platform
+PASS legacy update path rejects a short token
+PASS sender-name path cannot touch lease fields
+PASS sender-name path requires server time
+PASS other UID cannot change sender-name on a leased installation
+
+[2026-10-24T22:00:32.788Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x58362479 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L86, false for 'update' @ L86
+[2026-10-24T22:00:32.795Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x58362475 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2181 for 'create' @ L86, evaluation error at L86:2348 for 'update' @ L86, false for 'create' @ L86
+[2026-10-24T22:00:32.804Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5836247a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2181 for 'create' @ L86, evaluation error at L86:2348 for 'update' @ L86, false for 'create' @ L86
+[2026-10-24T22:00:32.811Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5836247b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2181 for 'create' @ L86, evaluation error at L86:2348 for 'update' @ L86, false for 'create' @ L86
+[2026-10-24T22:00:32.827Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5836247c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2348 for 'update' @ L86, false for 'update' @ L86
+[2026-10-24T22:00:32.840Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5836247d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2348 for 'update' @ L86, false for 'update' @ L86
+[2026-10-24T22:00:32.846Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5836247e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'delete' @ L86
+[2026-10-24T22:00:32.896Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5836247f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2348 for 'update' @ L86, false for 'update' @ L86
+[2026-10-24T22:00:32.904Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x58362481 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2348 for 'update' @ L86, false for 'update' @ L86
+[2026-10-24T22:00:32.912Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x58362482 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2348 for 'update' @ L86, false for 'update' @ L86
+[2026-10-24T22:00:32.919Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x58362483 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L86:2348 for 'update' @ L86, false for 'update' @ L86
+[2026-10-24T22:00:32.925Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x58362484 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'update' @ L86

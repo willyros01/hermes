@@ -1,0 +1,5 @@
+FILE disappearing-attachment-activation.test.mjs
+SOURCE Android
+EXIT 0
+Disappearing attachment activation wiring gate passed
+
