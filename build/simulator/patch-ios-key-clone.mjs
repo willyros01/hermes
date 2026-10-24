@@ -4,6 +4,10 @@
  * CryptoKey structured cloning in IndexedDB, keep the already-unlocked key
  * in memory for this ONE simulator session so later screens can be tested.
  * E2EE local-key persistence, restart and recovery remain NOT VERIFIED.
+ * Native account storage also creates an AES-GCM CryptoKey in IndexedDB;
+ * some simulator WebKit builds reject that structured clone. In that narrow
+ * case, keep the genuine AES key in this simulator session without bypassing
+ * the AES-GCM encryption/decryption exercised by the functional tests.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -81,3 +85,42 @@ annotate('e2ee-account-identity-manager.js',[
   ['const created=await identityStore.createIdentity({uid:clean,privateIdentity:privateDoc({keyId,normalWrapper,recoveryWrapper}),publicIdentity:publicDoc({uid:clean,keyId,publicJwk:generated.publicJwk})});','enroll:write-identity'],
   ['const privateKey=await unwrapPrivateKeyNormal({wrapper:normalWrapper,password,pin,uid:clean,keyId});','enroll:unwrap-runtime'],
 ]);
+
+// Account-local app-state encryption uses a *different* CryptoKey from the
+// E2EE identity. This probe protects only the disposable simulator bundle.
+// The release's encrypted app state is still encrypted and decrypted with the
+// real AES-GCM key; only the IndexedDB persistence of the key is substituted.
+function replaceOnce(filename, original, replacement){
+  const target=path.join(folder,filename);
+  if(!fs.existsSync(target))throw new Error('Missing generated key-compatibility target: '+filename);
+  const js=fs.readFileSync(target,'utf8');
+  if(js.split(original).length!==2)throw new Error('Ambiguous simulator AES-key compatibility anchor in '+filename);
+  fs.writeFileSync(target,js.replace(original,replacement));
+}
+replaceOnce('account-storage.js',
+  '    await writeMeta(db,LOCAL_KEY,key);',
+  `    try{await writeMeta(db,LOCAL_KEY,key);}
+    catch(error){
+      if(!/clone|cloned|dataclone/i.test(String(error?.name||'')+' '+String(error?.message||error)))throw error;
+      if(key?.type!=='secret'||key?.algorithm?.name!=='AES-GCM')throw error;
+      globalThis.FIDUNIO_SIMULATOR_ONLY_LOCAL_AES_KEY=key;
+      globalThis.FIDUNIO_SIMULATOR_ONLY_LOCAL_AES_KEY_FALLBACK=true;
+      console.warn('FIDUNIO SIMULATOR ONLY: volatile local AES key; encrypted app state still uses AES-GCM');
+    }`);
+replaceOnce('app.js',
+  '    if(key) return key;\n\n    key=await crypto.subtle.generateKey',
+  `    if(key) return key;
+    if(globalThis.FIDUNIO_SIMULATOR_ONLY_LOCAL_AES_KEY)return globalThis.FIDUNIO_SIMULATOR_ONLY_LOCAL_AES_KEY;
+
+    key=await crypto.subtle.generateKey`);
+replaceOnce('app.js',
+  '    tx.objectStore("meta").put(key,"local-key");\n    await txDone(tx);\n    return key;',
+  `    try{tx.objectStore("meta").put(key,"local-key");await txDone(tx);}
+    catch(error){
+      if(!/clone|cloned|dataclone/i.test(String(error?.name||'')+' '+String(error?.message||error)))throw error;
+      if(key?.type!=='secret'||key?.algorithm?.name!=='AES-GCM')throw error;
+      globalThis.FIDUNIO_SIMULATOR_ONLY_LOCAL_AES_KEY=key;
+      globalThis.FIDUNIO_SIMULATOR_ONLY_LOCAL_AES_KEY_FALLBACK=true;
+    }
+    return key;`);
+console.log('SIMULATOR ONLY: patched generated iPhone account/app AES key persistence for WebKit clone errors; encryption unchanged');
