@@ -80,6 +80,8 @@ export async function runNativeReleaseExtensions(ctx) {
     await shot('group-reply-encrypted');
     return 'Native Reply action and composer, encrypted group reply stored; peer-side quote rendering still unverified';
   },{requires:b});
-  log('Release extension native scenarios complete: '+[a,b,c].filter(Boolean).length+'/3 passed');
-  return [a,b,c].every(Boolean);
+  const {runExtraActions}=await import('./native-release-more.mjs');
+  const more=await runExtraActions({...ctx,ready:c});
+  log('Release extension native scenarios complete: '+[a,b,c].filter(Boolean).length+'/3 primary passed; direct extension '+(more?'PASS':'FAIL/BLOCKED'));
+  return [a,b,c].every(Boolean)&&more;
 }
