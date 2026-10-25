@@ -1,0 +1,5 @@
+FILE lte-optimistic-message.test.mjs
+SOURCE Android
+EXIT 0
+LTE optimistic outgoing-message gate passed
+

@@ -1,0 +1,5 @@
+FILE build/ios-testflight-apns-gate.test.mjs
+SOURCE Android
+EXIT 0
+PASS: TestFlight archive and Firebase config require production APNs capability
+

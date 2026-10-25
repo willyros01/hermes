@@ -1,0 +1,5 @@
+FILE functions/access/system-ownership-core.test.mjs
+SOURCE Android
+EXIT 0
+PASS: system ownership transfer requires current owner and active administrator
+

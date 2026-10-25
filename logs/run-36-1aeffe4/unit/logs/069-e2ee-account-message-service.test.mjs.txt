@@ -1,0 +1,18 @@
+FILE e2ee-account-message-service.test.mjs
+SOURCE Android
+EXIT 0
+PASS 1: READY account prepares exact v3 envelope
+PASS 2: incoming v3 decrypts with account identities
+PASS 3: account reader decrypts an incoming v3 row
+PASS 4: account reader decrypts its own outgoing v3 row
+PASS 5: account reader rejects a non-member sender
+PASS 6: missing runtime identity fails closed
+PASS 7: runtime for another UID fails closed
+PASS 8: missing peer identity fails closed
+PASS 9: peer UID mismatch is rejected
+PASS 10: peer public JWK with extra field is rejected
+PASS 11: inactive peer identity is rejected
+PASS 12: non-v3 incoming format is never silently downgraded
+PASS 13: service never calls peer lookup when local account is not READY
+13/13 account direct-message service assertions passed.
+
