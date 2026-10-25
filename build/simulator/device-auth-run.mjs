@@ -281,7 +281,9 @@ try{
     await shot('native-persisted-settings');
     return 'A++ and Dark retained after navigating away and back within actual native app';
   },{requires:t13});
-  if([t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14].some(x=>!x))log('Native authenticated suite found failures or blocked checks — no production code modified.');
+  const {runNativeReleaseExtensions}=await import('./native-release-extensions.mjs');
+  await runNativeReleaseExtensions({d,expr,present,wait,shot,readDoc,readCollection,me,test,ready:t1&&t2&&t3&&t4&&t5&&t6&&t7&&t8&&t9&&t10&&t11&&t12&&t13&&t14,log});
+  if(tests.some(t=>t.status!=='PASS'))log('Native simulator suite contains failures or blocked tests; NO release approval.');
 }catch(e){log('FATAL native test setup: '+String(e.stack||e).slice(0,1500));tests.push({id:'SETUP',status:'FAIL',label:'Native test setup',detail:String(e.stack||e)});}
 finally{summarize();await env.cleanup();d.disconnect?.();}
 process.exit(tests.some(t=>t.status!=='PASS')?1:0);
