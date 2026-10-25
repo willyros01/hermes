@@ -1,0 +1,28 @@
+FILE firestore-abuse-report.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS registered user creates own abuse report
+PASS anonymous cannot create report
+PASS user cannot forge reporter uid
+PASS user cannot report self as target
+PASS invalid category denied
+PASS oversized details denied
+PASS reporter can get own report
+PASS unrelated user cannot get report
+PASS non-admin cannot list reports
+PASS admin can list reports
+PASS reporter cannot resolve own report
+PASS admin resolves open report
+
+[2026-10-25T00:10:13.224Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x6f4a614a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L83, false for 'update' @ L83
+[2026-10-25T00:10:13.253Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x6f4a6149 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L83:175 for 'create' @ L83, evaluation error at L83:252 for 'update' @ L83, false for 'create' @ L83
+[2026-10-25T00:10:13.282Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x6f4a614b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L83:175 for 'create' @ L83, evaluation error at L83:252 for 'update' @ L83, false for 'create' @ L83
+[2026-10-25T00:10:13.308Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x6f4a614c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L83:175 for 'create' @ L83, evaluation error at L83:252 for 'update' @ L83, false for 'create' @ L83
+[2026-10-25T00:10:13.333Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x6f4a614d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L83:175 for 'create' @ L83, evaluation error at L83:252 for 'update' @ L83, false for 'create' @ L83
+[2026-10-25T00:10:13.568Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x6f4a6151 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L83:252 for 'update' @ L83, false for 'update' @ L83

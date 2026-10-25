@@ -1,0 +1,60 @@
+{
+  "mode": "rules",
+  "reviewed": 9,
+  "results": [
+    {
+      "file": "firestore-abuse-report.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 12,
+      "ms": 4933,
+      "log": "logs/001-firestore-abuse-report.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-account-deletion.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 14,
+      "ms": 2169,
+      "log": "logs/002-firestore-account-deletion.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-account-message-v3.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 43,
+      "ms": 2273,
+      "log": "logs/003-firestore-account-message-v3.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-conversation-deletion.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 9,
+      "ms": 1378,
+      "log": "logs/004-firestore-conversation-deletion.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-e2ee-v1.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 42,
+      "ms": 1701,
+      "log": "logs/005-firestore-e2ee-v1.rules.test.mjs.txt",
+      "error": null
+    },
+    {
+      "file": "firestore-group-e2ee-v1.rules.test.mjs",
+      "source": "Android",
+      "pass": true,
+      "assertionsReported": 55,
+      "ms": 1854,
+      "log": "logs/006-firestore-group-e2ee-v1.rules.test.mjs.txt",
+      "error": null
+    }
+  ]
+}
