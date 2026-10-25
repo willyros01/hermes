@@ -7,9 +7,7 @@
       "id": "A01",
       "name": "Terms acceptance and refusal",
       "area": "Account access",
-      "native_test_ids": [
-        "N01"
-      ],
+      "native_test_ids": [],
       "required": [
         "android-native",
         "ios-native"
@@ -332,9 +330,7 @@
       "id": "G04",
       "name": "Group administrator controls",
       "area": "Groups",
-      "native_test_ids": [
-        "N09"
-      ],
+      "native_test_ids": [],
       "required": [
         "android-native",
         "ios-native"
@@ -604,9 +600,7 @@
       "id": "M10",
       "name": "Reply action and reply preview",
       "area": "Message actions and expiration",
-      "native_test_ids": [
-        "R03"
-      ],
+      "native_test_ids": [],
       "required": [
         "android-native",
         "ios-native"
@@ -893,9 +887,7 @@
       "id": "S01",
       "name": "A/A+/A++ and Dark/Light/Auto",
       "area": "Settings, accessibility and administration",
-      "native_test_ids": [
-        "N03"
-      ],
+      "native_test_ids": [],
       "required": [
         "android-native",
         "ios-native"
