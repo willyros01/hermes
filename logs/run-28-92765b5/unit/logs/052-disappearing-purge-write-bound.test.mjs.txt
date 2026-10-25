@@ -1,0 +1,5 @@
+FILE disappearing-purge-write-bound.test.mjs
+SOURCE Android
+EXIT 0
+Group purge transaction write-bound gate passed
+
