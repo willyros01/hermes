@@ -60,7 +60,7 @@ export async function runNativeReleaseExtensions(ctx) {
     if(!await readDoc('groups/'+g.id+'/messages/'+m.id))throw new Error('Shared record deleted by local-only operation');
     await shot('delete-for-me-hidden');
     return 'Delete for Me removed native message locally without deleting shared Firestore message';
-  },{requires:a});
+  },{requires:ready});
   const c=await test('R03','Native group message Reply composer sends ciphertext-only response',async()=>{
     g=g||await group();
     if(!await present('#messageBox'))g=await group();
@@ -79,9 +79,9 @@ export async function runNativeReleaseExtensions(ctx) {
     if(JSON.stringify(reply).includes(phrase))throw new Error('Plaintext reply leaked to Firestore');
     await shot('group-reply-encrypted');
     return 'Native Reply action and composer, encrypted group reply stored; peer-side quote rendering still unverified';
-  },{requires:b});
+  },{requires:ready});
   const {runExtraActions}=await import('./native-release-more.mjs');
-  const more=await runExtraActions({...ctx,ready:c});
+  const more=await runExtraActions({...ctx,ready});
   log('Release extension native scenarios complete: '+[a,b,c].filter(Boolean).length+'/3 primary passed; direct extension '+(more?'PASS':'FAIL/BLOCKED'));
   return [a,b,c].every(Boolean)&&more;
 }
