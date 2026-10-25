@@ -1,0 +1,29 @@
+FILE e2ee-recovery-callable-core.test.mjs
+SOURCE Android
+EXIT 0
+PASS enroll requires authentication
+PASS enforced mode requires App Check
+PASS staging mode permits authenticated call without App Check
+PASS enroll protects RUK without returning plaintext
+PASS master provider buffer is not mutated by enroll
+PASS start requires App Check when enforced
+PASS start binds session to authoritative keyId and revision
+PASS start blocks account at 10 failures
+PASS start fails when identity missing
+PASS complete needs only session and correct six-digit PIN
+PASS successful complete reserves verification before master-secret crypto
+PASS successful complete consumes session and resets account failures
+PASS consumed session cannot release RUK twice
+PASS wrong PIN returns generic recovery denial
+PASS wrong PIN increments both counters and returns session to PENDING
+PASS VERIFYING state blocks a parallel guess before master-secret crypto
+PASS changed identity revision aborts recovery
+PASS changed identity keyId aborts recovery
+PASS expired session cannot complete
+PASS complete requires App Check when enforced
+PASS staging complete works with App Check absent
+PASS master provider buffer is not mutated by complete
+PASS supplemental verifier/proof is not part of the callable contract
+
+23/23 recovery callable-core assertions passed.
+
