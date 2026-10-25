@@ -1,0 +1,5 @@
+FILE group-history-copy-purge-barrier.test.mjs
+SOURCE Android
+EXIT 0
+PASS group history-copy purge barrier source/rules authority
+

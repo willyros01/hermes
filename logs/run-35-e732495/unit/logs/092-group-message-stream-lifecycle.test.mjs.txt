@@ -1,0 +1,5 @@
+FILE group-message-stream-lifecycle.test.mjs
+SOURCE Android
+EXIT 0
+Group message stream terminal recovery gate passed
+

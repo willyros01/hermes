@@ -1,0 +1,70 @@
+Native authenticated ios suite. LOCAL demo-only accounts.
+
+N01: Accept legal Terms and open actual Join form
+FAIL N01: Error: Timed out waiting for Join tab; ; screen:  FIDUNIO could not finish starting Sign-in could not be loaded. Check your connection and retry. Your secure data has not been reset. Retry Startup
+    at wait (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:26:200)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:72:5
+    at async test (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:34:20)
+    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:69:12
+SIMULATOR DIAGNOSTIC PHASE: unavailable
+  Actual native screenshot: 01-N01-failure.png
+
+N02: Consume a real single-use admin invite, set PIN, create E2EE identity through native Join
+BLOCKED N02
+
+N03: Change actual native Settings: A++, Dark, and preview option
+BLOCKED N03
+
+N04: Admin creates a new user invitation from native Settings
+BLOCKED N04
+
+N05: Start a native direct conversation with Bob
+BLOCKED N05
+
+N06: Send encrypted direct text and confirm NO plaintext in emulator
+BLOCKED N06
+
+N07: Set disappearing timer in real native direct conversation
+BLOCKED N07
+
+N08: React with an emoji to an accepted direct message
+BLOCKED N08
+
+N09: Create group from native app and verify admin controls
+BLOCKED N09
+
+N10: Send a native group message and verify encrypted group record
+BLOCKED N10
+
+N11: Use native group administrator to add a member
+BLOCKED N11
+
+N12: Show native notification configuration controls (delivery requires real devices)
+BLOCKED N12
+
+N13: Block and unblock a native user in Safety settings
+BLOCKED N13
+
+N14: A++ and Dark settings survive leaving and reopening native Settings
+BLOCKED N14
+
+R01: Full six-emoji native picker: apply, change, remove each choice
+BLOCKED R01
+
+R02: Group Delete for Me hides local message but keeps shared ciphertext
+BLOCKED R02
+
+R03: Native group message Reply composer sends ciphertext-only response
+BLOCKED R03
+
+R04: Direct emoji picker applies and removes all six emotions
+BLOCKED R04
+
+R05: Direct Delete for Me hides only sender local copy
+BLOCKED R05
+
+R06: Archive and unarchive direct conversation using native Messages controls
+BLOCKED R06
+Release extension native scenarios complete: 0/3 primary passed; direct extension FAIL/BLOCKED
+Native simulator suite contains failures or blocked tests; NO release approval.

@@ -1,0 +1,25 @@
+FILE firestore-conversation-deletion.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS direct participants can still read the deletion-barrier parent
+PASS direct message creation is frozen after the barrier
+PASS direct parent updates are frozen after the barrier
+PASS direct client root delete remains denied
+PASS group members can still read the deletion-barrier parent
+PASS group owner updates are frozen after the barrier
+PASS control: admin can create a member record in a live group
+PASS group member creation is frozen after the barrier
+PASS group client root delete remains denied
+
+[2026-10-25T02:12:43.910Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x3d2a06fa error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:43.928Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x3d2a06fb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:448 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:43.937Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x3d2a06fc error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'delete' @ L88
+[2026-10-25T02:12:43.963Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x3d2a06fd error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L92:24 for 'update' @ L92, false for 'update' @ L92
+[2026-10-25T02:12:43.987Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x3d2a06fe error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L94:111 for 'create' @ L94, evaluation error at L94:379 for 'update' @ L94, false for 'create' @ L94
+[2026-10-25T02:12:43.995Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x3d2a06ff error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'delete' @ L93

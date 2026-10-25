@@ -1,0 +1,5 @@
+FILE account-deletion-wiring.test.mjs
+SOURCE Android
+EXIT 0
+PASS: self-service account deletion is wired end-to-end with reauthentication, irreversible cleanup barrier, server deletion, Auth deletion and local purge
+

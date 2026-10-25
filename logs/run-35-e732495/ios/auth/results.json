@@ -1,0 +1,136 @@
+{
+  "platform": "ios",
+  "passed": 0,
+  "failed": 1,
+  "blocked": 19,
+  "result": "FAIL",
+  "tests": [
+    {
+      "id": "N01",
+      "label": "Accept legal Terms and open actual Join form",
+      "status": "FAIL",
+      "detail": "Error: Timed out waiting for Join tab; ; screen:  FIDUNIO could not finish starting Sign-in could not be loaded. Check your connection and retry. Your secure data has not been reset. Retry Startup\n    at wait (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:26:200)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:72:5\n    at async test (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:34:20)\n    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:69:12\nSIMULATOR DIAGNOSTIC PHASE: unavailable"
+    },
+    {
+      "id": "N02",
+      "label": "Consume a real single-use admin invite, set PIN, create E2EE identity through native Join",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N03",
+      "label": "Change actual native Settings: A++, Dark, and preview option",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N04",
+      "label": "Admin creates a new user invitation from native Settings",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N05",
+      "label": "Start a native direct conversation with Bob",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N06",
+      "label": "Send encrypted direct text and confirm NO plaintext in emulator",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N07",
+      "label": "Set disappearing timer in real native direct conversation",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N08",
+      "label": "React with an emoji to an accepted direct message",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N09",
+      "label": "Create group from native app and verify admin controls",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N10",
+      "label": "Send a native group message and verify encrypted group record",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N11",
+      "label": "Use native group administrator to add a member",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N12",
+      "label": "Show native notification configuration controls (delivery requires real devices)",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N13",
+      "label": "Block and unblock a native user in Safety settings",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "N14",
+      "label": "A++ and Dark settings survive leaving and reopening native Settings",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "R01",
+      "label": "Full six-emoji native picker: apply, change, remove each choice",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "R02",
+      "label": "Group Delete for Me hides local message but keeps shared ciphertext",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "R03",
+      "label": "Native group message Reply composer sends ciphertext-only response",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "R04",
+      "label": "Direct emoji picker applies and removes all six emotions",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "R05",
+      "label": "Direct Delete for Me hides only sender local copy",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    },
+    {
+      "id": "R06",
+      "label": "Archive and unarchive direct conversation using native Messages controls",
+      "status": "BLOCKED",
+      "detail": "Earlier prerequisite failed"
+    }
+  ],
+  "shots": [
+    {
+      "label": "N01-failure",
+      "file": "01-N01-failure.png"
+    }
+  ],
+  "source_commit": "f551e4baa5f320f394f33004a01dfa006ee22279"
+}

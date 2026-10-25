@@ -1,0 +1,28 @@
+FILE attachment-ui-wiring.test.mjs
+SOURCE Android
+EXIT 0
+PASS Photo picker wired
+PASS File picker wired
+PASS Audio picker wired
+PASS Video picker wired
+PASS single Firebase Storage owner
+PASS Storage denies client delete
+PASS app sends through encrypted attachment owner
+PASS app receives through encrypted attachment owner
+PASS attachment descriptor is parsed
+PASS image attachment renders as an image
+PASS audio attachment renders with playback controls
+PASS attachment failures have a retry
+PASS attachment chunks use bounded concurrent downloads
+PASS Storage SDK is available to installed app
+PASS sender gets immediate zero-copy local preview
+PASS local preview URLs are revoked
+PASS photos retain original bytes before encryption
+PASS photo source dialog separates library and camera
+PASS iOS camera picker remains mounted and suppresses background lock until return
+PASS attachment selection validates before creating preview
+PASS failed sends never enter attachment download path
+PASS message publish waits until verified upload completes
+PASS upload verifies every stored object before message commit
+PASS device shows bounded failing stage and code
+

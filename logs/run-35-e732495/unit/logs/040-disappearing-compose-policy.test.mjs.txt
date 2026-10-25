@@ -1,0 +1,5 @@
+FILE disappearing-compose-policy.test.mjs
+SOURCE Android
+EXIT 0
+Disappearing compose policy/UI wiring gate passed
+

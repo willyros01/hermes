@@ -1,0 +1,105 @@
+FILE firestore-account-message-v3.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS 01 valid A to B account message allowed
+PASS 02 valid B to A account message allowed
+PASS 03 non-member create denied
+PASS 04 sender UID spoof denied
+PASS 05 wrong sender keyId denied
+PASS 06 wrong recipient keyId denied
+PASS 07 missing recipient public identity denied
+PASS 08 plaintext leakage denied
+PASS 09 device envelope fields denied
+PASS 10 unexpected field denied
+PASS 11 wrong KDF version denied
+PASS 12 malformed ciphertext alphabet denied
+PASS 13 wrong IV length denied
+PASS 14 client-created timestamp denied
+PASS 15 valid disappearing duration allowed as outer metadata
+PASS 15a zero disappearing duration denied
+PASS 15b over-max disappearing duration denied
+PASS 15c non-integer disappearing duration denied
+PASS 15d recipient cannot mutate disappearing duration
+PASS 15e activation marker with duration allowed
+PASS 15f activation marker without duration denied
+PASS 15g unknown activation marker version denied
+PASS 15h recipient receipt transition preserves activation metadata
+PASS 16 recipient can advance sent to delivered
+PASS 17 sender cannot write its own delivery receipt
+PASS 18 recipient read transition requires authoritative readAt
+PASS 19 recipient first Read stores server-backed readAt
+PASS 20 repeat Read cannot move first-read timestamp
+PASS 21 recipient receipt update cannot mutate ciphertext
+PASS 22 new legacy e2ee v2 create denied (E2EE v3 only)
+PASS 23 new plaintext create denied (E2EE v3 only)
+PASS 23a recipient can read a historical plaintext row
+PASS 23b recipient can read a historical e2ee v2 row
+PASS 24 recipient can mark a historical plaintext message Read
+PASS 24a recipient can mark a historical e2ee v2 message Delivered
+PASS 24b outsider cannot read a historical plaintext row
+PASS 25 participant can add own reaction
+PASS 26 second participant can add own reaction
+PASS 27 cannot overwrite another direct reaction
+PASS 28 unsupported direct reaction denied
+PASS 29 outsider direct reaction denied
+PASS 30 direct reaction cannot mutate ciphertext
+PASS 31 participant can remove own direct reaction
+
+43/43 account-message rule assertions passed.
+
+[2026-10-25T02:12:42.014Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323cc error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.033Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323ca error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.059Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323cd error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.082Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323ce error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.102Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323cf error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.122Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d0 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.144Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d1 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.164Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d2 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.183Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d3 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.206Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d4 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.227Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d5 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.248Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d6 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.284Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d7 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.304Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.323Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323d9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.339Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323cb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:42.375Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323da error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.393Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323db error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.432Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323dd error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:42.444Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323dc error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, Property readAt is undefined on object. for 'update' @ L88
+[2026-10-25T02:12:42.471Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323de error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:42.486Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323df error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:42.504Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323e0 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.527Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323e1 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:752 for 'create' @ L88, evaluation error at L88:996 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T02:12:42.694Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323e4 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:42.707Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323e6 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:42.723Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323e7 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T02:12:42.738Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x809323e8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
