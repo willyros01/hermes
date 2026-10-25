@@ -193,6 +193,12 @@ jobs:
     timeout-minutes: 85
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: Android
+          path: android-src
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -205,17 +211,20 @@ jobs:
           set -Eeuo pipefail
           mkdir -p out-fidunio/android
           {
-            npm ci --no-audit --no-fund
-            npm install --no-save --no-package-lock --no-audit --no-fund @capacitor/android@8.5.2
-            npm run ios:prepare
-            node build/simulator/patch-sandbox.mjs . android
-            npx cap add android
-            npx cap sync android
-            node build/simulator/permit-emulator-http.mjs .
-            java build/AndroidIcons.java icon-512.png android/app/src/main/res
-            chmod +x android/gradlew
-            ( cd android && ./gradlew --no-daemon assembleDebug )
-            test -s android/app/build/outputs/apk/debug/app-debug.apk
+            (
+              cd android-src
+              npm ci --no-audit --no-fund
+              npm install --no-save --no-package-lock --no-audit --no-fund @capacitor/android@8.5.2
+              npm run ios:prepare
+              node ../build/simulator/patch-sandbox.mjs . android
+              npx cap add android
+              npx cap sync android
+              node ../build/simulator/permit-emulator-http.mjs .
+              java build/AndroidIcons.java icon-512.png android/app/src/main/res
+              chmod +x android/gradlew
+              ( cd android && ./gradlew --no-daemon assembleDebug )
+              test -s android/app/build/outputs/apk/debug/app-debug.apk
+            )
           } 2>&1 | tee out-fidunio/android/build.log
       - name: Permit hardware-assisted Android emulator
         run: |
@@ -234,7 +243,13 @@ jobs:
           profile: pixel_6
           ram-size: 4096M
           disable-animations: true
-          script: bash build/simulator/device-with-backend.sh android out-fidunio/android android/app/build/outputs/apk/debug/app-debug.apk
+          script: bash build/simulator/device-with-backend.sh android out-fidunio/android android-src/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Attach exact Android release-source commit to evidence
+        if: always()
+        run: |
+          if [ -f out-fidunio/android/auth/results.json ]; then
+            node build/simulator/stamp-native-source.mjs out-fidunio/android/auth/results.json "$(git -C android-src rev-parse HEAD)"
+          fi
       - name: Save actual Android screenshots and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -299,6 +314,12 @@ jobs:
           APP="$(find "$RUNNER_TEMP/fidunio-sim-dd/Build/Products" -maxdepth 2 -name App.app | head -1)"
           test -d "$APP"
           bash build/simulator/device-with-backend.sh ios out-fidunio/ios "$APP"
+      - name: Attach exact iOS release-source commit to evidence
+        if: always()
+        run: |
+          if [ -f out-fidunio/ios/auth/results.json ]; then
+            node build/simulator/stamp-native-source.mjs out-fidunio/ios/auth/results.json "$(git -C ios-src rev-parse HEAD)"
+          fi
       - name: Save actual iPhone screenshots and logs
         if: always()
         uses: actions/upload-artifact@v4
