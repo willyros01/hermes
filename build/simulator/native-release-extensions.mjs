@@ -36,11 +36,24 @@ export async function runNativeReleaseExtensions(ctx) {
       const button='.message-reaction-btn[data-reaction="'+emoji+'"]';
       await d.press(button);
       await wait(async()=>((await readDoc('groups/'+g.id+'/messages/'+m.id))?.reactions||{})[me]===emoji,'emoji stored '+emoji,55000);
+      // The Firestore transaction may commit before an iPhone WebKit snapshot
+      // reaches the visible group row. Confirm BOTH surfaces agree before
+      // reopening a native menu. This never substitutes a UI mock for a PASS.
+      const rowSelector='.pending-message-action[data-conversation-id="'+g.id+'"][data-message-id="'+m.id+'"]';
+      await wait(async()=>await expr('Array.from(document.querySelectorAll('+JSON.stringify(rowSelector+' .message-reaction-chip.mine')+')).some(x=>x.textContent.trim()==='+JSON.stringify(emoji)+')'),'native group reaction visible '+emoji,45000);
       await openActions(g.id,m.id);
       const selected=await expr('document.querySelector('+JSON.stringify(button)+')?.getAttribute("aria-pressed")');
       if(selected!=='true')throw new Error('Selected emoji not highlighted '+emoji);
       await d.press(button);
-      await wait(async()=>!((await readDoc('groups/'+g.id+'/messages/'+m.id))?.reactions||{})[me],'emoji removed '+emoji,55000);
+      try {
+        await wait(async()=>!((await readDoc('groups/'+g.id+'/messages/'+m.id))?.reactions||{})[me],'emoji removed '+emoji,55000);
+        await wait(async()=>!await expr('Array.from(document.querySelectorAll('+JSON.stringify(rowSelector+' .message-reaction-chip.mine')+')).some(x=>x.textContent.trim()==='+JSON.stringify(emoji)+')'),'native group reaction disappearance '+emoji,45000);
+      } catch(error) {
+        const stored=await readDoc('groups/'+g.id+'/messages/'+m.id);
+        const ui=await expr('JSON.stringify({chips:Array.from(document.querySelectorAll('+JSON.stringify(rowSelector+' .message-reaction-chip')+')).map(e=>({text:e.textContent,mine:e.classList.contains("mine")})),modalVisible:!!document.querySelector("#pendingMessageTitle"),modalButtons:Array.from(document.querySelectorAll(".message-reaction-btn")).map(e=>({emoji:e.dataset.reaction,selected:e.getAttribute("aria-pressed")}))})').catch(err=>'Inspector diagnostic unavailable: '+err.message);
+        log('R01 diagnostic for '+emoji+': Firestore='+JSON.stringify(stored?.reactions||{})+'; WebView='+ui);
+        throw error;
+      }
     }
     await shot('all-native-emoji-tested');
     return 'Six picker choices verified individually: applied, selected and removed in native UI and Firestore';
