@@ -1,0 +1,1071 @@
+{
+  "schema": 2,
+  "product": "FIDUNIO",
+  "policy": "FAIL_CLOSED",
+  "scenarios": [
+    {
+      "id": "A01",
+      "name": "Terms acceptance and refusal",
+      "area": "Account access",
+      "native_test_ids": [
+        "N01"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A02",
+      "name": "Owner issues a user invitation",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A03",
+      "name": "Owner issues an admin invitation",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A04",
+      "name": "Admin issues user invite",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A05",
+      "name": "Consume a single-use invitation",
+      "area": "Account access",
+      "native_test_ids": [
+        "N02"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A06",
+      "name": "Invalid, expired, used and revoked invites",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A07",
+      "name": "Universal-link join on iOS and Android",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A08",
+      "name": "Sign in, invalid password and sign out",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A09",
+      "name": "Forgot password and authorized recovery",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "A10",
+      "name": "PIN, auto lock and biometrics",
+      "area": "Account access",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D01",
+      "name": "Create direct chat",
+      "area": "Direct messaging",
+      "native_test_ids": [
+        "N05"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D02",
+      "name": "Send encrypted direct text",
+      "area": "Direct messaging",
+      "native_test_ids": [
+        "N06"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D03",
+      "name": "Other user decrypts direct text",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D04",
+      "name": "Queued/Sent/Delivered/Read statuses",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D05",
+      "name": "Read only when genuinely visible",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D06",
+      "name": "Direct typing/quick phrases",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D07",
+      "name": "Direct reactions full matrix",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D08",
+      "name": "Block/unblock direct contact",
+      "area": "Direct messaging",
+      "native_test_ids": [
+        "N13"
+      ],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D09",
+      "name": "Delete a direct message for me",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D10",
+      "name": "Delete a direct message for everyone",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D11",
+      "name": "Cancel unsent direct message",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D12",
+      "name": "Delete all my direct messages",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D13",
+      "name": "Archive/unarchive direct conversation",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "D14",
+      "name": "Delete direct conversation for everyone",
+      "area": "Direct messaging",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G01",
+      "name": "Create a group with two members",
+      "area": "Groups",
+      "native_test_ids": [
+        "N09"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G02",
+      "name": "Group send encrypted text",
+      "area": "Groups",
+      "native_test_ids": [
+        "N10"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G03",
+      "name": "Group recipient decryption",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G04",
+      "name": "Group administrator controls",
+      "area": "Groups",
+      "native_test_ids": [
+        "N09"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G05",
+      "name": "Rename group; reject unauthorized rename",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G06",
+      "name": "Add group member",
+      "area": "Groups",
+      "native_test_ids": [
+        "N11"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G07",
+      "name": "Remove group member and rotate keys",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G08",
+      "name": "Owner protections and leave group",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G09",
+      "name": "Group history boundary",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G10",
+      "name": "Group reply and quote",
+      "area": "Groups",
+      "native_test_ids": [
+        "R03"
+      ],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G11",
+      "name": "Group reaction add/change/remove",
+      "area": "Groups",
+      "native_test_ids": [
+        "R01"
+      ],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G12",
+      "name": "Group delivered/read receipts",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G13",
+      "name": "Group delete message for me",
+      "area": "Groups",
+      "native_test_ids": [
+        "R02"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G14",
+      "name": "Group delete message for everyone",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G15",
+      "name": "Bulk group sent-message delete",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "G16",
+      "name": "Delete group/conversation for everyone",
+      "area": "Groups",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M01",
+      "name": "Select direct disappearing interval",
+      "area": "Message actions and expiration",
+      "native_test_ids": [
+        "N07"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M02",
+      "name": "Select group disappearing interval",
+      "area": "Message actions and expiration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M03",
+      "name": "Automatic direct message expiry",
+      "area": "Message actions and expiration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M04",
+      "name": "Automatic group message expiry",
+      "area": "Message actions and expiration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M05",
+      "name": "Attachment expiration and cleanup",
+      "area": "Message actions and expiration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M06",
+      "name": "Reply to expiring group messages",
+      "area": "Message actions and expiration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M07",
+      "name": "Emoji picker availability",
+      "area": "Message actions and expiration",
+      "native_test_ids": [
+        "N08"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M08",
+      "name": "Full emoji picker semantics",
+      "area": "Message actions and expiration",
+      "native_test_ids": [
+        "R01"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M09",
+      "name": "Pending delete and retry suppression",
+      "area": "Message actions and expiration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "M10",
+      "name": "Reply action and reply preview",
+      "area": "Message actions and expiration",
+      "native_test_ids": [
+        "R03"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F01",
+      "name": "Photo via gallery",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F02",
+      "name": "Photo via camera",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F03",
+      "name": "Video attachment",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F04",
+      "name": "Audio record/stop/send",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F05",
+      "name": "Generic file upload/download",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F06",
+      "name": "Oversize and malformed attachment",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F07",
+      "name": "Wi-Fi-only large attachment",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F08",
+      "name": "Offline direct outbox",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F09",
+      "name": "Offline group outbox",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F10",
+      "name": "Reconnect after access revoked",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "independent-peer",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F11",
+      "name": "App restart with encrypted local storage",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "F12",
+      "name": "Account recovery file creation/restore",
+      "area": "Media and offline",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P01",
+      "name": "Notification settings rendered",
+      "area": "Notifications",
+      "native_test_ids": [
+        "N12"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P02",
+      "name": "Notification setting persistence",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P03",
+      "name": "Token registration and lease renew",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P04",
+      "name": "Direct notification delivered",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P05",
+      "name": "Group notification delivered",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P06",
+      "name": "Tap push to correct conversation",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P07",
+      "name": "Sender hidden notification privacy",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P08",
+      "name": "Muted/blocked notification suppression",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P09",
+      "name": "Sign out revokes notification lease",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P10",
+      "name": "Offline/deferred notification routing",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "P11",
+      "name": "Real Amazon Fire HD ADM delivery",
+      "area": "Notifications",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S01",
+      "name": "A/A+/A++ and Dark/Light/Auto",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [
+        "N03"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S02",
+      "name": "Settings persist through navigation",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [
+        "N14"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S03",
+      "name": "Settings persist after app restart",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S04",
+      "name": "A++ clipping and minimum tap targets",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S05",
+      "name": "Biometric success/failure fallback",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S06",
+      "name": "Notification preferences and privacy",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S07",
+      "name": "Auto-lock and lock-now settings",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S08",
+      "name": "Profile and password management",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S09",
+      "name": "Report abuse and moderation",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S10",
+      "name": "Block/unblock safety UI",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [
+        "N13"
+      ],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S11",
+      "name": "Admin suspend/reactivate user",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S12",
+      "name": "Owner transfer protection",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S13",
+      "name": "Self account deletion",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S14",
+      "name": "Accessibility with VoiceOver/TalkBack",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "S15",
+      "name": "Rotation/tablet split layout",
+      "area": "Settings, accessibility and administration",
+      "native_test_ids": [],
+      "required": [
+        "android-native",
+        "ios-native",
+        "physical-device"
+      ],
+      "status": "NOT_VERIFIED"
+    }
+  ],
+  "physical_signoff_rule": "Only owner-approved, dated, exact-build evidence can satisfy a physical-device requirement; simulator screenshots never satisfy real APNs/ADM/Face ID."
+}
