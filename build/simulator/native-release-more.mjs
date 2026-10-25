@@ -49,7 +49,7 @@ export async function runExtraActions(ctx){
   if(!await readDoc('conversations/'+dm.id+'/messages/'+m.id))throw Error('Direct Delete for Me removed recipient shared message');
   await shot('native-direct-delete-for-me');
   return 'Deleted native direct row locally; recipient-authoritative message remains in Firestore';
- },{requires:a});
+ },{requires:ready});
  const c=await test('R06','Archive and unarchive direct conversation using native Messages controls',async()=>{
   dm=dm||await direct();
   for(let n=0;n<3&&!await present('#newBtn');n++){if(!await present('#backBtn'))throw Error('Cannot reach Messages');await d.press('#backBtn');}
@@ -71,6 +71,6 @@ export async function runExtraActions(ctx){
   await wait(()=>present('.conversation-open[data-id="'+dm.id+'"]'),'unarchived row visible in Messages',45000);
   await shot('native-unarchived-messages');
   return 'Archive and Unarchive used live UI and updated both filtered conversation lists';
- },{requires:b});
+ },{requires:ready});
  return [a,b,c].every(Boolean);
 }
