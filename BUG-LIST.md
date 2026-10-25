@@ -1,3 +1,10 @@
+## FID-EMOJI-20261024 — OPEN / potential release blocker (iPhone intermittent reaction removal)
+
+- **Observed:** The owner reports personally encountering emoji removal failure on a real device. Native iPhone simulator [run #34](https://github.com/willyros01/hermes/actions/runs/40150957216) reproduced a related failure: R01 removal of group 😮 timed out and 😮 remained visible. Native Android passed 20/20 in the same run; native iPhone passed 19/20. No root cause or physical build/version has been established.
+- **Bug tracker:** [GitHub issue #3](https://github.com/willyros01/hermes/issues/3), with [native screenshot](https://github.com/willyros01/hermes/blob/simulator-evidence/logs/run-34-5ad0685/ios/auth/18-R01-failure.png). Historical emoji acceptance on 2026-09-12 remains recorded; this is a possible intermittent regression since then.
+- **Current investigation:** [Run #35](https://github.com/willyros01/hermes/actions/runs/40153548941) was launched with diagnostic checks comparing the Firestore reaction record to the iPhone's actual displayed reaction chip. Result pending at the time of this entry; do not infer PASS. Validate across all six emoji, direct/group, rapid toggles, peer, restart and offline conditions.
+- **Status:** **OPEN — REGRESSION UNDER INVESTIGATION**. Keep release validation BLOCKED. No iOS/Android production source changed; test tools and documentation only. See [Simulator release-validation and R01 emoji investigation](docs/simulator/REACTION-REMOVAL-REPRODUCTION.md).
+
 ## iOS migration blockers — 1.1.59 repair candidate — 2026-10-04
 
 - **IOS-AUTH-002 — OPEN / release blocking until TestFlight acceptance.** Root cause is now source-confirmed in exact 1.1.57 commit: invalid executable quote escapes in `settings-lifecycle.js`, loaded by the post-recovery `app.js` import. Current candidate removes the syntax defect and permanently checks every packaged iOS JavaScript file.

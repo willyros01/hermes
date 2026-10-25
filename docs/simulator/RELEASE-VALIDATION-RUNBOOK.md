@@ -1,5 +1,9 @@
 # FIDUNIO — recurring release-validation runbook
 
+## Reaction-regression investigation and repeat testing
+
+[Issue #3](https://github.com/willyros01/hermes/issues/3) is **OPEN**. The owner independently reports failed reaction removal on a real device; iPhone run #34 failed removing group 😮 while Android run #34 passed. Preserve that evidence even if later runs are green. The repeatable native stress protocol, state diagnostics and physical-device acceptance requirements are in [Simulator release-validation and R01 emoji investigation](docs/simulator/REACTION-REMOVAL-REPRODUCTION.md). Current release status stays **BLOCKED** until all 88 cases are independently supported; neither this nor the diagnostic harness authorizes a production app fix.
+
 **CURRENT STATUS: BLOCKED — NOT RELEASE-CERTIFIED.** A six-stage green simulator regression run is not proof of complete release validation.
 
 ## Purpose

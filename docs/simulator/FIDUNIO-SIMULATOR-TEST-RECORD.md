@@ -1,5 +1,7 @@
 # FIDUNIO — reusable simulator test record
 
+**2026-10-24 native release-extension checkpoint (supersedes earlier 14/14 baseline):** [run #34](https://github.com/willyros01/hermes/actions/runs/40150957216) Android **20/20 PASS**, native iPhone **19/20 PASS**; R01 FAIL while removing group 😮. Four other stages passed. [Issue #3](https://github.com/willyros01/hermes/issues/3) now open because owner also reports this symptom in real use. Run #35 instruments snapshot/UI convergence; do not claim a fix until its result is inspected. Test extensions R01–R06 and the **88-case fail-closed manifest** are registered but do **not** constitute completed 88-case release acceptance. See [Simulator release-validation and R01 emoji investigation](docs/simulator/REACTION-REMOVAL-REPRODUCTION.md). **RELEASE VALIDATION BLOCKED.**
+
 **Scope:** Android/Fire-derived shared code, iOS shared code, disposable native Android and iPhone simulators, and the **local** Firebase emulator. This is a testing package; it does not build, upload, or publish a customer release.
 
 **Baseline:** `willyros01/hermes`, release source `Android` at `f6f56055e6b3faae01319cfa370402843973ccb0`; iPhone source is checked out read-only from current `ios` for each run. The exact `ios` checkout SHA and all runner SHAs are preserved by GitHub Actions. This test infrastructure is committed **only** to branch `simulator-tests`; the result archive is **only** branch `simulator-evidence`.

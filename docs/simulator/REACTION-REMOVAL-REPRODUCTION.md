@@ -1,0 +1,42 @@
+# FIDUNIO — simulator release-validation and reaction-regression record
+**Date:** 2026-10-24 Toronto / 2026-10-25 UTC  
+**Scope:** `willyros01/hermes` isolated `simulator-tests` harness and `simulator-evidence` archive.  
+**Issue:** [#3 — intermittent group emoji removal](https://github.com/willyros01/hermes/issues/3).  
+**Decision:** RELEASE VALIDATION **BLOCKED**. This record does not authorize a release or a production-code repair.
+
+## A. Why this record exists
+An earlier native suite passed 14 selected authenticated scenarios, but it lacked several release-critical behaviors. The owner asked for a repeatable all-function gate. The working test suite now enumerates **88 required feature scenarios** in `build/simulator/release-manifest.json`; GitHub `simulator-suite.yml` executes six baseline stages and the additional native R01–R06 journeys. `build/simulator/release-gate.mjs` has a separately initiated **fail-closed** acceptance decision and requires exact source SHA, independent screenshot-linked native assertions, and physical/peer evidence where necessary. Passing an earlier smoke run is never enough. The manifest is a required-coverage **inventory**, not proof all 88 scenarios are implemented or passing.
+
+## B. Current regression: group reaction sometimes will not remove
+The owner independently reports that the reaction-removal problem has appeared in real use, without specifying device/build. The historic `TODO.md` acceptance on 2026-09-12 is preserved. This is a **new suspected intermittent regression**, not proof that historic acceptance was false.
+
+- [Run #34](https://github.com/willyros01/hermes/actions/runs/40150957216): Android native **20/20 PASS**; iPhone native **19/20 PASS**. The iPhone failed **R01** waiting up to 55 seconds for the **😮** group reaction to be removed. The group chat still displayed 😮. All other iPhone native scenarios—including group Reply, direct emoji reaction matrix, Delete for Me, archive/unarchive—passed.
+- Exact test-harness commit at run #34: `5ad06852f7de6cb83245a27ddb7fad3817ee35a6`. This is **not** the immutable iOS release source SHA.
+- [iPhone R01 report](https://github.com/willyros01/hermes/blob/simulator-evidence/logs/run-34-5ad0685/ios/auth/REPORT.md); [failure screenshot](https://github.com/willyros01/hermes/blob/simulator-evidence/logs/run-34-5ad0685/ios/auth/18-R01-failure.png).
+- [Run #35](https://github.com/willyros01/hermes/actions/runs/40153548941): temporary diagnostic harness addition checks both Firestore and the **visible iPhone reaction chip** before reopening the action modal. **Result pending in this documentation checkpoint**; use its completed artifact to update this record. No application or Firebase source was altered for this probe.
+- The source's `message-reaction-policy.js` defines exactly six values: `👍 ❤️ 😂 😮 😢 🙏`. `nextMessageReactions` removes a user's existing reaction when clicked again. `app.js` constructs the picker from the local message projection and calls `firebase.js:setCloudMessageReaction`. An intermittent stale local projection, transaction issue, or UI/network race are **hypotheses, not proven causes**.
+
+## C. Exact reproducibility test plan — never silently retry away a failure
+For **each** native iPhone simulator and Android simulator, with unique disposable Auth users and local Auth/Firestore/Storage:
+1. Direct: for each of the six emoji, apply once, verify highlighted in action menu + visible chat chip + authoritative Firestore `reactions[uid]`, then tap selected option again and require it to disappear from both UI and server. Repeat across independent rounds rather than only one pass.
+2. Group: repeat the same six-value matrix on a sender-owned message, on a recipient-owned eligible message, and after a member is added. Check selected/removed state after each operation on sender **and peer** when a genuine peer UI is available; never claim peer-side proof using only a seed record.
+3. Add **rapid toggling** and switching A→B; record if the final stored reaction differs from the final UI. Avoid automatic hidden retries: every attempted user tap and outcome must be counted.
+4. Repeat after leaving/reentering the conversation, after app background/foreground, after full restart, after offline/reconnect, and after a new Firebase snapshot. Distinguish current simulator's volatile iOS CryptoKey adapter from physical restart persistence.
+5. Capture on each failed action: platform, release-source SHA, test-harness SHA, case ID, emoji, message ID, Auth UID (synthetic), initial DB reaction, menu `aria-pressed`, bubble chip, observed DB after click, elapsed time, errors, and genuine native screenshot.
+6. Record **PASS / FAIL / BLOCKED / NOT TESTED** for every row. A failed single attempt must remain in the report even when a subsequent attempt succeeds. Rerun reproducibility does not authorize a client patch.
+7. Reconfirm on **physical iPhone/iPad** and Fire HD 8 only with owner's cooperation. Physical notifications, Face ID and ADM/APNs cannot be proved by local simulators.
+
+**Threshold for classification:** run #34 already provides a fully observed iPhone simulator failure, and the owner independently reports a physical symptom. Until deterministic steps/root cause are demonstrated, classify as **OPEN / INTERMITTENT — ROOT CAUSE UNCONFIRMED**, not “fixed” and not “test-script error.”
+
+## D. Required regression and release acceptance
+- Both native apps complete the full emoji matrix and extensive repeat tests, with fresh real screenshots and Firestore readbacks. Reproduction failures stay attached to issue #3.
+- UI cannot show a reaction as selected if server state has already removed it; reopens and concurrent snapshots converge without resurrecting stale emojis.
+- Check both sender and recipient message reactions, direct and group flows, deleted/expired messages, offline convergence, and unauthorized/removed members.
+- Every other required release scenario from the **88-item manifest** has dedicated evidence. Android/ios source HEADs must be matched in the signed/release candidate validation.
+- Native automated PASS is distinct from physical acceptance, live Firebase Cloud Functions (including deletion purge and notification leases), true peer E2EE decryption, TestFlight or published APK verification.
+- Maintain **RELEASE BLOCKED** while any required scenario is missing, failed, or awaiting physical acceptance. Do not bypass `release-gate.mjs`.
+
+## E. Governance and commands
+Use GitHub Actions **[FIDUNIO isolated simulator and Firebase regression suite](https://github.com/willyros01/hermes/actions/workflows/simulator-suite.yml)** on branch `simulator-tests`. A normal push to test-harness paths launches six simulation stages. The explicit **Run workflow** action additionally evaluates the 88-case release gate; it does **not** publish anything. Inspect `simulator-evidence/logs/run-N-<sha>/REPORT.md` and `ios/auth/REPORT.md`, `android/auth/REPORT.md`, and PNGs. Preserve the complete failures and each run's SHA. `docs/simulator/RELEASE-VALIDATION-RUNBOOK.md` contains the current operational instructions.
+
+**Do not modify:** production `main`, `ios`, `Android`, `main-3`, live Firebase rules/Functions, secrets, APK publishing or TestFlight. Fix only the test harness without further approval. If app-code changes become necessary, seek explicit authorization and preserve cross-platform functional equality.

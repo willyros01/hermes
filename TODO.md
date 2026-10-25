@@ -1,3 +1,10 @@
+## 2026-10-24 Toronto — Open simulator validation/regression TODO
+
+- **FID-EMOJI-20261024 / [issue #3](https://github.com/willyros01/hermes/issues/3) — OPEN, RELEASE BLOCKER.** Owner reports real-device emoji removal intermittence; iPhone native R01 in [run #34](https://github.com/willyros01/hermes/actions/runs/40150957216) failed to remove group 😮 (Android 20/20 PASS; iPhone 19/20 PASS). Confirm root cause versus stale UI, Firestore update/transaction, and timing with repeated native/physical tests. Do not close based on a rerun PASS. See [Simulator release-validation and R01 emoji investigation](docs/simulator/REACTION-REMOVAL-REPRODUCTION.md).
+- Reproduce all six reactions **in direct and group chat**, add/change/remove, including repeated fast toggles, snapshots, restart, offline/reconnect, recipient perspective, hidden/deleted/expired messages, and state consistency. Save each result and genuine screenshot; do not skip unsuccessful attempts.
+- Continue completing the **88 mandatory release scenarios** listed in `build/simulator/release-manifest.json`. New R01–R06 cover only a subset; outstanding device/peer/deletion/attachments/notification requirements remain NOT VERIFIED. Fail-closed `build/simulator/release-gate.mjs` must remain BLOCKED until complete. No TestFlight/APK/backend or production source changes are authorized.
+- Run #35 remains diagnostic and pending at this timestamp; compare Firestore reaction state with native UI. Update all durable logs upon a completed run.
+
 ## 2026-10-09 — PIN / biometric unlock source correction (no TestFlight)
 
 - `ios` commit `5a6ee14`: `app.js` now serializes PIN verification when the sixth-digit completion callback and Unlock with PIN button are triggered together. Pending verification cannot be duplicated; a failed/timed-out attempt clears the pending flag and re-enables input.

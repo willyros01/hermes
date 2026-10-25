@@ -1,3 +1,10 @@
+## FID-EMOJI-20261024 — Real-device reaction-removal report; physical acceptance OPEN
+
+- **Owner observation:** Emoji removal sometimes fails during actual FIDUNIO use; device/build/conditions not yet captured. Owner explicitly requested extensive reproducibility testing.
+- **Simulator correlation:** iPhone [run #34](https://github.com/willyros01/hermes/actions/runs/40150957216) R01 unable to remove group 😮; Android R01 PASS. The simulator failure and owner report support opening [issue #3](https://github.com/willyros01/hermes/issues/3), but do not prove the same underlying cause. Real device acceptance on 2026-09-12 is retained as an earlier checkpoint.
+- **Physical matrix pending:** on current iPhone/iPad TestFlight and Fire HD 8, repeat each emoji add/remove for direct/group own and peer messages; close/reopen, poor network/offline, foreground/background, and rapid taps. Require both visible UI and peer/authoritative state to converge; record exact builds, steps and actual outcomes. Do not call hardware PASS solely from emulator screenshots.
+- **State:** OPEN / PHYSICAL DEVICE NOT YET REVALIDATED. No production changes approved. Refer to [Simulator release-validation and R01 emoji investigation](docs/simulator/REACTION-REMOVAL-REPRODUCTION.md).
+
 ## IOS-AUTH-002 / IOS-AUTH-003 — 1.1.59 source-confirmed repair candidate — 2026-10-04
 
 **IOS-AUTH-002: OPEN — DEVICE ACCEPTANCE REQUIRED.** Exact 1.1.57 commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` contains invalid executable `\'...\'` quote escapes in `settings-lifecycle.js`. The same commit's `app.js` imports that module, and the recovery UI awaited `startApp() -> import("./app.js")` inside the recovery catch. This directly explains the observed JavaScriptCore/WebKit parser error after PIN recovery without requiring a failure in `recoverAccountE2EE()`.
