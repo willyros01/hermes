@@ -1,0 +1,44 @@
+FILE functions/notification/adm-compat.test.mjs
+SOURCE Android
+EXIT 0
+TAP version 13
+# Subtest: Amazon OAuth and encrypted-message-neutral payload
+ok 1 - Amazon OAuth and encrypted-message-neutral payload
+  ---
+  duration_ms: 2.664401
+  type: 'test'
+  ...
+# Subtest: direct routes Amazon only to ADM while preserving APNs and web FCM
+ok 2 - direct routes Amazon only to ADM while preserving APNs and web FCM
+  ---
+  duration_ms: 0.642422
+  type: 'test'
+  ...
+# Subtest: blocked direct messages never send to either provider
+ok 3 - blocked direct messages never send to either provider
+  ---
+  duration_ms: 0.139851
+  type: 'test'
+  ...
+# Subtest: group routes Fire to ADM, without passing Amazon token to FCM
+ok 4 - group routes Fire to ADM, without passing Amazon token to FCM
+  ---
+  duration_ms: 0.534499
+  type: 'test'
+  ...
+# Subtest: missing ADM sender never silently routes Fire token through FCM
+ok 5 - missing ADM sender never silently routes Fire token through FCM
+  ---
+  duration_ms: 0.208876
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9.791205
+

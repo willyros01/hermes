@@ -1,0 +1,5 @@
+FILE user-access-key-ux.test.mjs
+SOURCE Android
+EXIT 0
+Single visible FIDUNIO PIN and hidden-key UX gate passed
+

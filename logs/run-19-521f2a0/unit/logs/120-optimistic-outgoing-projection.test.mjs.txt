@@ -1,0 +1,5 @@
+FILE optimistic-outgoing-projection.test.mjs
+SOURCE Android
+EXIT 0
+Group-only optimistic projection and direct-isolation gate passed
+

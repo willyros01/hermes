@@ -1,0 +1,28 @@
+FILE firestore-account-deletion.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS user initiates own deletion
+PASS user reads own deletion request
+PASS other user cannot read deletion request
+PASS non-admin cannot list deletion requests
+PASS admin lists deletion requests
+PASS other user cannot create deletion request for target
+PASS user cannot forge completed request
+PASS user cancels pending request
+PASS admin cannot process before client cleanup
+PASS requester marks client cleanup complete
+PASS requester cannot cancel after destructive cleanup
+PASS admin marks request processing
+PASS requester cannot mark request processing
+PASS admin marks processing request complete
+
+[2026-10-25T00:04:47.064Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x32910152 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L74, evaluation error at L76:9 for 'update' @ L76, false for 'update' @ L76
+[2026-10-25T00:04:47.083Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x3291014e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L74, evaluation error at L76:9 for 'update' @ L76, false for 'create' @ L74
+[2026-10-25T00:04:47.203Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x32910155 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L76:9 for 'update' @ L76, false for 'update' @ L76
+[2026-10-25T00:04:47.235Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x32910153 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L76:9 for 'update' @ L76, false for 'update' @ L76
+[2026-10-25T00:04:47.280Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x32910157 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L76:9 for 'update' @ L76, false for 'update' @ L76
