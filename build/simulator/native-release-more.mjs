@@ -23,6 +23,19 @@ export async function runExtraActions(ctx){
   dm=await direct();
   const msg=(await readCollection('conversations/'+dm.id+'/messages')).find(x=>x.senderUid===me);
   if(!msg)throw Error('No native direct message to react to');
+  // N08 already reacted to this message (normally with 👍). Clicking an
+  // already-selected reaction toggles it OFF. Clear it through the actual
+  // native message menu before verifying the six add/remove journeys.
+  const original=(await readDoc('conversations/'+dm.id+'/messages/'+msg.id))?.reactions?.[me];
+  if(original){
+   await open(dm.id,msg.id);
+   const selected='.message-reaction-btn[data-reaction="'+original+'"]';
+   if(!await present(selected))throw Error('Existing emoji not available to remove: '+original);
+   const pressed=await expr('document.querySelector('+JSON.stringify(selected)+')?.getAttribute("aria-pressed")');
+   if(pressed!=='true')throw Error('Existing emoji not highlighted in native picker');
+   await d.press(selected);
+   await wait(async()=>!((await readDoc('conversations/'+dm.id+'/messages/'+msg.id))?.reactions||{})[me],'prior N08 emoji cleared',55000);
+  }
   for(const reaction of ['👍','❤️','😂','😮','😢','🙏']){
    await open(dm.id,msg.id);
    const btn='.message-reaction-btn[data-reaction="'+reaction+'"]';
