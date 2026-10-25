@@ -65,8 +65,14 @@ export async function runNativeReleaseExtensions(ctx) {
     g=g||await group();
     if(!await present('#messageBox'))g=await group();
     const previous=new Set((await readCollection('groups/'+g.id+'/messages')).map(x=>x.id));
-    const m=(await readCollection('groups/'+g.id+'/messages')).find(x=>x.senderUid===me&&x.id!==undefined);
-    if(!m)throw new Error('No original group message to reply to');
+    // R02 deliberately hides one message in this installation. Choose a
+    // currently VISIBLE, committed message instead of an arbitrary Firestore
+    // document that may be hidden locally. Do not mock the Reply action.
+    await wait(()=>present('#chatArea .pending-message-action'),'visible native group message',40000);
+    const visibleIds=await expr('Array.from(document.querySelectorAll("#chatArea .pending-message-action")).map(row=>row.dataset.messageId)');
+    const stored=await readCollection('groups/'+g.id+'/messages');
+    const m=stored.find(x=>visibleIds.includes(x.id)&&x.senderUid===me&&!Number(x.disappearAfterSeconds));
+    if(!m)throw new Error('No visible non-expiring sender group message eligible for Reply; visible IDs: '+JSON.stringify(visibleIds));
     await openActions(g.id,m.id);
     await wait(()=>present('#modalReply'),'native group Reply action');
     await d.press('#modalReply');
