@@ -24,15 +24,21 @@ export async function runEmojiStress({d,expr,present,wait,shot,readDoc,readColle
     await wait(()=>present('#messageBox'),type+' composer',40000);
     return row;
   };
-  // Exactly one click, atomically checked and dispatched in the WebView.
-  // This records DOM dispatch, not Firebase transaction success. Never retry
-  // a toggle automatically: two clicks can invert the intended reaction.
+  // iPhone's Web Inspector driver can silently re-evaluate an expression when
+  // its reply is lost. A toggle must not be executed twice under the same ID.
+  // This is TEST-ONLY instrumentation; it does not modify app reaction code.
   const tapReaction=async(selector,kind,emoji,cycle,phase)=>{
-    const payload=await expr('(() => {const el=document.querySelector('+JSON.stringify(selector)+');if(!el)return JSON.stringify({error:"button-missing"});const before={disabled:!!el.disabled,connected:!!el.isConnected,pressed:el.getAttribute("aria-pressed"),handler:typeof el.onclick==="function"};let delivered=0;el.addEventListener("click",()=>{delivered++;},{once:true});if(!before.disabled&&before.connected)el.click();return JSON.stringify({...before,delivered,disabledAfter:!!el.disabled,connectedAfter:!!el.isConnected});})()');
+    const op='fid-sim-'+kind+'-'+cycle+'-'+phase+'-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+    const payload=await expr('(() => {const key='+JSON.stringify(op)+';const ops=globalThis.__fidunioSimTapOps||(globalThis.__fidunioSimTapOps=Object.create(null));const previous=ops[key];if(previous){previous.evaluations++;return JSON.stringify({...previous.result,evaluations:previous.evaluations,inspectorReplay:true});}const el=document.querySelector('+JSON.stringify(selector)+');if(!el){const result={error:"button-missing"};ops[key]={evaluations:1,result};return JSON.stringify({...result,evaluations:1,inspectorReplay:false});}const before={disabled:!!el.disabled,connected:!!el.isConnected,pressed:el.getAttribute("aria-pressed"),handler:typeof el.onclick==="function"};let delivered=0;el.addEventListener("click",()=>{delivered++;},{once:true});if(!before.disabled&&before.connected)el.click();const result={...before,delivered,disabledAfter:!!el.disabled,connectedAfter:!!el.isConnected};ops[key]={evaluations:1,result};return JSON.stringify({...result,evaluations:1,inspectorReplay:false});})()');
     const info=JSON.parse(payload||"null");
-    log('REACTION-CLICK '+JSON.stringify({kind,emoji,cycle,phase,...info}));
+    log('REACTION-CLICK '+JSON.stringify({op,kind,emoji,cycle,phase,...info}));
+    if(info?.inspectorReplay)log('REACTION-INSPECTOR-REPLAY-SUPPRESSED '+JSON.stringify({op,kind,emoji,cycle,phase,evaluations:info.evaluations}));
     if(!info||info.error||info.disabled||!info.connected||!info.handler||info.delivered!==1)throw Error('Reaction click was not delivered to an enabled live button: '+JSON.stringify(info));
     await d.sleep(1200);
+    if(phase==='remove'){
+      const ui=await expr('JSON.stringify({dialogOpen:!!document.querySelector("#pendingMessageTitle"),buttonDisabled:document.querySelector('+JSON.stringify(selector)+')?.disabled??null,chipCount:document.querySelectorAll(".message-reaction-chip.mine").length})').catch(e=>'inspector-error: '+e.message);
+      log('REACTION-REMOVE-OBSERVATION '+JSON.stringify({op,kind,emoji,cycle,ui}));
+    }
   };
   const open=async(id,mid)=>{
     const sel='.pending-message-action[data-message-id="'+mid+'"]';
@@ -107,8 +113,41 @@ export async function runEmojiStress({d,expr,present,wait,shot,readDoc,readColle
     }
     return type+' 4 cycles × 6 emoji = '+passed+' authentic add/remove pairs; Firestore and UI synchronized after each step';
   }
+  // Deliberately leave the group immediately after Send to exercise Outbox
+  // continuity. This is a navigation interruption, NOT a true network outage.
+  async function interruptedGroupSend(){
+    const row=await nav('group');
+    const dbPath='groups/'+row.id+'/messages';
+    const prior=new Set((await readCollection(dbPath)).map(m=>m.id));
+    const token='NATIVE_SEND_INTERRUPTION_'+Date.now();
+    await d.fill('#messageBox',token);
+    await d.press('#sendBtn');
+    const initial=await readCollection(dbPath);
+    const initialNew=initial.filter(m=>m.senderUid===me&&!prior.has(m.id));
+    log('SEND-INTERRUPTION pre-navigation '+JSON.stringify({newDocs:initialNew.length,states:initialNew.map(m=>m.state)}));
+    await d.press('#backBtn');
+    await wait(()=>present('#newBtn'),'Messages after interrupting group send by navigation',40000);
+    let newDocs=[];
+    await wait(async()=>{
+      newDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
+      if(newDocs.length>1)throw Error('More than one group message created by one Send: '+newDocs.length);
+      return newDocs.length===1&&newDocs[0].state==='sent';
+    },'one authoritative Sent group message after immediate navigation',90000);
+    if(JSON.stringify(newDocs).includes(token))throw Error('Plaintext leaked during interrupted group send');
+    if(newDocs.length!==1)throw Error('Unexpected group message count '+newDocs.length);
+    await d.press('.conversation-open[data-id="'+row.id+'"]');
+    await wait(()=>present('.pending-message-action[data-message-id="'+newDocs[0].id+'"]'),'interrupted group message visible after returning',50000);
+    const sel='.pending-message-action[data-message-id="'+newDocs[0].id+'"] .msg-meta';
+    await wait(async()=>/(?:Sent|Delivered|Read)/i.test(String(await expr('document.querySelector('+JSON.stringify(sel)+')?.innerText||""'))),'native group UI marked Sent after return',60000);
+    await d.sleep(1800);
+    const finalDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
+    if(finalDocs.length!==1||finalDocs[0].state!=='sent')throw Error('Duplicate or missing Sent message after return: '+JSON.stringify(finalDocs.map(m=>({id:m.id,state:m.state}))));
+    log('SEND-INTERRUPTION PASS '+JSON.stringify({id:newDocs[0].id,initialStates:initialNew.map(m=>m.state),finalState:finalDocs[0].state,newDocs:finalDocs.length}));
+    return 'One encrypted group message reached Sent and remained unique after immediate navigation away and return; real network loss not simulated';
+  }
+  const interrupted=await test('R09','Group send continuity on immediate navigation interruption',interruptedGroupSend,{requires:ready});
   const group=await test('R07','Group reaction stress — four complete six-emoji cycles across native chat reopen',()=>exercise('group'),{requires:ready});
   const direct=await test('R08','Direct reaction stress — four complete six-emoji cycles across native chat reopen',()=>exercise('direct'),{requires:ready});
-  log('REACTION-STRESS summary group='+group+' direct='+direct+'; no release approval implied.');
-  return group&&direct;
+  log('REACTION-STRESS summary interruptedGroupSend='+interrupted+' group='+group+' direct='+direct+'; no release approval implied.');
+  return interrupted&&group&&direct;
 }
