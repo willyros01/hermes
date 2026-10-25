@@ -329,6 +329,58 @@ jobs:
           retention-days: 90
           if-no-files-found: warn
 
+  release-readiness:
+    name: FAIL CLOSED - all 88 functions plus device acceptance
+    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
+    needs: [reviewed-regressions, firebase-rules, authenticated-flows, browser-journeys, native-android, native-ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: Android
+          path: release-android
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: ios
+          path: release-ios
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve complete previous-job evidence, never infer passing results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: fidunio-sim-*
+          path: evidence
+          merge-multiple: true
+      - name: Validate complete cross-platform release manifest and exact source hashes
+        run: |
+          node --check build/simulator/release-gate.mjs
+          node build/simulator/release-gate.mjs \
+            --manifest build/simulator/release-manifest.json \
+            --android evidence/android/auth/results.json \
+            --ios evidence/ios/auth/results.json \
+            --android-sha "$(git -C release-android rev-parse HEAD)" \
+            --ios-sha "$(git -C release-ios rev-parse HEAD)" \
+            --attestations build/simulator/release-attestations.json \
+            --output out-fidunio/release-gate.json
+      - name: Preserve BLOCKED as evidence, never hide a failed release gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fidunio-release-readiness
+          path: out-fidunio/release-gate.*
+          if-no-files-found: warn
+          retention-days: 90
+
   archive:
     name: Preserve results and screenshots without touching release branches
     needs: [reviewed-regressions, firebase-rules, authenticated-flows, browser-journeys, native-android, native-ios]
