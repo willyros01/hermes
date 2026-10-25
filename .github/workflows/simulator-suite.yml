@@ -211,6 +211,8 @@ jobs:
           set -Eeuo pipefail
           mkdir -p out-fidunio/android
           {
+            # Install test-runner dependencies before the separate release-source checkout.
+            npm ci --no-audit --no-fund
             (
               cd android-src
               npm ci --no-audit --no-fund
