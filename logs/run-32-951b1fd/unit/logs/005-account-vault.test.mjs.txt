@@ -1,0 +1,5 @@
+FILE account-vault.test.mjs
+SOURCE Android
+EXIT 0
+Portable FIDUNIO Vault cryptography, binding, tamper rejection, cloud reconciliation, deletion convergence, and Outbox replay barriers pass
+
