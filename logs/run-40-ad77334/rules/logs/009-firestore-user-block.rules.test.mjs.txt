@@ -1,0 +1,28 @@
+FILE firestore-user-block.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS user blocks another user
+PASS block prevents recipient Read receipt on existing message
+PASS block prevents direct reaction on existing message
+PASS owner lists own blocks
+PASS other user cannot read block record
+PASS other user cannot create block for owner
+PASS cannot block self
+PASS blocked pair cannot create direct conversation from blocker
+PASS blocked pair cannot create direct conversation from blocked user
+PASS unrelated pair can create direct conversation
+PASS owner can unblock
+PASS pair can create direct conversation after unblock
+
+[2026-10-25T04:48:29.515Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5230b86b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T04:48:29.523Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5230b86c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:996 for 'update' @ L88, false for 'update' @ L88
+[2026-10-25T04:48:29.595Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5230b86f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L86, false for 'update' @ L86
+[2026-10-25T04:48:29.602Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5230b870 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L86, false for 'update' @ L86
+[2026-10-25T04:48:29.611Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5230b871 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:131 for 'create' @ L88, evaluation error at L88:448 for 'update' @ L88, false for 'create' @ L88
+[2026-10-25T04:48:29.619Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x5230b872 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L88:131 for 'create' @ L88, evaluation error at L88:448 for 'update' @ L88, false for 'create' @ L88

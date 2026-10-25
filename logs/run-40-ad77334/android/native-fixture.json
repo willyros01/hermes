@@ -1,0 +1,28 @@
+{
+  "project": "demo-fidunio-simulator-tests",
+  "alice": {
+    "email": "alice-40163182169-2fc66e@simulator.invalid",
+    "password": "NativeSimulatorOnly-554411!",
+    "pin": "473829",
+    "name": "Native Test Alice"
+  },
+  "inviteToken": "1fCUx0AYHmpiXfrwy9cw6ysDiTkEI4Xt",
+  "inviteId": "37175589a01834ad5eea2f14c0a9327d73c7f78c2a8942c178c0e7720a71c84d",
+  "peers": [
+    {
+      "label": "Owner",
+      "uid": "lMDzNvHYnKFIBihogDHcdtEJDeWB",
+      "email": "owner-40163182169-2fc66e@simulator.invalid"
+    },
+    {
+      "label": "Bob",
+      "uid": "wG8dz1zTGMd1OI23owBrX9hZ6fLs",
+      "email": "bob-40163182169-2fc66e@simulator.invalid"
+    },
+    {
+      "label": "Carol",
+      "uid": "e49uU2vVb6o7NE59XZhGqetvWGvY",
+      "email": "carol-40163182169-2fc66e@simulator.invalid"
+    }
+  ]
+}

@@ -1,0 +1,351 @@
+{
+  "platform": "ios",
+  "passed": 22,
+  "failed": 1,
+  "blocked": 0,
+  "result": "FAIL",
+  "tests": [
+    {
+      "id": "N01",
+      "label": "Accept legal Terms and open actual Join form",
+      "status": "PASS",
+      "detail": "Observed on native device",
+      "screenshots": [
+        "01-native-join-screen.png"
+      ]
+    },
+    {
+      "id": "N02",
+      "label": "Consume a real single-use admin invite, set PIN, create E2EE identity through native Join",
+      "status": "PASS",
+      "detail": "Admin invitation accepted; real Auth profile and account E2EE identity created in local Firebase (iPhone volatile key-cache workaround used)",
+      "screenshots": [
+        "02-native-join-completed.png",
+        "03-native-authenticated-messages.png"
+      ]
+    },
+    {
+      "id": "N03",
+      "label": "Change actual native Settings: A++, Dark, and preview option",
+      "status": "PASS",
+      "detail": "On-device Settings widgets changed and rendered selected values",
+      "screenshots": [
+        "04-native-settings-large-dark.png"
+      ]
+    },
+    {
+      "id": "N04",
+      "label": "Admin creates a new user invitation from native Settings",
+      "status": "PASS",
+      "detail": "Admin UI created an authentic single-use invitation in local Firestore",
+      "screenshots": [
+        "05-native-admin-invitation.png"
+      ]
+    },
+    {
+      "id": "N05",
+      "label": "Start a native direct conversation with Bob",
+      "status": "PASS",
+      "detail": "Observed on native device",
+      "screenshots": [
+        "06-native-direct-chat.png"
+      ]
+    },
+    {
+      "id": "N06",
+      "label": "Send encrypted direct text and confirm NO plaintext in emulator",
+      "status": "PASS",
+      "detail": "Native composer sent an encrypted message with no plaintext in Firestore",
+      "screenshots": [
+        "07-native-direct-message-sent.png"
+      ]
+    },
+    {
+      "id": "N07",
+      "label": "Set disappearing timer in real native direct conversation",
+      "status": "PASS",
+      "detail": "Actual per-conversation disappearing selector changed to 300 seconds",
+      "screenshots": [
+        "08-native-disappearing-setting.png"
+      ]
+    },
+    {
+      "id": "N08",
+      "label": "React with an emoji to an accepted direct message",
+      "status": "PASS",
+      "detail": "Native message action displayed and applied emoji reaction",
+      "screenshots": [
+        "09-native-emoji-reaction.png"
+      ]
+    },
+    {
+      "id": "N09",
+      "label": "Create group from native app and verify admin controls",
+      "status": "PASS",
+      "detail": "Real group creation and group-admin rename/add/remove controls visible in native app",
+      "screenshots": [
+        "10-native-group-created.png",
+        "11-native-group-admin.png"
+      ]
+    },
+    {
+      "id": "N10",
+      "label": "Send a native group message and verify encrypted group record",
+      "status": "PASS",
+      "detail": "Actual native group composer wrote encrypted content to local Firestore",
+      "screenshots": [
+        "12-native-group-message-sent.png"
+      ]
+    },
+    {
+      "id": "N11",
+      "label": "Use native group administrator to add a member",
+      "status": "PASS",
+      "detail": "Native Group Info added Owner account as a new member; Firestore membership confirmed",
+      "screenshots": [
+        "13-native-group-member-added.png"
+      ]
+    },
+    {
+      "id": "N12",
+      "label": "Show native notification configuration controls (delivery requires real devices)",
+      "status": "PASS",
+      "detail": "Notification UI exists and renders. Actual ADM/APNs push reception NOT tested",
+      "screenshots": [
+        "14-native-notification-settings.png"
+      ]
+    },
+    {
+      "id": "N13",
+      "label": "Block and unblock a native user in Safety settings",
+      "status": "PASS",
+      "detail": "Real native Safety UI blocked then unblocked an existing FIDUNIO account (one expected OS confirmation was simulator-autoaccepted)",
+      "screenshots": [
+        "15-native-user-blocked.png",
+        "16-native-user-unblocked.png"
+      ]
+    },
+    {
+      "id": "N14",
+      "label": "A++ and Dark settings survive leaving and reopening native Settings",
+      "status": "PASS",
+      "detail": "A++ and Dark retained after navigating away and back within actual native app",
+      "screenshots": [
+        "17-native-persisted-settings.png"
+      ]
+    },
+    {
+      "id": "R01",
+      "label": "Full six-emoji native picker: apply, change, remove each choice",
+      "status": "PASS",
+      "detail": "Six picker choices verified individually: applied, selected and removed in native UI and Firestore",
+      "screenshots": [
+        "18-all-native-emoji-tested.png"
+      ]
+    },
+    {
+      "id": "R02",
+      "label": "Group Delete for Me hides local message but keeps shared ciphertext",
+      "status": "PASS",
+      "detail": "Delete for Me removed native message locally without deleting shared Firestore message",
+      "screenshots": [
+        "19-delete-for-me-dialog.png",
+        "20-delete-for-me-hidden.png"
+      ]
+    },
+    {
+      "id": "R03",
+      "label": "Native group message Reply composer sends ciphertext-only response",
+      "status": "PASS",
+      "detail": "Native Reply action and composer, encrypted group reply stored; peer-side quote rendering still unverified",
+      "screenshots": [
+        "21-group-reply-composer.png",
+        "22-group-reply-encrypted.png"
+      ]
+    },
+    {
+      "id": "R04",
+      "label": "Direct emoji picker applies and removes all six emotions",
+      "status": "PASS",
+      "detail": "All six direct reactions added/removed from actual UI and checked in Firestore",
+      "screenshots": [
+        "23-native-direct-six-emoji.png"
+      ]
+    },
+    {
+      "id": "R05",
+      "label": "Direct Delete for Me hides only sender local copy",
+      "status": "PASS",
+      "detail": "Deleted native direct row locally; recipient-authoritative message remains in Firestore",
+      "screenshots": [
+        "24-native-direct-delete-for-me.png"
+      ]
+    },
+    {
+      "id": "R06",
+      "label": "Archive and unarchive direct conversation using native Messages controls",
+      "status": "PASS",
+      "detail": "Archive and Unarchive used live UI and updated both filtered conversation lists",
+      "screenshots": [
+        "25-native-archive-dialog.png",
+        "26-native-unarchived-messages.png"
+      ]
+    },
+    {
+      "id": "R09",
+      "label": "Group send continuity on immediate navigation interruption",
+      "status": "PASS",
+      "detail": "One encrypted group message reached Sent and remained unique after immediate navigation away and return; real network loss not simulated",
+      "screenshots": []
+    },
+    {
+      "id": "R07",
+      "label": "Group reaction stress — four complete six-emoji cycles across native chat reopen",
+      "status": "FAIL",
+      "detail": "Error: Timed out waiting for authoritative removal 😂; ; screen:  Native Simulator Group ● 4 members • Secure Sign Out New members see conversation only from their join time unless an admin explicitly grants earlier history. October 25, 2026 Native Test Alice 4:53 AM NATIVE_GROUP_1792904025199 Sent Native Test Alice 4:54 AM Native Test Alice NATIVE_GROUP_1792904025199 NATIVE_REPLY_1792904083341 Sent Native Test \n    at wait (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:26:200)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async exercise (file:///Users/runner/work/hermes/hermes/build/simulator/native-emoji-stress.mjs:97:11)\n    at async test (file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:34:20)\n    at async runEmojiStress (file:///Users/runner/work/hermes/hermes/build/simulator/native-emoji-stress.mjs:149:15)\n    at async file:///Users/runner/work/hermes/hermes/build/simulator/device-auth-run.mjs:306:3\nSIMULATOR DIAGNOSTIC PHASE: start:app-ready"
+    },
+    {
+      "id": "R08",
+      "label": "Direct reaction stress — four complete six-emoji cycles across native chat reopen",
+      "status": "PASS",
+      "detail": "direct 4 cycles × 6 emoji = 24 authentic add/remove pairs; Firestore and UI synchronized after each step",
+      "screenshots": [
+        "29-stress-direct-completed-cycle-1.png",
+        "30-stress-direct-completed-cycle-2.png",
+        "31-stress-direct-completed-cycle-3.png",
+        "32-stress-direct-completed-cycle-4.png"
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "label": "native-join-screen",
+      "file": "01-native-join-screen.png"
+    },
+    {
+      "label": "native-join-completed",
+      "file": "02-native-join-completed.png"
+    },
+    {
+      "label": "native-authenticated-messages",
+      "file": "03-native-authenticated-messages.png"
+    },
+    {
+      "label": "native-settings-large-dark",
+      "file": "04-native-settings-large-dark.png"
+    },
+    {
+      "label": "native-admin-invitation",
+      "file": "05-native-admin-invitation.png"
+    },
+    {
+      "label": "native-direct-chat",
+      "file": "06-native-direct-chat.png"
+    },
+    {
+      "label": "native-direct-message-sent",
+      "file": "07-native-direct-message-sent.png"
+    },
+    {
+      "label": "native-disappearing-setting",
+      "file": "08-native-disappearing-setting.png"
+    },
+    {
+      "label": "native-emoji-reaction",
+      "file": "09-native-emoji-reaction.png"
+    },
+    {
+      "label": "native-group-created",
+      "file": "10-native-group-created.png"
+    },
+    {
+      "label": "native-group-admin",
+      "file": "11-native-group-admin.png"
+    },
+    {
+      "label": "native-group-message-sent",
+      "file": "12-native-group-message-sent.png"
+    },
+    {
+      "label": "native-group-member-added",
+      "file": "13-native-group-member-added.png"
+    },
+    {
+      "label": "native-notification-settings",
+      "file": "14-native-notification-settings.png"
+    },
+    {
+      "label": "native-user-blocked",
+      "file": "15-native-user-blocked.png"
+    },
+    {
+      "label": "native-user-unblocked",
+      "file": "16-native-user-unblocked.png"
+    },
+    {
+      "label": "native-persisted-settings",
+      "file": "17-native-persisted-settings.png"
+    },
+    {
+      "label": "all-native-emoji-tested",
+      "file": "18-all-native-emoji-tested.png"
+    },
+    {
+      "label": "delete-for-me-dialog",
+      "file": "19-delete-for-me-dialog.png"
+    },
+    {
+      "label": "delete-for-me-hidden",
+      "file": "20-delete-for-me-hidden.png"
+    },
+    {
+      "label": "group-reply-composer",
+      "file": "21-group-reply-composer.png"
+    },
+    {
+      "label": "group-reply-encrypted",
+      "file": "22-group-reply-encrypted.png"
+    },
+    {
+      "label": "native-direct-six-emoji",
+      "file": "23-native-direct-six-emoji.png"
+    },
+    {
+      "label": "native-direct-delete-for-me",
+      "file": "24-native-direct-delete-for-me.png"
+    },
+    {
+      "label": "native-archive-dialog",
+      "file": "25-native-archive-dialog.png"
+    },
+    {
+      "label": "native-unarchived-messages",
+      "file": "26-native-unarchived-messages.png"
+    },
+    {
+      "label": "stress-group-completed-cycle-1",
+      "file": "27-stress-group-completed-cycle-1.png"
+    },
+    {
+      "label": "R07-failure",
+      "file": "28-R07-failure.png"
+    },
+    {
+      "label": "stress-direct-completed-cycle-1",
+      "file": "29-stress-direct-completed-cycle-1.png"
+    },
+    {
+      "label": "stress-direct-completed-cycle-2",
+      "file": "30-stress-direct-completed-cycle-2.png"
+    },
+    {
+      "label": "stress-direct-completed-cycle-3",
+      "file": "31-stress-direct-completed-cycle-3.png"
+    },
+    {
+      "label": "stress-direct-completed-cycle-4",
+      "file": "32-stress-direct-completed-cycle-4.png"
+    }
+  ],
+  "source_commit": "f551e4baa5f320f394f33004a01dfa006ee22279"
+}
