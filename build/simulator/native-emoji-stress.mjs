@@ -65,7 +65,7 @@ export async function runEmojiStress({d,expr,present,wait,shot,readDoc,readColle
     await wait(async()=>{
       const doc=await readDoc(dbPath+'/'+message.id);
       const ui=await expr('document.querySelector('+JSON.stringify(msgSel+' .msg-meta')+')?.innerText||""');
-      return doc?.state==="sent" && /\\b(?:Sent|Delivered|Read)\\b/i.test(String(ui));
+      return doc?.state==="sent" && /(?:Sent|Delivered|Read)/i.test(String(ui));
     },'Firestore committed AND native Outbox marked Sent',90000);
     log('REACTION-STRESS precondition '+type+' native Sent + authoritative Firestore confirmed for '+message.id);
     const chipSel='.pending-message-action[data-message-id="'+message.id+'"] .message-reaction-chip.mine';
