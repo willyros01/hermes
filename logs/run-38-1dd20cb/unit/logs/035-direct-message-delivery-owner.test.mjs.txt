@@ -1,0 +1,5 @@
+FILE direct-message-delivery-owner.test.mjs
+SOURCE Android
+EXIT 0
+Direct-message priority delivery owner passed
+

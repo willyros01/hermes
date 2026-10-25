@@ -1,0 +1,5 @@
+FILE disappearing-multi-device-convergence.test.mjs
+SOURCE Android
+EXIT 0
+Multi-device disappearing convergence gate passed
+
