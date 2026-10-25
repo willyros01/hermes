@@ -1,3 +1,8 @@
+### 2026-10-25 UTC — screenshot-level refinement of run #36 R07
+
+- [R07 iPhone screenshot](https://github.com/willyros01/hermes/blob/simulator-evidence/logs/run-36-1aeffe4/ios/auth/27-R07-failure.png) reveals the open dialog was **NOT an emoji picker**. It said **“This message has not completed sending. Delete it and permanently stop future retries?”**, with Delete Message / Cancel buttons. Thus R07's “missing emoji options” is **explained by a not-yet-sent message/test precondition**, not evidence that the emoji picker lost options. Native stress harness must wait for confirmed message sent state before attempting reaction, and separately investigate why group send remained pending. Do not conflate this with R08.
+- [R08 iPhone screenshot](https://github.com/willyros01/hermes/blob/simulator-evidence/logs/run-36-1aeffe4/ios/auth/28-R08-failure.png) independently shows a **Sent** direct message with a visible 😢 reaction after the removal attempt. The Firestore record also retained 😢 at timeout. This remains a genuine **unremoved reaction symptom in the simulator**, though the failure's initiating cause remains undetermined.
+
 ## 2026-10-25 UTC — VERIFIED run #36 outcome (simulator only)
 
 - [Run #36](https://github.com/willyros01/hermes/actions/runs/40154419336), test harness `1aeffe4a`, completed **FAIL**. Four non-native stages PASS. Android native **22 PASS / 0 FAIL**, including R07/R08 **48 authentic reaction add/remove pairs** (4 cycles × 6 emoji × direct/group), with local Firestore and visible native UI assertions. iPhone native **20 PASS / 2 FAIL / 0 BLOCKED**: N01–N14 and R01–R06 all PASS, but stress R07 and R08 FAIL.
