@@ -30,7 +30,8 @@ async function readCollection(p){let data;await env.withSecurityRulesDisabled(as
 async function test(id,label,fn,{requires=true}={}){
   log('\n'+id+': '+label);
   if(!requires){tests.push({id,label,status:'BLOCKED',detail:'Earlier prerequisite failed'});log('BLOCKED '+id);return false;}
-  try{const detail=await fn();tests.push({id,label,status:'PASS',detail:String(detail||'Observed on native device')});log('PASS '+id);return true;}
+  const startScreenshotCount=shots.length;
+  try{const detail=await fn();tests.push({id,label,status:'PASS',detail:String(detail||'Observed on native device'),screenshots:shots.slice(startScreenshotCount).map(s=>s.file)});log('PASS '+id);return true;}
   catch(e){
     let phase='';
     if(platform==='ios'){
