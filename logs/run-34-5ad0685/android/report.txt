@@ -1,0 +1,34 @@
+FIDUNIO ANDROID native simulator, disposable data only
+
+S1: Real native cold start shows legal Terms before Firebase login
+    Capture: 01-terms-before-consent.png
+PASS S1
+
+S2: Declining Terms locks the app; Read Again resets consent
+    Capture: 02-terms-declined-locked.png
+    Capture: 03-terms-read-again.png
+PASS S2
+
+S3: Accept Terms and reach native Sign In without live backend
+    Capture: 04-terms-ready-to-accept.png
+    Capture: 05-sign-in.png
+PASS S3
+
+S4: Password visibility toggles without submitting credentials
+    Capture: 06-password-visible.png
+PASS S4
+
+S5: Forgot Password rejects blank email without network write
+    Capture: 07-forgot-password-validation.png
+PASS S5
+
+S6: Join flow requires six-digit PIN; no account is created
+    Capture: 08-join-page.png
+    Capture: 09-join-pin-required.png
+PASS S6
+
+S7: App restart preserves Terms and does not expose a chat
+    Capture: 10-sign-in-after-restart.png
+PASS S7
+
+FINAL 7 passed, 0 failed
