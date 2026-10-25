@@ -36,7 +36,7 @@ export async function runEmojiStress({d,expr,present,wait,shot,readDoc,readColle
   };
   const open=async(id,mid)=>{
     const sel='.pending-message-action[data-message-id="'+mid+'"]';
-    await wait(()=>!present('#pendingMessageTitle'),'previous reaction dialog to close',30000);
+    await wait(async()=>!await present('#pendingMessageTitle'),'previous reaction dialog to close',30000);
     await wait(()=>present(sel),'live native action row for '+mid,70000);
     const ok=await expr('(() => {const el=document.querySelector('+JSON.stringify(sel)+');if(!el)return false;el.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true,cancelable:true}));return true})()');
     if(!ok)throw Error('Cannot open native reaction menu');
