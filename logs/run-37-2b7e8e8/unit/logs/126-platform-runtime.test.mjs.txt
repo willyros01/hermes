@@ -1,0 +1,5 @@
+FILE platform-runtime.test.mjs
+SOURCE Android
+EXIT 0
+PASS: bounded web/Capacitor iOS and Android runtime selection and platform-adapter integration guards
+
