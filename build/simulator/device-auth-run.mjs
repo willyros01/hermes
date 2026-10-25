@@ -73,7 +73,24 @@ try{
     await wait(()=>present('#joinPinHost'),'six-digit native PIN input');
     await shot('native-join-screen');
   });
-  if(t1){
+  // Preserve a failed initial startup as FAIL. If the iPhone shows its
+  // genuine Retry Startup control, exercise it as a DIFFERENT test so the
+  // later emoji journey can continue without concealing the startup defect.
+  let startupRecovered=false;
+  if(!t1 && platform==='ios'){
+    startupRecovered=await test('N01R','Recover after failed native startup using visible Retry Startup button',async()=>{
+      await wait(async()=>await expr('Array.from(document.querySelectorAll("button")).some(b=>b.textContent.trim()==="Retry Startup")'),'real Retry Startup control',12000);
+      const retry=await expr('(() => {const b=Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Retry Startup");if(!b)return false;b.click();return true})()');
+      if(!retry)throw new Error('Retry Startup button disappeared');
+      await wait(()=>present('#joinTab'),'Join after genuine Retry Startup',90000);
+      await d.press('#joinTab');
+      await wait(()=>present('#joinPinHost'),'Join PIN after startup recovery',35000);
+      await shot('native-startup-recovered');
+      return 'Original N01 FAIL remains recorded; built-in Retry Startup reached Join without resetting account';
+    });
+  }
+  const entryReady=t1||startupRecovered;
+  if(entryReady){
     const host=platform==='android'?'10.0.2.2':'127.0.0.1';
     // Network probe is diagnostic only and never substitutes for authentic
     // Firebase API assertions. no-cors avoids false failures from CORS rules.
@@ -106,7 +123,7 @@ try{
     const volatileKeyFallback=platform==='ios'&&await expr('globalThis.FIDUNIO_SIMULATOR_ONLY_IDB_KEY_FALLBACK===true');
     if(volatileKeyFallback)log('  SIMULATOR-ONLY iPhone volatile CryptoKey fallback was used; IndexedDB key persistence/restart NOT VERIFIED');
     return 'Admin invitation accepted; real Auth profile and account E2EE identity created in local Firebase'+(volatileKeyFallback?' (iPhone volatile key-cache workaround used)':'');
-  },{requires:t1});
+  },{requires:entryReady});
   const me=(await readDoc('invitations/'+fixture.inviteId))?.acceptedUid;
   const t3=await test('N03','Change actual native Settings: A++, Dark, and preview option',async()=>{
     const settings=await present('#settingsBtn')?'#settingsBtn':'#tabletSettingsBtn';await d.press(settings);
@@ -283,7 +300,10 @@ try{
     return 'A++ and Dark retained after navigating away and back within actual native app';
   },{requires:t13});
   const {runNativeReleaseExtensions}=await import('./native-release-extensions.mjs');
-  await runNativeReleaseExtensions({d,expr,present,wait,shot,readDoc,readCollection,me,test,ready:t1&&t2&&t3&&t4&&t5&&t6&&t7&&t8&&t9&&t10&&t11&&t12&&t13&&t14,log});
+  const ready=entryReady&&t2&&t3&&t4&&t5&&t6&&t7&&t8&&t9&&t10&&t11&&t12&&t13&&t14;
+  await runNativeReleaseExtensions({d,expr,present,wait,shot,readDoc,readCollection,me,test,ready,log});
+  const {runEmojiStress}=await import('./native-emoji-stress.mjs');
+  await runEmojiStress({d,expr,present,wait,shot,readDoc,readCollection,me,test,ready,log});
   if(tests.some(t=>t.status!=='PASS'))log('Native simulator suite contains failures or blocked tests; NO release approval.');
 }catch(e){log('FATAL native test setup: '+String(e.stack||e).slice(0,1500));tests.push({id:'SETUP',status:'FAIL',label:'Native test setup',detail:String(e.stack||e)});}
 finally{summarize();await env.cleanup();d.disconnect?.();}
