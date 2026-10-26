@@ -1,0 +1,5 @@
+FILE direct-message-basic-path.test.mjs
+SOURCE Android
+EXIT 0
+Encrypted direct-message send/receive path gate passed
+

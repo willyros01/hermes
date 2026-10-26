@@ -1,0 +1,5 @@
+FILE account-vault-wiring.test.mjs
+SOURCE Android
+EXIT 0
+Portable FIDUNIO Vault uses the existing storage, Settings, recovery, Firebase, and service-worker owners; the recovery picker remains iOS-selectable without a restrictive custom-file accept filter
+

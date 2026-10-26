@@ -1,0 +1,47 @@
+{
+  "overall": "INCOMPLETE / FAIL",
+  "stages": [
+    {
+      "name": "unit",
+      "label": "Reviewed functional and security regressions",
+      "status": "PASS",
+      "jobResult": "success",
+      "images": 0
+    },
+    {
+      "name": "rules",
+      "label": "Firebase emulator Firestore access rules",
+      "status": "PASS",
+      "jobResult": "success",
+      "images": 0
+    },
+    {
+      "name": "functional",
+      "label": "Authenticated invite, direct, group, reactions and notification settings workflows",
+      "status": "FAIL",
+      "jobResult": "failure",
+      "images": 0
+    },
+    {
+      "name": "browser",
+      "label": "Browser-based native-mode UI journeys",
+      "status": "PASS",
+      "jobResult": "cancelled",
+      "images": 16
+    },
+    {
+      "name": "android",
+      "label": "Android native simulator",
+      "status": "NOT RUN",
+      "jobResult": "cancelled",
+      "images": 0
+    },
+    {
+      "name": "ios",
+      "label": "iPhone native simulator",
+      "status": "NOT RUN",
+      "jobResult": "cancelled",
+      "images": 0
+    }
+  ]
+}

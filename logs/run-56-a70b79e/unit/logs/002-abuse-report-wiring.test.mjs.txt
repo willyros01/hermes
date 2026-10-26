@@ -1,0 +1,5 @@
+FILE abuse-report-wiring.test.mjs
+SOURCE Android
+EXIT 0
+PASS: Settings abuse reporting and admin moderation queue are wired through the central Firebase owner
+
