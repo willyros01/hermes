@@ -5,7 +5,7 @@ import { firebaseConfig } from "./firebase-config.js";
 import { normalizeDisappearSelection } from "./disappearing-content-policy.js";
 import {assertInvitationUsable,normalizeInvitationRole,canIssueInvitation} from "./invitation-policy.js";
 import {createDirectMessageDeliveryOwner} from "./direct-message-delivery-owner.js";
-import {nextMessageReactions} from "./message-reaction-policy.js";
+import {applyMessageReactionIntent} from "./message-reaction-policy.js";
 import {FIDUNIO_LEGAL_POLICY} from "./legal-policy.js";
 
 // Public reCAPTCHA Enterprise site key registered for FIDUNIO Web / willyros01.github.io.
@@ -55,13 +55,13 @@ export function markCloudMyAccountDeletionCleanupComplete(){return callCloudFunc
 export function cancelCloudMyAccountDeletionRequest(){return callCloudFunction("cancelMyAccountDeletionRequestV1",{});}
 export function completeCloudMyAccountDeletion(){return callCloudFunction("completeMyAccountDeletionV1",{});}
 export function transferCloudSystemOwnership(targetUid){return callCloudFunction("transferSystemOwnershipV1",{targetUid:String(targetUid||"")});}
-export async function setCloudMessageReaction(conversationId,messageId,messageKind="direct",reaction){
+export async function setCloudMessageReaction(conversationId,messageId,messageKind="direct",reaction,intent){
   const s=await ensureServices();if(!authUser)throw new Error("Sign in first.");
   const id=String(conversationId||"").trim(),mid=String(messageId||"").trim(),kind=messageKind==="group"?"group":"direct";
   if(!id||!mid)throw new Error("Message reaction target is incomplete.");
   if(kind==="group")await readCloudGroupAuthority(id);else{const snap=await s.fsSdk.getDoc(s.fsSdk.doc(s.db,"conversations",id));if(!snap.exists()||!Array.isArray(snap.data().members)||!snap.data().members.includes(authUser.uid))throw new Error("Conversation is not available to this account.");}
   const ref=kind==="group"?s.fsSdk.doc(s.db,"groups",id,"messages",mid):s.fsSdk.doc(s.db,"conversations",id,"messages",mid);
-  try{return await s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const next=nextMessageReactions(snap.data().reactions,authUser.uid,reaction);tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};});}
+  try{return await s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const next=applyMessageReactionIntent(snap.data().reactions,authUser.uid,reaction,intent);tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};});}
   catch(err){const code=String(err?.code||"").toLowerCase();if(kind==="direct"&&(code==="permission-denied"||code==="firestore/permission-denied")){const safe=new Error("This action could not be completed for this conversation.");safe.code="fidunio/direct-action-denied";safe.cause=err;throw safe;}throw err;}
 }
 function normalizeInviteToken(token){return String(token||"").trim().replace(/\s+/g,"");}function bytesToUrlToken(bytes){let raw="";bytes.forEach(b=>raw+=String.fromCharCode(b));return btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");}async function sha256Hex(text){const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,"0")).join("");}async function inviteIdForToken(token){const clean=normalizeInviteToken(token);if(clean.length<20)throw new Error("Invitation code is incomplete.");return sha256Hex(clean);}function inviteLink(token){const url=new URL(FIDUNIO_INVITATION_WEB_LINK_BASE);url.searchParams.set("invite",token);return url.toString();}
