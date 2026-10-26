@@ -1,0 +1,23 @@
+FILE e2ee-account-message-crypto.test.mjs
+SOURCE Android
+EXIT 0
+PASS 1: Alice -> Bob round trip
+PASS 2: Bob -> Alice round trip
+PASS 3: envelope contains no plaintext
+PASS 4: wrong conversation fails authentication
+PASS 5: wrong message ID fails authentication
+PASS 6: wrong sender UID fails authentication
+PASS 7: wrong recipient UID fails authentication
+PASS 8: wrong sender public key fails authentication
+PASS 9: tampered ciphertext fails authentication
+PASS 10: tampered IV fails authentication
+PASS 11: sender keyId substitution is rejected
+PASS 12: recipient keyId substitution is rejected
+PASS 13: unexpected envelope fields are rejected
+PASS 14: malformed base64url is rejected
+PASS 15: noncanonical public JWK fields are rejected
+PASS 16: different peer private key cannot decrypt
+PASS 17: empty plaintext round trips
+PASS 18: unicode plaintext round trips exactly
+18/18 account direct-message crypto assertions passed.
+

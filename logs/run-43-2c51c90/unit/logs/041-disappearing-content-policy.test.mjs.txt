@@ -1,0 +1,5 @@
+FILE disappearing-content-policy.test.mjs
+SOURCE Android
+EXIT 0
+Disappearing content policy tests passed
+
