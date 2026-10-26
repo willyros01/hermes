@@ -1,0 +1,7 @@
+FILE runtime-authority-gate.test.mjs
+SOURCE Android
+EXIT 0
+Runtime authority gate passed.
+Bounded Firebase SDK owners: firebase.js
+Known temporary observer exceptions: 
+

@@ -1,0 +1,5 @@
+FILE group-reply-policy.test.mjs
+SOURCE Android
+EXIT 0
+Group reply descriptor policy passes
+

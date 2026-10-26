@@ -1,0 +1,5 @@
+FILE issue3-iphone-ui.test.mjs
+SOURCE Android
+EXIT 0
+Issue 3 iPhone composer and video-source gate passed
+

@@ -1,0 +1,5 @@
+FILE functions/message-delete/message-delete-callable-core.test.mjs
+SOURCE Android
+EXIT 0
+Controlled sender-only direct, group, and bounded bulk message deletion core passed
+

@@ -1,0 +1,305 @@
+Native authenticated android suite. LOCAL demo-only accounts.
+
+N01: Accept legal Terms and open actual Join form
+  Actual native screenshot: 01-native-join-screen.png
+PASS N01
+  Local Firestore HTTP probe: {"state":"reachable"}
+
+N02: Consume a real single-use admin invite, set PIN, create E2EE identity through native Join
+  Actual native screenshot: 02-native-join-completed.png
+  Actual native screenshot: 03-native-authenticated-messages.png
+PASS N02
+
+N03: Change actual native Settings: A++, Dark, and preview option
+  Actual native screenshot: 04-native-settings-large-dark.png
+PASS N03
+
+N04: Admin creates a new user invitation from native Settings
+  Actual native screenshot: 05-native-admin-invitation.png
+PASS N04
+
+N05: Start a native direct conversation with Bob
+  Actual native screenshot: 06-native-direct-chat.png
+PASS N05
+
+N06: Send encrypted direct text and confirm NO plaintext in emulator
+  Actual native screenshot: 07-native-direct-message-sent.png
+PASS N06
+
+N07: Set disappearing timer in real native direct conversation
+  Actual native screenshot: 08-native-disappearing-setting.png
+PASS N07
+
+N08: React with an emoji to an accepted direct message
+  Actual native screenshot: 09-native-emoji-reaction.png
+PASS N08
+
+N09: Create group from native app and verify admin controls
+  Actual native screenshot: 10-native-group-created.png
+  Actual native screenshot: 11-native-group-admin.png
+PASS N09
+
+N10: Send a native group message and verify encrypted group record
+  Actual native screenshot: 12-native-group-message-sent.png
+PASS N10
+
+N11: Use native group administrator to add a member
+  Actual native screenshot: 13-native-group-member-added.png
+PASS N11
+
+N12: Show native notification configuration controls (delivery requires real devices)
+  Actual native screenshot: 14-native-notification-settings.png
+PASS N12
+
+N13: Block and unblock a native user in Safety settings
+  Actual native screenshot: 15-native-user-blocked.png
+  Actual native screenshot: 16-native-user-unblocked.png
+PASS N13
+
+N14: A++ and Dark settings survive leaving and reopening native Settings
+  Actual native screenshot: 17-native-persisted-settings.png
+PASS N14
+
+R01: Full six-emoji native picker: apply, change, remove each choice
+  Actual native screenshot: 18-all-native-emoji-tested.png
+PASS R01
+
+R02: Group Delete for Me hides local message but keeps shared ciphertext
+  Actual native screenshot: 19-delete-for-me-dialog.png
+  Actual native screenshot: 20-delete-for-me-hidden.png
+PASS R02
+
+R03: Native group message Reply composer sends ciphertext-only response
+  Actual native screenshot: 21-group-reply-composer.png
+  Actual native screenshot: 22-group-reply-encrypted.png
+PASS R03
+
+R04: Direct emoji picker applies and removes all six emotions
+  Actual native screenshot: 23-native-direct-six-emoji.png
+PASS R04
+
+R05: Direct Delete for Me hides only sender local copy
+  Actual native screenshot: 24-native-direct-delete-for-me.png
+PASS R05
+
+R06: Archive and unarchive direct conversation using native Messages controls
+  Actual native screenshot: 25-native-archive-dialog.png
+  Actual native screenshot: 26-native-unarchived-messages.png
+PASS R06
+Release extension native scenarios complete: 3/3 primary passed; direct extension PASS
+
+R09: Group send continuity while encrypted Outbox is held through navigation
+SEND-INTERRUPTION Outbox hold armed before Send
+SEND-INTERRUPTION VERIFIED-IN-FLIGHT {"local":[{"id":"6af80e95-a4a6-453c-98bc-193e505b4e51","state":"8:49 PM\nSending"}],"authoritativeDocs":0,"outbox":"durably-staged"}
+SEND-INTERRUPTION Outbox resumed after leaving group chat
+SEND-INTERRUPTION PASS {"id":"6af80e95-a4a6-453c-98bc-193e505b4e51","wasPendingBeforeNavigation":true,"finalState":"sent","newDocs":1}
+PASS R09
+
+R07: Group reaction stress — four complete six-emoji cycles across native chat reopen
+REACTION-STRESS precondition group native Sent + authoritative Firestore confirmed for c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-1-apply-1793047807390-1akk1cqzqoj","kind":"group","emoji":"👍","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-1-remove-1793047808822-23y2efx4m24","kind":"group","emoji":"👍","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-1-remove-1793047808822-23y2efx4m24","kind":"group","emoji":"👍","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=1/4 emoji=👍 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-1-apply-1793047810297-4h99ufyk1qt","kind":"group","emoji":"❤️","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-1-remove-1793047811733-d975rkb0wc9","kind":"group","emoji":"❤️","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-1-remove-1793047811733-d975rkb0wc9","kind":"group","emoji":"❤️","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=1/4 emoji=❤️ message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-1-apply-1793047813295-73q8quvxiha","kind":"group","emoji":"😂","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-1-remove-1793047816427-vn0isq965b","kind":"group","emoji":"😂","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-1-remove-1793047816427-vn0isq965b","kind":"group","emoji":"😂","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=1/4 emoji=😂 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-1-apply-1793047818335-rn5kruz3jk","kind":"group","emoji":"😮","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-1-remove-1793047820194-mxsp35zz2x8","kind":"group","emoji":"😮","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-1-remove-1793047820194-mxsp35zz2x8","kind":"group","emoji":"😮","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=1/4 emoji=😮 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-1-apply-1793047821819-hf5847s4njl","kind":"group","emoji":"😢","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-1-remove-1793047823299-c8nq0zgkpdq","kind":"group","emoji":"😢","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-1-remove-1793047823299-c8nq0zgkpdq","kind":"group","emoji":"😢","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=1/4 emoji=😢 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-1-apply-1793047825183-2nawx6pf5d","kind":"group","emoji":"🙏","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-1-remove-1793047826747-l480bcqniod","kind":"group","emoji":"🙏","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-1-remove-1793047826747-l480bcqniod","kind":"group","emoji":"🙏","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=1/4 emoji=🙏 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+  Actual native screenshot: 27-stress-group-completed-cycle-1.png
+REACTION-CLICK {"op":"fid-sim-group-2-apply-1793047831848-1j4cj8efl89","kind":"group","emoji":"👍","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-2-remove-1793047833300-7kp1s2zhqhx","kind":"group","emoji":"👍","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-2-remove-1793047833300-7kp1s2zhqhx","kind":"group","emoji":"👍","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=2/4 emoji=👍 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-2-apply-1793047834957-at6t2kaxhp","kind":"group","emoji":"❤️","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-2-remove-1793047836571-tbxerd4daga","kind":"group","emoji":"❤️","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-2-remove-1793047836571-tbxerd4daga","kind":"group","emoji":"❤️","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=2/4 emoji=❤️ message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-2-apply-1793047838460-yuayamr1ocs","kind":"group","emoji":"😂","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-2-remove-1793047839969-gbyqveq2fnq","kind":"group","emoji":"😂","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-2-remove-1793047839969-gbyqveq2fnq","kind":"group","emoji":"😂","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=2/4 emoji=😂 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-2-apply-1793047841447-2gyqrd4ak7z","kind":"group","emoji":"😮","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-2-remove-1793047843063-6l1w4si6793","kind":"group","emoji":"😮","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-2-remove-1793047843063-6l1w4si6793","kind":"group","emoji":"😮","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=2/4 emoji=😮 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-2-apply-1793047844891-wucahbhe84","kind":"group","emoji":"😢","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-2-remove-1793047846369-zxra6mq192f","kind":"group","emoji":"😢","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-2-remove-1793047846369-zxra6mq192f","kind":"group","emoji":"😢","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=2/4 emoji=😢 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-2-apply-1793047847873-k0jm99mogx","kind":"group","emoji":"🙏","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-2-remove-1793047849307-skwo75m8zpo","kind":"group","emoji":"🙏","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-2-remove-1793047849307-skwo75m8zpo","kind":"group","emoji":"🙏","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=2/4 emoji=🙏 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+  Actual native screenshot: 28-stress-group-completed-cycle-2.png
+REACTION-CLICK {"op":"fid-sim-group-3-apply-1793047854414-5gfq05dalcg","kind":"group","emoji":"👍","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-3-remove-1793047857411-hwrrdxo6yt","kind":"group","emoji":"👍","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-3-remove-1793047857411-hwrrdxo6yt","kind":"group","emoji":"👍","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=3/4 emoji=👍 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-3-apply-1793047858906-fdz1db6w46q","kind":"group","emoji":"❤️","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-3-remove-1793047860939-cmoa1apvtqm","kind":"group","emoji":"❤️","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-3-remove-1793047860939-cmoa1apvtqm","kind":"group","emoji":"❤️","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=3/4 emoji=❤️ message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-3-apply-1793047862431-d3ts0cncwcd","kind":"group","emoji":"😂","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-3-remove-1793047863866-shym9cjzlb","kind":"group","emoji":"😂","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-3-remove-1793047863866-shym9cjzlb","kind":"group","emoji":"😂","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=3/4 emoji=😂 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-3-apply-1793047865345-ndk71rfszva","kind":"group","emoji":"😮","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-3-remove-1793047867171-uq3y11w45c","kind":"group","emoji":"😮","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-3-remove-1793047867171-uq3y11w45c","kind":"group","emoji":"😮","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":1}"}
+REACTION-STRESS PASS group cycle=3/4 emoji=😮 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-3-apply-1793047868890-pug2kpswwng","kind":"group","emoji":"😢","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-3-remove-1793047870693-a28uzecnzj7","kind":"group","emoji":"😢","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-3-remove-1793047870693-a28uzecnzj7","kind":"group","emoji":"😢","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=3/4 emoji=😢 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-3-apply-1793047872162-nrcphg7pk8c","kind":"group","emoji":"🙏","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-3-remove-1793047873773-nhap0qpjym","kind":"group","emoji":"🙏","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-3-remove-1793047873773-nhap0qpjym","kind":"group","emoji":"🙏","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=3/4 emoji=🙏 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+  Actual native screenshot: 29-stress-group-completed-cycle-3.png
+REACTION-CLICK {"op":"fid-sim-group-4-apply-1793047879239-xmi4ybzxnt","kind":"group","emoji":"👍","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-4-remove-1793047880680-ff97cbtooj9","kind":"group","emoji":"👍","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-4-remove-1793047880680-ff97cbtooj9","kind":"group","emoji":"👍","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=4/4 emoji=👍 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-4-apply-1793047882315-1hxy3lqlp1w","kind":"group","emoji":"❤️","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-4-remove-1793047883848-r34y3tbwvz","kind":"group","emoji":"❤️","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-4-remove-1793047883848-r34y3tbwvz","kind":"group","emoji":"❤️","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=4/4 emoji=❤️ message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-4-apply-1793047885468-epnz2149mjp","kind":"group","emoji":"😂","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-4-remove-1793047887207-h7ecizliz0h","kind":"group","emoji":"😂","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-4-remove-1793047887207-h7ecizliz0h","kind":"group","emoji":"😂","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=4/4 emoji=😂 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-4-apply-1793047888666-06uolx4nn95s","kind":"group","emoji":"😮","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-4-remove-1793047890082-7zokswmqvvi","kind":"group","emoji":"😮","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-4-remove-1793047890082-7zokswmqvvi","kind":"group","emoji":"😮","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=4/4 emoji=😮 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-4-apply-1793047891856-efi6rlkxgfq","kind":"group","emoji":"😢","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-4-remove-1793047894721-bhmlaas8dtu","kind":"group","emoji":"😢","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-4-remove-1793047894721-bhmlaas8dtu","kind":"group","emoji":"😢","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=4/4 emoji=😢 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+REACTION-CLICK {"op":"fid-sim-group-4-apply-1793047896615-g7h7ksl801","kind":"group","emoji":"🙏","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-group-4-remove-1793047898543-5zf4jznbyua","kind":"group","emoji":"🙏","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-group-4-remove-1793047898543-5zf4jznbyua","kind":"group","emoji":"🙏","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS group cycle=4/4 emoji=🙏 message=c247c401-974d-40e9-a3c9-5c7d950b3c9a
+  Actual native screenshot: 30-stress-group-completed-cycle-4.png
+PASS R07
+
+R08: Direct reaction stress — four complete six-emoji cycles across native chat reopen
+REACTION-STRESS precondition direct native Sent + authoritative Firestore confirmed for eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-1-apply-1793047905294-jmayolra6fg","kind":"direct","emoji":"👍","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-1-remove-1793047906719-eq1ean9qq2o","kind":"direct","emoji":"👍","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-1-remove-1793047906719-eq1ean9qq2o","kind":"direct","emoji":"👍","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=1/4 emoji=👍 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-1-apply-1793047908178-dlptd8lfaie","kind":"direct","emoji":"❤️","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-1-remove-1793047909594-f9mdw5bzm0b","kind":"direct","emoji":"❤️","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-1-remove-1793047909594-f9mdw5bzm0b","kind":"direct","emoji":"❤️","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=1/4 emoji=❤️ message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-1-apply-1793047911066-geippsibda","kind":"direct","emoji":"😂","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-1-remove-1793047912527-9cqw4ge9s58","kind":"direct","emoji":"😂","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-1-remove-1793047912527-9cqw4ge9s58","kind":"direct","emoji":"😂","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=1/4 emoji=😂 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-1-apply-1793047913992-ryihw3qbpyh","kind":"direct","emoji":"😮","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-1-remove-1793047915414-rmpyvp44yfm","kind":"direct","emoji":"😮","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-1-remove-1793047915414-rmpyvp44yfm","kind":"direct","emoji":"😮","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=1/4 emoji=😮 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-1-apply-1793047916888-u62fvhummrn","kind":"direct","emoji":"😢","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-1-remove-1793047918333-u3t4fnscc5","kind":"direct","emoji":"😢","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-1-remove-1793047918333-u3t4fnscc5","kind":"direct","emoji":"😢","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=1/4 emoji=😢 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-1-apply-1793047919803-bakg39ujd9v","kind":"direct","emoji":"🙏","cycle":1,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-1-remove-1793047921226-ig658vvf58m","kind":"direct","emoji":"🙏","cycle":1,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-1-remove-1793047921226-ig658vvf58m","kind":"direct","emoji":"🙏","cycle":1,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=1/4 emoji=🙏 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+  Actual native screenshot: 31-stress-direct-completed-cycle-1.png
+REACTION-CLICK {"op":"fid-sim-direct-2-apply-1793047926044-itia5e27jel","kind":"direct","emoji":"👍","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-2-remove-1793047927465-tkhr3yhfzz","kind":"direct","emoji":"👍","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-2-remove-1793047927465-tkhr3yhfzz","kind":"direct","emoji":"👍","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=2/4 emoji=👍 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-2-apply-1793047928966-zcjknjvwz49","kind":"direct","emoji":"❤️","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-2-remove-1793047930413-qkkl0svtybl","kind":"direct","emoji":"❤️","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-2-remove-1793047930413-qkkl0svtybl","kind":"direct","emoji":"❤️","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=2/4 emoji=❤️ message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-2-apply-1793047931885-xy1salyji7","kind":"direct","emoji":"😂","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-2-remove-1793047933314-5ciozh0qmvc","kind":"direct","emoji":"😂","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-2-remove-1793047933314-5ciozh0qmvc","kind":"direct","emoji":"😂","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=2/4 emoji=😂 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-2-apply-1793047934811-h66qh1i4zbt","kind":"direct","emoji":"😮","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-2-remove-1793047936277-23a98rrq6n5","kind":"direct","emoji":"😮","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-2-remove-1793047936277-23a98rrq6n5","kind":"direct","emoji":"😮","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=2/4 emoji=😮 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-2-apply-1793047937789-1m6m48ruuah","kind":"direct","emoji":"😢","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-2-remove-1793047939251-79wojuhmow6","kind":"direct","emoji":"😢","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-2-remove-1793047939251-79wojuhmow6","kind":"direct","emoji":"😢","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=2/4 emoji=😢 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-2-apply-1793047940748-obdxyfvjrv9","kind":"direct","emoji":"🙏","cycle":2,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-2-remove-1793047942208-eznhqey3jtq","kind":"direct","emoji":"🙏","cycle":2,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-2-remove-1793047942208-eznhqey3jtq","kind":"direct","emoji":"🙏","cycle":2,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=2/4 emoji=🙏 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+  Actual native screenshot: 32-stress-direct-completed-cycle-2.png
+REACTION-CLICK {"op":"fid-sim-direct-3-apply-1793047947027-4fynrlr78my","kind":"direct","emoji":"👍","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-3-remove-1793047948844-ir26zph8fw","kind":"direct","emoji":"👍","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-3-remove-1793047948844-ir26zph8fw","kind":"direct","emoji":"👍","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=3/4 emoji=👍 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-3-apply-1793047950326-vvc43x4ip4i","kind":"direct","emoji":"❤️","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-3-remove-1793047951763-c9kwtlpkbcb","kind":"direct","emoji":"❤️","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-3-remove-1793047951763-c9kwtlpkbcb","kind":"direct","emoji":"❤️","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=3/4 emoji=❤️ message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-3-apply-1793047953255-gl0c1mr1i78","kind":"direct","emoji":"😂","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-3-remove-1793047954709-xtb1z63jjs8","kind":"direct","emoji":"😂","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-3-remove-1793047954709-xtb1z63jjs8","kind":"direct","emoji":"😂","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=3/4 emoji=😂 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-3-apply-1793047956205-nuxdzc14kud","kind":"direct","emoji":"😮","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-3-remove-1793047957652-y1p0c7cdfdf","kind":"direct","emoji":"😮","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-3-remove-1793047957652-y1p0c7cdfdf","kind":"direct","emoji":"😮","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=3/4 emoji=😮 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-3-apply-1793047959118-h7jeiomb3do","kind":"direct","emoji":"😢","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-3-remove-1793047960583-kchks4h3jf","kind":"direct","emoji":"😢","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-3-remove-1793047960583-kchks4h3jf","kind":"direct","emoji":"😢","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=3/4 emoji=😢 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-3-apply-1793047962092-yrb8q29v1yh","kind":"direct","emoji":"🙏","cycle":3,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-3-remove-1793047963543-c5ix4fq3ot","kind":"direct","emoji":"🙏","cycle":3,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-3-remove-1793047963543-c5ix4fq3ot","kind":"direct","emoji":"🙏","cycle":3,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=3/4 emoji=🙏 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+  Actual native screenshot: 33-stress-direct-completed-cycle-3.png
+REACTION-CLICK {"op":"fid-sim-direct-4-apply-1793047968348-kbnba469728","kind":"direct","emoji":"👍","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-4-remove-1793047969769-pu6lgeilyae","kind":"direct","emoji":"👍","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-4-remove-1793047969769-pu6lgeilyae","kind":"direct","emoji":"👍","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=4/4 emoji=👍 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-4-apply-1793047971270-t8lls94ucqj","kind":"direct","emoji":"❤️","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-4-remove-1793047972721-rbargb9lex","kind":"direct","emoji":"❤️","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-4-remove-1793047972721-rbargb9lex","kind":"direct","emoji":"❤️","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=4/4 emoji=❤️ message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-4-apply-1793047974192-j23j81np2ki","kind":"direct","emoji":"😂","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-4-remove-1793047975638-h680b23hg59","kind":"direct","emoji":"😂","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-4-remove-1793047975638-h680b23hg59","kind":"direct","emoji":"😂","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=4/4 emoji=😂 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-4-apply-1793047977145-6vuj8y85d4r","kind":"direct","emoji":"😮","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-4-remove-1793047978600-q0dlj20sgc","kind":"direct","emoji":"😮","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-4-remove-1793047978600-q0dlj20sgc","kind":"direct","emoji":"😮","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=4/4 emoji=😮 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-4-apply-1793047980079-vypalilvrb9","kind":"direct","emoji":"😢","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-4-remove-1793047981527-aakxbk46uxt","kind":"direct","emoji":"😢","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-4-remove-1793047981527-aakxbk46uxt","kind":"direct","emoji":"😢","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=4/4 emoji=😢 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+REACTION-CLICK {"op":"fid-sim-direct-4-apply-1793047983057-tb3tuhqa9s9","kind":"direct","emoji":"🙏","cycle":4,"phase":"apply","disabled":false,"connected":true,"pressed":"false","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-CLICK {"op":"fid-sim-direct-4-remove-1793047984487-xvhiz5gteh","kind":"direct","emoji":"🙏","cycle":4,"phase":"remove","disabled":false,"connected":true,"pressed":"true","handler":true,"delivered":1,"disabledAfter":true,"connectedAfter":true,"evaluations":1,"inspectorReplay":false}
+REACTION-REMOVE-OBSERVATION {"op":"fid-sim-direct-4-remove-1793047984487-xvhiz5gteh","kind":"direct","emoji":"🙏","cycle":4,"ui":"{\"dialogOpen\":false,\"buttonDisabled\":null,\"chipCount\":0}"}
+REACTION-STRESS PASS direct cycle=4/4 emoji=🙏 message=eb63ed75-8475-468a-bf76-8112aa4b6d5b
+  Actual native screenshot: 34-stress-direct-completed-cycle-4.png
+PASS R08
+REACTION-STRESS summary interruptedGroupSend=true group=true direct=true; no release approval implied.
