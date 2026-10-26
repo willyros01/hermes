@@ -1,0 +1,5 @@
+FILE read-visibility-regression.test.mjs
+SOURCE Android
+EXIT 0
+PASS: hidden direct Read blocked; visible direct Read written; group visibility and recovery wired.
+
