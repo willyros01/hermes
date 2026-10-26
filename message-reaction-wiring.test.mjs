@@ -33,7 +33,8 @@ assert.match(styles,/reaction-authors-list/);
 
 assert.match(app,/const pendingWebReactionPreviews=new Map\(\)/);
 assert.match(app,/pendingPreview\?\.uid===firebaseUser\?\.uid/);
-assert.match(app,/!pendingWebReactionPreviews\.has\(reactionPreviewKey\(modal\.conversationId,modal\.messageId\)\)/);
+assert.match(app,/\(!reactionPreview\|\|reactionPreview\.committed\)/);
+assert.match(app,/applyMessageReactionIntent\(message\?\.reactions,reactionPreview\.uid/);
 assert.match(app,/reconcileWebReactionPreviews\(conversationId,remote\)/);
 assert.match(app,/reconcileWebReactionPreviews\(groupId,rows\)/);
 assert.match(app,/pendingWebReactionPreviews\.set\(key,pending\)/);
