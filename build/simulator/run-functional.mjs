@@ -296,7 +296,12 @@ try{
     const page=alice.page,mid='test-group-'+engine;
     const source=await readAdmin('groups/'+groupId+'/messages/'+mid);
     assert.equal(source.senderUid,owner.uid,"Target must be a message from someone else");
-    const members=[{id:owner.uid,name:'Simulator Owner'}, {id:alice.uid,name:'Simulator Alice'}, {id:bob.uid,name:'Simulator Bob'}];
+    const members=await Promise.all([owner,alice,bob].map(async member=>{
+      const record=await readAdmin('groups/'+groupId+'/members/'+member.uid);
+      if(!record?.displayName)throw Error('Group member directory missing '+member.uid);
+      return{id:member.uid,name:record.displayName};
+    }));
+    const bobName=members.find(member=>member.id===bob.uid).name;
     await page.evaluate(async()=>{
       const app=await import('/app.js');
       await app.FIDUNIO_APP_READY;
@@ -319,7 +324,7 @@ try{
       await page.locator(chip).click();
       await page.locator('#reactionDetailsTitle').waitFor({state:'visible',timeout:25000});
       const seen=await page.locator('.reaction-authors-list li').allTextContents();
-      assert.deepEqual([...seen].sort(),[...expected].sort(),'Wrong visible authors');
+      assert.deepEqual([...seen].sort(),[...expected].sort(),'Wrong visible authors: expected '+JSON.stringify(expected)+'; saw '+JSON.stringify(seen));
       assert(!seen.join(' ').includes(alice.uid)&&!seen.join(' ').includes(bob.uid),'Raw UID leaked');
       await page.screenshot({path:path.join(out,'reaction-author-'+expected.length+'-'+engine+'.png')});
       await page.locator('#modalCancel').click();
@@ -344,7 +349,7 @@ try{
     await names(['You']);
     await invoke(bob.page,'setCloudMessageReaction',groupId,mid,'group','🙏','apply');
     await poll(async()=>await page.locator(chip+' .message-reaction-count').textContent().catch(()=>null)==='2','Bob remote reaction surfaced to Alice UI');
-    await names(['You','Simulator Bob']);
+    await names(['You',bobName]);
     // Bob changes emoji; the original participant Alice must keep hers.
     await invoke(bob.page,'setCloudMessageReaction',groupId,mid,'group','❤️','apply');
     await poll(async()=>await page.locator('.message-reaction-chip[data-reaction="❤️"]').count()===1,'Bob changed emoji visible');
