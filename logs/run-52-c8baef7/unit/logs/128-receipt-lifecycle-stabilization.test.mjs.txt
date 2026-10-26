@@ -1,0 +1,5 @@
+FILE receipt-lifecycle-stabilization.test.mjs
+SOURCE Android
+EXIT 0
+Receipt and lifecycle stabilization anchors passed
+

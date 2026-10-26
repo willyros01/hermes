@@ -1,0 +1,5 @@
+FILE build/notification-lease-session.test.mjs
+SOURCE Android
+EXIT 0
+PASS: staged lease lifecycle, account preference retention, bounded offline logout
+

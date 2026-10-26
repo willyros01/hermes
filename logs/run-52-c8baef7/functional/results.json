@@ -1,0 +1,19 @@
+{
+  "pass": false,
+  "results": [
+    {
+      "label": "Android-shared / Chromium",
+      "status": "NOT RUN",
+      "cases": 0,
+      "passed": 0,
+      "path": "android/REPORT.md"
+    },
+    {
+      "label": "iOS-shared / WebKit",
+      "status": "NOT RUN",
+      "cases": 0,
+      "passed": 0,
+      "path": "ios/REPORT.md"
+    }
+  ]
+}

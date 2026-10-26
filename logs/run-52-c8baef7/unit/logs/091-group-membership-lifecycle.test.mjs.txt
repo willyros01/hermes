@@ -1,0 +1,13 @@
+FILE group-membership-lifecycle.test.mjs
+SOURCE Android
+EXIT 0
+PASS confirmed leave removes the local group projection
+PASS group projection removal releases staged messages and attachment URLs
+PASS server-backed group snapshots reconcile absence
+PASS group snapshot member reads discard stale async completions
+PASS member projection is filtered by authoritative parent membership
+PASS incomplete authority shell cannot erase subscribed members
+PASS Add Member has bounded loading and explicit retry
+PASS group lifecycle helper is cached for installed PWAs
+Group membership lifecycle tests pass
+
