@@ -1,0 +1,5 @@
+FILE user-block-wiring.test.mjs
+SOURCE Android
+EXIT 0
+PASS: user blocking is wired through Settings, central Firebase owner, and Firestore authority
+

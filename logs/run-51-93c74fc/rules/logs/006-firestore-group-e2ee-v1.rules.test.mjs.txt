@@ -1,0 +1,109 @@
+FILE firestore-group-e2ee-v1.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS 00 atomic initial group plus member creation succeeds
+PASS 01 member can read group
+PASS 02 outsider cannot read group
+PASS 03 plaintext group message denied
+PASS 04 epoch cannot be created without atomic group advance
+PASS 05 admin atomically advances epoch and creates envelopes
+PASS 06 member reads epoch
+PASS 07 outsider cannot read epoch
+PASS 08 valid encrypted group message succeeds
+PASS 09 disappearing duration allowed as outer metadata
+PASS 09a zero disappearing duration denied
+PASS 09b over-max disappearing duration denied
+PASS 09c non-integer disappearing duration denied
+PASS 09d activation marker with duration allowed
+PASS 09e activation marker without duration denied
+PASS 09f unknown activation marker version denied
+PASS 10 plaintext field on encrypted message denied
+PASS 11 stale epoch message denied
+PASS 12 sender key mismatch denied
+PASS 13 member receipt no longer needs a circular parent barrier
+PASS 13a member atomically writes own delivered receipt and advances parent revision
+PASS 14 read transition without readAt is denied
+PASS 15 member first Read no longer needs a circular parent barrier
+PASS 15a member first Read atomically stores server-backed readAt and advances parent revision
+PASS 16 repeat Read cannot move first-read timestamp
+PASS 17 member cannot write another account receipt
+PASS 18 outsider cannot write receipt
+PASS 18a group sender can add own reaction
+PASS 18b group member can add own reaction
+PASS 18c cannot overwrite another group reaction
+PASS 18d unsupported group reaction denied
+PASS 18e outsider group reaction denied
+PASS 18f group reaction cannot mutate ciphertext
+PASS 19 membership change without matching epoch denied
+PASS 20 admin atomic removal plus new epoch succeeds
+PASS 21 removed member cannot read new epoch
+PASS 21a rejoined member cannot directly read a pre-rejoin source message
+PASS 21b rejoined member can query only ordinary messages at or after historyFrom
+PASS 21c encrypted epoch transport remains readable without granting a missing envelope
+PASS 21d rejoined member can read the post-rejoin epoch containing its envelope
+PASS 21e rejoined member can write a post-boundary receipt
+PASS 21f sender can list receipts for a post-boundary message
+PASS 22 non-admin cannot create history grant
+PASS 23 admin cannot grant history to outsider
+PASS 24 timestamp grant cannot start before requested boundary
+PASS 25a admin history grant without basis-visible group touch denied
+PASS 25 admin creates building beginning grant with group barrier
+PASS 26 target cannot read building grant
+PASS 27a standalone history copy without basis-visible group touch denied
+PASS 27 admin writes bounded history copy with group barrier while building
+PASS 28 target cannot read copy before activation
+PASS 29 grantor activates completed grant metadata
+PASS 30 target reads active grant
+PASS 31 target reads active granted message copy
+PASS 32 outsider cannot read active history grant
+
+55/55 group E2EE assertions passed.
+
+[2026-10-26T23:34:22.233Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee835 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.243Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee838 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L95:86 for 'create' @ L95, false for 'update' @ L95, false for 'create' @ L95
+[2026-10-26T23:34:22.309Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee839 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.320Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee83b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.331Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee83c error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.348Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee83d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.358Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee83e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.367Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee83f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.377Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee840 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.387Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee841 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:148 for 'create' @ L103, evaluation error at L103:238 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.433Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee843 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:581 for 'create' @ L103, evaluation error at L103:736 for 'update' @ L103, Property readAt is undefined on object. for 'update' @ L103
+[2026-10-26T23:34:22.473Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee844 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:581 for 'create' @ L103, evaluation error at L103:736 for 'update' @ L103, false for 'update' @ L103
+[2026-10-26T23:34:22.480Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee845 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+false for 'create' @ L103, false for 'update' @ L103
+[2026-10-26T23:34:22.491Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee846 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:581 for 'create' @ L103, evaluation error at L103:736 for 'update' @ L103, false for 'create' @ L103
+[2026-10-26T23:34:22.516Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee847 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:238 for 'update' @ L103, false for 'update' @ L103
+[2026-10-26T23:34:22.528Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee848 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:238 for 'update' @ L103, false for 'update' @ L103
+[2026-10-26T23:34:22.536Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee849 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:238 for 'update' @ L103, false for 'update' @ L103
+[2026-10-26T23:34:22.545Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee84a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L103:238 for 'update' @ L103, false for 'update' @ L103
+[2026-10-26T23:34:22.555Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee842 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L92:24 for 'update' @ L92, evaluation error at L94:777 for 'delete' @ L94, false for 'delete' @ L94, false for 'update' @ L92
+[2026-10-26T23:34:22.693Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee84e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L98:26 for 'create' @ L98, evaluation error at L99:26 for 'update' @ L99, false for 'create' @ L98
+[2026-10-26T23:34:22.700Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee84b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L98:26 for 'create' @ L98, evaluation error at L99:26 for 'update' @ L99, false for 'create' @ L98
+[2026-10-26T23:34:22.709Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee84f error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L98:26 for 'create' @ L98, evaluation error at L99:26 for 'update' @ L99, false for 'create' @ L98
+[2026-10-26T23:34:22.721Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee850 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L98:26 for 'create' @ L98, evaluation error at L99:26 for 'update' @ L99, false for 'create' @ L98
+[2026-10-26T23:34:22.746Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x73dee851 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L101:240 for 'create' @ L101, false for 'update' @ L101, false for 'create' @ L101
