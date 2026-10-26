@@ -1,3 +1,9 @@
+## 2026-10-26 — FIDUNIO 1.1.80 reaction attribution and web-only latency (CANDIDATE / NOT DEVICE ACCEPTED)
+
+- Owner observation: iPhone iOS and Fire HD 8 Android show emojis immediately; the delay is limited to the web app so far. Web-only feedback candidate projects a selected reaction promptly in the existing chat render owner, reconciles with authoritative Firestore snapshots and rolls back on denial. No Firebase, E2EE, notifications or Outbox ownership changes.
+- New feature: tap an authorized group-message reaction to see existing group member display names; removed/unknown members show “Former member” without leaking UIDs. Direct reactions remain non-interactive.
+- 1.1.80 candidate only. Required: live browser, security, iOS native/TestFlight gates, Android signing/ADM gates, 88-case release manifest and physical devices. **NOT FULLY TESTED** pending explicit pass evidence. See GitHub issue #5.
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
