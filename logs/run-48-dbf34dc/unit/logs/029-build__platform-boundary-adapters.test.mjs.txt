@@ -1,0 +1,5 @@
+FILE build/platform-boundary-adapters.test.mjs
+SOURCE ios
+EXIT 0
+PASS: startup and background platform policy is isolated behind bounded adapters
+

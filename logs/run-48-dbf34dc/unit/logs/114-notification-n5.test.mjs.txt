@@ -1,0 +1,5 @@
+FILE notification-n5.test.mjs
+SOURCE Android
+EXIT 0
+FCM N5 data-only notification tap routing gate passed
+

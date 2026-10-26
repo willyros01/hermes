@@ -1,0 +1,5 @@
+FILE admin-recovery-authorization.test.mjs
+SOURCE Android
+EXIT 0
+Admin-authorized recovery tests pass
+
