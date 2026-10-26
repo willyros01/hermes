@@ -50,7 +50,8 @@ export async function __FIDUNIO_SIM_PROJECT_GROUP_REACTIONS({groupId,messageId,s
   state.unlocked=true;state.selectedId=groupId;state.route="chat";state.modal=null;
   render();
   const {subscribeCloudGroupMessages}=await import("./firebase.js");
-  return subscribeCloudGroupMessages(groupId,rows=>{
+  globalThis.__FIDUNIO_SIM_REACTION_UNSUB?.();
+  globalThis.__FIDUNIO_SIM_REACTION_UNSUB=subscribeCloudGroupMessages(groupId,rows=>{
     const row=rows.find(item=>String(item.id)===String(messageId));
     if(!row)return;
     state.messages[groupId]=[{
@@ -62,6 +63,7 @@ export async function __FIDUNIO_SIM_PROJECT_GROUP_REACTIONS({groupId,messageId,s
     }];
     render({background:true});
   },err=>{globalThis.__FIDUNIO_SIM_REACTION_LISTENER_ERROR=String(err?.message||err);});
+  return true;
 }
 `;
   fs.appendFileSync(path.join(root,'app.js'),probe);
