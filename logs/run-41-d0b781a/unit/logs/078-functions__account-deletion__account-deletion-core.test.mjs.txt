@@ -1,0 +1,6 @@
+FILE functions/account-deletion/account-deletion-core.test.mjs
+SOURCE Android
+EXIT 0
+PASS: processing request retries final cleanup without re-marking processing
+PASS: final account deletion enforces cleanup and ownership barriers and deletes Auth last
+

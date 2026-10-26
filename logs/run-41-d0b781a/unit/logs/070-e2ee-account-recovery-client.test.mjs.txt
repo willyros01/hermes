@@ -1,0 +1,5 @@
+FILE e2ee-account-recovery-client.test.mjs
+SOURCE Android
+EXIT 0
+Account E2EE recovery client boundary tests passed
+
