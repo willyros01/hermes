@@ -15,7 +15,7 @@ assert.match(app,/summarizeMessageReactions/);
 assert.equal((app.match(/row\.onpointerdown=/g)||[]).length,1,"existing long-press owner must remain singular");
 assert.match(firebase,/runTransaction\(s\.db/);
 assert.match(firebase,/applyMessageReactionIntent/);
-assert.match(app,/myReaction===button\.dataset\.reaction\?"remove":"apply"/);
+assert.match(app,/myReaction===(?:button\.dataset\.reaction|reaction)\?"remove":"apply"/);
 assert.doesNotMatch(firebase,/nextMessageReactions/,"Firestore transaction must never toggle on retry");
 assert.match(group,/reactions:row\.reactions/);
 assert.match(rules,/validDirectReactionUpdate/);
