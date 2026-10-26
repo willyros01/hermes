@@ -26,7 +26,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: willyros01/hermes
-          ref: main-3
+          # Exact source commit tested, not a moving ref.
+          ref: f81bcebb6cd3b071eb42a348cdfac147ed7d295c
           path: web-src
           persist-credentials: false
       - uses: actions/setup-node@v4
