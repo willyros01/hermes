@@ -311,6 +311,8 @@ try{
   await runNativeReleaseExtensions({d,expr,present,wait,shot,readDoc,readCollection,me,test,ready,log});
   const {runEmojiStress}=await import('./native-emoji-stress.mjs');
   await runEmojiStress({d,expr,present,wait,shot,readDoc,readCollection,me,test,ready,log});
+  const {runNativeReactionAttribution}=await import('./native-reaction-attribution.mjs');
+  await runNativeReactionAttribution({d,expr,present,wait,shot,readDoc,readCollection,me,test,ready,log,fixture});
   if(tests.some(t=>t.status!=='PASS'))log('Native simulator suite contains failures or blocked tests; NO release approval.');
 }catch(e){log('FATAL native test setup: '+String(e.stack||e).slice(0,1500));tests.push({id:'SETUP',status:'FAIL',label:'Native test setup',detail:String(e.stack||e)});}
 finally{summarize();await env.cleanup();d.disconnect?.();}
