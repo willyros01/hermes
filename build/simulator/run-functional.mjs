@@ -196,11 +196,11 @@ try{
     await invoke(alice.page,'updateCloudMessageState',directId,message.id,'read');
     row=await readAdmin(`conversations/${directId}/messages/${message.id}`);
     assert.equal(row.state,'read');
-    await invoke(alice.page,'setCloudMessageReaction',directId,message.id,'direct','❤️');
+    await invoke(alice.page,'setCloudMessageReaction',directId,message.id,'direct','❤️','apply');
     assert.equal((await readAdmin(`conversations/${directId}/messages/${message.id}`)).reactions[alice.uid],'❤️');
-    await invoke(alice.page,'setCloudMessageReaction',directId,message.id,'direct','❤️');
+    await invoke(alice.page,'setCloudMessageReaction',directId,message.id,'direct','❤️','remove');
     assert.equal((await readAdmin(`conversations/${directId}/messages/${message.id}`)).reactions[alice.uid],undefined);
-    await rejected(()=>invoke(alice.page,'setCloudMessageReaction',directId,message.id,'direct','🔥'),'Unsupported');
+    await rejected(()=>invoke(alice.page,'setCloudMessageReaction',directId,message.id,'direct','🔥','apply'),'Unsupported');
     return 'Direct encrypted-envelope transport, disappearing metadata, sent→delivered→read, emoji add/remove/invalid';
   });
   await check('FN-006',async()=>{
@@ -242,8 +242,8 @@ try{
     await rejected(()=>invoke(carol.page,'getCloudGroupMessageFromServer',groupId,carol.uid,messageId));
     await invoke(alice.page,'updateCloudGroupReceipt',groupId,messageId,'delivered');
     await invoke(alice.page,'updateCloudGroupReceipt',groupId,messageId,'read');
-    await invoke(bob.page,'setCloudMessageReaction',groupId,messageId,'group','😂');
-    await invoke(bob.page,'setCloudMessageReaction',groupId,messageId,'group','😂');
+    await invoke(bob.page,'setCloudMessageReaction',groupId,messageId,'group','😂','apply');
+    await invoke(bob.page,'setCloudMessageReaction',groupId,messageId,'group','😂','remove');
     const saved=await readAdmin(`groups/${groupId}/messages/${messageId}`);
     assert.equal(saved.receiptRevision,2);
     assert.equal(saved.reactions?.[bob.uid],undefined);
