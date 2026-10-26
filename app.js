@@ -2738,7 +2738,7 @@ function renderModal(){
       catch(err){button.disabled=false;alert(err?.message||String(err));}
     };
     const replyBtn=host.querySelector("#modalReply");if(replyBtn)replyBtn.onclick=()=>{state.modal=null;host.remove();beginGroupReply(conversation,message);};
-    host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=()=>perform(button,()=>setCloudMessageReaction(modal.conversationId,modal.messageId,conversation?.cloudGroup?"group":"direct",button.dataset.reaction)));
+    host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=()=>perform(button,()=>setCloudMessageReaction(modal.conversationId,modal.messageId,conversation?.cloudGroup?"group":"direct",button.dataset.reaction,myReaction===button.dataset.reaction?"remove":"apply")));
     const pendingBtn=host.querySelector("#modalDeletePending");if(pendingBtn)pendingBtn.onclick=()=>perform(pendingBtn,()=>cancelPendingOutboxMessage(modal.messageId,modal.conversationId));
     const meBtn=host.querySelector("#modalDeleteForMe");if(meBtn)meBtn.onclick=()=>perform(meBtn,()=>deleteMessageForMe(modal.conversationId,modal.messageId));
     const everyoneBtn=host.querySelector("#modalDeleteForEveryone");if(everyoneBtn)everyoneBtn.onclick=()=>perform(everyoneBtn,async()=>{if(conversation?.cloudGroup)await deleteCloudGroupMessageForEveryone(modal.conversationId,modal.messageId);else await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);});
