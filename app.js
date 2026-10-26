@@ -51,7 +51,7 @@ import { mountSixDigitPinInput } from "./pin-input.js";
 import {awaitBoundedLocalPinVerification} from "./local-pin-verification-boundary.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,refreshGroupReadForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
-import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions} from "./message-reaction-policy.js";
+import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions,listMessageReactionAuthors,applyMessageReactionIntent} from "./message-reaction-policy.js";
 import {encodeGroupReplyDescriptor,parseGroupReplyDescriptor} from "./group-reply-policy.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
@@ -127,6 +127,17 @@ let appActivationPromise=null;
 const appActivationReasons=new Set();
 const composerStateByConversation=new Map();
 const optimisticOutgoingProjection=createOptimisticOutgoingProjectionOwner();
+// Web-only, presentation-only preview. Firestore is still the sole write authority.
+const pendingWebReactionPreviews=new Map();
+function reactionPreviewKey(conversationId,messageId){return String(conversationId)+":"+String(messageId);}
+function reconcileWebReactionPreviews(conversationId,rows){
+  for(const row of rows||[]){
+    const key=reactionPreviewKey(conversationId,row.id),preview=pendingWebReactionPreviews.get(key);
+    if(!preview?.committed)continue;
+    const serverValue=String(row.reactions?.[preview.uid]||"");
+    if(serverValue===(preview.intent==="apply"?preview.reaction:""))pendingWebReactionPreviews.delete(key);
+  }
+}
 const bulkMessageDeleteProjection=createBulkMessageDeleteProjectionOwner();
 let pendingChatViewport=null;
 let chatRenderGeneration=0;
@@ -1004,6 +1015,7 @@ function beginCloudGroupMessageSubscription(groupId){
       if(!groupMessageStreamLifecycle.isCurrent(token))return;
       const bulkProjection=bulkMessageDeleteProjection.project(groupId,projection.rows,{authoritative:projection.authoritative,authoritativeRemoteIds:rows.map(message=>message.id)});
       state.messages[groupId]=optimisticOutgoingProjection.project(groupId,bulkProjection.rows,{isHidden:messageId=>isMessageHidden(groupId,messageId)});
+      reconcileWebReactionPreviews(groupId,rows);
       const c=state.conversations.find(x=>String(x.id)===String(groupId)),last=state.messages[groupId].at(-1);
       if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
       else if(c&&bulkProjection.affected){c.preview="";c.time="";}
@@ -1289,6 +1301,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       const bulkProjection=bulkMessageDeleteProjection.project(conversationId,projection.rows,{authoritative:projection.authoritative,authoritativeRemoteIds:remote.map(message=>message.id)});
       const merged=[...bulkProjection.rows];
       state.messages[conversationId]=merged;
+      reconcileWebReactionPreviews(conversationId,remote);
 
       const last=merged.at(-1);
       if(last){
@@ -1595,6 +1608,16 @@ function scheduleChatViewportRestore(conversationId,viewport,generation){
 }
 function bindChatMessageProjectionActions(){
   bindPendingMessageActions();
+  // The chat projection owner also owns reaction attribution controls.
+  document.querySelectorAll(".message-reaction-chip[data-reaction]").forEach(button=>button.onclick=event=>{
+    event.preventDefault();event.stopPropagation();
+    const conversationId=button.dataset.conversationId,messageId=button.dataset.messageId;
+    const c=state.conversations.find(row=>String(row.id)===String(conversationId));
+    const message=(state.messages[conversationId]||[]).find(row=>String(row.id)===String(messageId));
+    if(!c?.cloudGroup||!message||!MESSAGE_REACTION_CHOICES.includes(button.dataset.reaction))return;
+    state.modal={type:"reactionDetails",conversationId,messageId,reaction:button.dataset.reaction};
+    render();
+  });
   document.querySelectorAll(".attachment-media-open").forEach(button=>button.onclick=event=>{
     event.preventDefault();event.stopPropagation();
     const conversationId=button.dataset.conversationId,messageId=button.dataset.messageId;
@@ -2071,8 +2094,15 @@ function renderBubble(m,c){
   }
   const groupSender=groupSenderDisplayName(m,c);
   const displayTime=messageDisplayTime(m);
-  const reactionSummary=summarizeMessageReactions(m.reactions,firebaseUser?.uid||"");
-  const reactionMarkup=reactionSummary.length?`<div class="message-reactions" aria-label="Message reactions">${reactionSummary.map(item=>`<span class="message-reaction-chip ${item.mine?"mine":""}">${esc(item.emoji)}${item.count>1?` <span class="message-reaction-count">${item.count}</span>`:""}</span>`).join("")}</div>`:"";
+  const pendingPreview=pendingWebReactionPreviews.get(reactionPreviewKey(c.id,m.id));
+  const visibleReactions=pendingPreview?.uid===firebaseUser?.uid
+    ?applyMessageReactionIntent(m.reactions,pendingPreview.uid,pendingPreview.reaction,pendingPreview.intent)
+    :m.reactions;
+  const reactionSummary=summarizeMessageReactions(visibleReactions,firebaseUser?.uid||"");
+  const reactionMarkup=reactionSummary.length?`<div class="message-reactions" aria-label="Message reactions">${reactionSummary.map(item=>c?.cloudGroup
+    ?`<button type="button" class="message-reaction-chip ${item.mine?"mine":""}" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}" data-reaction="${esc(item.emoji)}" aria-label="See who reacted with ${esc(item.emoji)}">${esc(item.emoji)}${item.count>1?` <span class="message-reaction-count">${item.count}</span>`:""}</button>`
+    :`<span class="message-reaction-chip ${item.mine?"mine":""}">${esc(item.emoji)}${item.count>1?` <span class="message-reaction-count">${item.count}</span>`:""}</span>`
+  ).join("")}</div>`:"";
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
     ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(displayTime)}</span></div>`:""}
     <div class="bubble">
@@ -2088,11 +2118,11 @@ function bindPendingMessageActions(){
     let timer=null,startX=0,startY=0;
     const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
     const open=()=>{clear();state.modal={type:"pendingMessage",messageId:row.dataset.messageId,conversationId:row.dataset.conversationId};render();};
-    row.oncontextmenu=e=>{e.preventDefault();open();};
-    row.onpointerdown=e=>{if(e.button!==0)return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
+    row.oncontextmenu=e=>{if(e.target.closest?.(".message-reaction-chip[data-reaction]"))return;e.preventDefault();open();};
+    row.onpointerdown=e=>{if(e.button!==0||e.target.closest?.(".message-reaction-chip[data-reaction]"))return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
     row.onpointermove=e=>{if(Math.abs(e.clientX-startX)>10||Math.abs(e.clientY-startY)>10)clear();};
     row.onpointerup=clear;row.onpointercancel=clear;row.onpointerleave=clear;
-    row.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
+    row.onkeydown=e=>{if(e.target!==row)return;if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
   });
 }
 
@@ -2707,14 +2737,39 @@ function renderModal(){
       }catch(err){stopTracks();startBtn.disabled=false;status.textContent="Microphone access was not started.";alert("Could not start audio recording: "+(err?.message||err));}
     };
     stopBtn.onclick=()=>{if(!recorder||recorder.state==="inactive")return;stopBtn.disabled=true;status.textContent="Finishing recording…";recorder.stop();};
+  } else if(modal.type==="reactionDetails"){
+    const conversation=state.conversations.find(row=>String(row.id)===String(modal.conversationId));
+    const message=(state.messages[modal.conversationId]||[]).find(row=>String(row.id)===String(modal.messageId));
+    const preview=pendingWebReactionPreviews.get(reactionPreviewKey(modal.conversationId,modal.messageId));
+    const visible=preview?.uid===firebaseUser?.uid
+      ?applyMessageReactionIntent(message?.reactions,preview.uid,preview.reaction,preview.intent)
+      :message?.reactions;
+    const authors=conversation?.cloudGroup&&message
+      ?listMessageReactionAuthors(visible,modal.reaction,conversation.members,firebaseUser?.uid):[];
+    if(!conversation?.cloudGroup||!authors.length){state.modal=null;return;}
+    host.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="reactionDetailsTitle">
+      <h2 id="reactionDetailsTitle">${esc(modal.reaction)} Reactions</h2>
+      <p>Group members who added this reaction:</p>
+      <ul class="reaction-authors-list">${authors.map(name=>`<li>${esc(name)}</li>`).join("")}</ul>
+      <div class="modal-actions"><button class="modal-cancel" id="modalCancel" type="button">Close</button></div>
+    </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
   } else if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
     const isPending=message&&["queued","sending","failed"].includes(message.state);
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
-    const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation);
+    const reactionPreview=pendingWebReactionPreviews.get(reactionPreviewKey(modal.conversationId,modal.messageId));
+    // A committed transaction may precede its Firestore listener callback.
+    // Permit the next tap against the committed, provisionally projected result;
+    // block only while the previous transaction is still in flight.
+    const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation)&&(!reactionPreview||reactionPreview.committed);
     const canReply=!!conversation?.cloudGroup&&!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&message.authoritativeSource!==false&&!(Number(message.disappearAfterSeconds)>0);
-    const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
+    const pickerReactions=reactionPreview?.uid===firebaseUser?.uid
+      ?applyMessageReactionIntent(message?.reactions,reactionPreview.uid,reactionPreview.reaction,reactionPreview.intent)
+      :message?.reactions;
+    const myReaction=firebaseUser?.uid&&pickerReactions?.[firebaseUser.uid]||"";
     const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
@@ -2739,7 +2794,33 @@ function renderModal(){
       catch(err){button.disabled=false;alert(err?.message||String(err));}
     };
     const replyBtn=host.querySelector("#modalReply");if(replyBtn)replyBtn.onclick=()=>{state.modal=null;host.remove();beginGroupReply(conversation,message);};
-    host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=()=>perform(button,()=>setCloudMessageReaction(modal.conversationId,modal.messageId,conversation?.cloudGroup?"group":"direct",button.dataset.reaction,myReaction===button.dataset.reaction?"remove":"apply")));
+    host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      const uid=String(firebaseUser?.uid||""),reaction=button.dataset.reaction;
+      const intent=myReaction===reaction?"remove":"apply";
+      const key=reactionPreviewKey(modal.conversationId,modal.messageId);
+      const pending={uid,reaction,intent,committed:false};
+      pendingWebReactionPreviews.set(key,pending);
+      // Draw immediately, without waiting for the Firestore transaction.
+      state.modal=null;host.remove();render({background:true});
+      try{
+        await setCloudMessageReaction(modal.conversationId,modal.messageId,conversation?.cloudGroup?"group":"direct",reaction,intent);
+        if(pendingWebReactionPreviews.get(key)!==pending)return;
+        pending.committed=true;
+        reconcileWebReactionPreviews(modal.conversationId,state.messages[modal.conversationId]||[]);
+        // Bound a lost-snapshot preview; never pretend it is server confirmed.
+        setTimeout(()=>{
+          if(pendingWebReactionPreviews.get(key)!==pending)return;
+          pendingWebReactionPreviews.delete(key);
+          if(state.route==="chat"&&String(state.selectedId)===String(modal.conversationId))render({background:true});
+        },12000);
+      }catch(err){
+        if(pendingWebReactionPreviews.get(key)===pending)pendingWebReactionPreviews.delete(key);
+        render({background:true});
+        alert(err?.message||String(err));
+      }
+    });
     const pendingBtn=host.querySelector("#modalDeletePending");if(pendingBtn)pendingBtn.onclick=()=>perform(pendingBtn,()=>cancelPendingOutboxMessage(modal.messageId,modal.conversationId));
     const meBtn=host.querySelector("#modalDeleteForMe");if(meBtn)meBtn.onclick=()=>perform(meBtn,()=>deleteMessageForMe(modal.conversationId,modal.messageId));
     const everyoneBtn=host.querySelector("#modalDeleteForEveryone");if(everyoneBtn)everyoneBtn.onclick=()=>perform(everyoneBtn,async()=>{if(conversation?.cloudGroup)await deleteCloudGroupMessageForEveryone(modal.conversationId,modal.messageId);else await deleteCloudDirectMessageForEveryone(modal.conversationId,modal.messageId);await purgeLocalDisappearingMessageTraces(firebaseUser.uid,[modal.messageId]);});

@@ -342,6 +342,12 @@ textarea{
 .message-reaction-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:var(--tool);border:1px solid var(--line);font-size:15px;line-height:1.2}
 .message-reaction-chip.mine{border:2px solid var(--accent);background:var(--accent-soft)}
 .message-reaction-count{font-size:12px;font-weight:800;color:var(--muted)}
+/* Only group reaction chips are actionable. Keep touch target and text readable. */
+button.message-reaction-chip{min-height:44px;font:inherit;font-size:17px;color:var(--ink);cursor:pointer}
+button.message-reaction-chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.reaction-authors-list{list-style:none;padding:0;margin:12px 0;display:grid;gap:8px}
+.reaction-authors-list li{font-size:1.05rem;line-height:1.4;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--tool);overflow-wrap:anywhere}
+
 html.text-aplusplus .message-reaction-btn{min-height:64px;font-size:32px}
 .pending-message-action{touch-action:pan-y}
 .pending-message-action:focus-visible .bubble{outline:4px solid var(--accent);outline-offset:3px}

@@ -1,3 +1,15 @@
+## 2026-10-26 — Web-only reaction follow-up: report FAIL until new public deployment
+- Owner device acceptance: group reaction names and immediate emoji on iOS TestFlight 1.1.80 and Android Fire HD 8 1.1.80 PASS.
+- Web is still live 1.1.79 on production `main`; candidate 1.1.80 code remains under PR #7. Group name-list absence is a confirmed deployment gap, not evidence that 1.1.80 candidate failed after deployment. Immediate display fix remains unverified on public web.
+- Simulator suite #40412652061 FAIL overall because obsolete assertion in reviewed file; native simulator and API/rules/browser subjobs PASS separately. Fresh web staging WebKit #40413392981 cancelled. Exact source, full gate and two-person UI test still required.
+- Strong test: original sender A, reactor B, peer C, group and direct; record actual click->chip DOM and Firestore server/peer convergence; tap chip->display B's name, multi-author, remove, change, former member, unknown, html escaping, reload/cache, disconnected/denied write, A++ keyboard/mouse/touch, no duplicate writes or E2EE authority changes. Full release certification remains blocked by 88-case manifest and physical web check.
+
+## 2026-10-26 — FIDUNIO 1.1.80 reaction attribution and web-only latency (CANDIDATE / NOT DEVICE ACCEPTED)
+
+- Owner observation: iPhone iOS and Fire HD 8 Android show emojis immediately; the delay is limited to the web app so far. Web-only feedback candidate projects a selected reaction promptly in the existing chat render owner, reconciles with authoritative Firestore snapshots and rolls back on denial. No Firebase, E2EE, notifications or Outbox ownership changes.
+- New feature: tap an authorized group-message reaction to see existing group member display names; removed/unknown members show “Former member” without leaking UIDs. Direct reactions remain non-interactive.
+- 1.1.80 candidate only. Required: live browser, security, iOS native/TestFlight gates, Android signing/ADM gates, 88-case release manifest and physical devices. **NOT FULLY TESTED** pending explicit pass evidence. See GitHub issue #5.
+
 ## 2026-10-11 — Mandatory ios/main-3 functional equivalence
 
 **Functional equivalence dictates the code written on `main-3`. Identical source code is not the acceptance criterion.**
