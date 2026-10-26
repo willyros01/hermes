@@ -1,0 +1,5 @@
+FILE legal-policy-wiring.test.mjs
+SOURCE Android
+EXIT 0
+PASS: FIDUNIO first-launch Terms gate matches the app-family contract and server audit cannot block login
+
