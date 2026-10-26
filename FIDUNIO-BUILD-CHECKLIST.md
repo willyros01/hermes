@@ -1,3 +1,10 @@
+## 2026-10-26 — New cross-platform reaction regression gates (OPEN)
+- Native physical acceptance **PASS (feature only)**: owner tested reaction author list on iOS 1.1.80 TestFlight and Android 1.1.80 Fire HD 8. Reacting emoji is promptly shown on both.
+- Production web **FAIL / UNDEPLOYED**: `main` still 1.1.79; 1.1.80 group author names and web-only immediate reaction projection reside on `main-3` and unmerged draft PR #7. Do not claim a post-deployment outcome until production artifact and cache revision are verified.
+- Test design must prove two distinct accounts (author ≠ reactor) and actual UI opening the reaction-author dialog on **web Chromium + WebKit, iOS simulator, Android simulator**; assert displayed name, count, tap/keyboard, and delay from click to chip. Test add/change/remove, multiple actors, stale/failed writes, offline/reconnect; capture actual image/log evidence. An emulator seeded document alone is not proof of cross-account UI interaction.
+- Current simulator #40412652061 was **FAIL overall** despite native/API/rules/browser subjobs passing; reviewed file job's old web wiring regex failed. Latest staging WebKit job #40413392981 was CANCELLED. Rerun after correction and do not fabricate a suite PASS. Full 88-case release manifest and physical web acceptance remain OPEN.
+- Update simulator regression doc and `hermes-memory.txt`; preserve native release state; no Firebase, notification, E2EE or backend modifications.
+
 ## 2026-10-26 — FIDUNIO 1.1.80 reaction attribution and web-only latency (CANDIDATE / NOT DEVICE ACCEPTED)
 
 - Owner observation: iPhone iOS and Fire HD 8 Android show emojis immediately; the delay is limited to the web app so far. Web-only feedback candidate projects a selected reaction promptly in the existing chat render owner, reconciles with the authoritative Firestore snapshot and rolls back on denial. No change to Firebase service initialization, rules, groups, E2EE, notification, receipt or Outbox authority.
