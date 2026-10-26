@@ -1,3 +1,13 @@
+## 2026-10-26 — 1.1.80 candidate: group emoji authors + web-only reaction feedback
+
+Owner's real-device evidence: iOS emoji display is immediate; Android Fire HD 8 emoji display is immediate; web alone was observed to delay showing another sender's message reaction. Do not attribute this defect to the native apps without new evidence.
+
+New feature in candidate branches `ios`, `Android`, `main-3`, production `main` (not promoted): for an authenticated group conversation, each displayed emoji is a 44px or larger button. Tap it for a member-name list based entirely on the existing message `reactions` UID→emoji mapping and the current authorized group `members` display names. Missing member directory entries display “Former member” (never a raw UID). Direct emoji chips remain unchanged. The existing chat render/modal owner handles all DOM; no second Firebase, E2EE, Outbox, receipt or membership owner. New pure author-name helper is unit tested.
+
+Web-only candidate: preview emoji synchronously inside the current chat projection, then reconcile with the Firestore message snapshot and roll back on a denied/failed transaction. iOS/Android paths do not use this provisional-presentation variant. This is not proof of low-latency remote peer delivery.
+
+Before production, evaluate the full suite of GitHub checks for exact source SHA, run cross-account direct/group reaction apply/update/remove; test HTML escaping, former group member, keyboard/pointer access, locked/unlocked state, offline/permission denial, stale remote snapshots; complete real iOS TestFlight, Fire HD 8 and web physical acceptance and all 88 release-manifest gates. **NOT FULLY TESTED** until real-device and full-manifest evidence is available. See GitHub issue #5 for web latency. Use exact branch and SHA evidence; do not bypass any release audit, web or native gate.
+
 ## 2026-10-11 — Functional-equivalence record: ios 1.1.78 Service Worker registration retry
 
 - ios now carries main-3's existing retry fix (main-3 `cdedfd9`): a failed web Service Worker registration is not cached, so notification enable/retry registers again.
