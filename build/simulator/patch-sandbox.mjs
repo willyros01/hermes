@@ -39,6 +39,44 @@ const emulators =
   'functionsSdk.connectFunctionsEmulator(functions,"' + host + '",5001);';
 let patched = srcFirebase.replace(appCheckAnchor, 'const appCheck=null;/* simulator only: App Check does not contact production */');
 patched = patched.replace(servicesAnchor, emulators + servicesAnchor);
+
+const reactionAnchor='try{return await s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const next=nextMessageReactions(snap.data().reactions,authUser.uid,reaction);tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};});}';
+const reactionErrorAnchor='catch(err){const code=String(err?.code||"").toLowerCase();if(kind==="direct"';
+if(patched.split(reactionAnchor).length!==2 || patched.split(reactionErrorAnchor).length!==2)
+  throw new Error('Reaction transaction owner changed. Do not install simulator diagnostics.');
+const reactionInstrumented=String.raw`
+const simTrace={kind,id,mid,uid:authUser.uid,reaction,startedAt:Date.now(),attempts:[],outcome:"pending"};
+(globalThis.__fidunioSimReactionTrace||(globalThis.__fidunioSimReactionTrace=[])).push(simTrace);
+try{
+  const result=await s.fsSdk.runTransaction(s.db,async tx=>{
+    const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");
+    const previous=snap.data().reactions||{};
+    const next=nextMessageReactions(previous,authUser.uid,reaction);
+    simTrace.attempts.push({prior:previous[authUser.uid]||null,next:next[authUser.uid]||null,at:Date.now()});
+    tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};
+  });
+  simTrace.outcome="committed";simTrace.result=result.reaction;simTrace.finishedAt=Date.now();return result;
+}
+`;
+patched=patched.replace(reactionAnchor,reactionInstrumented);
+patched=patched.replace(reactionErrorAnchor,'catch(err){simTrace.outcome="error";simTrace.error=String(err?.code||err?.message||err);simTrace.finishedAt=Date.now();const code=String(err?.code||"").toLowerCase();if(kind==="direct"');
+const networkHook=String.raw`
+globalThis.__fidunioSimNetwork={
+  state:"online",error:"",
+  offline(){
+    this.state="switching-offline";this.error="";
+    fsSdk.disableNetwork(db).then(()=>{this.state="offline";}).catch(e=>{this.error=String(e);this.state="error";});
+  },
+  online(){
+    this.state="switching-online";this.error="";
+    fsSdk.enableNetwork(db).then(()=>{this.state="online";window.dispatchEvent(new Event("online"));}).catch(e=>{this.error=String(e);this.state="error";});
+  }
+};
+`;
+patched=patched.replace(servicesAnchor,networkHook+servicesAnchor);
+if(!patched.includes('__fidunioSimReactionTrace')||!patched.includes('__fidunioSimNetwork'))
+  throw new Error('Simulator diagnostics were not installed');
+
 if (!patched.includes(ownerGuard) || !patched.includes('connectFirestoreEmulator')) throw new Error('Emulator-only Firebase substitution was incomplete');
 fs.writeFileSync(firebase, patched);
 fs.writeFileSync(config, 'export const firebaseConfig=' + JSON.stringify(demo) + ';\n');

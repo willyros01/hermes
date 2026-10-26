@@ -9,7 +9,8 @@ export async function runEmojiStress({d,expr,present,wait,shot,readDoc,readColle
     const server=(await readDoc(root+'/'+id+'/messages/'+mid))?.reactions||{};
     const row='.pending-message-action[data-message-id="'+mid+'"]';
     const ui=await expr('JSON.stringify({chips:Array.from(document.querySelectorAll('+JSON.stringify(row+' .message-reaction-chip')+')).map(x=>({text:x.textContent,mine:x.classList.contains("mine")})),menu:Array.from(document.querySelectorAll(".message-reaction-btn")).map(x=>({emoji:x.dataset.reaction,selected:x.getAttribute("aria-pressed"),disabled:x.disabled})),modalText:document.querySelector(".modal-backdrop .modal")?.innerText?.slice(0,360)||null,rowMeta:document.querySelector('+JSON.stringify(row+' .msg-meta')+')?.innerText||null,alerts:Array.from(document.querySelectorAll("[role=alert]")).map(x=>x.innerText?.slice(0,180))})').catch(e=>'Inspector unavailable: '+e.message);
-    log('REACTION-STRESS FAIL: '+JSON.stringify({type,conversationId:id,messageId:mid,emoji,cycle,phase,serverReaction:server[me]||null,server,ui,error:String(error?.message||error)}));
+    const trace=await expr('JSON.stringify((globalThis.__fidunioSimReactionTrace||[]).filter(x=>x.mid==='+JSON.stringify(mid)+').slice(-6))').catch(e=>'trace unavailable: '+e.message);
+    log('REACTION-STRESS FAIL: '+JSON.stringify({type,conversationId:id,messageId:mid,emoji,cycle,phase,serverReaction:server[me]||null,server,ui,trace,error:String(error?.message||error)}));
   };
   const nav=async(type)=>{
     const path=type==='group'?'groups':'conversations';
@@ -120,30 +121,49 @@ export async function runEmojiStress({d,expr,present,wait,shot,readDoc,readColle
     const dbPath='groups/'+row.id+'/messages';
     const prior=new Set((await readCollection(dbPath)).map(m=>m.id));
     const token='NATIVE_SEND_INTERRUPTION_'+Date.now();
-    await d.fill('#messageBox',token);
-    await d.press('#sendBtn');
-    const initial=await readCollection(dbPath);
-    const initialNew=initial.filter(m=>m.senderUid===me&&!prior.has(m.id));
-    log('SEND-INTERRUPTION pre-navigation '+JSON.stringify({newDocs:initialNew.length,states:initialNew.map(m=>m.state)}));
-    await d.press('#backBtn');
-    await wait(()=>present('#newBtn'),'Messages after interrupting group send by navigation',40000);
-    let newDocs=[];
-    await wait(async()=>{
-      newDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
-      if(newDocs.length>1)throw Error('More than one group message created by one Send: '+newDocs.length);
-      return newDocs.length===1&&newDocs[0].state==='sent';
-    },'one authoritative Sent group message after immediate navigation',90000);
-    if(JSON.stringify(newDocs).includes(token))throw Error('Plaintext leaked during interrupted group send');
-    if(newDocs.length!==1)throw Error('Unexpected group message count '+newDocs.length);
-    await d.press('.conversation-open[data-id="'+row.id+'"]');
-    await wait(()=>present('.pending-message-action[data-message-id="'+newDocs[0].id+'"]'),'interrupted group message visible after returning',50000);
-    const sel='.pending-message-action[data-message-id="'+newDocs[0].id+'"] .msg-meta';
-    await wait(async()=>/(?:Sent|Delivered|Read)/i.test(String(await expr('document.querySelector('+JSON.stringify(sel)+')?.innerText||""'))),'native group UI marked Sent after return',60000);
-    await d.sleep(1800);
-    const finalDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
-    if(finalDocs.length!==1||finalDocs[0].state!=='sent')throw Error('Duplicate or missing Sent message after return: '+JSON.stringify(finalDocs.map(m=>({id:m.id,state:m.state}))));
-    log('SEND-INTERRUPTION PASS '+JSON.stringify({id:newDocs[0].id,initialStates:initialNew.map(m=>m.state),finalState:finalDocs[0].state,newDocs:finalDocs.length}));
-    return 'One encrypted group message reached Sent and remained unique after immediate navigation away and return; real network loss not simulated';
+    const hook='globalThis.__fidunioSimNetwork';
+    const available=await expr('!!('+hook+'&&'+hook+'.offline&&'+hook+'.online)');
+    if(!available)throw Error('Missing emulator-only Firestore network-control hook');
+    let online=false;
+    try{
+      await expr(hook+'.offline(); "offline-requested"');
+      await wait(async()=>await expr(hook+'.state==="offline"'),'Firestore genuinely offline before Send',30000);
+      await d.fill('#messageBox',token);
+      await d.press('#sendBtn');
+      const pending=await expr('JSON.stringify(Array.from(document.querySelectorAll(".pending-message-action")).filter(x=>x.innerText.includes('+JSON.stringify(token)+')).map(x=>({id:x.dataset.messageId,state:x.querySelector(".msg-meta")?.innerText||""})))');
+      const pendingRows=JSON.parse(pending||'[]');
+      if(pendingRows.length!==1||!/(?:Queued|Sending)/i.test(pendingRows[0].state))
+        throw Error('Send was NOT pending before navigation: '+JSON.stringify(pendingRows));
+      const before=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
+      if(before.length!==0)throw Error('Message was already committed before interruption: '+JSON.stringify(before.map(x=>({id:x.id,state:x.state}))));
+      log('SEND-INTERRUPTION VERIFIED-IN-FLIGHT '+JSON.stringify({local:pendingRows,authoritativeDocs:before.length,network:'offline'}));
+      await d.press('#backBtn');
+      await wait(()=>present('#newBtn'),'Messages while queued/sending group message is offline',40000);
+      await expr(hook+'.online(); "online-requested"');
+      await wait(async()=>await expr(hook+'.state==="online"'),'Firestore reconnected after navigation',30000);
+      online=true;
+      let newDocs=[];
+      await wait(async()=>{
+        newDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
+        if(newDocs.length>1)throw Error('More than one group message after reconnection: '+newDocs.length);
+        return newDocs.length===1&&newDocs[0].state==='sent';
+      },'exactly one authoritative Sent group message after reconnect',90000);
+      if(JSON.stringify(newDocs).includes(token))throw Error('Plaintext leaked during pending-send recovery');
+      await d.press('.conversation-open[data-id="'+row.id+'"]');
+      await wait(()=>present('.pending-message-action[data-message-id="'+newDocs[0].id+'"]'),'recovered native group message row',50000);
+      const sel='.pending-message-action[data-message-id="'+newDocs[0].id+'"] .msg-meta';
+      await wait(async()=>/(?:Sent|Delivered|Read)/i.test(String(await expr('document.querySelector('+JSON.stringify(sel)+')?.innerText||""'))),'recovered native Sent UI',60000);
+      await d.sleep(1800);
+      const finalDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
+      if(finalDocs.length!==1||finalDocs[0].state!=='sent')throw Error('Duplicate or missing message after reconnect: '+JSON.stringify(finalDocs.map(m=>({id:m.id,state:m.state}))));
+      log('SEND-INTERRUPTION PASS '+JSON.stringify({id:newDocs[0].id,wasPendingBeforeNavigation:true,finalState:finalDocs[0].state,newDocs:finalDocs.length}));
+      return 'Firestore was disabled before Send; one local Queued/Sending message survived navigation and reconnected as one encrypted Sent record';
+    }finally{
+      if(!online){
+        try{await expr(hook+'.online(); "cleanup-online-requested"');await wait(async()=>await expr(hook+'.state==="online"'),'Firestore network cleanup',30000);}
+        catch(error){log('SEND-INTERRUPTION NETWORK CLEANUP FAILED '+String(error?.message||error));}
+      }
+    }
   }
   const interrupted=await test('R09','Group send continuity on immediate navigation interruption',interruptedGroupSend,{requires:ready});
   const group=await test('R07','Group reaction stress — four complete six-emoji cycles across native chat reopen',()=>exercise('group'),{requires:ready});
