@@ -48,18 +48,18 @@ if (platform === 'ios') {
   patched = patched.replace(dbAnchor, 'db=fsSdk.initializeFirestore(app,{experimentalForceLongPolling:true})');
 }
 
-const reactionAnchor='try{return await s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const next=nextMessageReactions(snap.data().reactions,authUser.uid,reaction);tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};});}';
+const reactionAnchor='try{return await s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const next=applyMessageReactionIntent(snap.data().reactions,authUser.uid,reaction,intent);tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};});}';
 const reactionErrorAnchor='catch(err){const code=String(err?.code||"").toLowerCase();if(kind==="direct"';
 if(patched.split(reactionAnchor).length!==2 || patched.split(reactionErrorAnchor).length!==2)
   throw new Error('Reaction transaction owner changed. Do not install simulator diagnostics.');
 const reactionInstrumented=String.raw`
-const simTrace={kind,id,mid,uid:authUser.uid,reaction,startedAt:Date.now(),attempts:[],outcome:"pending"};
+const simTrace={kind,id,mid,uid:authUser.uid,reaction,intent,startedAt:Date.now(),attempts:[],outcome:"pending"};
 (globalThis.__fidunioSimReactionTrace||(globalThis.__fidunioSimReactionTrace=[])).push(simTrace);
 try{
   const result=await s.fsSdk.runTransaction(s.db,async tx=>{
     const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");
     const previous=snap.data().reactions||{};
-    const next=nextMessageReactions(previous,authUser.uid,reaction);
+    const next=applyMessageReactionIntent(previous,authUser.uid,reaction,intent);
     simTrace.attempts.push({prior:previous[authUser.uid]||null,next:next[authUser.uid]||null,at:Date.now()});
     tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};
   });
