@@ -38,7 +38,7 @@ if(!config.includes(project)||config.includes('fidunio-fef13'))
 if(label.startsWith('Web-main3')){
   if(!fs.existsSync(path.join(root,'SIMULATOR-ONLY.txt'))||!['demo-fidunio-simulator-tests'].includes(project))
     throw Error('Refusing non-disposable UI fixture');
-  const probe = String.raw\`
+  const probe = String.raw`
 export async function __FIDUNIO_SIM_PROJECT_GROUP_REACTIONS({groupId,messageId,sourceUid,members}){
   if(location.hostname!=="127.0.0.1"||!String(location.origin).startsWith("http://127.0.0.1:"))
     throw Error("Reaction probe blocked outside localhost");
@@ -63,7 +63,7 @@ export async function __FIDUNIO_SIM_PROJECT_GROUP_REACTIONS({groupId,messageId,s
     render({background:true});
   },err=>{globalThis.__FIDUNIO_SIM_REACTION_LISTENER_ERROR=String(err?.message||err);});
 }
-\`;
+`;
   fs.appendFileSync(path.join(root,'app.js'),probe);
 }
 
