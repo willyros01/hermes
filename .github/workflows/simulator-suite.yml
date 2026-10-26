@@ -127,6 +127,12 @@ jobs:
           ref: feature/reaction-authors-ios
           path: ios-src
           persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: feature/reaction-authors-main-3
+          path: web-src
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -146,6 +152,9 @@ jobs:
           npm --prefix ios-src ci --no-audit --no-fund
           npm --prefix ios-src run ios:prepare
           node build/simulator/patch-sandbox.mjs ios-src ios
+          npm --prefix web-src ci --no-audit --no-fund
+          npm --prefix web-src run ios:prepare
+          node build/simulator/patch-sandbox.mjs web-src ios
           npx playwright install --with-deps chromium webkit
       - name: Authenticated API transactions with local Auth and Firestore rules
         run: |
