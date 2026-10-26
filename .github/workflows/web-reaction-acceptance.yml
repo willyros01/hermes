@@ -45,7 +45,7 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm --prefix web-src ci --no-audit --no-fund
-          npm --prefix web-src run ios:prepare
+          npm --prefix web-src run ios:web
           node build/simulator/patch-sandbox.mjs web-src ios
           npx playwright install --with-deps ${{ matrix.browser }}
       - name: REAL Chromium/WebKit UI with independently authenticated Alice and Bob
