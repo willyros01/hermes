@@ -60,24 +60,25 @@ try{
 `;
 patched=patched.replace(reactionAnchor,reactionInstrumented);
 patched=patched.replace(reactionErrorAnchor,'catch(err){simTrace.outcome="error";simTrace.error=String(err?.code||err?.message||err);simTrace.finishedAt=Date.now();const code=String(err?.code||"").toLowerCase();if(kind==="direct"');
-const networkHook=String.raw`
-globalThis.__fidunioSimNetwork={
-  state:"online",error:"",
-  offline(){
-    this.state="switching-offline";this.error="";
-    fsSdk.disableNetwork(db).then(()=>{this.state="offline";}).catch(e=>{this.error=String(e);this.state="error";});
-  },
-  online(){
-    this.state="switching-online";this.error="";
-    fsSdk.enableNetwork(db).then(()=>{this.state="online";window.dispatchEvent(new Event("online"));}).catch(e=>{this.error=String(e);this.state="error";});
-  }
-};
-`;
-patched=patched.replace(servicesAnchor,networkHook+servicesAnchor);
-if(!patched.includes('__fidunioSimReactionTrace')||!patched.includes('__fidunioSimNetwork'))
-  throw new Error('Simulator diagnostics were not installed');
 
 if (!patched.includes(ownerGuard) || !patched.includes('connectFirestoreEmulator')) throw new Error('Emulator-only Firebase substitution was incomplete');
+const appFile=path.join(generated,'app.js');
+const srcApp=fs.readFileSync(appFile,'utf8');
+const outboxAnchor='  await persistState();\n  render({background:true});\n\n    if(state.online){';
+const outboxBarrier=String.raw`  await persistState();
+  render({background:true});
+  if(cloudGroup&&globalThis.__fidunioSimSendBarrier?.enabled){
+    const hold=globalThis.__fidunioSimSendBarrier;
+    hold.state="staged";
+    await new Promise(resolve=>{hold.release=resolve;});
+    hold.state="released";
+  }
+
+    if(state.online){`;
+if(srcApp.split(outboxAnchor).length!==2)
+  throw new Error('Send/Outbox source changed; refuse simulator barrier');
+fs.writeFileSync(appFile,srcApp.replace(outboxAnchor,outboxBarrier));
+
 fs.writeFileSync(firebase, patched);
 fs.writeFileSync(config, 'export const firebaseConfig=' + JSON.stringify(demo) + ';\n');
 const cap = JSON.parse(fs.readFileSync(capacitorConfig, 'utf8'));

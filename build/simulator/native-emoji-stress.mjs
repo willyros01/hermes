@@ -121,51 +121,47 @@ export async function runEmojiStress({d,expr,present,wait,shot,readDoc,readColle
     const dbPath='groups/'+row.id+'/messages';
     const prior=new Set((await readCollection(dbPath)).map(m=>m.id));
     const token='NATIVE_SEND_INTERRUPTION_'+Date.now();
-    const hook='globalThis.__fidunioSimNetwork';
-    const available=await expr('!!('+hook+'&&'+hook+'.offline&&'+hook+'.online)');
-    if(!available)throw Error('Missing emulator-only Firestore network-control hook');
-    let online=false;
+    const hook='globalThis.__fidunioSimSendBarrier';
+    await expr(hook+'={enabled:true,state:"armed",release:null}; "armed"');
+    log('SEND-INTERRUPTION Outbox hold armed before Send');
     try{
-      await expr(hook+'.offline(); "offline-requested"');
-      await wait(async()=>await expr(hook+'.state==="offline"'),'Firestore genuinely offline before Send',30000);
       await d.fill('#messageBox',token);
       await d.press('#sendBtn');
+      await wait(async()=>await expr(hook+'.state==="staged"'),'encrypted Outbox persisted before cloud send',35000);
       const pending=await expr('JSON.stringify(Array.from(document.querySelectorAll(".pending-message-action")).filter(x=>x.innerText.includes('+JSON.stringify(token)+')).map(x=>({id:x.dataset.messageId,state:x.querySelector(".msg-meta")?.innerText||""})))');
       const pendingRows=JSON.parse(pending||'[]');
       if(pendingRows.length!==1||!/(?:Queued|Sending)/i.test(pendingRows[0].state))
-        throw Error('Send was NOT pending before navigation: '+JSON.stringify(pendingRows));
+        throw Error('Message was not pending before navigation: '+JSON.stringify(pendingRows));
       const before=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
-      if(before.length!==0)throw Error('Message was already committed before interruption: '+JSON.stringify(before.map(x=>({id:x.id,state:x.state}))));
-      log('SEND-INTERRUPTION VERIFIED-IN-FLIGHT '+JSON.stringify({local:pendingRows,authoritativeDocs:before.length,network:'offline'}));
+      if(before.length!==0)throw Error('Message already committed despite held Outbox: '+JSON.stringify(before.map(x=>({id:x.id,state:x.state}))));
+      log('SEND-INTERRUPTION VERIFIED-IN-FLIGHT '+JSON.stringify({local:pendingRows,authoritativeDocs:before.length,outbox:'durably-staged'}));
       await d.press('#backBtn');
-      await wait(()=>present('#newBtn'),'Messages while queued/sending group message is offline',40000);
-      await expr(hook+'.online(); "online-requested"');
-      await wait(async()=>await expr(hook+'.state==="online"'),'Firestore reconnected after navigation',30000);
-      online=true;
+      await wait(()=>present('#newBtn'),'Messages after leaving while group message is Sending',40000);
+      const release=await expr('(() => {const h='+hook+';if(h.state!=="staged"||typeof h.release!=="function")return "not-held";h.release();h.enabled=false;return "released";})()');
+      if(release!=='released')throw Error('Held send was not safely released: '+release);
+      log('SEND-INTERRUPTION Outbox resumed after leaving group chat');
       let newDocs=[];
       await wait(async()=>{
         newDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
-        if(newDocs.length>1)throw Error('More than one group message after reconnection: '+newDocs.length);
+        if(newDocs.length>1)throw Error('More than one group message after resuming: '+newDocs.length);
         return newDocs.length===1&&newDocs[0].state==='sent';
-      },'exactly one authoritative Sent group message after reconnect',90000);
-      if(JSON.stringify(newDocs).includes(token))throw Error('Plaintext leaked during pending-send recovery');
+      },'exactly one authoritative Sent group message after held send',90000);
+      if(JSON.stringify(newDocs).includes(token))throw Error('Plaintext leaked during interrupted group send');
       await d.press('.conversation-open[data-id="'+row.id+'"]');
-      await wait(()=>present('.pending-message-action[data-message-id="'+newDocs[0].id+'"]'),'recovered native group message row',50000);
+      await wait(()=>present('.pending-message-action[data-message-id="'+newDocs[0].id+'"]'),'recovered group message after returning',50000);
       const sel='.pending-message-action[data-message-id="'+newDocs[0].id+'"] .msg-meta';
-      await wait(async()=>/(?:Sent|Delivered|Read)/i.test(String(await expr('document.querySelector('+JSON.stringify(sel)+')?.innerText||""'))),'recovered native Sent UI',60000);
+      await wait(async()=>/(?:Sent|Delivered|Read)/i.test(String(await expr('document.querySelector('+JSON.stringify(sel)+')?.innerText||""'))),'native group Sent UI after return',60000);
       await d.sleep(1800);
       const finalDocs=(await readCollection(dbPath)).filter(m=>m.senderUid===me&&!prior.has(m.id));
-      if(finalDocs.length!==1||finalDocs[0].state!=='sent')throw Error('Duplicate or missing message after reconnect: '+JSON.stringify(finalDocs.map(m=>({id:m.id,state:m.state}))));
+      if(finalDocs.length!==1||finalDocs[0].state!=='sent')throw Error('Duplicate/missing group message after return: '+JSON.stringify(finalDocs.map(m=>({id:m.id,state:m.state}))));
       log('SEND-INTERRUPTION PASS '+JSON.stringify({id:newDocs[0].id,wasPendingBeforeNavigation:true,finalState:finalDocs[0].state,newDocs:finalDocs.length}));
-      return 'Firestore was disabled before Send; one local Queued/Sending message survived navigation and reconnected as one encrypted Sent record';
+      return 'Encrypted Outbox was held before network delivery, survived navigation while Sending, then delivered exactly once with native Sent UI';
     }finally{
-      if(!online){
-        try{await expr(hook+'.online(); "cleanup-online-requested"');await wait(async()=>await expr(hook+'.state==="online"'),'Firestore network cleanup',30000);}
-        catch(error){log('SEND-INTERRUPTION NETWORK CLEANUP FAILED '+String(error?.message||error));}
-      }
+      try{await expr('(() => {const h='+hook+';if(h){h.enabled=false;if(h.state==="staged"&&typeof h.release==="function")h.release();}return true;})()');}
+      catch(error){log('SEND-INTERRUPTION HOLD CLEANUP FAILED '+String(error?.message||error));}
     }
   }
-  const interrupted=await test('R09','Group send continuity on immediate navigation interruption',interruptedGroupSend,{requires:ready});
+  const interrupted=await test('R09','Group send continuity while encrypted Outbox is held through navigation',interruptedGroupSend,{requires:ready});
   const group=await test('R07','Group reaction stress — four complete six-emoji cycles across native chat reopen',()=>exercise('group'),{requires:ready});
   const direct=await test('R08','Direct reaction stress — four complete six-emoji cycles across native chat reopen',()=>exercise('direct'),{requires:ready});
   log('REACTION-STRESS summary interruptedGroupSend='+interrupted+' group='+group+' direct='+direct+'; no release approval implied.');
