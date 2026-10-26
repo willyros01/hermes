@@ -288,6 +288,80 @@ try{
     assert.equal(saved.reactions?.[bob.uid],undefined);
     return 'Encrypted group transport, member-only access, disappearing metadata, delivery/read receipts, emoji toggle';
   });
+  if(label.startsWith('Web-main3'))await check('FN-009A',async()=>{
+    // A = source sender Owner; B = reactor Alice; C = independent Bob.
+    // Genuine browser DOM + emulator-authenticated Firestore transactions.
+    // Only the encrypted TEXT hydration is replaced by an explicit simulator
+    // projection fixture; this case does not claim peer E2EE verification.
+    const page=alice.page,mid='test-group-'+engine;
+    const source=await readAdmin('groups/'+groupId+'/messages/'+mid);
+    assert.equal(source.senderUid,owner.uid,'target must be someone else\\'s message');
+    const members=[{id:owner.uid,name:'Simulator Owner'}, {id:alice.uid,name:'Simulator Alice'}, {id:bob.uid,name:'Simulator Bob'}];
+    await page.evaluate(async()=>{
+      const app=await import('/app.js');
+      await app.FIDUNIO_APP_READY;
+    });
+    await page.evaluate(async args=>{
+      const app=await import('/app.js');
+      if(typeof app.__FIDUNIO_SIM_PROJECT_GROUP_REACTIONS!=='function')throw Error('Probe not installed on disposable source');
+      await app.__FIDUNIO_SIM_PROJECT_GROUP_REACTIONS(args);
+    },{groupId,messageId:mid,sourceUid:owner.uid,members});
+    await page.locator('#messageBox').waitFor({state:'visible',timeout:40000});
+    const row=page.locator('.pending-message-action[data-message-id="'+mid+'"]');
+    await row.waitFor({state:'visible',timeout:40000});
+    const chip='.pending-message-action[data-message-id="'+mid+'"] .message-reaction-chip[data-reaction="🙏"]';
+    const poll=async(fn,description,ms=40000)=>{
+      const end=Date.now()+ms;
+      while(Date.now()<end){if(await fn())return;await new Promise(res=>setTimeout(res,350));}
+      throw Error('Timeout: '+description+'; listener='+await page.evaluate(()=>String(globalThis.__FIDUNIO_SIM_REACTION_LISTENER_ERROR||'')));
+    };
+    const names=async(expected)=>{
+      await page.locator(chip).click();
+      await page.locator('#reactionDetailsTitle').waitFor({state:'visible',timeout:25000});
+      const seen=await page.locator('.reaction-authors-list li').allTextContents();
+      assert.deepEqual([...seen].sort(),[...expected].sort(),'Wrong visible authors');
+      assert(!seen.join(' ').includes(alice.uid)&&!seen.join(' ').includes(bob.uid),'Raw UID leaked');
+      await page.screenshot({path:path.join(out,'reaction-author-'+expected.length+'-'+engine+'.png')});
+      await page.locator('#modalCancel').click();
+      await page.locator('#reactionDetailsTitle').waitFor({state:'detached'});
+    };
+    await row.press('Enter');
+    await page.locator('.message-reaction-btn[data-reaction="🙏"]').waitFor({state:'visible'});
+    // Synchronous DOM paint is checked in the same JS task as the REAL UI
+    // button click, before any awaited transaction can resolve.
+    const initial=await page.evaluate(()=>{
+      const button=document.querySelector('.message-reaction-btn[data-reaction="🙏"]');
+      if(!button||button.disabled)throw Error('Reaction chooser not actionable');
+      const before=performance.now();
+      button.click();
+      const chip=document.querySelector('.message-reaction-chip[data-reaction="🙏"]');
+      return{immediate:!!chip,mine:chip?.classList.contains('mine'),ms:performance.now()-before};
+    });
+    assert.equal(initial.immediate,true,'Web chip not painted synchronously when reactor taps a different sender message');
+    assert.equal(initial.mine,true,'Immediate chip does not identify reactor');
+    assert(initial.ms<250,'Synchronous click/paint exceeded 250ms: '+initial.ms);
+    await poll(async()=>((await readAdmin('groups/'+groupId+'/messages/'+mid))?.reactions||{})[alice.uid]==='🙏','Alice authoritative apply');
+    await names(['You']);
+    await invoke(bob.page,'setCloudMessageReaction',groupId,mid,'group','🙏','apply');
+    await poll(async()=>await page.locator(chip+' .message-reaction-count').textContent().catch(()=>null)==='2','Bob remote reaction surfaced to Alice UI');
+    await names(['You','Simulator Bob']);
+    // Bob changes emoji; the original participant Alice must keep hers.
+    await invoke(bob.page,'setCloudMessageReaction',groupId,mid,'group','❤️','apply');
+    await poll(async()=>await page.locator('.message-reaction-chip[data-reaction="❤️"]').count()===1,'Bob changed emoji visible');
+    await poll(async()=>((await readAdmin('groups/'+groupId+'/messages/'+mid))?.reactions||{})[alice.uid]==='🙏','Alice reaction retained');
+    await invoke(bob.page,'setCloudMessageReaction',groupId,mid,'group','❤️','remove');
+    await poll(async()=>await page.locator('.message-reaction-chip[data-reaction="❤️"]').count()===0,'Bob emoji removed from UI');
+    await row.press('Enter');
+    const removed=await page.evaluate(()=>{
+      const button=document.querySelector('.message-reaction-btn[data-reaction="🙏"]');
+      button?.click();
+      return document.querySelectorAll('.message-reaction-chip.mine').length===0;
+    });
+    assert.equal(removed,true,'Web remove is not immediate');
+    await poll(async()=>!((await readAdmin('groups/'+groupId+'/messages/'+mid))?.reactions||{})[alice.uid],'Alice authoritative remove');
+    await poll(async()=>await page.locator('.message-reaction-chip.mine').count()===0,'final UI clean');
+    return 'True A≠B message: immediate DOM add/remove, real Alice and Bob authorized transactions, listener-driven count and group names on actual '+engine+' browser, no raw account ID';
+  });
   await check('FN-010',async()=>{
     const installationId='test-browser-install-'+engine;
     await invoke(owner.page,'upsertCloudNotificationDevice',{
