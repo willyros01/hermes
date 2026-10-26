@@ -30,4 +30,13 @@ assert.match(app,/modal\.type==="reactionDetails"/);
 assert.match(app,/message-reaction-chip\[data-reaction\]/);
 assert.match(app,/if\(e\.target!==row\)return/);
 assert.match(styles,/reaction-authors-list/);
+
+assert.match(app,/const pendingWebReactionPreviews=new Map\(\)/);
+assert.match(app,/reconcileWebReactionPreviews\(conversationId,remote\)/);
+assert.match(app,/reconcileWebReactionPreviews\(groupId,rows\)/);
+assert.match(app,/pendingWebReactionPreviews\.set\(key,pending\)/);
+assert.match(app,/pendingWebReactionPreviews\.delete\(key\)/);
+assert.match(app,/state\.modal=null;host\.remove\(\);render\(\{background:true\}\);\s*try\{\s*await setCloudMessageReaction/);
+assert.match(app,/applyMessageReactionIntent\(m\.reactions,pendingPreview\.uid/);
+
 console.log("Message reaction wiring tests passed");
