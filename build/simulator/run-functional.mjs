@@ -30,6 +30,43 @@ if(!/^(127\.0\.0\.1|localhost):8080$/.test(host||'')||
 const config=fs.readFileSync(path.join(root,'firebase-config.js'),'utf8');
 if(!config.includes(project)||config.includes('fidunio-fef13'))
   throw new Error('Only the demo-fidunio simulator Firebase configuration is permitted');
+
+// For web main-3 ONLY: expose existing production renderer to a synthetic,
+// explicitly labelled message fixture. Auth and reaction transactions still
+// use real SDK sessions and original emulator Firestore rules. This fixture
+// bypasses encrypted-body hydration; it is NOT a peer E2EE/decryption test.
+if(label.startsWith('Web-main3')){
+  if(!fs.existsSync(path.join(root,'SIMULATOR-ONLY.txt'))||!['demo-fidunio-simulator-tests'].includes(project))
+    throw Error('Refusing non-disposable UI fixture');
+  const probe = String.raw\`
+export async function __FIDUNIO_SIM_PROJECT_GROUP_REACTIONS({groupId,messageId,sourceUid,members}){
+  if(location.hostname!=="127.0.0.1"||!String(location.origin).startsWith("http://127.0.0.1:"))
+    throw Error("Reaction probe blocked outside localhost");
+  firebaseUser=getFirebaseUser();
+  if(!firebaseUser?.uid)throw Error("Emulator actor must sign in");
+  const group={id:groupId,type:"group",cloudGroup:true,name:"Simulator group",members,unread:0};
+  state.conversations=[group,...state.conversations.filter(c=>String(c.id)!==String(groupId))];
+  state.messages[groupId]=[{id:messageId,senderUid:sourceUid,mine:firebaseUser.uid===sourceUid,sender:"Simulator Owner",state:"sent",text:"Encrypted group payload (simulator projection only)",time:"10:26",createdAt:new Date(),cloud:true,authoritativeSource:true,reactions:{}}];
+  state.unlocked=true;state.selectedId=groupId;state.route="chat";state.modal=null;
+  render();
+  const {subscribeCloudGroupMessages}=await import("./firebase.js");
+  return subscribeCloudGroupMessages(groupId,rows=>{
+    const row=rows.find(item=>String(item.id)===String(messageId));
+    if(!row)return;
+    state.messages[groupId]=[{
+      ...row,id:messageId,senderUid:sourceUid,
+      mine:firebaseUser.uid===sourceUid,sender:"Simulator Owner",
+      state:row.state||"sent",text:"Encrypted group payload (simulator projection only)",
+      time:"10:26",createdAt:row.createdAt?.toDate?.()||new Date(),
+      cloud:true,authoritativeSource:true
+    }];
+    render({background:true});
+  },err=>{globalThis.__FIDUNIO_SIM_REACTION_LISTENER_ERROR=String(err?.message||err);});
+}
+\`;
+  fs.appendFileSync(path.join(root,'app.js'),probe);
+}
+
 fs.mkdirSync(out,{recursive:true});
 let server,testEnv,browser;
 let serial=0;
