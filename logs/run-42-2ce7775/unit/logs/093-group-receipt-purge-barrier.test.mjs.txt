@@ -1,0 +1,5 @@
+FILE group-receipt-purge-barrier.test.mjs
+SOURCE Android
+EXIT 0
+PASS straightforward group receipt source/rules authority
+

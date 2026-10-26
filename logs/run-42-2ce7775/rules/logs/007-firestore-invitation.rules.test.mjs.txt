@@ -1,0 +1,17 @@
+FILE firestore-invitation.rules.test.mjs
+SOURCE Android
+EXIT 0
+PASS anonymous can validate only a known invite document
+PASS ordinary user cannot issue invite
+PASS owner can issue invite
+PASS ordinary user cannot revoke invite
+PASS owner can revoke pending invite
+PASS redeem requires atomic accepted invite plus matching active profile
+PASS used invite cannot be redeemed again
+
+[2026-10-26T19:03:30.025Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x615bb8a6 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L85:102 for 'create' @ L85, evaluation error at L85:321 for 'update' @ L85, false for 'create' @ L85
+[2026-10-26T19:03:30.076Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x615bb8a8 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L85:321 for 'update' @ L85, false for 'update' @ L85
+[2026-10-26T19:03:30.133Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x615bb8aa error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L85:321 for 'update' @ L85, false for 'create' @ L86, evaluation error at L86:140 for 'update' @ L86, false for 'create' @ L86
