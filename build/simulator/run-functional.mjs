@@ -295,7 +295,7 @@ try{
     // projection fixture; this case does not claim peer E2EE verification.
     const page=alice.page,mid='test-group-'+engine;
     const source=await readAdmin('groups/'+groupId+'/messages/'+mid);
-    assert.equal(source.senderUid,owner.uid,'target must be someone else\\'s message');
+    assert.equal(source.senderUid,owner.uid,"Target must be a message from someone else");
     const members=[{id:owner.uid,name:'Simulator Owner'}, {id:alice.uid,name:'Simulator Alice'}, {id:bob.uid,name:'Simulator Bob'}];
     await page.evaluate(async()=>{
       const app=await import('/app.js');
