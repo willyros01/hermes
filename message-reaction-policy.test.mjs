@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {MESSAGE_REACTION_CHOICES,normalizeMessageReaction,nextMessageReactions,applyMessageReactionIntent,summarizeMessageReactions} from "./message-reaction-policy.js";
+import {MESSAGE_REACTION_CHOICES,normalizeMessageReaction,nextMessageReactions,applyMessageReactionIntent,summarizeMessageReactions,listMessageReactionAuthors} from "./message-reaction-policy.js";
 
 assert.deepEqual(MESSAGE_REACTION_CHOICES,["👍","❤️","😂","😮","😢","🙏"]);
 assert.equal(normalizeMessageReaction("👍"),"👍");
@@ -30,4 +30,12 @@ assert.deepEqual(summarizeMessageReactions({alice:"👍",bob:"👍",cara:"❤️
   {emoji:"👍",count:2,mine:true},
   {emoji:"❤️",count:1,mine:false}
 ]);
+
+const namedMembers=[{id:"alice",name:"Alice Example"},{id:"bob",name:"Bob B"}];
+assert.deepEqual(listMessageReactionAuthors({alice:"🙏",bob:"🙏",cara:"❤️"},"🙏",namedMembers,"bob"),["Alice Example","You"]);
+assert.deepEqual(listMessageReactionAuthors({alice:"🙏",cara:"🙏"},"🙏",namedMembers),["Alice Example","Former member"]);
+assert.deepEqual(listMessageReactionAuthors({alice:"🙏"},"🔥",namedMembers),[]);
+assert.deepEqual(listMessageReactionAuthors({alice:"🙏"},"😂",namedMembers),[]);
+assert.deepEqual(listMessageReactionAuthors({alice:"🙏"},"🙏",[],"alice"),["You"]);
+
 console.log("Message reaction policy tests passed");
