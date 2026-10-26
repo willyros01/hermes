@@ -1,3 +1,11 @@
+## 2026-10-26 — FIDUNIO 1.1.80 reaction attribution and web-only latency (CANDIDATE / NOT DEVICE ACCEPTED)
+
+- Owner observation: iPhone iOS and Fire HD 8 Android show emojis immediately; the delay is limited to the web app so far. Web-only feedback candidate projects a selected reaction promptly in the existing chat render owner, reconciles with the authoritative Firestore snapshot and rolls back on denial. No change to Firebase service initialization, rules, groups, E2EE, notification, receipt or Outbox authority.
+- New cross-platform feature: tap a reaction chip on an authorized **group** message to see which signed-in members attached that emoji. Existing message `reactions` maps UIDs to emojis; the existing group membership projection supplies display names. Unknown/not-current IDs are presented as “Former member” without exposing account IDs. Direct-message chips remain non-interactive.
+- Scope: branch-specific isolated candidates for `ios`, `Android`, `main-3` and protected production `main`; no blind cross-branch merges. Source is versioned 1.1.80. These notes are candidate-state only, not proof of release or test completion.
+- Required validation: reaction apply/change/remove, multiple authors, unknown former member, malformed emojis, mobile accessible tap + keyboard/hold interaction, direct/group isolation, mixed message attachments, account permission boundaries, Firestore transaction retry, two-device cross-account convergence, offline and error rollback, browser Chromium/WebKit, iOS shell/TestFlight release gates, Android ADM + signing + publisher gates, web exact-SHA Pages/security gates, all 88 release-manifest scenarios and physical iPhone/Fire HD 8/web acceptance.
+- **Status: NOT FULLY TESTED.** GitHub Action results must be checked on final source SHA, then the owner must confirm actual devices. Do not claim fully certified from code presence, prior 1.1.79 simulator results or a signed artifact alone.
+
 ## 2026-10-09 — PIN / biometric unlock source correction (no TestFlight)
 
 - `ios` commit `5a6ee14`: `app.js` now serializes PIN verification when the sixth-digit completion callback and Unlock with PIN button are triggered together. Pending verification cannot be duplicated; a failed/timed-out attempt clears the pending flag and re-enables input.
