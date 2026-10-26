@@ -2760,9 +2760,16 @@ function renderModal(){
     const isPending=message&&["queued","sending","failed"].includes(message.state);
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
-    const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation)&&!pendingWebReactionPreviews.has(reactionPreviewKey(modal.conversationId,modal.messageId));
+    const reactionPreview=pendingWebReactionPreviews.get(reactionPreviewKey(modal.conversationId,modal.messageId));
+    // A committed transaction may precede its Firestore listener callback.
+    // Permit the next tap against the committed, provisionally projected result;
+    // block only while the previous transaction is still in flight.
+    const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation)&&(!reactionPreview||reactionPreview.committed);
     const canReply=!!conversation?.cloudGroup&&!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&message.authoritativeSource!==false&&!(Number(message.disappearAfterSeconds)>0);
-    const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
+    const pickerReactions=reactionPreview?.uid===firebaseUser?.uid
+      ?applyMessageReactionIntent(message?.reactions,reactionPreview.uid,reactionPreview.reaction,reactionPreview.intent)
+      :message?.reactions;
+    const myReaction=firebaseUser?.uid&&pickerReactions?.[firebaseUser.uid]||"";
     const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
