@@ -39,3 +39,15 @@ export function summarizeMessageReactions(value,myUid=""){
     return{emoji,count:uids.length,mine:!!mine&&uids.includes(mine)};
   }).filter(item=>item.count>0);
 }
+
+/** Group-member names for a selected reaction, without exposing account IDs. */
+export function listMessageReactionAuthors(value,emoji,members=[],myUid=""){
+  if(!normalizeMessageReaction(emoji))return [];
+  const names=new Map((Array.isArray(members)?members:[]).map(member=>
+    [String(member?.id||member?.uid||""),String(member?.name||"").trim()]
+  ).filter(([uid,name])=>uid&&name));
+  const reactions=value&&typeof value==="object"&&!Array.isArray(value)?value:{};
+  return Object.entries(reactions).filter(([,reaction])=>reaction===emoji).map(([uid])=>
+    myUid&&uid===String(myUid)?"You":(names.get(uid)||"Former member")
+  ).sort((a,b)=>a.localeCompare(b));
+}
