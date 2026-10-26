@@ -39,6 +39,14 @@ const emulators =
   'functionsSdk.connectFunctionsEmulator(functions,"' + host + '",5001);';
 let patched = srcFirebase.replace(appCheckAnchor, 'const appCheck=null;/* simulator only: App Check does not contact production */');
 patched = patched.replace(servicesAnchor, emulators + servicesAnchor);
+if (platform === 'ios') {
+  // Isolated transport A/B: test Firestore's WebChannel long-polling option
+  // only inside disposable WKWebView builds. No release source is changed.
+  const dbAnchor = 'db=fsSdk.getFirestore(app)';
+  if (patched.split(dbAnchor).length !== 2)
+    throw new Error('Firestore construction changed; refuse simulator transport override');
+  patched = patched.replace(dbAnchor, 'db=fsSdk.initializeFirestore(app,{experimentalForceLongPolling:true})');
+}
 
 const reactionAnchor='try{return await s.fsSdk.runTransaction(s.db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error("Message was not found.");const next=nextMessageReactions(snap.data().reactions,authUser.uid,reaction);tx.update(ref,{reactions:next});return{reactions:next,reaction:next[authUser.uid]||null};});}';
 const reactionErrorAnchor='catch(err){const code=String(err?.code||"").toLowerCase();if(kind==="direct"';

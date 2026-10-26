@@ -97,6 +97,13 @@ try{
     await expr(`(() => {window.__nativeSimulatorNet={state:'pending'};fetch('http://${host}:8080/',{mode:'no-cors'}).then(()=>window.__nativeSimulatorNet={state:'reachable'},e=>window.__nativeSimulatorNet={state:'failed',error:String(e)});return true})()`);
     await d.sleep(2500);
     log('  Local Firestore HTTP probe: '+String(await expr('JSON.stringify(window.__nativeSimulatorNet)')));
+    // Plain fetch exercises HTTP, whereas Firestore uses WebChannel.
+    // This read-only preflight invokes the same SDK path as Join.
+    if(platform==='ios'){
+      await expr(`(() => {window.__nativeSimulatorFirestoreRead={state:"pending"};import("./firebase.js").then(m=>m.validateInvitation(${JSON.stringify(fixture.inviteToken)})).then(()=>{window.__nativeSimulatorFirestoreRead={state:"success"}},e=>{window.__nativeSimulatorFirestoreRead={state:"failed",error:String(e?.code||e?.message||e)}});return true})()`);
+      await d.sleep(12000);
+      log('  Local Firestore SDK pre-Join probe: '+String(await expr('JSON.stringify(window.__nativeSimulatorFirestoreRead)')));
+    }
   }
   const t2=await test('N02','Consume a real single-use admin invite, set PIN, create E2EE identity through native Join',async()=>{
     await d.fill('#inviteCode',fixture.inviteToken);
