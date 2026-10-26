@@ -15,7 +15,7 @@ jobs:
     outputs:
       ready: ${{ steps.verify.outputs.ready }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,7 +37,7 @@ jobs:
             if(!response.ok)throw new Error("GitHub branch lookup "+response.status);
             return (await response.json()).commit.sha;
           }
-          for(let i=0;i<100;i++){
+          for(let i=0;i<220;i++){
             if((await currentHead())!==process.env.HEAD_SHA){
               console.log("SUPERSEDED: newer ios commit exists; old TestFlight upload skipped.");
               appendFileSync(process.env.GITHUB_OUTPUT,"ready=false\n");
