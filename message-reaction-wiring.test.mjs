@@ -24,4 +24,11 @@ assert.match(rules,/affectedKeys\(\)\.hasOnly\(\["reactions"\]\)/);
 assert.match(styles,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 assert.match(sw,/message-reaction-policy\.js/);
 assert.ok(!app.includes("emoji-composer"));
+
+assert.match(app,/listMessageReactionAuthors\(/);
+assert.match(app,/modal\.type==="reactionDetails"/);
+assert.match(app,/message-reaction-chip\[data-reaction\]/);
+assert.match(app,/if\(e\.target!==row\)return/);
+assert.match(styles,/reaction-authors-list/);
+
 console.log("Message reaction wiring tests passed");
