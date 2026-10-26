@@ -153,7 +153,7 @@ jobs:
           npm --prefix ios-src run ios:prepare
           node build/simulator/patch-sandbox.mjs ios-src ios
           npm --prefix web-src ci --no-audit --no-fund
-          npm --prefix web-src run ios:prepare
+          npm --prefix web-src run ios:web
           node build/simulator/patch-sandbox.mjs web-src ios
           npx playwright install --with-deps chromium webkit
       - name: Authenticated API transactions with local Auth and Firestore rules
