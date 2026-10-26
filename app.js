@@ -2095,7 +2095,7 @@ function renderBubble(m,c){
   const groupSender=groupSenderDisplayName(m,c);
   const displayTime=messageDisplayTime(m);
   const pendingPreview=pendingWebReactionPreviews.get(reactionPreviewKey(c.id,m.id));
-  const visibleReactions=pendingPreview
+  const visibleReactions=pendingPreview?.uid===firebaseUser?.uid
     ?applyMessageReactionIntent(m.reactions,pendingPreview.uid,pendingPreview.reaction,pendingPreview.intent)
     :m.reactions;
   const reactionSummary=summarizeMessageReactions(visibleReactions,firebaseUser?.uid||"");
@@ -2740,8 +2740,12 @@ function renderModal(){
   } else if(modal.type==="reactionDetails"){
     const conversation=state.conversations.find(row=>String(row.id)===String(modal.conversationId));
     const message=(state.messages[modal.conversationId]||[]).find(row=>String(row.id)===String(modal.messageId));
+    const preview=pendingWebReactionPreviews.get(reactionPreviewKey(modal.conversationId,modal.messageId));
+    const visible=preview?.uid===firebaseUser?.uid
+      ?applyMessageReactionIntent(message?.reactions,preview.uid,preview.reaction,preview.intent)
+      :message?.reactions;
     const authors=conversation?.cloudGroup&&message
-      ?listMessageReactionAuthors(message.reactions,modal.reaction,conversation.members,firebaseUser?.uid):[];
+      ?listMessageReactionAuthors(visible,modal.reaction,conversation.members,firebaseUser?.uid):[];
     if(!conversation?.cloudGroup||!authors.length){state.modal=null;return;}
     host.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="reactionDetailsTitle">
       <h2 id="reactionDetailsTitle">${esc(modal.reaction)} Reactions</h2>
@@ -2756,7 +2760,7 @@ function renderModal(){
     const isPending=message&&["queued","sending","failed"].includes(message.state);
     const conversation=state.conversations.find(x=>String(x.id)===String(modal.conversationId));
     const canDeleteForEveryone=MESSAGE_DELETE_FOR_EVERYONE_ENABLED&&message?.mine&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup);
-    const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation);
+    const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation)&&!pendingWebReactionPreviews.has(reactionPreviewKey(modal.conversationId,modal.messageId));
     const canReply=!!conversation?.cloudGroup&&!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&message.authoritativeSource!==false&&!(Number(message.disappearAfterSeconds)>0);
     const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
     const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
