@@ -9,5 +9,7 @@ mkdir -p out-fidunio/functional
 status=0
 node build/simulator/run-functional.mjs out-fidunio/functional/android . chromium Android-shared || status=1
 node build/simulator/run-functional.mjs out-fidunio/functional/ios ios-src webkit ios-shared || status=1
+node build/simulator/run-functional.mjs out-fidunio/functional/web-chromium web-src chromium Web-main3-Chromium || status=1
+node build/simulator/run-functional.mjs out-fidunio/functional/web-webkit web-src webkit Web-main3-WebKit || status=1
 node build/simulator/index-functional.mjs out-fidunio/functional || status=1
 exit "$status"
