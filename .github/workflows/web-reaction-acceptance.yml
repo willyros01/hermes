@@ -1,0 +1,67 @@
+name: FIDUNIO web two-account reaction acceptance
+# Isolated test-only workflow; never deploy, publish, sign or contact production Firebase.
+on:
+  push:
+    branches: [simulator-tests]
+    paths:
+      - 'build/simulator/run-functional.mjs'
+      - '.github/workflows/web-reaction-acceptance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fidunio-web-reaction-acceptance
+  cancel-in-progress: true
+jobs:
+  real-browser-reaction:
+    name: Two-account emoji UI / ${{ matrix.browser }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: main-3
+          path: web-src
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Parse test source before installing dependencies
+        run: |
+          node --check build/simulator/run-functional.mjs
+          echo "WEB_SOURCE_SHA=$(git -C web-src rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Install local Firebase emulator and browser
+        run: |
+          npm ci --no-audit --no-fund
+          npm --prefix web-src ci --no-audit --no-fund
+          npm --prefix web-src run ios:prepare
+          node build/simulator/patch-sandbox.mjs web-src ios
+          npx playwright install --with-deps ${{ matrix.browser }}
+      - name: REAL Chromium/WebKit UI with independently authenticated Alice and Bob
+        run: |
+          set -Eeuo pipefail
+          echo "Web source commit $WEB_SOURCE_SHA"
+          ./node_modules/.bin/firebase emulators:exec \
+            --config firebase.simulator.json \
+            --only auth,firestore,storage \
+            --project demo-fidunio-simulator-tests \
+            "node build/simulator/run-functional.mjs out-fidunio/web-${{ matrix.browser }} web-src ${{ matrix.browser }} Web-main3-${{ matrix.browser }}"
+      - name: Preserve feature evidence and failure screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-reaction-${{ matrix.browser }}
+          path: out-fidunio/
+          retention-days: 90
+          if-no-files-found: warn
