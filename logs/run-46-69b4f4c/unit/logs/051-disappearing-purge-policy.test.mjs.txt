@@ -1,0 +1,5 @@
+FILE disappearing-purge-policy.test.mjs
+SOURCE Android
+EXIT 0
+Disappearing purge policy tests passed
+

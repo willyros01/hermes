@@ -1,0 +1,5 @@
+FILE build/release-readiness-gate.test.mjs
+SOURCE Android
+EXIT 0
+PASS: release-readiness manifest covers 11 visible feature families and their packaged/backend/test authorities
+

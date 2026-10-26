@@ -1,0 +1,5 @@
+FILE build/ios-native-notification-stack.test.mjs
+SOURCE ios
+EXIT 0
+PASS: native iOS notification plugin, foreground presentation, token registration and tap routing are wired
+

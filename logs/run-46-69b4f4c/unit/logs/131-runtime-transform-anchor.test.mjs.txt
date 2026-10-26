@@ -1,0 +1,5 @@
+FILE runtime-transform-anchor.test.mjs
+SOURCE Android
+EXIT 0
+PASS raw runtime is authoritative; service worker contains no semantic transforms
+

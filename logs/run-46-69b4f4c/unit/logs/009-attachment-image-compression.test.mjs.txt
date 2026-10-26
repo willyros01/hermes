@@ -1,0 +1,5 @@
+FILE attachment-image-compression.test.mjs
+SOURCE Android
+EXIT 0
+Attachment image compression policy passed
+
