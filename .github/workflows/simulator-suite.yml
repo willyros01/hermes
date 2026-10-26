@@ -154,6 +154,9 @@ jobs:
           node build/simulator/patch-sandbox.mjs ios-src ios
           npm --prefix web-src ci --no-audit --no-fund
           npm --prefix web-src run ios:web
+          # main-3 PWA loads this real root asset, but its iOS-only www list omits it.
+          # Copy into disposable test www only; do NOT change shipping source.
+          cp web-src/notification-lease-session.js web-src/www/notification-lease-session.js
           node build/simulator/patch-sandbox.mjs web-src ios
           npx playwright install --with-deps chromium webkit
       - name: Authenticated API transactions with local Auth and Firestore rules
