@@ -51,7 +51,7 @@ import { mountSixDigitPinInput } from "./pin-input.js";
 import {awaitBoundedLocalPinVerification} from "./local-pin-verification-boundary.js";
 import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,refreshGroupReadForApp,prioritizeGroupMessageForApp,closeGroupForApp,resetGroupAppIntegrationForSignOut,renameGroupForApp,addGroupMemberForApp,removeGroupMemberForApp,leaveGroupForApp,grantGroupHistoryForApp } from "./e2ee-account-group-app-integration.js";
 import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
-import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions} from "./message-reaction-policy.js";
+import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions,listMessageReactionAuthors} from "./message-reaction-policy.js";
 import {encodeGroupReplyDescriptor,parseGroupReplyDescriptor} from "./group-reply-policy.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
@@ -1595,6 +1595,16 @@ function scheduleChatViewportRestore(conversationId,viewport,generation){
 }
 function bindChatMessageProjectionActions(){
   bindPendingMessageActions();
+  // The chat projection owner also owns reaction attribution controls.
+  document.querySelectorAll(".message-reaction-chip[data-reaction]").forEach(button=>button.onclick=event=>{
+    event.preventDefault();event.stopPropagation();
+    const conversationId=button.dataset.conversationId,messageId=button.dataset.messageId;
+    const c=state.conversations.find(row=>String(row.id)===String(conversationId));
+    const message=(state.messages[conversationId]||[]).find(row=>String(row.id)===String(messageId));
+    if(!c?.cloudGroup||!message||!MESSAGE_REACTION_CHOICES.includes(button.dataset.reaction))return;
+    state.modal={type:"reactionDetails",conversationId,messageId,reaction:button.dataset.reaction};
+    render();
+  });
   document.querySelectorAll(".attachment-media-open").forEach(button=>button.onclick=event=>{
     event.preventDefault();event.stopPropagation();
     const conversationId=button.dataset.conversationId,messageId=button.dataset.messageId;
@@ -2072,7 +2082,10 @@ function renderBubble(m,c){
   const groupSender=groupSenderDisplayName(m,c);
   const displayTime=messageDisplayTime(m);
   const reactionSummary=summarizeMessageReactions(m.reactions,firebaseUser?.uid||"");
-  const reactionMarkup=reactionSummary.length?`<div class="message-reactions" aria-label="Message reactions">${reactionSummary.map(item=>`<span class="message-reaction-chip ${item.mine?"mine":""}">${esc(item.emoji)}${item.count>1?` <span class="message-reaction-count">${item.count}</span>`:""}</span>`).join("")}</div>`:"";
+  const reactionMarkup=reactionSummary.length?`<div class="message-reactions" aria-label="Message reactions">${reactionSummary.map(item=>c?.cloudGroup
+    ?`<button type="button" class="message-reaction-chip ${item.mine?"mine":""}" data-conversation-id="${esc(c.id)}" data-message-id="${esc(m.id)}" data-reaction="${esc(item.emoji)}" aria-label="See who reacted with ${esc(item.emoji)}">${esc(item.emoji)}${item.count>1?` <span class="message-reaction-count">${item.count}</span>`:""}</button>`
+    :`<span class="message-reaction-chip ${item.mine?"mine":""}">${esc(item.emoji)}${item.count>1?` <span class="message-reaction-count">${item.count}</span>`:""}</span>`
+  ).join("")}</div>`:"";
   return `<div class="msg-row ${m.mine?"mine":""} ${hasMessageAction?"pending-message-action":""}" ${hasMessageAction?`data-message-id="${esc(m.id)}" data-conversation-id="${esc(c.id)}" role="button" tabindex="0" aria-label="${label} message. Press and hold for actions."`:""}>
     ${groupSender?`<div class="sender-label"><span class="sender-name">${esc(groupSender)}</span><span class="sender-time">${esc(displayTime)}</span></div>`:""}
     <div class="bubble">
@@ -2088,11 +2101,11 @@ function bindPendingMessageActions(){
     let timer=null,startX=0,startY=0;
     const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
     const open=()=>{clear();state.modal={type:"pendingMessage",messageId:row.dataset.messageId,conversationId:row.dataset.conversationId};render();};
-    row.oncontextmenu=e=>{e.preventDefault();open();};
-    row.onpointerdown=e=>{if(e.button!==0)return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
+    row.oncontextmenu=e=>{if(e.target.closest?.(".message-reaction-chip[data-reaction]"))return;e.preventDefault();open();};
+    row.onpointerdown=e=>{if(e.button!==0||e.target.closest?.(".message-reaction-chip[data-reaction]"))return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
     row.onpointermove=e=>{if(Math.abs(e.clientX-startX)>10||Math.abs(e.clientY-startY)>10)clear();};
     row.onpointerup=clear;row.onpointercancel=clear;row.onpointerleave=clear;
-    row.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
+    row.onkeydown=e=>{if(e.target!==row)return;if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
   });
 }
 
@@ -2707,6 +2720,20 @@ function renderModal(){
       }catch(err){stopTracks();startBtn.disabled=false;status.textContent="Microphone access was not started.";alert("Could not start audio recording: "+(err?.message||err));}
     };
     stopBtn.onclick=()=>{if(!recorder||recorder.state==="inactive")return;stopBtn.disabled=true;status.textContent="Finishing recording…";recorder.stop();};
+  } else if(modal.type==="reactionDetails"){
+    const conversation=state.conversations.find(row=>String(row.id)===String(modal.conversationId));
+    const message=(state.messages[modal.conversationId]||[]).find(row=>String(row.id)===String(modal.messageId));
+    const authors=conversation?.cloudGroup&&message
+      ?listMessageReactionAuthors(message.reactions,modal.reaction,conversation.members,firebaseUser?.uid):[];
+    if(!conversation?.cloudGroup||!authors.length){state.modal=null;return;}
+    host.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="reactionDetailsTitle">
+      <h2 id="reactionDetailsTitle">${esc(modal.reaction)} Reactions</h2>
+      <p>Group members who added this reaction:</p>
+      <ul class="reaction-authors-list">${authors.map(name=>`<li>${esc(name)}</li>`).join("")}</ul>
+      <div class="modal-actions"><button class="modal-cancel" id="modalCancel" type="button">Close</button></div>
+    </div>`;
+    document.body.appendChild(host);
+    host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
   } else if(modal.type==="pendingMessage"){
     const message=state.messages[modal.conversationId]?.find(x=>String(x.id)===String(modal.messageId));
     const isPending=message&&["queued","sending","failed"].includes(message.state);
