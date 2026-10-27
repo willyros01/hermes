@@ -1,3 +1,11 @@
+## 2026-10-26 — Android 1.1.80 group emoji attribution owner PASS; web now released
+
+Owner confirmed Fire HD 8 Android 1.1.80 emoji reaction author list **works perfectly**, with immediate emoji appearance. This is physical acceptance of the observed Android feature, not full 88-scenario app release certification. Signed Android APK CI #40412540776, exact APK publisher #40413232005 and Pages publication #40413284424 PASS. No native Android application-code changes were needed for web-only repair.
+
+Web `main` 1.1.80 shipped via PR #7, production source `ac20e73203a586ebf693979121f10efd9c79ec30`; web Pages #40423292186 PASS, public served-file byte verification #40423601161 PASS, security #40423293061 PASS. Cross-account Chromium/WebKit web reaction UI #40422983596 PASS in localhost Firebase emulators, not live peer decryption. Prior web defects were missing production promotion and web-only reaction preview temporarily blocking next tap after transaction commit.
+
+New persistent regression coverage: web `FN-009A`, native `R10` for Android and iPhone; test protocol `simulator-tests/docs/simulator/REACTION-AUTHORS-CROSS-PLATFORM.md`. Physical live-web acceptance and the whole-product 88-case release manifest remain OPEN. This status supersedes historical "not deployed" notes.
+
 ## 2026-10-26 — FIDUNIO 1.1.80 reaction attribution and web-only latency (CANDIDATE / NOT DEVICE ACCEPTED)
 
 - Owner observation: iPhone iOS and Fire HD 8 Android show emojis immediately; the delay is limited to the web app so far. Web-only feedback candidate projects a selected reaction promptly in the existing chat render owner, reconciles with the authoritative Firestore snapshot and rolls back on denial. No change to Firebase service initialization, rules, groups, E2EE, notification, receipt or Outbox authority.
