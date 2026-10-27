@@ -1,0 +1,48 @@
+name: Verify public FIDUNIO web 1.1.80 bytes
+# Read-only; public HTTP GET only. Never touches Firebase or any release branch.
+on:
+  push:
+    branches: [simulator-tests]
+    paths: ['.github/workflows/verify-public-web-1-1-80.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fidunio-public-release-verify-1-1-80
+  cancel-in-progress: true
+jobs:
+  public-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ac20e73203a586ebf693979121f10efd9c79ec30
+          persist-credentials: false
+      - name: Verify exact public app, runtime, and cache files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          grep -q '1.1.80' version.js
+          mkdir -p /tmp/fidunio-served
+          BASE='https://willyros01.github.io/hermes'
+          for asset in version.js app.js styles.css service-worker.js message-reaction-policy.js; do
+            good=0
+            for attempt in {1..12}; do
+              if curl --fail --location --silent --show-error --connect-timeout 15 --max-time 30 \
+                    --header 'Cache-Control: no-cache' "$BASE/$asset?release=1.1.80&try=$attempt" \
+                    -o "/tmp/fidunio-served/$asset" &&
+                 cmp -s "$asset" "/tmp/fidunio-served/$asset"; then
+                good=1
+                break
+              fi
+              sleep 8
+            done
+            if [[ "$good" != 1 ]]; then
+              echo "FAIL: public $asset does NOT equal release source commit"
+              sha256sum "$asset" "/tmp/fidunio-served/$asset" || true
+              exit 1
+            fi
+            echo "PASS: public $asset identical to source commit"
+          done
+          echo "PASS: public GitHub Pages serves exact 1.1.80 source bytes (app, version, CSS, SW, reaction policy)"
