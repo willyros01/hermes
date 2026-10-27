@@ -1,0 +1,5 @@
+FILE build/ios-app-check-gate.test.mjs
+SOURCE Android
+EXIT 0
+PASS: native App Check dependency is present in approved standby/fail-open mode; production App Attest entitlement is not a release blocker until Apple capability is enabled
+

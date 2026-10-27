@@ -1,0 +1,33 @@
+{
+  "pass": false,
+  "results": [
+    {
+      "label": "Android-shared / Chromium",
+      "status": "PASS",
+      "cases": 14,
+      "passed": 14,
+      "path": "android/REPORT.md"
+    },
+    {
+      "label": "iOS-shared / WebKit",
+      "status": "PASS",
+      "cases": 14,
+      "passed": 14,
+      "path": "ios/REPORT.md"
+    },
+    {
+      "label": "1.1.80 web / Chromium",
+      "status": "FAIL",
+      "cases": 1,
+      "passed": 0,
+      "path": "web-chromium/REPORT.md"
+    },
+    {
+      "label": "1.1.80 web / WebKit",
+      "status": "FAIL",
+      "cases": 1,
+      "passed": 0,
+      "path": "web-webkit/REPORT.md"
+    }
+  ]
+}

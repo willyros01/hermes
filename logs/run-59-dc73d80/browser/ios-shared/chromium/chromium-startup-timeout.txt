@@ -1,0 +1,3 @@
+FIDUNIO could not finish starting
+Sign-in is taking longer than expected. Check your connection and retry. Your secure data has not been reset.
+Retry Startup

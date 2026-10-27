@@ -1,0 +1,5 @@
+FILE bulk-message-delete-projection.test.mjs
+SOURCE Android
+EXIT 0
+Bulk message-delete projection convergence passed
+

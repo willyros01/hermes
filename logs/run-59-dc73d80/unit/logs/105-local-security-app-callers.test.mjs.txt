@@ -1,0 +1,8 @@
+FILE local-security-app-callers.test.mjs
+SOURCE Android
+EXIT 0
+PASS: timeout handler is async
+PASS: timeout mutation awaited
+PASS: device unlock disable handler async
+PASS: device unlock mutation awaited
+

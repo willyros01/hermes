@@ -1,0 +1,14 @@
+{
+  "label": "Web-main3-WebKit",
+  "engine": "webkit",
+  "source": "/home/runner/work/hermes/hermes/web-src",
+  "passed": 0,
+  "failed": 2,
+  "cases": [
+    {
+      "id": "FN-001",
+      "status": "FAIL",
+      "detail": "Local owner account could not be created: {\"error\":{\"code\":400,\"message\":\"EMAIL_EXISTS\",\"errors\":[{\"message\":\"EMAIL_EXISTS\",\"reason\":\"invalid\",\"domain\":\"global\"}]}}"
+    }
+  ]
+}
