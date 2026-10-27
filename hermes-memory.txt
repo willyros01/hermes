@@ -1,3 +1,15 @@
+## 2026-10-27 UTC — ARCHIVE HOUSEKEEPING COMPLETE (authoritative current state)
+
+**GitHub cleanup completed with the owner's explicit, exact-list authorization:** 44 inactive historical branch references listed in [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md) were deleted; live Hermes branches changed **53 → 9**. The nine retained branches are `main`, `ios`, `Android`, `backups`, `simulator-tests`, `simulator-evidence`, `main2`, `main-3` and `archive`. The two legacy web notice branches remain NON-RUNNABLE. Older checkpoints below saying no branch was deleted are superseded by this completed operation.
+
+**Recovery PROVED after deletion:** The original preservation commit `0d5522aff042efabf5181a8603d4fdb81bf3f51a` has 40 parents and anchors all 44 deleted branch histories. A fresh independent clone fetching ONLY GitHub's surviving `archive` branch recovered all 44 exact historical commit tips; `git fsck --full --no-reflogs` PASS. `archive` protection rule `25931858` is ACTIVE and restricts deletion and non-fast-forward pushes without bypass actors. Existing 314 MiB private Library `hermes-git-recovery-2026-10-27.bundle` independently restores the original 52 branch refs plus 44 annotated tags. No tags are falsely claimed as remote GitHub tags.
+
+**Search/restore route:** original name → [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md) → original 40-character SHA → [archive/RECOVERY.md](https://github.com/willyros01/hermes/blob/archive/RECOVERY.md), with audit evidence in `archive/CLEANUP-AUDIT.md`. Never recreate unneeded branch clutter, rewrite archive history, or promote archived code without explicit user-approved change and release tests.
+
+**Scope:** this housekeeping changed GitHub branch references and documentation only. No FIDUNIO web/iOS/Android application files, Firebase deployments, functions, encryption, notifications, release workflows or version numbers were changed.
+
+---
+
 ## 2026-10-27 UTC — AUTHORITATIVE HERMES HISTORICAL-ARCHIVE AND BRANCH-SEARCH POLICY
 
 **Current source of truth for searching old branches:** [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md). The `archive` branch is retention/documentation-only and non-runnable. Its published HEAD `0d5522aff042efabf5181a8603d4fdb81bf3f51a` has **40 parents**: the then-production `main` and 39 distinct historic tip commits representing all **44 indexed inactive branch names**. Independent Git fetch and ancestry audit confirmed **44/44 historic tips reachable**, and archive HEAD has exactly four documents. No application runtime, workflow, backend configuration, native client or Firebase data was changed by the archive branch.
