@@ -1,3 +1,13 @@
+## 2026-10-26 — WEB 1.1.80 TESTED + RELEASED (owner physical-web check pending)
+
+The web-only FIDUNIO group reaction author list and immediate emoji add/remove shipped to protected `main` through PR #7 (release commit `ac20e73203a586ebf693979121f10efd9c79ec30`). Public Pages run **40423292186 PASS**; public exact JavaScript/CSS/SW byte verification **40423601161 PASS**; production security **40423293061 PASS**. This supersedes previous historical "not deployed" statuses.
+
+The real two-account browser acceptance `FN-009A` (Chromium + WebKit) **PASS** in run **40422983596**, using exact tested `main-3` code at `f81bcebb6cd3b071eb42a348cdfac147ed7d295c`. Distinct group source sender Owner, reacting Alice, reacting Bob; immediate add/remove and DOM chip, authoritative Firestore state, multiple author names, reaction change and removal. Stage security 40422860193 PASS, browser 40422860271 PASS, web adapter 40422860424 PASS. Web test replaces only encrypted text hydration in disposable localhost emulator, so it is not live peer E2EE certification.
+
+Two root causes: missing production promotion of 1.1.80; and the web reaction overlay blocked the next tap even after the server committed while a listener was pending. Fixed in existing web UI projection without new Firebase/E2EE/notification/Outbox owners. iOS and Android 1.1.80 author-list + prompt emoji already physically accepted by owner, native app code was not touched for web repair.
+
+**Still OPEN:** user acceptance on refreshed live web device, entire 88-scenario release manifesto and full simulator all-job signoff. Never conflate browser integration PASS with global release certification. New reviewed test design: `simulator-tests/docs/simulator/REACTION-AUTHORS-CROSS-PLATFORM.md`, web `FN-009A`, native `R10`. Issues #5 and #8 open pending live-web confirmation.
+
 ## 2026-10-26 — New cross-platform reaction regression gates (OPEN)
 - Native physical acceptance **PASS (feature only)**: owner tested reaction author list on iOS 1.1.80 TestFlight and Android 1.1.80 Fire HD 8. Reacting emoji is promptly shown on both.
 - Production web **FAIL / UNDEPLOYED**: `main` still 1.1.79; 1.1.80 group author names and web-only immediate reaction projection reside on `main-3` and unmerged draft PR #7. Do not claim a post-deployment outcome until production artifact and cache revision are verified.
