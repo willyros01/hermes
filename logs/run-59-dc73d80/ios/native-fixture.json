@@ -1,28 +1,28 @@
 {
   "project": "demo-fidunio-simulator-tests",
   "alice": {
-    "email": "alice-40422305718-8567c4@simulator.invalid",
+    "email": "alice-40422305718-dbf41b@simulator.invalid",
     "password": "NativeSimulatorOnly-554411!",
     "pin": "473829",
     "name": "Native Test Alice"
   },
-  "inviteToken": "snh3uGA6j9CfSAJchnE0HyO-gI7OLcGW",
-  "inviteId": "59205bff8efe9302b88a30e1783a5567286a7fabf08c0a4973a6f35412658f28",
+  "inviteToken": "vbFm1PUmNiOVHN2tGt0XwY5yBTXxhJup",
+  "inviteId": "713342ee4e7589d3e15bfec71b07ff2fc88fd979d514328b57cb529a9a42c7d6",
   "peers": [
     {
       "label": "Owner",
-      "uid": "54TxoKB8BN0hN8roeLjUJEQ4C07p",
-      "email": "owner-40422305718-8567c4@simulator.invalid"
+      "uid": "UAsVL4p2Xaak0B17s9YwfDyQMn4g",
+      "email": "owner-40422305718-dbf41b@simulator.invalid"
     },
     {
       "label": "Bob",
-      "uid": "BnYkcha8VxXjhQG8BQk86UJlap8c",
-      "email": "bob-40422305718-8567c4@simulator.invalid"
+      "uid": "rDbKg2ovQY6p0T5dlZGiVG9IGQfY",
+      "email": "bob-40422305718-dbf41b@simulator.invalid"
     },
     {
       "label": "Carol",
-      "uid": "r3hpiQCQ7SLZqRAhGQabPOb0XqPU",
-      "email": "carol-40422305718-8567c4@simulator.invalid"
+      "uid": "v7hxFdviHgZYEnwhARVuyRwcR3zo",
+      "email": "carol-40422305718-dbf41b@simulator.invalid"
     }
   ]
 }
