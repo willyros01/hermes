@@ -1,3 +1,11 @@
+## 2026-10-26 — iOS 1.1.80 group emoji attribution owner PASS; web now released
+
+Owner confirmed actual iOS TestFlight 1.1.80 emoji reaction author list **works perfectly** and emojis appear immediately. Treat this as user acceptance of the observed iOS feature, not 88-scenario whole-product release certification. iOS release pipeline #40412535254 PASS and exact iOS source remain unchanged by subsequent web-only fixes.
+
+Web `main` 1.1.80 has now shipped via PR #7, production release source `ac20e73203a586ebf693979121f10efd9c79ec30`; Pages #40423292186 PASS, public served-file byte verification #40423601161 PASS, security #40423293061 PASS. Cross-account web Chromium/WebKit emoji UI test #40422983596 PASS using isolated Firebase emulator, not live peer decryption. Root causes: previously unmerged production web feature and a web-only pending reaction preview blocking immediate second tap. No change to native iOS application, notification, E2EE or Firebase.
+
+New persistent regression coverage in `simulator-tests`: web `FN-009A`, iPhone/Android native `R10`; test standard `docs/simulator/REACTION-AUTHORS-CROSS-PLATFORM.md`. Web physical device acceptance and the full 88-case release manifest remain OPEN. Supersedes earlier "candidate/not deployed" records.
+
 ## 2026-10-26 — FIDUNIO 1.1.80 reaction attribution and web-only latency (CANDIDATE / NOT DEVICE ACCEPTED)
 
 - Owner observation: iPhone iOS and Fire HD 8 Android show emojis immediately; the delay is limited to the web app so far. Web-only feedback candidate projects a selected reaction promptly in the existing chat render owner, reconciles with the authoritative Firestore snapshot and rolls back on denial. No change to Firebase service initialization, rules, groups, E2EE, notification, receipt or Outbox authority.
