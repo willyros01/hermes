@@ -1,3 +1,14 @@
+## 2026-10-27 UTC — Release-source branches and archive lookup (authoritative)
+
+- **Web:** production GitHub Pages uses only `main`. `main2` and `main-3` are historical, notice-only/non-runnable, **not** current web build sources. Earlier references below to `main-3` as the active web candidate are superseded by its retirement on 2026-10-26.
+- **iPhone:** `ios` for TestFlight. **Android:** capital-`Android` for the signed APK. Operational `backups`, `simulator-tests`, `simulator-evidence` remain separate.
+- **Historical lookup:** [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md) maps 44 inactive branch names to the exact commit SHA, with recovery steps in `archive/RECOVERY.md`. `archive` is not buildable; its 40-parent HEAD preserves the 44 histories. The owner's independently verified full Git bundle is saved privately.
+- **No branch deletions yet.** A separate, exact owner-approved cleanup and fresh recovery validation are required before deletion. Never build or deploy from `archive`.
+
+This section updates documentation only; it does **not** authorize a TestFlight/APK upload, new web release, Firebase deployment, or security-gate bypass.
+
+---
+
 ## 2026-10-26 — WEB BRANCH RETIREMENT: main is the sole active web-app source
 
 Owner explicitly directed retirement of `main-3` (referred to as “main-e”) and removal of redundant web versions. The `main-3` branch was retained as a non-runnable retirement tombstone **only**: head `26c6a68f511b246beaed5570ae105bdfef6c23b5`, a Git tree containing exactly `index.html`. No `app.js`, Firebase application runtime, service worker, workflows, or login; page links to official `https://willyros01.github.io/hermes/`. Prior main-3 app source remains in git ancestry, not in tip working tree. Old `main2` branch already had only a retirement notice and stays retired.

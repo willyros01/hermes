@@ -1,3 +1,11 @@
+## 2026-10-27 UTC — Repository history archive is NOT the nightly Firebase backup
+
+The separate, one-time Git source/history archive is [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md). It lists all **44 inactive branch names** and exact original tip commits. Published `archive` HEAD has 40 parents, retaining all historical tips. A 328,310,151-byte Git bundle was independently restored with all **52 heads and 44 annotated tags** and saved in the owner's private ChatGPT Library, with SHA-256 `ae72fa7dab8e6ea27f059b80d88480e0387149d979ae8587136e16761b5845e0`.
+
+This is **not** the daily Firestore/Auth backup job and does not alter `.github/workflows/hbk.yml`, the `backups` branch, schedules, keys, or live Firebase. The old repo branches have not been deleted; no history-cleanup deletion is authorized by this note.
+
+---
+
 ## 2026-10-15 — Backup documentation maintenance note
 
 This is the `hermes/main` authoritative Firestore/Auth backup and branch/code variance procedure, **separate** from the one-time verified Firebase Gen2 notification-function rollback archive used for Fire ADM migration on `hermes/Android`. Do not mistake daily database backup artifacts for deployment backups of notification function revisions, and do not re-run backup, recreate secrets, change workflow schedules or alter production data merely to keep documentation current. Each backup job and code variance check must be reported independently as PASS/FAIL/UNVERIFIED from its own actual run; the present documentation edit does **not** attest that today's scheduled backup succeeded. Production web `main`, parity `main-3`, iOS `ios` and Fire `Android` remain distinct. Owner's development freeze permits documentary records, not live infrastructure changes.

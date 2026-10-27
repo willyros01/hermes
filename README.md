@@ -1,3 +1,13 @@
+## 2026-10-27 UTC — Where to find retired Hermes branches
+
+**Production:** `main` (web GitHub Pages), `ios` (iPhone/TestFlight), capital-`Android` (signed APK). Operational branches `backups`, `simulator-tests`, and `simulator-evidence` remain separate. `main2` and `main-3` are retired **notice-only** web branches, not staging sites.
+
+**Search for any historical branch, code version, document, fix, or checkpoint:** [the archive manifest](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md), with 44 original names and exact commit IDs. [Recovery instructions](https://github.com/willyros01/hermes/blob/archive/RECOVERY.md) show how to browse/rebuild a branch or retrieve a file. The `archive` branch is non-runnable and its 40-parent HEAD retains all 44 historical tip histories. The owner holds a separate independently verified full Git-history bundle in private ChatGPT Library.
+
+No original branches were deleted by this archival operation. **Do not delete or rewrite an archive reference without explicit owner approval and a fresh recovery test.** Earlier instructions below calling `main-3` active describe the former state and are superseded by its 2026-10-26 retirement. These documentation updates do not change application behavior or authorize builds.
+
+---
+
 ## Current documentation snapshot — 2026-10-15 (documentation-only)
 
 **Standing change policy:** Product development is frozen unless the owner explicitly authorizes a build or fix; documentation, analysis, testing records and backups may continue. Documentation edits must not change application code, workflows, Firebase data/rules, signing or release artifacts. Do not trigger a TestFlight or APK build for documentation. Historical notes below remain a record of earlier states, not current authorization.

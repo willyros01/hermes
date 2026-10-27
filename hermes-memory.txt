@@ -1,3 +1,17 @@
+## 2026-10-27 UTC — AUTHORITATIVE HERMES HISTORICAL-ARCHIVE AND BRANCH-SEARCH POLICY
+
+**Current source of truth for searching old branches:** [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md). The `archive` branch is retention/documentation-only and non-runnable. Its published HEAD `0d5522aff042efabf5181a8603d4fdb81bf3f51a` has **40 parents**: the then-production `main` and 39 distinct historic tip commits representing all **44 indexed inactive branch names**. Independent Git fetch and ancestry audit confirmed **44/44 historic tips reachable**, and archive HEAD has exactly four documents. No application runtime, workflow, backend configuration, native client or Firebase data was changed by the archive branch.
+
+**Search route:** exact old branch name -> `archive/ARCHIVE-MANIFEST.md` -> 40-character original commit SHA -> browse `https://github.com/willyros01/hermes/tree/<SHA>` or follow `archive/RECOVERY.md`; consult this chronological `hermes-memory.txt` for the associated rationale. Never guess a historical branch from its name or copy code from the archive directly into a live platform. Same SHAs are intentionally retained for different original branch names.
+
+**Owner's independent recovery copy:** private ChatGPT Library `hermes-git-recovery-2026-10-27.bundle` (328,310,151 bytes; SHA-256 `ae72fa7dab8e6ea27f059b80d88480e0387149d979ae8587136e16761b5845e0`). Independently cloned and checked: all **52 original heads plus 44 annotated archive tags** resolve to their exact original commits. The 44 tags exist in that private bundle; do **not** falsely claim they are separately published in GitHub. GitHub retention is supplied by the multi-parent `archive` commit and its reachable ancestors.
+
+**Branch policy:** `main` is the ONLY live web/GitHub Pages source; `ios` builds iPhone/TestFlight; capital-`Android` builds signed APK; `backups`, `simulator-tests`, `simulator-evidence` are operational. Old `main2` and `main-3` are non-runnable retirement notices, **not** web candidates. Older sections requiring edits to active `main-3` are historical and **superseded** by the 2026-10-26 retirement decision; platform functional equivalence remains a design requirement of the active production web branch `main`, with platform adapters and separate release/test authorization.
+
+**NO BRANCH DELETIONS:** all original branches remain at this checkpoint. Do not delete even an inactive original without the owner's separate, explicit approval of a precise list, an on-GitHub 44/44 reachability re-check, and recovery-bundle availability. Do not rewrite/force-push/delete `archive`; request branch-protection rules for it. This is docs-only historical governance, not deployment authorization.
+
+---
+
 ## 2026-10-26 — WEB BRANCH RETIREMENT: main is the sole active web-app source
 
 Owner explicitly directed retirement of `main-3` (referred to as “main-e”) and removal of redundant web versions. The `main-3` branch was retained as a non-runnable retirement tombstone **only**: head `26c6a68f511b246beaed5570ae105bdfef6c23b5`, a Git tree containing exactly `index.html`. No `app.js`, Firebase application runtime, service worker, workflows, or login; page links to official `https://willyros01.github.io/hermes/`. Prior main-3 app source remains in git ancestry, not in tip working tree. Old `main2` branch already had only a retirement notice and stays retired.

@@ -1,3 +1,15 @@
+## 2026-10-27 UTC — Branch housekeeping and historical search (current policy)
+
+1. **Do not accumulate stale feature/checkpoint branches.** At each authorized change, use the existing relevant active branch and record the commit SHA; propose closure/cleanup when work ends. Never automatically delete a branch.
+2. **Current release sources:** `main` ONLY for production web, `ios` for TestFlight, capital-`Android` for signed Android. Keep `backups`, `simulator-tests` and `simulator-evidence` intact. `main2`/`main-3` are retired, non-runnable notices. Old text below naming `main-3` an active parity branch is superseded. Maintain equivalent user behavior in the active web code `main` and native apps through adapters only under explicit change/release authorization.
+3. **Look up historical work using** [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md), which maps all 44 inactive original branch names to exact SHA and recovery instructions. Preserve the old commit when reusing code; do not rely on branch names alone.
+4. **Retention:** `archive` is intentionally non-runnable; its fixed 40-parent HEAD (main plus 39 distinct historical tips) retains all 44 histories. No branch deletion until explicit owner approval, successful fresh on-GitHub reachability proof, and independent bundle recovery availability. No force-pushing/rewriting/removing `archive`.
+5. **Backups are separate:** the private 314 MiB `hermes-git-recovery-2026-10-27.bundle` is a one-time Git code/history backup, not Firestore/Auth's scheduled `backups` branch. It was successfully test-restored with 52 original branches and 44 annotated tags; the tags are not separately published in GitHub.
+
+This is branch-governance documentation only; no application build, Firebase deployment, security-rule change, or native release.
+
+---
+
 ## 2026-10-15 — Active change-control requirements (documentation update)
 
 1. **Surgical scope:** identify and prove an actual defect before changing code; only the smallest required owner/adapter may change. No refactors/renames/rebuilds just because a nearby function is being inspected. Preserve existing messages, Firestore, E2EE, accounts, notifications, signing and all other apps.
