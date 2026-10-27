@@ -2,8 +2,8 @@
 
 The working tree of this branch contains ONLY archive documentation. For production FIDUNIO memory, read `main:hermes-memory.txt`.
 
-Current source authorities: `main` (sole production web), `ios` (Apple native/TestFlight), `Android` (signed Fire APK), `backups`, `simulator-tests`, `simulator-evidence`. `main2` and `main-3` are retired notice-only, not production. The 44 remaining historical branches are indexed in [ARCHIVE-MANIFEST.md](ARCHIVE-MANIFEST.md).
+Current source authorities: `main` (sole production web), `ios` (Apple native/TestFlight), `Android` (signed Fire APK), `backups`, `simulator-tests`, `simulator-evidence`. `main2` and `main-3` are retired notice-only, not production. The 44 deleted historical branch names and recoverable commits are indexed in [ARCHIVE-MANIFEST.md](ARCHIVE-MANIFEST.md).
 
-Recovery design: archive HEAD multi-parents production main plus all 39 DISTINCT inactive branch tips, covering all 44 historical names. An independent, fully recovered private Git bundle includes all 52 original heads plus 44 annotated archive tags. GitHub has no separate archive tags unless a later tag publication action is explicitly verified.
+Recovery design: immutable archive preservation commit `0d5522aff042efabf5181a8603d4fdb81bf3f51a` multi-parents production main plus all 39 DISTINCT inactive branch tips, covering all 44 deleted historical names; future docs-only fast-forward commits keep this commit as an ancestor. An independent, fully recovered private Git bundle includes all 52 original heads plus 44 annotated archive tags. GitHub has no separate archive tags unless a later tag publication action is explicitly verified.
 
-No original branch deleted; no app/backend/native deployment. Do not merge this archive into a runnable app branch or edit its parent structure. User-approved deletion phase, if any, must be separate.
+Cleanup COMPLETE 2026-10-27 UTC: 44/44 owner-approved inactive refs deleted; 53→9 branches. Fresh GitHub-only archive clone successfully recovered 44/44 historical commit tips; Git integrity PASS. Active GitHub ruleset `25931858` prohibits archive deletion/force-push. No app/backend/native deployment. Do not merge archive into a runnable branch or rewrite preservation ancestry. See [CLEANUP-AUDIT.md](CLEANUP-AUDIT.md).

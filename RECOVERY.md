@@ -40,4 +40,4 @@ The tag dereference should resolve to the index's `3b29c1ea53b1cd45376e95def1fd8
 
 ## Deletion control
 
-The original branches remain in GitHub as of the archive publication step. Do not remove any of them until the owner authorizes a specific cleanup list in a new step, verifies archive reachability on GitHub, confirms the Library bundle is retrievable, and verifies `archive` protection. Do not delete active `main`, `ios`, `Android`, `backups`, `simulator-tests`, `simulator-evidence`, or notice branches `main2` and `main-3`.
+All 44 indexed inactive original branch references were removed on 2026-10-27 UTC with the owner's explicit approval. A fresh independent GitHub clone of only `archive` proved all 44 commits and their history recoverable; full Git integrity passed. Exactly nine branches remain: `main`, `ios`, `Android`, `backups`, `simulator-tests`, `simulator-evidence`, `main2`, `main-3`, and protected `archive`. Do not delete any further branch without separately authorized review. Never delete or force-push the protected `archive`; preservation commit `0d5522aff042efabf5181a8603d4fdb81bf3f51a` remains in its ancestry.

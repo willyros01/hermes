@@ -2,11 +2,11 @@
 
 This is the permanent search index for the original 52 branch tips audited on 2026-10-27. Search here FIRST when asked for an old checkpoint, fix, version, diagnostic, implementation, or document.
 
-**Archive mechanism:** the `archive` HEAD is a 40-parent merge-like commit (one production `main` parent and 39 distinct historical tip parents). Therefore the commit histories for all 44 branch names below remain reachable from a SINGLE archive branch. Entries sharing the same original SHA intentionally appear separately; those names were distinct branches. This is not a GitHub folder, rename, or source-code copy.
+**Archive mechanism:** the immutable preservation commit `0d5522aff042efabf5181a8603d4fdb81bf3f51a` is a 40-parent merge-like commit (one production `main` parent and 39 distinct historical tip parents). Therefore the commit histories for all 44 branch names below remain reachable from a SINGLE archive branch. Entries sharing the same original SHA intentionally appear separately; those names were distinct branches. This is not a GitHub folder, rename, or source-code copy.
 
-**Branch deletion status:** NONE of the original 52 branches were deleted by this archive operation. Historical branches remain until the owner separately approves an exact deletion list, and then only after a fresh reachability/recovery audit.
+**Branch deletion status — COMPLETE (2026-10-27 UTC):** the owner approved exactly the 44 inactive branch references listed below, and all 44 were deleted via GitHub's branch UI. Live GitHub branches decreased **53 → 9**. A fresh GitHub API audit proved all 44 inactive names absent and exactly the eight retained original branches plus `archive` present. The preservation commit is still an ancestor of this branch.
 
-## Branches retained outside the proposed cleanup
+## Original branches retained after cleanup (eight original heads; plus `archive`)
 
 | Branch | Status | Snapshot tip |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ This is the permanent search index for the original 52 branch tips audited on 20
 
 `main` is the ONLY production web/GitHub Pages source; `ios` builds iOS TestFlight; capital-`Android` builds the signed APK. `main2` and `main-3` are historical **non-runnable retirement notice** branches, NOT active web applications. Backups and simulators remain separate.
 
-## Inactive branch names and exact historical tip commits (44)
+## Deleted inactive branch names and exact recoverable historical tip commits (44)
 
 | Original branch name | Exact commit SHA | Purpose at time of snapshot |
 | --- | --- | --- |
@@ -76,6 +76,8 @@ This is the permanent search index for the original 52 branch tips audited on 20
 - An independent `hermes-git-recovery-2026-10-27.bundle` (328,310,151 bytes) was cloned in isolation; all 52 branch refs and 44 annotated `archive/<original-branch>` tags were recovered with exact target SHAs.
 - SHA-256 of independent bundle: `ae72fa7dab8e6ea27f059b80d88480e0387149d979ae8587136e16761b5845e0`.
 - The owner authorized the complete bundle to be stored in **private ChatGPT Library**. GitHub does NOT hold the 44 separately named annotated archive tags as of this record; those tags are in the independent bundle. The archive branch itself protects the 44 histories by ancestry.
-- Recovery instructions: [RECOVERY.md](RECOVERY.md). Do not force-push or delete the `archive` branch. Treat its tip as immutable and consider applying GitHub branch ruleset protection.
+- **Post-deletion proof:** a completely fresh GitHub clone fetching only the protected `archive` branch recovered all 44 deleted branch commits and passed `git fsck --full --no-reflogs`. Exactly nine live refs remain; `archive` still reaches its 40-parent preservation commit.
+- GitHub ruleset `25931858` — `Protect Hermes archive history` — is **ACTIVE** on the exact target `refs/heads/archive`, prohibits deletion and non-fast-forward/force pushes, and has no bypass actors.
+- Recovery instructions: [RECOVERY.md](RECOVERY.md); completion audit: [CLEANUP-AUDIT.md](CLEANUP-AUDIT.md). Never delete or force-push `archive`; future ordinary fast-forward documentation commits retain the preservation commit in ancestry.
 
 **Policy:** No new runnable web stage, no automatic iOS/APK build, no Firebase change, and no historical branch deletion as a side effect of documentation or archiving.
