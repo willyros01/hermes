@@ -1,3 +1,7 @@
+## 2026-11-08 — ALL PLATFORMS: tappable links in messages (owner request; NOT STARTED — development freeze, needs explicit go-ahead)
+
+- [ ] **FID-LINKS-20261108 — Web addresses in messages must be tappable links, not plain text, with a link preview.** A URL in a direct or group message currently shows as plain text. Required: detect http/https addresses in message text and show them as tappable links on iOS, Android and web; tapping asks "Open this link?" before opening outside FIDUNIO (also protects child accounts). Link preview (title/image) must preserve E2EE: the **sender's device** builds the preview and encrypts it inside the message payload; the FIDUNIO server must never fetch or see the URL. Where a platform cannot build a preview (e.g. web browser cross-site limits), send the plain tappable link without a preview. Only http/https are linked; no javascript:/data: links. Acceptance: iOS, Android and web — direct + group, multiple links in one message, long URLs wrap, disappearing messages, reply/reaction/delete regression unchanged.
+
 ## 2026-11-08 — ANDROID-ONLY FIX ITEMS (owner report; NOT STARTED — development freeze, needs explicit go-ahead)
 
 **Scope rule: Android only. NO changes to iOS / the `ios` branch — the iOS camera path works and must stay untouched.**
