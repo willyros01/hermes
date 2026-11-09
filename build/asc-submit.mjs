@@ -38,7 +38,7 @@ async function call(method, path, body) {
   try { json = raw ? JSON.parse(raw) : null; } catch {}
   return { ok: res.ok, status: res.status, json };
 }
-const why = (r) => (r.json?.errors || []).map((e) => `${e.code}: ${e.detail || e.title}`).join("; ").slice(0, 1500) || `HTTP ${r.status}`;
+const why = (r) => (r.json?.errors || []).map((e) => `${e.code}: ${e.detail || e.title}${e.meta ? " " + JSON.stringify(e.meta) : ""}`).join("; ").slice(0, 4000) || `HTTP ${r.status}`;
 async function api(method, path, body) {
   const r = await call(method, path, body);
   if (!r.ok) throw new Error(`${method} ${path.split("?")[0]} — ${why(r)}`);
@@ -269,7 +269,7 @@ async function submit(app, version) {
 }
 
 async function main() {
-  if (!["inspect", "reference", "prepare", "submit"].includes(STAGE)) throw new Error("STAGE must be inspect, prepare or submit");
+  if (!["inspect", "reference", "prepare", "submit", "diagnose"].includes(STAGE)) throw new Error("STAGE must be inspect, prepare or submit");
   const app = (await api("GET", `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE_ID)}`)).data?.[0];
   if (!app) throw new Error(`no App Store Connect app for ${BUNDLE_ID}`);
   say(`OK    app ${app.attributes.name} (${app.id})`);
@@ -282,6 +282,14 @@ async function main() {
   if (STAGE === "inspect") { await inspect(app, version); say("RESULT: inspect only — nothing was changed at Apple"); return; }
   if (STAGE === "reference") { await reference(); say("RESULT: reference only — nothing was changed at Apple"); return; }
   if (!version) throw new Error("no editable iOS version to submit");
+  if (STAGE === "diagnose") {
+    let sub = (await api("GET", `/v1/reviewSubmissions?filter[app]=${app.id}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW`)).data?.[0];
+    if (!sub) sub = (await api("POST", "/v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "IOS" }, relationships: { app: { data: { type: "apps", id: app.id } } } } })).data;
+    const r = await call("POST", "/v1/reviewSubmissionItems", { data: { type: "reviewSubmissionItems", relationships: { reviewSubmission: { data: { type: "reviewSubmissions", id: sub.id } }, appStoreVersion: { data: { type: "appStoreVersions", id: version.id } } } } });
+    if (r.ok) say("OK    Apple accepts the version for review (item added, not submitted)");
+    else for (const e of r.json?.errors || []) for (const [k, list] of Object.entries(e.meta?.associatedErrors || {})) for (const a of list) say(`BLOCK ${k.split("/").slice(-2).join("/")}: ${a.code} — ${a.detail || a.title}`);
+    say("RESULT: diagnose only — not submitted"); return;
+  }
   const build = await prepare(app, version);
   if (STAGE === "prepare") { await inspect(app, version); say("RESULT: prepared — not submitted"); return; }
   const state = await submit(app, version);
