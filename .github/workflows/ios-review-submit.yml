@@ -6,7 +6,7 @@ on:
       stage:
         description: inspect = read only, prepare = set up without submitting, submit = send to App Review
         type: choice
-        options: [inspect, prepare, submit]
+        options: [inspect, reference, prepare, submit]
         default: inspect
       demo_user:
         description: App Review sign-in email (prepare/submit)

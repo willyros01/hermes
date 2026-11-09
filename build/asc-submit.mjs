@@ -83,6 +83,33 @@ async function inspect(app, version) {
   say(`  review info: ${r ? `contact ${yn(r.contactFirstName && r.contactLastName)} / email ${yn(r.contactEmail)} / phone ${yn(r.contactPhone)}, demo ${r.demoAccountRequired ? r.demoAccountName || "MISSING" : "not set"}, notes ${r.notes ? r.notes.length + " chars" : "none"}` : "NONE"}`);
 }
 
+/* Read-only: The Marker's live settings, which FIDUNIO copies (Willy, 8 Nov 2026). */
+async function reference() {
+  const mk = (await api("GET", "/v1/apps?filter[bundleId]=io.github.willyros01.marker")).data?.[0];
+  say(`reference app ${mk.attributes.name} (${mk.id}), contentRights ${mk.attributes.contentRightsDeclaration}`);
+  const infos = (await api("GET", `/v1/apps/${mk.id}/appInfos`)).data || [];
+  const live = infos.find((i) => (i.attributes.appStoreState || i.attributes.state) === "READY_FOR_SALE" || (i.attributes.state === "READY_FOR_DISTRIBUTION")) || infos[0];
+  for (const rel of ["primaryCategory", "secondaryCategory"]) say(`  ${rel}: ${(await peek(`/v1/appInfos/${live.id}/${rel}`)).data?.id || "none"}`);
+  for (const l of (await peek(`/v1/appInfos/${live.id}/appInfoLocalizations`)).data || []) say(`  ${l.attributes.locale}: privacy ${l.attributes.privacyPolicyUrl}`);
+  const age = (await peek(`/v1/appInfos/${live.id}/ageRatingDeclaration`)).data?.attributes || {};
+  say(`  age rating: ${JSON.stringify(age).slice(0, 900)}`);
+  const pr = await peek(`/v1/apps/${mk.id}/appPriceSchedule?include=baseTerritory,manualPrices`);
+  say(`  price: base ${(pr.included || []).filter((x) => x.type === "territories").map((x) => x.id).join(",")} manual ${(pr.included || []).filter((x) => x.type === "appPrices").length}`);
+  const av = await peek(`/v1/apps/${mk.id}/appAvailabilityV2?include=territoryAvailabilities&limit[territoryAvailabilities]=200`);
+  const ta = (av.included || []).filter((x) => x.attributes?.available).length;
+  say(`  availability: new territories ${av.data?.attributes?.availableInNewTerritories}, available in ${ta}`);
+  const vs = (await api("GET", `/v1/apps/${mk.id}/appStoreVersions?filter[platform]=IOS&limit=3`)).data || [];
+  const v = vs[0];
+  say(`  version ${v.attributes.versionString}: copyright "${v.attributes.copyright}", release ${v.attributes.releaseType}`);
+  for (const l of (await peek(`/v1/appStoreVersions/${v.id}/appStoreVersionLocalizations`)).data || []) say(`  ${l.attributes.locale}: support ${l.attributes.supportUrl}, marketing ${l.attributes.marketingUrl || "none"}`);
+  const rd = (await peek(`/v1/appStoreVersions/${v.id}/appStoreReviewDetail`)).data?.attributes || {};
+  say(`  review contact: ${rd.contactFirstName} ${rd.contactLastName}, ${rd.contactEmail}, phone ${rd.contactPhone ? "set (" + String(rd.contactPhone).length + " chars)" : "none"}`);
+  for (const u of ["https://cuberoot-systems.com/fidunio/privacy", "https://cuberoot-systems.com/fidunio/privacy.html", "https://cuberoot-systems.com/fidunio/", "https://cuberoot-systems.com/fidunio/support"]) {
+    const r = await fetch(u, { redirect: "follow" }).catch((e) => ({ status: String(e.message).slice(0, 40) }));
+    say(`  web ${u}: ${r.status}`);
+  }
+}
+
 async function newestBuild(app) {
   const builds = (await api("GET", `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=10&include=preReleaseVersion`)).data || [];
   return builds.find((b) => b.attributes.processingState === "VALID" && !b.attributes.expired);
@@ -129,7 +156,7 @@ async function submit(app, version) {
 }
 
 async function main() {
-  if (!["inspect", "prepare", "submit"].includes(STAGE)) throw new Error("STAGE must be inspect, prepare or submit");
+  if (!["inspect", "reference", "prepare", "submit"].includes(STAGE)) throw new Error("STAGE must be inspect, prepare or submit");
   const app = (await api("GET", `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE_ID)}`)).data?.[0];
   if (!app) throw new Error(`no App Store Connect app for ${BUNDLE_ID}`);
   say(`OK    app ${app.attributes.name} (${app.id})`);
@@ -140,6 +167,7 @@ async function main() {
   say(`newest builds: ${builds.map((b) => `${b.attributes.version}=${b.attributes.processingState}${b.attributes.expired ? "(expired)" : ""}`).join(", ") || "none"}`);
 
   if (STAGE === "inspect") { await inspect(app, version); say("RESULT: inspect only — nothing was changed at Apple"); return; }
+  if (STAGE === "reference") { await reference(); say("RESULT: reference only — nothing was changed at Apple"); return; }
   if (!version) throw new Error("no editable iOS version to submit");
   const build = await prepare(app, version);
   if (STAGE === "prepare") { await inspect(app, version); say("RESULT: prepared — not submitted"); return; }
