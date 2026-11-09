@@ -40,7 +40,7 @@ const browser=await webkit.launch();
 const pages=[];
 
 async function context(){
-  const ctx=await browser.newContext({viewport:{width:440,height:956},deviceScaleFactor:3,isMobile:true,hasTouch:true,colorScheme:'light',locale:'en-US',timezoneId:'America/Toronto'});
+  const ctx=await browser.newContext({viewport:{width:440,height:956},deviceScaleFactor:3,isMobile:false,hasTouch:true,colorScheme:'light',locale:'en-US',timezoneId:'America/Toronto'});
   await ctx.route('**/*',route=>{
     const u=route.request().url();
     if(u.startsWith(base+'/')||u.startsWith('https://www.gstatic.com/firebasejs/')||[8080,9099,9199,5001].some(p=>u.startsWith(origin+':'+p+'/')))return route.continue();
@@ -178,10 +178,10 @@ async function shot(name){await sleep(1200);await P.screenshot({path:path.join(o
 async function settle(){await P.evaluate(()=>document.activeElement?.blur?.());}
 await openFrom(sofia,'Rivera Family');await sees(sofia,'Always');await settle();await shot('iphone-1-family-group');
 await openFrom(sofia,'Marco Rivera');await settle();await shot('iphone-2-direct-chat');
-await openFrom(sofia,'Lucas Rivera');await settle();await shot('iphone-3-disappearing');
+await openFrom(sofia,'Lucas Rivera');
+{const sel=P.locator('#disappearSelect');await sel.selectOption(day);await until(async()=>(await sel.inputValue())===day,'Sofia disappearing 1 day');}
+await settle();await shot('iphone-3-disappearing');
 await home(sofia);await settle();await shot('iphone-4-messages');
-await openFrom(sofia,'Rivera Family');
-if(await visible(P,'#infoBtn')){await tap(P,'#infoBtn');await until(()=>P.getByText('Members').first().isVisible(),'group info');await settle();await shot('iphone-5-group-info');await tap(P,'#backBtn').catch(()=>{});}
 
 // iPad 13": 1032x1376 points, captured at 3x and scaled to 2064x2752 by the workflow.
 await P.setViewportSize({width:1032,height:1376});await sleep(2500);
