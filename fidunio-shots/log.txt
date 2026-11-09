@@ -1,0 +1,16 @@
+OK owner seeded
+OK Sofia Rivera joined
+OK Marco Rivera joined
+OK Lucas Rivera joined
+OK Grandma Rosa joined
+OK direct chat
+OK group chat
+OK disappearing chat (86400s)
+SHOT iphone-1-family-group
+SHOT iphone-2-direct-chat
+SHOT iphone-3-disappearing
+SHOT iphone-4-messages
+SHOT ipad-1-family-group
+SHOT ipad-2-direct-chat
+SHOT ipad-3-disappearing
+RESULT: screenshots captured
