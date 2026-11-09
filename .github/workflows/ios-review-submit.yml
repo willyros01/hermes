@@ -14,6 +14,9 @@ on:
       demo_pass:
         description: App Review sign-in password (prepare/submit)
         required: false
+      demo_pin:
+        description: App Review six-digit PIN (prepare/submit)
+        required: false
 permissions:
   contents: read
 concurrency:
@@ -25,6 +28,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: appstore-assets
+          path: assets
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -40,8 +49,10 @@ jobs:
           STAGE="$(jq -r '.inputs.stage // "inspect"' "$GITHUB_EVENT_PATH")"
           DEMO_USER="$(jq -r '.inputs.demo_user // ""' "$GITHUB_EVENT_PATH")"
           DEMO_PASS="$(jq -r '.inputs.demo_pass // ""' "$GITHUB_EVENT_PATH")"
+          DEMO_PIN="$(jq -r '.inputs.demo_pin // ""' "$GITHUB_EVENT_PATH")"
           if [ -n "$DEMO_PASS" ]; then echo "::add-mask::$DEMO_PASS"; fi
-          export STAGE DEMO_USER DEMO_PASS
+          ASSETS="$PWD/assets/fidunio-shots"
+          export STAGE DEMO_USER DEMO_PASS DEMO_PIN ASSETS
           export KEY="$RUNNER_TEMP/AuthKey.p8"
           trap 'rm -f "$KEY"' EXIT
           printf '%s\n' "$ASC_KEY_P8" > "$KEY"

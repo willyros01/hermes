@@ -126,9 +126,9 @@ async function sees(p,text){
 async function direct(from,to){
   await home(from);
   await tap(from.page,(await visible(from.page,'#newBtn'))?'#newBtn':'#tabletNewBtn');
-  await until(()=>visible(from.page,'#peerUid'),'recipient field');
-  await from.page.fill('#peerUid',to.uid);
-  await tap(from.page,'#cloudDirectBtn');
+  const choice=from.page.locator('.fidunio-recipient-choice').filter({hasText:to.name}).first();
+  await until(()=>choice.isVisible(),from.name+': '+to.name+' in the contact list',60000);
+  await choice.click();
   await until(()=>visible(from.page,'#messageBox'),from.name+': direct chat with '+to.name,90000);
 }
 async function talk(lines){
