@@ -154,8 +154,8 @@ async function setListing(app, version) {
     violenceCartoonOrFantasy: "NONE", violenceRealisticProlongedGraphicOrSadistic: "NONE", violenceRealistic: "NONE" } } });
   say("OK    age rating answers (messaging and user content: yes; everything else: none)");
 
-  const price = await call("GET", `/v1/apps/${app.id}/appPriceSchedule`);
-  if (!price.ok) {
+  // Apple can return an empty schedule, so the free price is always (re)set.
+  {
     const points = (await api("GET", `/v1/apps/${app.id}/appPricePoints?filter[territory]=CAN&limit=200`)).data || [];
     const free = points.find((x) => Number(x.attributes.customerPrice) === 0);
     if (!free) throw new Error("free price point not found");
