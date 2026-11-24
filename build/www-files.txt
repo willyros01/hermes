@@ -113,3 +113,4 @@ icon-192.png
 icon-512.png
 attachment-download-platform-adapter.js
 android-back-platform-adapter.js
+message-link-policy.js

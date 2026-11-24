@@ -130,3 +130,5 @@ html.text-aplusplus .quick-chip{
   .bubble.media-bubble,
   .bubble.picture-bubble{width:min(86%, 44rem);max-width:min(86%, 44rem)}
 }
+/* 2026-11-24: tappable web links in messages — large, underlined, high contrast. */
+.msg-text a.msg-link{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:700;overflow-wrap:anywhere;word-break:break-word}

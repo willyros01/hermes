@@ -53,6 +53,7 @@ import { queueGroupTextForApp,flushGroupOutboxForApp,openGroupForApp,refreshGrou
 import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycle.js";
 import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions,listMessageReactionAuthors} from "./message-reaction-policy.js";
 import {encodeGroupReplyDescriptor,parseGroupReplyDescriptor} from "./group-reply-policy.js";
+import {linkifyMessageText} from "./message-link-policy.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
@@ -2100,8 +2101,8 @@ function renderBubble(m,c){
   const reply=parseGroupReplyDescriptor(m.text);
   const descriptor=reply?null:parseAttachmentDescriptor(m.text);
   let messageContent=reply
-    ?`<div style="border-left:3px solid currentColor;padding:5px 8px;margin-bottom:7px;opacity:.82"><strong>${esc(reply.replyToSender)}</strong><div class="small-note">${esc(reply.replyPreview)}</div></div><div class="msg-text">${esc(reply.text)}</div>`
-    :`<div class="msg-text">${esc(m.text)}</div>`;
+    ?`<div style="border-left:3px solid currentColor;padding:5px 8px;margin-bottom:7px;opacity:.82"><strong>${esc(reply.replyToSender)}</strong><div class="small-note">${esc(reply.replyPreview)}</div></div><div class="msg-text">${linkifyMessageText(reply.text)}</div>`
+    :`<div class="msg-text">${linkifyMessageText(m.text)}</div>`;
   if(descriptor){
     const key=attachmentRuntimeKey(c.id,m.id),runtime=attachmentRuntime.get(key);
     if(m.state==="waiting-wifi"){
@@ -2149,7 +2150,7 @@ function bindPendingMessageActions(){
     const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
     const open=()=>{clear();state.modal={type:"pendingMessage",messageId:row.dataset.messageId,conversationId:row.dataset.conversationId};render();};
     row.oncontextmenu=e=>{if(e.target.closest?.(".message-reaction-chip[data-reaction]"))return;e.preventDefault();open();};
-    row.onpointerdown=e=>{if(e.button!==0||e.target.closest?.(".message-reaction-chip[data-reaction]"))return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
+    row.onpointerdown=e=>{if(e.button!==0||e.target.closest?.(".message-reaction-chip[data-reaction]")||e.target.closest?.("a.msg-link"))return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
     row.onpointermove=e=>{if(Math.abs(e.clientX-startX)>10||Math.abs(e.clientY-startY)>10)clear();};
     row.onpointerup=clear;row.onpointercancel=clear;row.onpointerleave=clear;
     row.onkeydown=e=>{if(e.target!==row)return;if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
