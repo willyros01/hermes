@@ -247,7 +247,7 @@ if(label==='fix'){
   const alertsFor=async field=>admin(async db=>(await getDocs(collection(db,'helpAlerts'))).docs.map(x=>({id:x.id,...x.data()})));
   /* Alice's account id, from the local test Auth (her email is in the fixture). */
   let aliceUid='';
-  try{const r=await fetch('http://127.0.0.1:9099/emulator/v1/projects/'+fixture.project+'/accounts',{headers:{authorization:'Bearer owner'}});const v=await r.json();aliceUid=(v.userInfo||[]).find(u=>u.email===fixture.alice.email)?.localId||'';}catch(e){log('alice lookup: '+e.message);}
+  try{const r=await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/'+fixture.project+'/accounts:query',{method:'POST',headers:{authorization:'Bearer owner','content-type':'application/json'},body:'{}'});const v=await r.json();aliceUid=(v.userInfo||[]).find(u=>u.email===fixture.alice.email)?.localId||'';}catch(e){log('alice lookup: '+e.message);}
   log('Alice account found: '+(aliceUid?'yes':'NO'));
   const realTap=async sel=>{const p=await screenPoint(sel);if(!p)throw new Error(sel+' not on screen');await tapAt(p);};
   const toMessages=async()=>{for(let i=0;i<4&&!(await present('#newBtn'))&&!(await present('#tabletNewBtn'));i++){if(await present('#backBtn'))await realTap('#backBtn');else break;await sleep(1200);}};
