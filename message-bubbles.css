@@ -134,3 +134,4 @@ html.text-aplusplus .quick-chip{
 .msg-text a.msg-link{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:700;overflow-wrap:anywhere;word-break:break-word}
 /* Select Text (2026-11-24): the phone's own text marking works inside this box. */
 .select-text-box{display:block;width:100%;box-sizing:border-box;min-height:160px;max-height:50vh;font-size:20px;line-height:1.4;padding:12px;border-radius:12px;border:2px solid #9aa4b2;background:#fff;color:#111;resize:none;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.open-link-address{word-break:break-all;font-weight:700;font-size:18px}

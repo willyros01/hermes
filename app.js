@@ -1442,6 +1442,13 @@ async function initApp(){
   if(consumeSuccessfulAuthBypass()) state.unlocked=true;
   installInactivityMonitor({isUnlocked:()=>state.unlocked&&!attachmentPickerActive,onLock:reason=>lockLocalApp(reason)});
   installAndroidBackGesture({handleBack:handleAndroidBack});
+  /* Links in messages ask first; FIDUNIO's own HELP map link opens straight away. */
+  document.addEventListener("click",e=>{
+    const a=e.target.closest?.("a.msg-link");
+    if(!a||a.dataset.confirmed==="1"||a.classList.contains("help-card-map"))return;
+    const href=a.getAttribute("href")||"";if(!/^https?:\/\//i.test(href))return;
+    e.preventDefault();state.modal={type:"openLink",href};render();
+  },true);
   if(state.unlocked) noteLocalUnlock();
   void requestAppActivation("initial-hydration");
 
@@ -2709,6 +2716,16 @@ function renderModal(){
   const modal=state.modal;
   const host=document.createElement("div");
   host.className="modal-backdrop";
+  if(modal.type==="openLink"){
+    /* FID-LINKS: ask before leaving FIDUNIO for a web address (also protects child accounts). */
+    host.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="openLinkTitle"><h2 id="openLinkTitle">Open this link?</h2><p class="open-link-address">${esc(modal.href)}</p><p>It opens outside FIDUNIO.</p><div class="modal-actions"><button class="modal-confirm" id="openLinkGo">Open</button><button class="modal-cancel" id="modalCancel">Cancel</button></div></div>`;
+    document.body.appendChild(host);
+    const close=()=>{state.modal=null;host.remove();render();};
+    host.querySelector("#modalCancel").onclick=close;
+    host.onclick=e=>{if(e.target===host)close();};
+    host.querySelector("#openLinkGo").onclick=()=>{const a=document.createElement("a");a.href=modal.href;a.target="_blank";a.rel="noopener noreferrer nofollow";a.dataset.confirmed="1";a.className="msg-link";a.hidden=true;document.body.appendChild(a);a.click();a.remove();close();};
+    return;
+  }
   if(modal.type==="attachmentMedia"){
     const runtime=attachmentRuntime.get(attachmentRuntimeKey(modal.conversationId,modal.messageId));
     const result=runtime?.status==="ready"?runtime.result:null;
