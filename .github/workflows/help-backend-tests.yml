@@ -3,7 +3,7 @@ name: FIDUNIO HELP backend tests
 on:
   push:
     branches: [fix/nov24-android]
-    paths: ['functions-help/**','firestore-help.rules','firestore-help.rules.test.mjs','build/merge-help-rules.mjs','.github/workflows/help-backend-tests.yml']
+    paths: ['functions-help/**','firestore-help.rules','firestore-help.rules.test.mjs','build/merge-help-rules.mjs','.github/workflows/help-backend-tests.yml','functions-help/package-lock.json']
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,6 +22,10 @@ jobs:
           java-version: '21'
       - name: HELP server logic
         run: node functions-help/help-core.test.mjs
+      - name: HELP functions install and load
+        run: |
+          npm --prefix functions-help ci --ignore-scripts --no-audit --no-fund
+          node --input-type=module -e "const m=await import('./functions-help/index.mjs');for(const n of ['helpAlertCreatedV1','helpAlertUpdatedV1','helpAlertSweepV1'])if(typeof m[n]!=='function')throw new Error('missing '+n);console.log('PASS: HELP functions load')"
       - name: HELP rules on the Firestore emulator
         run: |
           set -Eeuo pipefail
