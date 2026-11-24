@@ -17,7 +17,7 @@ Current Input Method Manager state:
           labelRes=0x7f0f0053 nonLocalizedLabel=null icon=0x7f08009e banner=0x0
           processName=com.android.inputmethod.latin
           taskAffinity=com.android.inputmethod.latin
-          uid=10108 flags=0x30c8be45 privateFlags=0x8c081060 theme=0x0
+          uid=10109 flags=0x30c8be45 privateFlags=0x8c081060 theme=0x0
           requiresSmallestWidthDp=0 compatibleWidthLimitDp=0 largestWidthLimitDp=0
           sourceDir=/product/app/LatinIME/LatinIME.apk
           resourceDirs=[/product/overlay/EmulationPixel6/EmulationPixel6Overlay.apk]
@@ -36,61 +36,61 @@ Current Input Method Manager state:
           allowsPlaybackCapture=true
           nativeHeapZeroInitialized=0
           enableOnBackInvokedCallback=false
-          createTimestamp=29988
+          createTimestamp=41185
   Clients:
-  Client ClientState{7a910c9 mUid=10117 mPid=800 mSelfReportedDisplayId=0}:
-    client=com.android.server.inputmethod.IInputMethodClientInvoker@a8f93ce
-    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@d7ee2ef
+  Client ClientState{7d039e3 mUid=10112 mPid=1052 mSelfReportedDisplayId=0}:
+    client=com.android.server.inputmethod.IInputMethodClientInvoker@e1b2ea2
+    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@d146733
     sessionRequested=false
     sessionRequestedForAccessibility=false
-    curSession=null
-  Client ClientState{dfd7028 mUid=10113 mPid=1015 mSelfReportedDisplayId=0}:
-    client=com.android.server.inputmethod.IInputMethodClientInvoker@c05a1fc
-    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@aa8f085
-    sessionRequested=false
-    sessionRequestedForAccessibility=false
-    curSession=SessionState{uid 10113 pid 1015 method f151eda session 200bf0b channel ClientState{dfd7028 mUid=10113 mPid=1015 mSelfReportedDisplayId=0} (server)}
-  Client ClientState{208e1e8 mUid=10108 mPid=1413 mSelfReportedDisplayId=0}:
-    client=com.android.server.inputmethod.IInputMethodClientInvoker@40d1001
-    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@6364ea6
-    sessionRequested=false
-    sessionRequestedForAccessibility=false
-    curSession=null
-  Client ClientState{2d8c949 mUid=1000 mPid=1003 mSelfReportedDisplayId=0}:
-    client=com.android.server.inputmethod.IInputMethodClientInvoker@b7a40e7
-    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@c7e3494
-    sessionRequested=false
-    sessionRequestedForAccessibility=false
-    curSession=SessionState{uid 1000 pid 1003 method f151eda session 439ab3d channel ClientState{2d8c949 mUid=1000 mPid=1003 mSelfReportedDisplayId=0} (server)}
-  Client ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0}:
-    client=com.android.server.inputmethod.IInputMethodClientInvoker@ce8af32
-    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@7200483
+    curSession=SessionState{uid 10112 pid 1052 method d93aaf0 session b951869 channel ClientState{7d039e3 mUid=10112 mPid=1052 mSelfReportedDisplayId=0} (server)}
+  Client ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0}:
+    client=com.android.server.inputmethod.IInputMethodClientInvoker@62192ee
+    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@924438f
     sessionRequested=false
     sessionRequestedForAccessibility=true
-    curSession=SessionState{uid 10141 pid 2475 method f151eda session a540600 channel ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0} (server)}
-  Client ClientState{39abe39 mUid=1000 mPid=504 mSelfReportedDisplayId=0}:
-    client=com.android.server.inputmethod.IInputMethodClientInvoker@7ee8c7e
-    fallbackInputConnection=RemoteInputConnectionImpl{connection=android.view.inputmethod.BaseInputConnection@6d465df finished=false mParentInputMethodManager.isActive()=false mServedView=null}
+    curSession=SessionState{uid 10141 pid 2425 method d93aaf0 session a0861c channel ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0} (server)}
+  Client ClientState{2ddd225 mUid=1000 mPid=510 mSelfReportedDisplayId=0}:
+    client=com.android.server.inputmethod.IInputMethodClientInvoker@c17effa
+    fallbackInputConnection=RemoteInputConnectionImpl{connection=android.view.inputmethod.BaseInputConnection@6ab89ab finished=false mParentInputMethodManager.isActive()=false mServedView=null}
     sessionRequested=false
     sessionRequestedForAccessibility=false
     curSession=null
-  Client ClientState{8f3822c mUid=10057 mPid=1451 mSelfReportedDisplayId=0}:
-    client=com.android.server.inputmethod.IInputMethodClientInvoker@b6004f5
-    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@3e2f28a
+  Client ClientState{3de808 mUid=10109 mPid=1375 mSelfReportedDisplayId=0}:
+    client=com.android.server.inputmethod.IInputMethodClientInvoker@53e6ba1
+    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@fe511c6
+    sessionRequested=false
+    sessionRequestedForAccessibility=false
+    curSession=null
+  Client ClientState{5171587 mUid=10058 mPid=1567 mSelfReportedDisplayId=0}:
+    client=com.android.server.inputmethod.IInputMethodClientInvoker@cd7cb4
+    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@ab520dd
+    sessionRequested=false
+    sessionRequestedForAccessibility=false
+    curSession=null
+  Client ClientState{6d20f4c mUid=1000 mPid=1012 mSelfReportedDisplayId=0}:
+    client=com.android.server.inputmethod.IInputMethodClientInvoker@7108452
+    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@3c58323
+    sessionRequested=false
+    sessionRequestedForAccessibility=false
+    curSession=SessionState{uid 1000 pid 1012 method d93aaf0 session 91fb020 channel ClientState{6d20f4c mUid=1000 mPid=1012 mSelfReportedDisplayId=0} (server)}
+  Client ClientState{2e7edd9 mUid=10117 mPid=807 mSelfReportedDisplayId=0}:
+    client=com.android.server.inputmethod.IInputMethodClientInvoker@60e939e
+    fallbackInputConnection=com.android.internal.inputmethod.IRemoteInputConnection$Stub$Proxy@f632e7f
     sessionRequested=false
     sessionRequestedForAccessibility=false
     curSession=null
   mCurMethodId=com.android.inputmethod.latin/.LatinIME
-  mCurClient=ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0} mCurSeq=20
+  mCurClient=ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0} mCurSeq=22
   mCurPerceptible=true
-  mCurFocusedWindow=android.os.BinderProxy@9acfad softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE client=ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0}
+  mCurFocusedWindow=android.os.BinderProxy@be0638a softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE client=ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0}
   mCurId=com.android.inputmethod.latin/.LatinIME mHaveConnection=true mBoundToMethod=true mVisibleBound=true
-  mCurToken=android.os.Binder@81ccf1
+  mCurToken=android.os.Binder@545c0ac
   mCurTokenDisplayId=0
   mCurHostInputToken=null
   mCurIntent=Intent { act=android.view.InputMethod cmp=com.android.inputmethod.latin/.LatinIME (has extras) }
-  mCurMethod=com.android.server.inputmethod.IInputMethodInvoker@e4380fb
-  mEnabledSession=SessionState{uid 10141 pid 2475 method f151eda session a540600 channel ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0} (server)}
+  mCurMethod=com.android.server.inputmethod.IInputMethodInvoker@a9fae4c
+  mEnabledSession=SessionState{uid 10141 pid 2425 method d93aaf0 session a0861c channel ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0} (server)}
  mRequestedShowExplicitly=true mShowForced=false
   mImeHiddenByDisplayPolicy=false
   mInputShown=true
@@ -109,277 +109,293 @@ Current Input Method Manager state:
     mEnabledInputMethodsStrCache=com.android.inputmethod.latin/.LatinIME
   mStartInputHistory:
    StartInput #0:
-    time=2026-11-24 20:26:22.382 (timestamp=22923) reason=SESSION_CREATED_BY_IME restarting=false
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@f92faa5 [com.android.settings] targetUserId=0 targetDisplayId=0 clientBindSeq=1
+    time=2026-11-24 20:50:59.813 (timestamp=24081) reason=SESSION_CREATED_BY_IME restarting=false
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@52e710b [com.android.settings] targetUserId=0 targetDisplayId=0 clientBindSeq=1
     softInputMode=STATE_UNSPECIFIED|ADJUST_PAN
     inputType=0x0 imeOptions=0x0 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #1:
-    time=2026-11-24 20:26:25.235 (timestamp=25776) reason=SESSION_CREATED_BY_IME restarting=false
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@f91027d [com.android.launcher3] targetUserId=0 targetDisplayId=0 clientBindSeq=2
+    time=2026-11-24 20:51:04.191 (timestamp=28459) reason=SESSION_CREATED_BY_IME restarting=false
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@681a1b5 [com.android.launcher3] targetUserId=0 targetDisplayId=0 clientBindSeq=2
     softInputMode=STATE_UNSPECIFIED|ADJUST_NOTHING
     inputType=0x0 imeOptions=0x0 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #2:
-    time=2026-11-24 20:26:28.598 (timestamp=29139) reason=WINDOW_FOCUS_GAIN restarting=false
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@ef2dada [com.android.launcher3] targetUserId=0 targetDisplayId=0 clientBindSeq=3
+    time=2026-11-24 20:51:07.193 (timestamp=31461) reason=WINDOW_FOCUS_GAIN restarting=false
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@c88bfe9 [com.android.launcher3] targetUserId=0 targetDisplayId=0 clientBindSeq=3
     softInputMode=STATE_UNSPECIFIED|ADJUST_NOTHING
     inputType=0x0 imeOptions=0x0 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #3:
-    time=2026-11-24 20:26:42.757 (timestamp=43299) reason=WINDOW_FOCUS_GAIN restarting=false
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@c3adbd6 [com.android.launcher3] targetUserId=0 targetDisplayId=0 clientBindSeq=4
+    time=2026-11-24 20:51:19.532 (timestamp=43800) reason=WINDOW_FOCUS_GAIN restarting=false
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@aaab9d8 [com.android.launcher3] targetUserId=0 targetDisplayId=0 clientBindSeq=4
     softInputMode=STATE_UNSPECIFIED|ADJUST_NOTHING
     inputType=0x0 imeOptions=0x0 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #4:
-    time=2026-11-24 20:26:48.811 (timestamp=49352) reason=SESSION_CREATED_BY_IME restarting=false
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=5
+    time=2026-11-24 20:51:25.716 (timestamp=49984) reason=SESSION_CREATED_BY_IME restarting=false
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=5
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0x0 imeOptions=0x12000000 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #5:
-    time=2026-11-24 20:26:54.209 (timestamp=54750) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=6
+    time=2026-11-24 20:51:31.824 (timestamp=56092) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=6
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0x8c0a1 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #6:
-    time=2026-11-24 20:26:54.245 (timestamp=54786) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=7
+    time=2026-11-24 20:51:31.854 (timestamp=56122) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=7
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0xc0a1 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #7:
-    time=2026-11-24 20:26:54.294 (timestamp=54835) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=8
+    time=2026-11-24 20:51:31.909 (timestamp=56177) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=8
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0xd1 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #8:
-    time=2026-11-24 20:26:54.371 (timestamp=54912) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=9
+    time=2026-11-24 20:51:32.010 (timestamp=56278) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=9
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0xe1 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #9:
-    time=2026-11-24 20:26:54.434 (timestamp=54975) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=10
+    time=2026-11-24 20:51:32.058 (timestamp=56326) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=10
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0x12 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #10:
-    time=2026-11-24 20:26:54.500 (timestamp=55041) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=11
+    time=2026-11-24 20:51:32.144 (timestamp=56412) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=11
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0x12 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #11:
-    time=2026-11-24 20:26:54.573 (timestamp=55114) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=12
+    time=2026-11-24 20:51:32.181 (timestamp=56449) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=12
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0x12 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #12:
-    time=2026-11-24 20:26:54.652 (timestamp=55193) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=13
+    time=2026-11-24 20:51:32.273 (timestamp=56541) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=13
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0x12 imeOptions=0x12000005 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #13:
-    time=2026-11-24 20:26:54.712 (timestamp=55253) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=14
+    time=2026-11-24 20:51:32.287 (timestamp=56555) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=14
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE|IS_FORWARD_NAVIGATION
     inputType=0x12 imeOptions=0x12000002 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #14:
-    time=2026-11-24 20:26:54.774 (timestamp=55315) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=15
+    time=2026-11-24 20:51:32.344 (timestamp=56612) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=15
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
     inputType=0x0 imeOptions=0x12000000 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #15:
-    time=2026-11-24 20:27:06.758 (timestamp=67299) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=16
+    time=2026-11-24 20:51:43.488 (timestamp=67756) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=16
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
     inputType=0x2c0a1 imeOptions=0x12000001 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #16:
-    time=2026-11-24 20:27:06.793 (timestamp=67334) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=17
+    time=2026-11-24 20:51:43.516 (timestamp=67784) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=17
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
     inputType=0x0 imeOptions=0x12000000 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #17:
-    time=2026-11-24 20:27:24.331 (timestamp=84872) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=18
+    time=2026-11-24 20:52:00.746 (timestamp=85014) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=18
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
     inputType=0x2c0a1 imeOptions=0x12000001 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
    StartInput #18:
-    time=2026-11-24 20:27:47.588 (timestamp=108129) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=19
+    time=2026-11-24 20:52:07.421 (timestamp=91689) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=19
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
     inputType=0x0 imeOptions=0x12000000 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
    StartInput #19:
-    time=2026-11-24 20:28:03.704 (timestamp=124245) reason=APP_CALLED_RESTART_INPUT_API restarting=true
-    imeToken=android.os.Binder@81ccf1 [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
-    targetWin=android.os.BinderProxy@9acfad [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=20
+    time=2026-11-24 20:52:34.686 (timestamp=118954) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=20
+    softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
+    inputType=0x2c0a1 imeOptions=0x12000001 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
+   StartInput #20:
+    time=2026-11-24 20:52:49.316 (timestamp=133584) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=21
+    softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
+    inputType=0x0 imeOptions=0x12000000 fieldId=0x0 fieldName=null actionId=0 actionLabel=null
+   StartInput #21:
+    time=2026-11-24 20:53:05.292 (timestamp=149560) reason=APP_CALLED_RESTART_INPUT_API restarting=true
+    imeToken=android.os.Binder@545c0ac [com.android.inputmethod.latin/.LatinIME] imeUserId=0 imeDisplayId=0
+    targetWin=android.os.BinderProxy@be0638a [io.github.willyros01.fidunio] targetUserId=0 targetDisplayId=0 clientBindSeq=22
     softInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
     inputType=0x2c0a1 imeOptions=0x12000001 fieldId=0x7f090204 fieldName=null actionId=0 actionLabel=null
   mSoftInputShowHideHistory:
    SoftInputShowHideHistory #0:
-    time=2026-11-24 20:27:24.388 (timestamp=84930)
+    time=2026-11-24 20:52:00.764 (timestamp=85032)
     reason=SHOW_SOFT_INPUT inFullscreenMode=false
-    requestClient=ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0}
-    focusedWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeControlTargetName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeTargetNameFromWm=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeSurfaceParentName=Surface(name=ActivityRecord{dde21b8 u0 io.github.willyros01.fidunio/.MainActivity)/@0x60d87bd
+    requestClient=ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0}
+    focusedWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeControlTargetName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeTargetNameFromWm=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeSurfaceParentName=Surface(name=ActivityRecord{1f56d2a u0 io.github.willyros01.fidunio/.MainActivity)/@0xf504dfe
     editorInfo:  inputType=0 privateImeOptions=null fieldId (viewId)=0
     focusedWindowSoftInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
    SoftInputShowHideHistory #1:
-    time=2026-11-24 20:27:34.743 (timestamp=95284)
-    reason=SHOW_SOFT_INPUT inFullscreenMode=false
-    requestClient=ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0}
-    focusedWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeControlTargetName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeTargetNameFromWm=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeSurfaceParentName=Surface(name=ActivityRecord{dde21b8 u0 io.github.willyros01.fidunio/.MainActivity)/@0x60d87bd
+    time=2026-11-24 20:52:07.416 (timestamp=91684)
+    reason=HIDE_SOFT_INPUT inFullscreenMode=false
+    requestClient=ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0}
+    focusedWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeControlTargetName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeTargetNameFromWm=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeSurfaceParentName=Surface(name=ActivityRecord{1f56d2a u0 io.github.willyros01.fidunio/.MainActivity)/@0xf504dfe
     editorInfo:  inputType=0 privateImeOptions=null fieldId (viewId)=0
     focusedWindowSoftInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
    SoftInputShowHideHistory #2:
-    time=2026-11-24 20:27:39.559 (timestamp=100100)
+    time=2026-11-24 20:52:34.688 (timestamp=118957)
     reason=SHOW_SOFT_INPUT inFullscreenMode=false
-    requestClient=ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0}
-    focusedWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeControlTargetName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeTargetNameFromWm=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeSurfaceParentName=Surface(name=ActivityRecord{dde21b8 u0 io.github.willyros01.fidunio/.MainActivity)/@0x60d87bd
+    requestClient=ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0}
+    focusedWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeControlTargetName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeTargetNameFromWm=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeSurfaceParentName=Surface(name=ActivityRecord{1f56d2a u0 io.github.willyros01.fidunio/.MainActivity)/@0xf504dfe
     editorInfo:  inputType=0 privateImeOptions=null fieldId (viewId)=0
     focusedWindowSoftInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
    SoftInputShowHideHistory #3:
-    time=2026-11-24 20:27:47.585 (timestamp=108126)
+    time=2026-11-24 20:52:49.314 (timestamp=133582)
     reason=HIDE_SOFT_INPUT inFullscreenMode=false
-    requestClient=ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0}
-    focusedWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeControlTargetName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeTargetNameFromWm=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeSurfaceParentName=Surface(name=ActivityRecord{dde21b8 u0 io.github.willyros01.fidunio/.MainActivity)/@0x60d87bd
+    requestClient=ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0}
+    focusedWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeControlTargetName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeTargetNameFromWm=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeSurfaceParentName=Surface(name=ActivityRecord{1f56d2a u0 io.github.willyros01.fidunio/.MainActivity)/@0xf504dfe
     editorInfo:  inputType=0 privateImeOptions=null fieldId (viewId)=0
     focusedWindowSoftInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
    SoftInputShowHideHistory #4:
-    time=2026-11-24 20:28:03.707 (timestamp=124248)
+    time=2026-11-24 20:53:05.296 (timestamp=149564)
     reason=SHOW_SOFT_INPUT inFullscreenMode=false
-    requestClient=ClientState{b2e8f54 mUid=10141 mPid=2475 mSelfReportedDisplayId=0}
-    focusedWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeControlTargetName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeTargetNameFromWm=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    imeSurfaceParentName=Surface(name=ActivityRecord{dde21b8 u0 io.github.willyros01.fidunio/.MainActivity)/@0x60d87bd
+    requestClient=ClientState{8be8fb6 mUid=10141 mPid=2425 mSelfReportedDisplayId=0}
+    focusedWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeControlTargetName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeTargetNameFromWm=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    imeSurfaceParentName=Surface(name=ActivityRecord{1f56d2a u0 io.github.willyros01.fidunio/.MainActivity)/@0xf504dfe
     editorInfo:  inputType=0 privateImeOptions=null fieldId (viewId)=0
     focusedWindowSoftInputMode=STATE_UNSPECIFIED|ADJUST_RESIZE
   mImeTrackerService#History:
    ImeTrackerService#History.mLiveEntries: 0 elements
-   ImeTrackerService#History.mEntries: 21 elements
-    #0 TYPE_HIDE - STATUS_CANCEL - com.android.settings:fdf6f7cf (1ms):
-      startTime=2026-11-24 20:26:22.012 ORIGIN_SERVER_HIDE_INPUT
+   ImeTrackerService#History.mEntries: 22 elements
+    #0 TYPE_HIDE - STATUS_CANCEL - com.android.settings:399a0534 (1ms):
+      startTime=2026-11-24 20:50:59.376 ORIGIN_SERVER_HIDE_INPUT
       reason=HIDE_UNSPECIFIED_WINDOW PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #1 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:da9f4f7f (18ms):
-      startTime=2026-11-24 20:26:23.735 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #1 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:ce3c2f68 (4ms):
+      startTime=2026-11-24 20:51:02.531 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_CLIENT_VIEW_SERVED
       requestWindowName=not set
-    #2 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:4b06efed (0ms):
-      startTime=2026-11-24 20:26:25.227 ORIGIN_SERVER_HIDE_INPUT
+    #2 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:1e398cd (0ms):
+      startTime=2026-11-24 20:51:04.174 ORIGIN_SERVER_HIDE_INPUT
       reason=HIDE_UNSPECIFIED_WINDOW PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #3 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:7bd6825a (1ms):
-      startTime=2026-11-24 20:26:27.284 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #3 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:16c36860 (12ms):
+      startTime=2026-11-24 20:51:05.921 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #4 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:d47a9d5b (1ms):
-      startTime=2026-11-24 20:26:27.294 ORIGIN_CLIENT_HIDE_SOFT_INPUT
-      reason=HIDE_SOFT_INPUT PHASE_SERVER_SHOULD_HIDE
-      requestWindowName=not set
-    #5 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:98a6a093 (0ms):
-      startTime=2026-11-24 20:26:27.515 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #4 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:e2385079 (1ms):
+      startTime=2026-11-24 20:51:06.632 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_CLIENT_VIEW_SERVED
       requestWindowName=not set
-    #6 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:2bdd5888 (0ms):
-      startTime=2026-11-24 20:26:28.598 ORIGIN_SERVER_HIDE_INPUT
-      reason=HIDE_UNSPECIFIED_WINDOW PHASE_SERVER_SHOULD_HIDE
-      requestWindowName=not set
-    #7 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:726ddeaa (1ms):
-      startTime=2026-11-24 20:26:42.078 ORIGIN_CLIENT_HIDE_SOFT_INPUT
-      reason=HIDE_SOFT_INPUT PHASE_SERVER_SHOULD_HIDE
-      requestWindowName=not set
-    #8 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:5bc478dc (2ms):
-      startTime=2026-11-24 20:26:42.118 ORIGIN_CLIENT_HIDE_SOFT_INPUT
-      reason=HIDE_SOFT_INPUT PHASE_SERVER_SHOULD_HIDE
-      requestWindowName=not set
-    #9 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:d54cf394 (2ms):
-      startTime=2026-11-24 20:26:42.273 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #5 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:5af4d6f1 (2ms):
+      startTime=2026-11-24 20:51:06.755 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_CLIENT_VIEW_SERVED
       requestWindowName=not set
-    #10 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:372545da (0ms):
-      startTime=2026-11-24 20:26:42.757 ORIGIN_SERVER_HIDE_INPUT
+    #6 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:4fbefc36 (0ms):
+      startTime=2026-11-24 20:51:07.193 ORIGIN_SERVER_HIDE_INPUT
       reason=HIDE_UNSPECIFIED_WINDOW PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #11 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:ce9c5bab (5ms):
-      startTime=2026-11-24 20:26:48.654 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #7 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:c40d169f (1ms):
+      startTime=2026-11-24 20:51:18.896 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #12 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:4264cdcb (0ms):
-      startTime=2026-11-24 20:26:48.803 ORIGIN_SERVER_HIDE_INPUT
+    #8 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:fe022494 (0ms):
+      startTime=2026-11-24 20:51:19.063 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+      reason=HIDE_SOFT_INPUT PHASE_CLIENT_VIEW_SERVED
+      requestWindowName=not set
+    #9 TYPE_HIDE - STATUS_FAIL - com.android.launcher3:e35f6a74 (7ms):
+      startTime=2026-11-24 20:51:19.155 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+      reason=HIDE_SOFT_INPUT PHASE_CLIENT_VIEW_SERVED
+      requestWindowName=not set
+    #10 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:24f9097 (0ms):
+      startTime=2026-11-24 20:51:19.532 ORIGIN_SERVER_HIDE_INPUT
       reason=HIDE_UNSPECIFIED_WINDOW PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #13 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:6b0ed491 (4ms):
-      startTime=2026-11-24 20:26:54.769 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #11 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:f4bd2d7d (0ms):
+      startTime=2026-11-24 20:51:25.701 ORIGIN_SERVER_HIDE_INPUT
+      reason=HIDE_UNSPECIFIED_WINDOW PHASE_SERVER_SHOULD_HIDE
+      requestWindowName=not set
+    #12 TYPE_HIDE - STATUS_CANCEL - com.android.launcher3:54f13235 (15ms):
+      startTime=2026-11-24 20:51:25.741 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+      reason=HIDE_SOFT_INPUT PHASE_SERVER_CLIENT_FOCUSED
+      requestWindowName=not set
+    #13 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:34820fa7 (2ms):
+      startTime=2026-11-24 20:51:32.341 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #14 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:599cdeec (1ms):
-      startTime=2026-11-24 20:27:06.791 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #14 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:f1db1a76 (1ms):
+      startTime=2026-11-24 20:51:43.514 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #15 TYPE_SHOW - STATUS_SUCCESS - io.github.willyros01.fidunio:312fb983 (2700ms):
-      startTime=2026-11-24 20:27:24.333 ORIGIN_CLIENT_SHOW_SOFT_INPUT
+    #15 TYPE_SHOW - STATUS_SUCCESS - io.github.willyros01.fidunio:ff0c6fb (2961ms):
+      startTime=2026-11-24 20:52:00.760 ORIGIN_CLIENT_SHOW_SOFT_INPUT
       reason=SHOW_SOFT_INPUT PHASE_CLIENT_ANIMATION_FINISHED_SHOW
-      requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    #16 TYPE_SHOW - STATUS_CANCEL - io.github.willyros01.fidunio:dea0eda6 (4ms):
-      startTime=2026-11-24 20:27:34.742 ORIGIN_CLIENT_SHOW_SOFT_INPUT
-      reason=SHOW_SOFT_INPUT PHASE_CLIENT_APPLY_ANIMATION
-      requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    #17 TYPE_SHOW - STATUS_CANCEL - io.github.willyros01.fidunio:b88de55c (7ms):
-      startTime=2026-11-24 20:27:39.555 ORIGIN_CLIENT_SHOW_SOFT_INPUT
-      reason=SHOW_SOFT_INPUT PHASE_CLIENT_APPLY_ANIMATION
-      requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    #19 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:ee0c8b73 (1ms):
-      startTime=2026-11-24 20:27:47.741 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+      requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    #17 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:52a0be1d (1ms):
+      startTime=2026-11-24 20:52:07.684 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT_BY_INSETS_API PHASE_SERVER_SHOULD_HIDE
       requestWindowName=not set
-    #18 TYPE_HIDE - STATUS_SUCCESS - io.github.willyros01.fidunio:6b754de1 (158ms):
-      startTime=2026-11-24 20:27:47.584 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+    #16 TYPE_HIDE - STATUS_SUCCESS - io.github.willyros01.fidunio:f5174420 (277ms):
+      startTime=2026-11-24 20:52:07.409 ORIGIN_CLIENT_HIDE_SOFT_INPUT
       reason=HIDE_SOFT_INPUT PHASE_CLIENT_ANIMATION_FINISHED_HIDE
-      requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
-    #20 TYPE_SHOW - STATUS_SUCCESS - io.github.willyros01.fidunio:f8e60d03 (179ms):
-      startTime=2026-11-24 20:28:03.705 ORIGIN_CLIENT_SHOW_SOFT_INPUT
+      requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    #18 TYPE_SHOW - STATUS_SUCCESS - io.github.willyros01.fidunio:140b60d7 (216ms):
+      startTime=2026-11-24 20:52:34.687 ORIGIN_CLIENT_SHOW_SOFT_INPUT
       reason=SHOW_SOFT_INPUT PHASE_CLIENT_ANIMATION_FINISHED_SHOW
-      requestWindowName=9ff52e2 io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+      requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    #20 TYPE_HIDE - STATUS_CANCEL - io.github.willyros01.fidunio:54937f85 (3ms):
+      startTime=2026-11-24 20:52:49.478 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+      reason=HIDE_SOFT_INPUT_BY_INSETS_API PHASE_SERVER_SHOULD_HIDE
+      requestWindowName=not set
+    #19 TYPE_HIDE - STATUS_SUCCESS - io.github.willyros01.fidunio:6243caed (168ms):
+      startTime=2026-11-24 20:52:49.313 ORIGIN_CLIENT_HIDE_SOFT_INPUT
+      reason=HIDE_SOFT_INPUT PHASE_CLIENT_ANIMATION_FINISHED_HIDE
+      requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
+    #21 TYPE_SHOW - STATUS_SUCCESS - io.github.willyros01.fidunio:910e372f (221ms):
+      startTime=2026-11-24 20:53:05.293 ORIGIN_CLIENT_SHOW_SOFT_INPUT
+      reason=SHOW_SOFT_INPUT PHASE_CLIENT_ANIMATION_FINISHED_SHOW
+      requestWindowName=39a9dfb io.github.willyros01.fidunio/io.github.willyros01.fidunio.MainActivity
  
-Input method client state for android.view.inputmethod.InputMethodManager@4a9db9e:
-  mFallbackInputConnection=RemoteInputConnectionImpl{connection=android.view.inputmethod.BaseInputConnection@770d67f finished=false mParentInputMethodManager.isActive()=true mServedView=null}
-  mActive=true mRestartOnNextWindowFocus=false mBindSequence=20 mCurImeId=com.android.inputmethod.latin/.LatinIME
+Input method client state for android.view.inputmethod.InputMethodManager@35efe3b:
+  mFallbackInputConnection=RemoteInputConnectionImpl{connection=android.view.inputmethod.BaseInputConnection@d8a6958 finished=false mParentInputMethodManager.isActive()=true mServedView=null}
+  mActive=true mRestartOnNextWindowFocus=false mBindSequence=22 mCurImeId=com.android.inputmethod.latin/.LatinIME
   mFullscreenMode=false
-  mCurMethod=com.android.internal.inputmethod.IInputMethodSession$Stub$Proxy@1a0364c
-  mCurRootView=android.view.ViewRootImpl@c8a7695
-  mServedView=io.github.willyros01.fidunio.FidunioWebView{2500322 VFEDHVC.. .F...... 0,0-1080,1371 #7f090204 app:id/webview aid=1073741824}
-  mNextServedView=io.github.willyros01.fidunio.FidunioWebView{2500322 VFEDHVC.. .F...... 0,0-1080,1371 #7f090204 app:id/webview aid=1073741824}
+  mCurMethod=com.android.internal.inputmethod.IInputMethodSession$Stub$Proxy@217dab1
+  mCurRootView=android.view.ViewRootImpl@eb03b96
+  mServedView=io.github.willyros01.fidunio.FidunioWebView{699197d VFEDHVC.. .F...... 0,0-1080,1371 #7f090204 app:id/webview aid=1073741824}
+  mNextServedView=io.github.willyros01.fidunio.FidunioWebView{699197d VFEDHVC.. .F...... 0,0-1080,1371 #7f090204 app:id/webview aid=1073741824}
   mServedConnecting=false
   mCurrentEditorInfo:
     inputType=0x2c0a1 imeOptions=0x12000001 privateImeOptions=null
@@ -391,20 +407,20 @@ Input method client state for android.view.inputmethod.InputMethodManager@4a9db9
     supportedHandwritingGestureTypes=(none)
     supportedHandwritingGesturePreviewTypes=(none)
     contentMimeTypes=[image/gif, image/png, image/webp, image/jpeg]
-  mServedInputConnection=RemoteInputConnectionImpl{connection=androidx.core.view.inputmethod.InputConnectionCompat$1@35413aa finished=false mParentInputMethodManager.isActive()=true mServedView=io.github.willyros01.fidunio.FidunioWebView{2500322 VFEDHVC.. .F...... 0,0-1080,1371 #7f090204 app:id/webview aid=1073741824}}
-  mServedInputConnectionHandler=Handler (android.os.Handler) {8465b9b}
+  mServedInputConnection=RemoteInputConnectionImpl{connection=androidx.core.view.inputmethod.InputConnectionCompat$1@f354317 finished=false mParentInputMethodManager.isActive()=true mServedView=io.github.willyros01.fidunio.FidunioWebView{699197d VFEDHVC.. .F...... 0,0-1080,1371 #7f090204 app:id/webview aid=1073741824}}
+  mServedInputConnectionHandler=Handler (android.os.Handler) {ee8c304}
   mCompletions=null
   mCursorRect=Rect(0, 0 - 0, 0)
   mCursorSelStart=0 mCursorSelEnd=0 mCursorCandStart=-1 mCursorCandEnd=-1
  
-Input method service state for com.android.inputmethod.latin.LatinIME@f844f7d:
+Input method service state for com.android.inputmethod.latin.LatinIME@b69c3d1:
   mViewsCreated=true
   mDecorViewVisible=true mDecorViewWasVisible=true mWindowVisible=true mInShowWindow=false
-  Configuration={1.0 310mcc260mnc [en_US] ldltr sw411dp w411dp h842dp 420dpi nrml long port finger qwerty/v/v -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 128 - 1080, 2337) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.5 s.171 fontWeightAdjustment=0}
-  mToken=android.os.BinderProxy@73fe81f
-  mInputBinding=InputBinding{android.os.BinderProxy@d3a3593 / uid 10141 / pid 2475}
-  mInputConnection=RemoteInputConnection{idHash=#cdc9d0}
-  mStartedInputConnection=RemoteInputConnection{idHash=#1fc7dc9}
+  Configuration={1.0 310mcc260mnc [en_US] ldltr sw411dp w411dp h842dp 420dpi nrml long port finger qwerty/v/v -nav/h winConfig={ mBounds=Rect(0, 0 - 1080, 2400) mAppBounds=Rect(0, 128 - 1080, 2337) mMaxBounds=Rect(0, 0 - 1080, 2400) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mDisplayWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.5 s.167 fontWeightAdjustment=0}
+  mToken=android.os.BinderProxy@c37002f
+  mInputBinding=InputBinding{android.os.BinderProxy@2eb7a04 / uid 10141 / pid 2425}
+  mInputConnection=RemoteInputConnection{idHash=#885bed}
+  mStartedInputConnection=RemoteInputConnection{idHash=#c5f8a22}
   mInputStarted=true mInputViewStarted=true mCandidatesViewStarted=false
   mInputEditorInfo:
     inputType=0x2c0a1 imeOptions=0x12000001 privateImeOptions=null
@@ -424,7 +440,7 @@ Input method service state for com.android.inputmethod.latin.LatinIME@f844f7d:
 Last computed insets:
   contentTopInsets=1371 visibleTopInsets=1371 touchableInsets=3 touchableRegion=SkRegion((0,1371,1080,2146))
  mSettingsObserver=SettingsObserver{mShowImeWithHardKeyboard=2}
- mNavigationBarController={mImeDrawsImeNavBar=true mNavigationBarFrame=android.inputmethodservice.navigationbar.NavigationBarFrame{66378d2 V.E...... ........ 0,2146-1080,2272} mShouldShowImeSwitcherWhenImeIsShown=true mAppearance=0x0 mDarkIntensity=0.0 mDrawLegacyNavigationBarBackground=false}
+ mNavigationBarController={mImeDrawsImeNavBar=true mNavigationBarFrame=android.inputmethodservice.navigationbar.NavigationBarFrame{9105cb3 V.E...... ........ 0,2146-1080,2272} mShouldShowImeSwitcherWhenImeIsShown=true mAppearance=0x0 mDarkIntensity=0.0 mDrawLegacyNavigationBarBackground=false}
 LatinIME state :
   VersionCode = 30
   VersionName = 14

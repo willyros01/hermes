@@ -5,11 +5,14 @@ signed in
 COPY: Press and hold a message, tap Copy
 AS EXPECTED COPY — observed: Copy button present; clipboard now: " Copy test 4417"
 
+SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap Copy, then Done
+AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
+
 PASTE: Press and hold the message box, tap the phone's Paste
-AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286"
+AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "   Paste test 2286"
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared (8:27 PM Sent)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared (8:52 PM Sent)
 
 KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
 AS EXPECTED KEYBOARD-GIF — observed: GIF message appeared
@@ -37,9 +40,10 @@ AS EXPECTED BACK-RETURN — observed: unlocked
 
 BACK-KEY: 3-button Back key while in a chat
 AS EXPECTED BACK-KEY — observed: Messages list shown
+Alice account found: yes
 
 HELP-SETTINGS: Settings → HELP Alert: Turn on, tick Simulator Bob, Save
-TEST ERROR HELP-SETTINGS: timed out: save result
+AS EXPECTED HELP-SETTINGS — observed: screen: "Saved."; server: enabled=true, contacts=1
 
 HELP-BUTTON: Back to Messages
 AS EXPECTED HELP-BUTTON — observed: HELP button shown
@@ -48,25 +52,25 @@ HELP-QUICK-TAP: HELP screen: a quick tap on the big button (not held)
 AS EXPECTED HELP-QUICK-TAP — observed: nothing sent
 
 HELP-SEND: Press and hold the HELP button for 3 seconds; allow location when the phone asks
-DIFFERENT HELP-SEND — observed: screen: "Help alert sent"; location prompts answered: ONLY THIS TIME; server: NO alert
+AS EXPECTED HELP-SEND — observed: screen: "Help alert sent"; location prompts answered: ONLY THIS TIME; server: open alert for Bob
 
 HELP-PICTURE: Tap the "I'm hurt" picture button
-DIFFERENT HELP-PICTURE — observed: not marked sent
+AS EXPECTED HELP-PICTURE — observed: "I'm hurt" sent
 
 HELP-ACK: Bob answers "I'm on it" (from his phone)
-DIFFERENT HELP-ACK — observed: no alert to answer
+AS EXPECTED HELP-ACK — observed: screen: "Simulator Bob is coming"
 
 HELP-CHAT-CARDS: Open the chat with Bob
-AS EXPECTED HELP-CHAT-CARDS — observed: map link shown; chat text: ent 8:27 PM Sent 8:27 PM Sent You are now one of my HELP contacts. 8:29 PM Sending 🆘 HELP alert Open location on a map 8:30 PM Sending I'm hurt 8:30 PM Sending
+AS EXPECTED HELP-CHAT-CARDS — observed: map link shown; chat text: 8:51 PM Sent 8:52 PM Sent 8:52 PM Sent You are now one of my HELP contacts. 8:54 PM Sent 🆘 HELP alert Open location on a map 8:54 PM Sent I'm hurt 8:55 PM Sent
 
 HELP-SAFE: Open the HELP alert from the banner, tap "I'm safe now"
-DIFFERENT HELP-SAFE — observed: server: undefined; screen: big HELP button
+AS EXPECTED HELP-SAFE — observed: server: safe; screen: big HELP button
 
 HELP-INCOMING: Bob sends HELP to Alice (from his phone)
-DIFFERENT HELP-INCOMING — observed: screen: "HELP screen did not open"
+AS EXPECTED HELP-INCOMING — observed: opened: "🆘 Simulator Bob needs help"; server: Alice is on it
 
 HELP-TEST: Settings → "Test my HELP alert", then "Cancel — it was a mistake"
-DIFFERENT HELP-TEST — observed: screen: "TEST — Help alert sent"; server: no test alert
+DIFFERENT HELP-TEST — observed: screen: "TEST — Help alert sent"; server: open
 
 HELP-PROTECT: Settings: tick "Protect this account", Save (asks PIN), then try Sign Out
 TEST ERROR HELP-PROTECT: Android WebView did not answer within 20 seconds
