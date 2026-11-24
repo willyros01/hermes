@@ -61,31 +61,45 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
   let services=null;
   const fs=()=>services.fsSdk,db=()=>services.db;
 
+  /* A listener that stops on an error (connection, sign-in still settling) is
+   * started again after a short wait, as long as the same account is signed in. */
+  let generation=0;
+  function watch(gen,makeQuery,onNext){
+    if(gen!==generation)return;
+    const s=fs();
+    const unsub=s.onSnapshot(makeQuery(s),onNext,()=>{
+      try{unsub();}catch{}
+      setTimeout(()=>watch(gen,makeQuery,onNext),3000);
+    });
+    st.unsub.push(unsub);
+  }
   async function start(uid){
     stop();st.uid=String(uid||"");if(!st.uid)return;
+    const gen=++generation;
     services=await initFirebase();
+    if(gen!==generation)return;
     /* Android: HELP gets its own urgent notification channel (made once; harmless if it exists). */
     try{const fm=globalThis.Capacitor?.getPlatform?.()==="android"?globalThis.Capacitor?.Plugins?.FirebaseMessaging:null;
       if(fm?.createChannel){await fm.createChannel({id:"fidunio-help",name:"HELP alerts",description:"Urgent HELP from your family",importance:5,visibility:1,vibration:true,lights:true});
         await fm.createChannel({id:"fidunio-help-update",name:"HELP updates",description:"Who is coming, safe now",importance:4,visibility:1});}}catch{}
-    const s=fs();
-    st.unsub.push(s.onSnapshot(s.doc(db(),"helpSettings",st.uid),snap=>{
+    if(gen!==generation)return;
+    watch(gen,s=>s.doc(db(),"helpSettings",st.uid),snap=>{
       const d=snap.exists()?snap.data():{};
       st.settings={enabled:d.enabled===true,helperUids:Array.isArray(d.helperUids)?d.helperUids.slice(0,MAX_HELPERS):[],protected:d.protected===true};
       st.settingsLoaded=true;render({background:true});
-    },()=>{}));
-    st.unsub.push(s.onSnapshot(s.query(s.collection(db(),"helpAlerts"),s.where("senderUid","==",st.uid),s.where("state","==","open")),snap=>{
+    });
+    watch(gen,s=>s.query(s.collection(db(),"helpAlerts"),s.where("senderUid","==",st.uid),s.where("state","==","open")),snap=>{
       st.mine=snap.docs.map(d=>({id:d.id,...d.data()}));render({background:true});
-    },()=>{}));
-    st.unsub.push(s.onSnapshot(s.query(s.collection(db(),"helpAlerts"),s.where("helperUids","array-contains",st.uid),s.where("state","==","open")),snap=>{
+    });
+    watch(gen,s=>s.query(s.collection(db(),"helpAlerts"),s.where("helperUids","array-contains",st.uid),s.where("state","==","open")),snap=>{
       st.incoming=snap.docs.map(d=>({id:d.id,...d.data()}));
       /* A new HELP alert opens its HELP screen straight away (after PIN/face, as usual). */
       const fresh=st.incoming.find(a=>!shown.has(a.id)&&!(a.acks&&st.uid in a.acks));
       st.incoming.forEach(a=>shown.add(a.id));
       if(fresh&&isUnlocked()){void people().then(()=>openAlert(fresh.id));}else render({background:true});
-    },()=>{}));
+    });
   }
-  function stop(){st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settingsLoaded=false;}
+  function stop(){generation++;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[],protected:false};st.settingsLoaded=false;}
   async function people(){if(!st.people.length){try{st.people=(await listCloudUsers())||[];}catch{}}return st.people;}
   const nameOf=uid=>{const p=st.people.find(p=>String(p.uid)===String(uid));return p?.displayName||p?.email||"A FIDUNIO member";};
 
@@ -146,6 +160,8 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
     const value={enabled:!!next.enabled,helperUids:[...new Set(next.helperUids||[])].filter(u=>u&&u!==st.uid).slice(0,MAX_HELPERS),protected:!!next.protected,updatedAt:s.serverTimestamp()};
     const added=value.helperUids.filter(u=>!st.settings.helperUids.includes(u));
     await s.setDoc(s.doc(db(),"helpSettings",st.uid),value);   /* resolves only when the server has it */
+    /* The server has it: use it now, without waiting for the listener. */
+    st.settings={enabled:value.enabled,helperUids:value.helperUids.slice(),protected:value.protected};st.settingsLoaded=true;
     for(const uid of added){try{await sendHelpText(uid,encodeHelpCard({alertId:"contact",kind:"contact"}));}catch{}}
   }
 
