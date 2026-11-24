@@ -3131,7 +3131,7 @@ function renderSettings(){
     <main class="app-shell">
       ${shellTop("Settings",'<button class="back-btn" id="backBtn">‹</button>')}
       <section class="content settings">
-        <div id="helpSettingsHost"></div>
+        <div class="card help-settings" id="helpSettingsHost"><h2>HELP Alert</h2></div>
         <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
           ${(()=>{const security=getLocalSecurityStatus(),nativeIOS=isNativeIOSRuntime();return `
             <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Face ID or biometric enabled":""}</span></div>
