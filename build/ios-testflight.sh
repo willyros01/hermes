@@ -26,6 +26,7 @@ rm -rf ios
 npx cap add ios
 npx cap sync ios
 node build/apply-ios-native-services.mjs
+node build/apply-ios-help.mjs
 node build/apply-ios-export-compliance.mjs
 node build/apply-ios-icon.mjs
 PLIST=ios/App/App/Info.plist
@@ -79,6 +80,8 @@ security cms -D -i "$APP/embedded.mobileprovision" > "$TASK_DIR/profile.plist"
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$TASK_DIR/profile.plist" | grep -qx 'VXMLKHF72B.io.github.willyros01.fidunio'
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$TASK_DIR/profile.plist" | grep -qx false
 /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$TASK_DIR/profile.plist" | grep -qx production
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.usernotifications.time-sensitive' "$TASK_DIR/profile.plist" | grep -qx true
+/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.networking.wifi-info' "$TASK_DIR/profile.plist" | grep -qx true
 codesign -d --entitlements :- "$APP" > "$TASK_DIR/signed-entitlements.plist" 2>/dev/null
 /usr/libexec/PlistBuddy -c 'Print :aps-environment' "$TASK_DIR/signed-entitlements.plist" | grep -qx production
 test -s "$APP/PrivacyInfo.xcprivacy"
