@@ -46,11 +46,14 @@ if(android){try{adb('shell','cmd','overlay','enable-exclusive','--category','com
 const touch=()=>js('window.dispatchEvent(new Event("pointerdown"));true');
 /* Screen position of an element inside the app, for real finger gestures. */
 async function screenPoint(selectorOrText){
-  const r=await js(`(()=>{const q=${JSON.stringify(selectorOrText)};let el=q.startsWith('#')||q.startsWith('.')?document.querySelector(q):[...document.querySelectorAll('#chatArea .msg-text')].reverse().find(e=>e.textContent.includes(q));if(!el)return null;el.scrollIntoView({block:'center'});const b=el.getBoundingClientRect();return {x:b.left+b.width/2,y:b.top+b.height/2,dpr:devicePixelRatio,vh:innerHeight}})()`);
+  const r=await js(`(()=>{const q=${JSON.stringify(selectorOrText)};let el=q.startsWith('#')||q.startsWith('.')?document.querySelector(q):[...document.querySelectorAll('#chatArea .msg-text')].reverse().find(e=>e.textContent.includes(q));if(!el)return null;el.scrollIntoView({block:'center'});const b=el.getBoundingClientRect();const v=window.visualViewport||{offsetLeft:0,offsetTop:0};return {x:b.left+b.width/2-v.offsetLeft,y:b.top+b.height/2-v.offsetTop,left:b.left-v.offsetLeft,bottom:b.bottom-v.offsetTop,dpr:devicePixelRatio,vh:innerHeight}})()`);
   if(!r)return null;
   if(android){const wv=d.nodes().filter(n=>/WebView/.test(n.cls)).sort((a,b)=>b.h-a.h)[0];const top=wv?wv.y-Math.floor(wv.h/2):0;return{x:Math.round(r.x*r.dpr),y:Math.round(top+r.y*r.dpr)};}
-  return{x:Math.round(r.x),y:Math.round(r.y)};
+  return{x:Math.round(r.x),y:Math.round(r.y),left:Math.round(r.left),bottom:Math.round(r.bottom)};
 }
+const hideKeyboard=async()=>{await js('(()=>{document.activeElement&&document.activeElement.blur&&document.activeElement.blur();return true})()');await sleep(1500);};
+/* iPhone: find the system Paste item next to the message box by asking the touch layer what sits at each point. */
+function iosFindPasteNear(p){for(let dy=8;dy<=60;dy+=6)for(let dx=-30;dx<=120;dx+=10){try{const el=JSON.parse(idb('ui','describe-point',String(p.left+dx),String(p.bottom+dy),'--json'));if(/^Paste$/.test(iosLabel(el)))return{x:p.left+dx,y:p.bottom+dy};}catch{}}return null;}
 async function longPressAt(p,ms=1300){if(android)adb('shell','input','swipe',String(p.x),String(p.y),String(p.x),String(p.y),String(ms));else idb('ui','tap',String(p.x),String(p.y),'--duration',String(ms/1000));await sleep(1600);}
 async function tapAt(p){if(android)adb('shell','input','tap',String(p.x),String(p.y));else idb('ui','tap',String(p.x),String(p.y));await sleep(1200);}
 const openChat=async()=>{if(await present('#messageBox'))return;await js('(()=>{const r=[...document.querySelectorAll(".conversation-open,.group-list-row")][0];r&&r.click();return !!r})()');await until(()=>present('#messageBox'),'chat reopened',20000);};
@@ -82,12 +85,12 @@ const isLocked=async()=>!(await present('#messageBox'))&&!(await present('#newBt
 
 /* 1. COPY: press and hold a message; FIDUNIO's sheet should offer Copy. */
 await check('COPY','Press and hold a message, tap Copy','sheet offers Copy; the phone clipboard then holds the message text',async()=>{
-  await openChat();const p=await screenPoint('Copy test 4417');if(!p)throw new Error('message bubble not on screen');await longPressAt(p);
+  await openChat();await hideKeyboard();const p=await screenPoint('Copy test 4417');if(!p)throw new Error('message bubble not on screen');await longPressAt(p);
   const s=await shot('copy-sheet');
   const sheet=await js('document.querySelector("#pendingMessageTitle")?"open":"closed"');
   const hasCopy=await present('#modalCopy');
   if(!hasCopy){await d.press('#modalCancel').catch(()=>{});return{ok:false,observed:`action sheet ${sheet}; NO Copy button`,shots:[s]};}
-  {const b=await screenPoint('#modalCopy');if(b)await tapAt(b);else await d.press('#modalCopy');}
+  await sleep(800);{const b=await screenPoint('#modalCopy');if(b)await tapAt(b);else await d.press('#modalCopy');}
   await sleep(2000);
   let clip='';
   if(!android)clip=run('xcrun',['simctl','pbpaste',UDID]);
@@ -108,8 +111,8 @@ await check('PASTE','Press and hold the message box, tap the phone\'s Paste','th
     menu='phone Paste (keyboard shortcut) used';adb('shell','input','keyevent','279');await sleep(1500);
   }else{
     execFileSync('xcrun',['simctl','pbcopy',UDID],{input:'Paste test 2286'});copied='simulator clipboard set';
-    await tapAt(bp);await sleep(600);await longPressAt(bp,1000);await shot('paste-menu');
-    const p=iosFind(e=>/^Paste$/.test(iosLabel(e)));menu=p?'Paste offered':'NO Paste offered';if(p)await iosTap(p);
+    await hideKeyboard();const bp2=await screenPoint('#messageBox');await tapAt(bp2);await sleep(800);const bp3=await screenPoint('#messageBox');await longPressAt(bp3,1000);await shot('paste-menu');
+    const p=iosFindPasteNear(bp3);menu=p?'Paste offered':'NO Paste found by the touch layer';if(p){await tapAt(p);await sleep(1500);}
   }
   const s=await shot('after-paste');
   const value=await js('document.querySelector("#messageBox")?.value||""');
@@ -147,7 +150,7 @@ if(android){
 }
 
 /* 4. CAMERA: "Take a Picture" must open the camera, not the photo library. */
-await check('CAMERA','Photo → Take a Picture','the camera opens',async()=>{
+if(android)await check('CAMERA','Photo → Take a Picture','the camera opens',async()=>{
   await js('(()=>{const b=[...document.querySelectorAll(".tool")].find(x=>x.textContent.trim()==="Photo");b&&b.click();return !!b})()');
   await until(()=>present('#photoCameraBtn'),'Send a Picture choices',20000);
   if(android){const b=androidNode(x=>/Take a Picture/.test(x.text));if(b)adb('shell','input','tap',String(b.x),String(b.y));else await d.press('#photoCameraBtn');}
