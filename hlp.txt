@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# FIDUNIO HELP alerts: database rules + HELP server functions
+#
+# ONE COMMAND, NO PARAMETERS:
+#   bash hlp.txt
+#
+# This script:
+# - explicitly switches to fidunio-fef13 and checks project number 130339622893
+# - saves the exact live Firestore rules and refuses to continue unless they
+#   exactly match FIDUNIO main
+# - ADDS the HELP rules (helpSettings, helpAlerts) to those live rules; nothing
+#   else in the rules changes
+# - tests the result on the Firestore emulator (no live data touched)
+# - deploys ONLY the Firestore rules, then checks the exact tested rules are live
+# - deploys ONLY the new "help" functions (helpAlertCreatedV1,
+#   helpAlertUpdatedV1, helpAlertSweepV1); existing functions are not touched
+# - writes a rollback script first
+#
+# It does NOT change Storage rules, IAM, App Check, existing functions,
+# application data, TestFlight or the Android APK.
+set -euo pipefail
+
+PROJECT="fidunio-fef13"
+PROJECT_NUMBER_EXPECTED="130339622893"
+MAIN_SHA="f89c9188004171b762b6563011589fdb7353013e"
+HELP_COMMIT="9884cf5f641429d6d937b4acd66d7cc0787f5f9c"
+REPO="willyros01/hermes"
+RULES_API="https://firebaserules.googleapis.com/v1"
+
+say(){ printf '\n==== %s ====\n' "$*"; }
+stop(){ echo "STOP: $*" >&2; exit 1; }
+for cmd in gcloud curl jq python3 tar npm cmp node; do command -v "$cmd" >/dev/null 2>&1 || stop "$cmd is required"; done
+
+say "1/8 FIDUNIO project safety switch"
+gcloud config set project "$PROJECT" >/dev/null
+ACTIVE="$(gcloud config get-value project 2>/dev/null)"
+NUMBER="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+[[ "$ACTIVE" == "$PROJECT" ]] || stop "Project switch failed; active project is '$ACTIVE'."
+[[ "$NUMBER" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Wrong project number '$NUMBER'."
+echo "PASS: target project is $PROJECT ($NUMBER)."
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_DIR="$HOME/fidunio-help-$STAMP"
+WORK="$(mktemp -d)"
+mkdir -p "$BACKUP_DIR"
+trap 'rm -rf "$WORK"' EXIT
+
+live_rules(){ # $1 = output file
+  local token rs
+  token="$(gcloud auth print-access-token)"
+  rs="$(curl -fsS -H "Authorization: Bearer $token" "$RULES_API/projects/$PROJECT/releases/cloud.firestore" | jq -r '.rulesetName // empty')"
+  [[ "$rs" == projects/*/rulesets/* ]] || stop "Could not read the live Firestore ruleset."
+  echo "$rs" > "$1.name"
+  curl -fsS -H "Authorization: Bearer $token" "$RULES_API/$rs" | python3 -c '
+import json,sys
+f=json.load(sys.stdin).get("source",{}).get("files",[])
+if len(f)!=1: raise SystemExit("STOP: expected one live rules file, found %d"%len(f))
+sys.stdout.write(f[0]["content"])' > "$1"
+}
+
+say "2/8 Save the exact live Firestore rules"
+live_rules "$BACKUP_DIR/firestore-before.rules"
+echo "Live ruleset: $(cat "$BACKUP_DIR/firestore-before.rules.name")"
+
+say "3/8 Live rules must equal FIDUNIO main"
+curl --retry 3 -fsSL "https://raw.githubusercontent.com/$REPO/$MAIN_SHA/firestore.rules" -o "$WORK/main.rules"
+if ! cmp -s "$BACKUP_DIR/firestore-before.rules" "$WORK/main.rules"; then
+  diff -u "$WORK/main.rules" "$BACKUP_DIR/firestore-before.rules" > "$BACKUP_DIR/live-vs-main.diff" || true
+  echo "NOTHING WAS DEPLOYED. Difference saved at: $BACKUP_DIR/live-vs-main.diff"
+  stop "Live rules are not the expected FIDUNIO main rules."
+fi
+echo "PASS: live rules exactly match FIDUNIO main."
+
+say "4/8 Download the tested HELP code and add the HELP rules"
+curl --retry 3 -fsSL "https://github.com/$REPO/archive/$HELP_COMMIT.tar.gz" -o "$WORK/repo.tgz"
+tar -xzf "$WORK/repo.tgz" -C "$WORK"
+ROOT="$WORK/hermes-$HELP_COMMIT"
+[[ -d "$ROOT/functions-help" ]] || stop "HELP code did not unpack."
+node "$ROOT/build/merge-help-rules.mjs" "$BACKUP_DIR/firestore-before.rules" "$ROOT/firestore-help.rules" "$WORK/candidate.rules"
+python3 - "$BACKUP_DIR/firestore-before.rules" "$WORK/candidate.rules" <<'PY'
+import sys
+a=open(sys.argv[1]).read(); b=open(sys.argv[2]).read()
+i=b.find("FIDUNIO HELP alerts")
+if i<0: raise SystemExit("STOP: HELP rules missing from candidate")
+# The candidate must be the old rules with one block added, nothing removed.
+removed=[l for l in a.splitlines() if l not in b.splitlines()]
+if removed: raise SystemExit("STOP: candidate changed existing rule lines: %r"%removed[:3])
+print("PASS: candidate = live rules + HELP block only (%d lines added)"%(len(b.splitlines())-len(a.splitlines())))
+PY
+
+if ! command -v firebase >/dev/null 2>&1; then npm install -g firebase-tools; fi
+
+say "5/8 Test the HELP rules on the Firestore emulator (no live data)"
+(
+  cd "$ROOT"
+  npm ci --ignore-scripts --no-audit --no-fund >/dev/null
+  HELP_RULES="$WORK/candidate.rules" firebase emulators:exec --only firestore \
+    --project demo-fidunio-help-rules "node firestore-help.rules.test.mjs"
+  node functions-help/help-core.test.mjs
+)
+
+say "6/8 Rollback script (written before any change)"
+cp "$BACKUP_DIR/firestore-before.rules" "$BACKUP_DIR/firestore.rules"
+printf '{\n  "firestore": {\n    "rules": "firestore.rules"\n  }\n}\n' > "$BACKUP_DIR/firebase.json"
+cat > "$BACKUP_DIR/rollback.sh" <<ROLLBACK
+#!/usr/bin/env bash
+# Restores the exact rules from before HELP and removes the three HELP functions.
+set -euo pipefail
+gcloud config set project "$PROJECT" >/dev/null
+[[ "\$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')" == "$PROJECT_NUMBER_EXPECTED" ]] || { echo "STOP: wrong project"; exit 1; }
+cd "$BACKUP_DIR"
+firebase deploy --only firestore:rules --project "$PROJECT" --non-interactive
+firebase functions:delete helpAlertCreatedV1 helpAlertUpdatedV1 helpAlertSweepV1 --region us-central1 --project "$PROJECT" --force || true
+echo "ROLLBACK COMPLETE: rules restored, HELP functions removed."
+ROLLBACK
+chmod +x "$BACKUP_DIR/rollback.sh"
+echo "Rollback ready: $BACKUP_DIR/rollback.sh"
+
+say "7/8 Deploy ONLY the Firestore rules, then check they are live"
+gcloud config set project "$PROJECT" >/dev/null
+[[ "$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')" == "$PROJECT_NUMBER_EXPECTED" ]] || stop "Project changed."
+mkdir -p "$WORK/rules"
+cp "$WORK/candidate.rules" "$WORK/rules/firestore.rules"
+printf '{\n  "firestore": {\n    "rules": "firestore.rules"\n  }\n}\n' > "$WORK/rules/firebase.json"
+( cd "$WORK/rules" && firebase deploy --only firestore:rules --project "$PROJECT" --non-interactive )
+sleep 3
+live_rules "$BACKUP_DIR/firestore-after.rules"
+cmp -s "$BACKUP_DIR/firestore-after.rules" "$WORK/candidate.rules" || stop "Live rules differ from the tested rules. Rollback: bash $BACKUP_DIR/rollback.sh"
+echo "PASS: the tested HELP rules are live ($(cat "$BACKUP_DIR/firestore-after.rules.name"))."
+
+say "8/8 Deploy ONLY the new HELP functions (codebase 'help')"
+mkdir -p "$WORK/fn"
+cp -R "$ROOT/functions-help" "$WORK/fn/functions-help"
+cat > "$WORK/fn/firebase.json" <<'JSON'
+{
+  "functions": [
+    { "source": "functions-help", "codebase": "help", "ignore": ["node_modules", "*.test.mjs"] }
+  ]
+}
+JSON
+( cd "$WORK/fn/functions-help" && npm ci --ignore-scripts --no-audit --no-fund >/dev/null )
+( cd "$WORK/fn" && firebase deploy --only functions:help --project "$PROJECT" --non-interactive )
+LIST="$(gcloud functions list --regions=us-central1 --format='value(name)' 2>/dev/null || true)"
+for f in helpAlertCreatedV1 helpAlertUpdatedV1 helpAlertSweepV1; do
+  grep -q "$f" <<<"$LIST" || stop "$f is not listed after deploy. Rollback: bash $BACKUP_DIR/rollback.sh"
+done
+echo "PASS: helpAlertCreatedV1, helpAlertUpdatedV1, helpAlertSweepV1 are deployed."
+
+say "SUCCESS"
+echo "FIDUNIO HELP server side is live (rules + 3 HELP functions)."
+echo "Backup and rollback: $BACKUP_DIR"
+echo "Nothing else was changed. HELP stays unused until the new app build reaches phones."
