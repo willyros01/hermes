@@ -34,6 +34,7 @@ public final class FidunioAdmService extends A3LMessagingService {
     }catch(Exception ignored){return;}
     final Map<String,String> data=message.getData();
     if(data==null)return;
+    if("help-alert".equals(data.get("type"))){showHelp(context,data);return;}
     final String type=data.get("type");
     final String conversation=data.get("conversationId");
     final String id=data.get("messageId");
@@ -63,6 +64,37 @@ public final class FidunioAdmService extends A3LMessagingService {
       .setContentTitle("FIDUNIO").setContentText(body)
       .setAutoCancel(true).setContentIntent(pending)
       .setPriority(NotificationCompat.PRIORITY_HIGH);
+    manager.notify(requestId,builder.build());
+  }
+  /* FIDUNIO HELP (2026-11-24): its own urgent channel; the text is only
+   * "HELP from <name>" style, checked here as well as on the server. */
+  private static final String HELP_CHANNEL="fidunio_help";
+  private void showHelp(Context context,Map<String,String> data){
+    final String alertId=data.get("alertId");
+    String body=data.get("notificationBody");
+    if(!valid(alertId)||body==null||body.length()>120)return;
+    if(!(body.startsWith("HELP from ")||body.startsWith("TEST — HELP from ")||body.endsWith(" is coming")||body.endsWith(" is safe now")||body.endsWith(": sorry, it was a mistake")))return;
+    if(Build.VERSION.SDK_INT>=33&&
+       context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return;
+    final NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+    if(manager==null)return;
+    if(Build.VERSION.SDK_INT>=26){
+      NotificationChannel channel=new NotificationChannel(HELP_CHANNEL,"HELP alerts",NotificationManager.IMPORTANCE_HIGH);
+      channel.enableVibration(true);channel.setBypassDnd(true);
+      manager.createNotificationChannel(channel);
+    }
+    Intent intent=new Intent(context,MainActivity.class);
+    intent.setAction("io.github.willyros01.fidunio.HELP."+alertId);
+    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    final int requestId=("help|"+alertId).hashCode();
+    PendingIntent pending=PendingIntent.getActivity(context,requestId,intent,
+      PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+    NotificationCompat.Builder builder=new NotificationCompat.Builder(context,HELP_CHANNEL)
+      .setSmallIcon(android.R.drawable.ic_dialog_alert)
+      .setContentTitle("FIDUNIO HELP").setContentText(body)
+      .setAutoCancel(true).setContentIntent(pending)
+      .setCategory(NotificationCompat.CATEGORY_ALARM)
+      .setPriority(NotificationCompat.PRIORITY_MAX);
     manager.notify(requestId,builder.build());
   }
 }
