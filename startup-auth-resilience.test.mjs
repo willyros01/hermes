@@ -23,7 +23,7 @@ assert.doesNotMatch(app,/if\(!security\.available\)[\s\S]{0,800}continueBtn/,
   "unavailable PIN storage must fail closed without a Continue bypass");
 assert.match(security,/document\.visibilityState==="hidden"\)\{leaveApp\(\)/,"switching away from FIDUNIO goes through the one leave owner");
 assert.match(security,/function leaveApp\(\)\{[\s\S]{0,160}getLockTimeoutMs\(\)===0\)monitor\.onLock\("background"\)/,"Immediately must still lock the moment FIDUNIO leaves the screen");
-assert.match(security,/function returnToApp\(\)\{[\s\S]{0,220}Date\.now\(\)-activityAt>=timeout\)\{monitor\.onLock\("background"\)/,"returning after the chosen time must lock before use");
+assert.match(security,/function returnToApp\([^)]*\)\{[\s\S]{0,260}Date\.now\(\)-activityAt>=timeout\)\{monitor\.onLock\("background"\)/,"returning after the chosen time must lock before use");
 assert.match(security,/window\.addEventListener\("pagehide",leaveApp\)/,"iOS pagehide must use the same leave owner");
 assert.doesNotMatch(security,/label:"Never"/,"Never was removed by the owner on 2026-11-24");
 
