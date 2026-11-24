@@ -381,7 +381,12 @@ if(label==='fix'){
   });
 
   await check('HELP-TEST','Settings → "Test my HELP alert", then "Cancel — it was a mistake"','TEST alert sent, then cancelled (server: cancelled)',async()=>{
-    await toSettings();await realTap('#helpTest');
+    await toSettings();
+    const info=async()=>js(`(()=>{const b=document.querySelector("#helpTest");if(!b)return "no Test button";const r=b.getBoundingClientRect();return "Test button disabled="+b.disabled+" top="+Math.round(r.top)+" scrollY="+Math.round(scrollY)+" screen="+(document.querySelector(".app-shell h1,.app-shell .title")?.textContent||"").trim().slice(0,20)})()`);
+    log('before tap: '+await info());
+    const tp=await screenPoint('#helpTest');log('tap point: '+JSON.stringify(tp)+'; then: '+await info());
+    const hit=await js(`(()=>{const v=window.visualViewport||{offsetLeft:0,offsetTop:0};const e=document.elementFromPoint(${tp?tp.x:0}+v.offsetLeft,${tp?tp.y:0}+v.offsetTop);return e?(e.id||e.className||e.tagName):"nothing"})()`);log('element under the tap point: '+hit);
+    await tapAt(tp);await sleep(800);log('after tap: '+await info()+'; help screen: '+await present('#helpHold')+'/'+await present('.help-sent'));
     /* Like a person: answer the phone's location question if it shows, and tap Cancel as soon as it is there. */
     let t='',s1='';const end=Date.now()+20000;
     while(Date.now()<end){
