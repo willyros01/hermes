@@ -269,12 +269,24 @@ async function submit(app, version) {
 }
 
 async function main() {
-  if (!["inspect", "reference", "prepare", "submit", "diagnose"].includes(STAGE)) throw new Error("STAGE must be inspect, prepare or submit");
+  if (!["inspect", "reference", "prepare", "submit", "diagnose", "release"].includes(STAGE)) throw new Error("STAGE must be inspect, prepare or submit");
   const app = (await api("GET", `/v1/apps?filter[bundleId]=${encodeURIComponent(BUNDLE_ID)}`)).data?.[0];
   if (!app) throw new Error(`no App Store Connect app for ${BUNDLE_ID}`);
   say(`OK    app ${app.attributes.name} (${app.id})`);
   const versions = (await api("GET", `/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS&limit=20`)).data || [];
   say(`versions: ${versions.map((v) => `${v.attributes.versionString}=${stateOf(v)}`).join(", ") || "none"}`);
+  if (STAGE === "release") {
+    // Willy, 24 Nov 2026: release the approved version publicly now.
+    const ready = versions.find((v) => stateOf(v) === "PENDING_DEVELOPER_RELEASE");
+    if (!ready) throw new Error("no approved version waiting for release");
+    await api("POST", "/v1/appStoreVersionReleaseRequests", { data: { type: "appStoreVersionReleaseRequests", relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: ready.id } } } } });
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const v = (await api("GET", `/v1/appStoreVersions/${ready.id}`)).data;
+      if (stateOf(v) !== "PENDING_DEVELOPER_RELEASE") { say(`RESULT: FIDUNIO ${v.attributes.versionString} released — state ${stateOf(v)}`); return; }
+    }
+    say(`RESULT: release requested for FIDUNIO ${ready.attributes.versionString} — Apple is still processing it`); return;
+  }
   const version = versions.find((v) => EDITABLE.includes(stateOf(v)));
   const builds = (await peek(`/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`)).data || [];
   say(`newest builds: ${builds.map((b) => `${b.attributes.version}=${b.attributes.processingState}${b.attributes.expired ? "(expired)" : ""}`).join(", ") || "none"}`);
