@@ -15,7 +15,7 @@ PASTE: Press and hold the message box, tap the phone's Paste
 AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286"
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared (11:09 PM Sent)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared (11:49 PM Sent)
 
 KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
 AS EXPECTED KEYBOARD-GIF — observed: GIF message appeared
@@ -46,6 +46,7 @@ AS EXPECTED BACK-KEY — observed: Messages list shown
 Alice account found: yes
 
 HELP-SETTINGS: Settings → HELP Alert: Turn on, tick Simulator Bob, Save
+HELP card is in: safety
 AS EXPECTED HELP-SETTINGS — observed: screen: "Saved."; server: enabled=true, contacts=1
 
 HELP-BUTTON: Back to Messages
@@ -64,7 +65,7 @@ HELP-ACK: Bob answers "I'm on it" (from his phone)
 AS EXPECTED HELP-ACK — observed: screen: "Simulator Bob is coming"
 
 HELP-CHAT-CARDS: Open the chat with Bob
-AS EXPECTED HELP-CHAT-CARDS — observed: map link shown; chat text: PM Sent 11:09 PM Sent 11:10 PM Sent You are now one of my HELP contacts. 11:11 PM Sent 🆘 HELP alert Open location on a map 11:12 PM Sent I'm hurt 11:12 PM Sent
+AS EXPECTED HELP-CHAT-CARDS — observed: map link shown; chat text: PM Sent 11:49 PM Sent 11:49 PM Sent You are now one of my HELP contacts. 11:50 PM Sent 🆘 HELP alert Open location on a map 11:51 PM Sent I'm hurt 11:51 PM Sent
 
 HELP-SAFE: Open the HELP alert from the banner, tap "I'm safe now"
 AS EXPECTED HELP-SAFE — observed: server: safe; screen: big HELP button
@@ -73,6 +74,10 @@ HELP-INCOMING: Bob sends HELP to Alice (from his phone)
 AS EXPECTED HELP-INCOMING — observed: opened: "🆘 Simulator Bob needs help"; server: Alice is on it
 
 HELP-TEST: Settings → "Test my HELP alert", then "Cancel — it was a mistake"
+before tap: Test button disabled=false top=3889 scrollY=0 screen=Settings
+tap point: {"x":541,"y":1234}; then: Test button disabled=false top=397 scrollY=3493 screen=Settings
+element under the tap point: nothing
+after tap: no Test button; help screen: false/true
 AS EXPECTED HELP-TEST — observed: screen: "TEST — Help alert sent"; server: cancelled
 
 HELP-PROTECT: Settings: tick "Protect this account", Save (asks PIN), then try Sign Out
