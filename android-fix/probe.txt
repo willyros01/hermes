@@ -8,11 +8,14 @@ AS EXPECTED COPY — observed: Copy button present; clipboard now: " Copy test 4
 SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap Copy, then Done
 AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
 
+LINK: Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open
+AS EXPECTED LINK — observed: asked first: true; Cancel stayed in chat: true; after Open: org.chromium.webview_shell/.WebViewBrowserActivity
+
 PASTE: Press and hold the message box, tap the phone's Paste
 AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "   Paste test 2286"
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared (9:34 PM Sent)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared (10:15 PM Sent)
 
 KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
 AS EXPECTED KEYBOARD-GIF — observed: GIF message appeared
@@ -61,7 +64,7 @@ HELP-ACK: Bob answers "I'm on it" (from his phone)
 AS EXPECTED HELP-ACK — observed: screen: "Simulator Bob is coming"
 
 HELP-CHAT-CARDS: Open the chat with Bob
-AS EXPECTED HELP-CHAT-CARDS — observed: map link shown; chat text: 9:33 PM Sent 9:34 PM Sent 9:34 PM Sent You are now one of my HELP contacts. 9:36 PM Sent 🆘 HELP alert Open location on a map 9:36 PM Sent I'm hurt 9:37 PM Sent
+AS EXPECTED HELP-CHAT-CARDS — observed: map link shown; chat text: PM Sent 10:15 PM Sent 10:15 PM Sent You are now one of my HELP contacts. 10:17 PM Sent 🆘 HELP alert Open location on a map 10:17 PM Sent I'm hurt 10:18 PM Sent
 
 HELP-SAFE: Open the HELP alert from the banner, tap "I'm safe now"
 AS EXPECTED HELP-SAFE — observed: server: safe; screen: big HELP button

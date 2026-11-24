@@ -4,8 +4,9 @@
 |---|---|---|---|---|
 | COPY | Press and hold a message, tap Copy | sheet offers Copy; the phone clipboard then holds the message text | Copy button present; clipboard now: " Copy test 4417" | as expected |
 | SELECT-TEXT | Press and hold a message, Select Text, press and hold one word, tap Copy, then Done | only that word is copied; Done goes back to the same chat | marked: "Copy"; copied: "Copy"; after Done: same chat | as expected |
+| LINK | Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open | "Open this link?" first; Cancel stays in the chat; Open shows the web page outside FIDUNIO | asked first: true; Cancel stayed in chat: true; after Open: org.chromium.webview_shell/.WebViewBrowserActivity | as expected |
 | PASTE | Press and hold the message box, tap the phone's Paste | the copied text appears in the message box | phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "   Paste test 2286" | as expected |
-| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (9:34 PM Sent) | as expected |
+| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (10:15 PM Sent) | as expected |
 | KEYBOARD-GIF | A GIF handed over by the keyboard (fix branch: native hand-over event) | FIDUNIO sends it as a photo | GIF message appeared | as expected |
 | KEYBOARD-GIF-OFFER | Does the message box tell the keyboard it accepts GIFs? | yes on the fix branch | GIF types offered to the keyboard | as expected |
 | CAMERA | Photo → Take a Picture | the camera opens | in front: com.android.camera2/com.android.camera.CaptureActivity | as expected |
@@ -21,7 +22,7 @@
 | HELP-SEND | Press and hold the HELP button for 3 seconds; allow location when the phone asks | "Help alert sent", a Cancel button, and the server has an open alert for Bob | screen: "Help alert sent"; location prompts answered: ONLY THIS TIME; server: open alert for Bob | as expected |
 | HELP-PICTURE | Tap the "I'm hurt" picture button | the button marks as sent | "I'm hurt" sent | as expected |
 | HELP-ACK | Bob answers "I'm on it" (from his phone) | Alice's HELP screen shows "Simulator Bob is coming" | screen: "Simulator Bob is coming" | as expected |
-| HELP-CHAT-CARDS | Open the chat with Bob | HELP cards in the chat: the alert with "Open location on a map", and "I'm hurt" | map link shown; chat text: 9:33 PM Sent 9:34 PM Sent 9:34 PM Sent You are now one of my HELP contacts. 9:36 PM Sent 🆘 HELP alert Open location on a map 9:36 PM Sent I'm hurt 9:37 PM Sent | as expected |
+| HELP-CHAT-CARDS | Open the chat with Bob | HELP cards in the chat: the alert with "Open location on a map", and "I'm hurt" | map link shown; chat text: PM Sent 10:15 PM Sent 10:15 PM Sent You are now one of my HELP contacts. 10:17 PM Sent 🆘 HELP alert Open location on a map 10:17 PM Sent I'm hurt 10:18 PM Sent | as expected |
 | HELP-SAFE | Open the HELP alert from the banner, tap "I'm safe now" | the alert closes (server: safe); HELP screen is back to the big button | server: safe; screen: big HELP button | as expected |
 | HELP-INCOMING | Bob sends HELP to Alice (from his phone) | Alice's FIDUNIO opens "Simulator Bob needs help" by itself; "I'm on it" tells the server | opened: "🆘 Simulator Bob needs help"; server: Alice is on it | as expected |
 | HELP-TEST | Settings → "Test my HELP alert", then "Cancel — it was a mistake" | TEST alert sent, then cancelled (server: cancelled) | screen: "TEST — Help alert sent"; server: cancelled | as expected |
@@ -39,94 +40,102 @@
 
 ![04-select-text-done.png](04-select-text-done.png)
 
-### PASTE — 06-after-paste.png
+### LINK — 05-link-ask.png
 
-![06-after-paste.png](06-after-paste.png)
+![05-link-ask.png](05-link-ask.png)
 
-### PICTURE-PASTE — 07-picture-paste.png
+### LINK — 06-link-opened.png
 
-![07-picture-paste.png](07-picture-paste.png)
+![06-link-opened.png](06-link-opened.png)
 
-### KEYBOARD-GIF — 08-keyboard-gif.png
+### PASTE — 08-after-paste.png
 
-![08-keyboard-gif.png](08-keyboard-gif.png)
+![08-after-paste.png](08-after-paste.png)
 
-### CAMERA — 09-after-take-picture.png
+### PICTURE-PASTE — 09-picture-paste.png
 
-![09-after-take-picture.png](09-after-take-picture.png)
+![09-picture-paste.png](09-picture-paste.png)
 
-### GRACE — 10-back-after-15s.png
+### KEYBOARD-GIF — 10-keyboard-gif.png
 
-![10-back-after-15s.png](10-back-after-15s.png)
+![10-keyboard-gif.png](10-keyboard-gif.png)
 
-### BACK-CHAT — 11-back-from-chat.png
+### CAMERA — 11-after-take-picture.png
 
-![11-back-from-chat.png](11-back-from-chat.png)
+![11-after-take-picture.png](11-after-take-picture.png)
 
-### BACK-POPUP — 12-back-popup.png
+### GRACE — 12-back-after-15s.png
 
-![12-back-popup.png](12-back-popup.png)
+![12-back-after-15s.png](12-back-after-15s.png)
 
-### BACK-MAIN — 13-back-main.png
+### BACK-CHAT — 13-back-from-chat.png
 
-![13-back-main.png](13-back-main.png)
+![13-back-from-chat.png](13-back-from-chat.png)
 
-### BACK-RETURN — 14-return-after-back.png
+### BACK-POPUP — 14-back-popup.png
 
-![14-return-after-back.png](14-return-after-back.png)
+![14-back-popup.png](14-back-popup.png)
 
-### BACK-KEY — 15-back-key.png
+### BACK-MAIN — 15-back-main.png
 
-![15-back-key.png](15-back-key.png)
+![15-back-main.png](15-back-main.png)
 
-### HELP-SETTINGS — 16-help-settings-saved.png
+### BACK-RETURN — 16-return-after-back.png
 
-![16-help-settings-saved.png](16-help-settings-saved.png)
+![16-return-after-back.png](16-return-after-back.png)
 
-### HELP-BUTTON — 17-help-fab.png
+### BACK-KEY — 17-back-key.png
 
-![17-help-fab.png](17-help-fab.png)
+![17-back-key.png](17-back-key.png)
 
-### HELP-QUICK-TAP — 18-help-quick-tap.png
+### HELP-SETTINGS — 18-help-settings-saved.png
 
-![18-help-quick-tap.png](18-help-quick-tap.png)
+![18-help-settings-saved.png](18-help-settings-saved.png)
 
-### HELP-SEND — 19-help-sent.png
+### HELP-BUTTON — 19-help-fab.png
 
-![19-help-sent.png](19-help-sent.png)
+![19-help-fab.png](19-help-fab.png)
 
-### HELP-PICTURE — 20-help-picture.png
+### HELP-QUICK-TAP — 20-help-quick-tap.png
 
-![20-help-picture.png](20-help-picture.png)
+![20-help-quick-tap.png](20-help-quick-tap.png)
 
-### HELP-ACK — 21-help-ack.png
+### HELP-SEND — 21-help-sent.png
 
-![21-help-ack.png](21-help-ack.png)
+![21-help-sent.png](21-help-sent.png)
 
-### HELP-CHAT-CARDS — 22-help-chat-cards.png
+### HELP-PICTURE — 22-help-picture.png
 
-![22-help-chat-cards.png](22-help-chat-cards.png)
+![22-help-picture.png](22-help-picture.png)
 
-### HELP-SAFE — 23-help-safe.png
+### HELP-ACK — 23-help-ack.png
 
-![23-help-safe.png](23-help-safe.png)
+![23-help-ack.png](23-help-ack.png)
 
-### HELP-INCOMING — 24-help-incoming.png
+### HELP-CHAT-CARDS — 24-help-chat-cards.png
 
-![24-help-incoming.png](24-help-incoming.png)
+![24-help-chat-cards.png](24-help-chat-cards.png)
 
-### HELP-INCOMING — 25-help-onit.png
+### HELP-SAFE — 25-help-safe.png
 
-![25-help-onit.png](25-help-onit.png)
+![25-help-safe.png](25-help-safe.png)
 
-### HELP-TEST — 26-help-test.png
+### HELP-INCOMING — 26-help-incoming.png
 
-![26-help-test.png](26-help-test.png)
+![26-help-incoming.png](26-help-incoming.png)
 
-### HELP-TEST — 27-help-test-cancelled.png
+### HELP-INCOMING — 27-help-onit.png
 
-![27-help-test-cancelled.png](27-help-test-cancelled.png)
+![27-help-onit.png](27-help-onit.png)
 
-### HELP-PROTECT — 28-help-protect-signout.png
+### HELP-TEST — 28-help-test.png
 
-![28-help-protect-signout.png](28-help-protect-signout.png)
+![28-help-test.png](28-help-test.png)
+
+### HELP-TEST — 29-help-test-cancelled.png
+
+![29-help-test-cancelled.png](29-help-test-cancelled.png)
+
+### HELP-PROTECT — 30-help-protect-signout.png
+
+![30-help-protect-signout.png](30-help-protect-signout.png)
