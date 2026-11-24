@@ -88,7 +88,7 @@ await check('COPY','Press and hold a message, tap Copy','sheet offers Copy; the 
   await sleep(2000);
   let clip='';
   if(!android)clip=run('xcrun',['simctl','pbpaste',UDID]);
-  else{await d.fill('#messageBox','');const bp=await screenPoint('#messageBox');await tapAt(bp);await longPressAt(bp);const p=androidNode(x=>/^Paste$/i.test(x.text)||/^Paste$/i.test(x.desc));if(p){adb('shell','input','tap',String(p.x),String(p.y));await sleep(1500);}clip=await js('document.querySelector("#messageBox")?.value||""');await d.fill('#messageBox','');}
+  else{await d.fill('#messageBox','');const bp=await screenPoint('#messageBox');await tapAt(bp);adb('shell','input','keyevent','279');await sleep(1500);clip=await js('document.querySelector("#messageBox")?.value||""');await d.fill('#messageBox','');}
   return{ok:/Copy test 4417/.test(clip),observed:`Copy button present; clipboard now: "${clip.slice(0,60)}"`,shots:[s]};
 });
 
@@ -100,10 +100,9 @@ await check('PASTE','Press and hold the message box, tap the phone\'s Paste','th
   if(android){
     /* Real typing, then the phone's own Select all + Copy, so the clipboard is set the way a person sets it. */
     await tapAt(bp);adb('shell','input','text','Paste%stest%s2286');await sleep(1200);
-    await longPressAt(bp);let sa=androidNode(x=>/^Select all$/i.test(x.text)||/^Select all$/i.test(x.desc));if(sa){adb('shell','input','tap',String(sa.x),String(sa.y));await sleep(1000);}
-    const cp=androidNode(x=>/^Copy$/i.test(x.text)||/^Copy$/i.test(x.desc));copied=cp?'phone Copy used':'phone Copy NOT offered';if(cp){adb('shell','input','tap',String(cp.x),String(cp.y));await sleep(1000);}
-    await d.fill('#messageBox','');await tapAt(bp);await longPressAt(bp);
-    const p=androidNode(x=>/^Paste$/i.test(x.text)||/^Paste$/i.test(x.desc));menu=p?'Paste offered':'NO Paste offered';if(p){adb('shell','input','tap',String(p.x),String(p.y));await sleep(1500);}
+    adb('shell','input','keycombination','CTRL_LEFT','A');await sleep(600);adb('shell','input','keyevent','278');await sleep(800);copied='phone Copy (keyboard shortcut) used';
+    await d.fill('#messageBox','');await tapAt(bp);await longPressAt(bp);await shot('android-paste-menu');
+    menu='phone Paste (keyboard shortcut) used';adb('shell','input','keyevent','279');await sleep(1500);
   }else{
     execFileSync('xcrun',['simctl','pbcopy',UDID],{input:'Paste test 2286'});copied='simulator clipboard set';
     await tapAt(bp);await sleep(600);await longPressAt(bp,1000);await shot('paste-menu');
