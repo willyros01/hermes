@@ -2886,7 +2886,7 @@ function renderModal(){
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
         <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":canReply?"Reply, react, or manage this message below.":"Choose a reaction, or manage this message below."}</p>
-        ${canReply||copyText?`<div class="modal-actions" style="margin-bottom:12px">${canReply?'<button class="modal-confirm" id="modalReply">Reply</button>':""}${copyText?'<button class="modal-confirm" id="modalCopy">Copy</button>':""}</div>`:""}
+        ${canReply||copyText?`<div class="modal-actions" style="margin-bottom:12px">${canReply?'<button class="modal-confirm" id="modalReply">Reply</button>':""}${copyText?'<button class="modal-confirm" id="modalCopy">Copy</button><button class="modal-confirm" id="modalSelectText">Select Text</button>':""}</div>`:""}
         ${canReact?`<section class="message-reaction-section" aria-label="React to message"><div class="message-reaction-title">React</div><div class="message-reaction-picker">${reactionButtons}</div><div class="small-note">Tap your selected reaction again to remove it.</div></section>`:""}
         <div class="modal-actions ${isPending?"":"message-delete-actions"} ${isPending?"":"message-delete-section"}">
           ${isPending?'<button class="modal-delete" id="modalDeletePending">Delete Message</button>':'<button class="modal-delete" id="modalDeleteForMe">Delete for Me</button>'}
@@ -2905,6 +2905,30 @@ function renderModal(){
       catch(err){button.disabled=false;alert(err?.message||String(err));}
     };
     const copyBtn=host.querySelector("#modalCopy");if(copyBtn)copyBtn.onclick=async()=>{copyBtn.disabled=true;const ok=await copyTextToClipboard(copyText);copyBtn.textContent=ok?"Copied":"Could not copy";setTimeout(()=>{if(state.modal===modal){state.modal=null;host.remove();render();}},ok?700:1600);};
+    /* Select Text (2026-11-24): the message alone in a box where the phone's own
+     * marking works; Copy Selected / Done; closing returns to the same chat. */
+    const selectBtn=host.querySelector("#modalSelectText");if(selectBtn)selectBtn.onclick=()=>{
+      host.innerHTML=`
+      <div class="modal select-text-modal" role="dialog" aria-modal="true" aria-labelledby="selectTextTitle">
+        <h2 id="selectTextTitle">Select Text</h2>
+        <p>Press on a word, drag the handles over the words you want, then tap Copy.</p>
+        <textarea class="select-text-box" id="selectTextBox" readonly></textarea>
+        <p class="small-note" id="selectTextMsg" role="status"></p>
+        <div class="modal-actions"><button class="modal-confirm" id="selectTextCopy">Copy</button><button class="modal-cancel" id="modalCancel">Done</button></div>
+      </div>`;
+      const box=host.querySelector("#selectTextBox"),msg=host.querySelector("#selectTextMsg");
+      box.value=copyText;
+      const close=()=>{if(state.modal===modal){state.modal=null;host.remove();render();}};
+      host.querySelector("#modalCancel").onclick=close;
+      host.onclick=e=>{if(e.target===host)close();};
+      host.querySelector("#selectTextCopy").onclick=async()=>{
+        const a=box.selectionStart??0,b=box.selectionEnd??0;
+        const part=b>a?copyText.slice(a,b):"";
+        if(!part){msg.textContent="Mark some words first (press on a word, then drag the handles).";return;}
+        const ok=await copyTextToClipboard(part);
+        msg.textContent=ok?`Copied: "${part.length>60?part.slice(0,60)+"…":part}"`:"Could not copy.";
+      };
+    };
     const replyBtn=host.querySelector("#modalReply");if(replyBtn)replyBtn.onclick=()=>{state.modal=null;host.remove();beginGroupReply(conversation,message);};
     host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=async()=>{
       if(button.disabled)return;
