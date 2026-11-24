@@ -61,11 +61,14 @@ await d.waitApp(/Terms of Use/,90000);
 await d.press('#startupTermsTick');await d.press('#startupTermsAccept');
 await until(()=>present('#joinTab'),'Join tab');await d.press('#joinTab');
 await until(()=>present('#joinPinHost'),'Join form');
+if(!android){/* Same warm-up the iPhone simulator suite uses before Join (local Firestore connection). */
+  await js(`(() => {window.__probeRead={state:"pending"};import("./firebase.js").then(m=>m.validateInvitation(${JSON.stringify(fixture.inviteToken)})).then(()=>{window.__probeRead={state:"success"}},e=>{window.__probeRead={state:"failed",error:String(e?.code||e?.message||e)}});return true})()`);
+  await sleep(12000);log('iPhone pre-Join read: '+await js('JSON.stringify(window.__probeRead)'));}
 await d.fill('#inviteCode',fixture.inviteToken);await d.fill('#joinName',fixture.alice.name);
 await d.fill('#joinEmail',fixture.alice.email);await d.fill('#joinPassword',fixture.alice.password);
 for(let i=0;i<6;i++)await d.fill(`#joinPinHost .pin-code-slot:nth-child(${i+1})`,fixture.alice.pin[i]);
 await d.press('#redeemBtn');
-await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'),'Messages screen',120000);
+try{await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'),'Messages screen',150000);}catch(e){await shot('join-stuck');log('screen: '+String(await d.appText().catch(x=>x.message)).replace(/\s+/g,' ').slice(0,500));throw e;}
 log('signed in');
 await d.press((await present('#newBtn'))?'#newBtn':'#tabletNewBtn');
 await until(()=>js('[...document.querySelectorAll(".fidunio-recipient-choice")].some(b=>/Bob/.test(b.textContent))'),'Bob in contacts',60000);
