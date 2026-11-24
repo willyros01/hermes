@@ -119,6 +119,8 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
     }catch(e){st.sending=false;st.lastError="HELP could not be sent: "+(e?.message||e)+". Check the connection and hold again.";render();return;}
     st.sending=false;render();
     const [location,wifi]=await Promise.all([currentLocation(),currentWifi()]);
+    /* The phone may have asked about location over the Cancel button: give the full 5 seconds again. */
+    st.cancelUntil=Math.max(st.cancelUntil,Date.now()+CANCEL_MS);setTimeout(()=>render(),CANCEL_MS+50);
     await sendCardToHelpers(alert,{kind:"alert",location,wifi});
     render();
   }
