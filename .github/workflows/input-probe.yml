@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: fidunio-input-probe
@@ -88,6 +88,22 @@ jobs:
           ram-size: 4096M
           disable-animations: true
           script: bash build/probe/run.sh android out-probe app-src/android/app/build/outputs/apk/debug/app-debug.apk ${{ matrix.label }}
+      - name: Publish evidence to the probe-evidence branch
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          test -d out-probe || exit 0
+          D="$RUNNER_TEMP/ev"; rm -rf "$D"; mkdir -p "$D"; cd "$D"; git init -q
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          for i in 1 2 3 4 5; do
+            rm -rf ./* .git/index 2>/dev/null || true
+            if git fetch -q --depth 1 origin probe-evidence; then git checkout -q -B probe-evidence FETCH_HEAD; else git checkout -q --orphan probe-evidence; fi
+            rm -rf "android-${{ matrix.label }}"; mkdir -p "android-${{ matrix.label }}"
+            cp -R "$GITHUB_WORKSPACE/out-probe/." "android-${{ matrix.label }}/"
+            rm -f android-${{ matrix.label }}/native-fixture.json android-${{ matrix.label }}/*.log
+            git add -A && git -c user.name=github-actions -c user.email=actions@github.com commit -qm "[skip ci] probe evidence run ${{ github.run_id }} android ${{ matrix.label }}" || true
+            git push -q origin HEAD:probe-evidence && break; sleep $((i*3))
+          done
       - if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -159,6 +175,22 @@ jobs:
         run: |
           APP="$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name App.app | head -1)"
           bash build/probe/run.sh ios out-probe "$APP" ${{ matrix.label }}
+      - name: Publish evidence to the probe-evidence branch
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          test -d out-probe || exit 0
+          D="$RUNNER_TEMP/ev"; rm -rf "$D"; mkdir -p "$D"; cd "$D"; git init -q
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          for i in 1 2 3 4 5; do
+            rm -rf ./* .git/index 2>/dev/null || true
+            if git fetch -q --depth 1 origin probe-evidence; then git checkout -q -B probe-evidence FETCH_HEAD; else git checkout -q --orphan probe-evidence; fi
+            rm -rf "ios-${{ matrix.label }}"; mkdir -p "ios-${{ matrix.label }}"
+            cp -R "$GITHUB_WORKSPACE/out-probe/." "ios-${{ matrix.label }}/"
+            rm -f ios-${{ matrix.label }}/native-fixture.json ios-${{ matrix.label }}/*.log
+            git add -A && git -c user.name=github-actions -c user.email=actions@github.com commit -qm "[skip ci] probe evidence run ${{ github.run_id }} ios ${{ matrix.label }}" || true
+            git push -q origin HEAD:probe-evidence && break; sleep $((i*3))
+          done
       - if: always()
         uses: actions/upload-artifact@v4
         with:

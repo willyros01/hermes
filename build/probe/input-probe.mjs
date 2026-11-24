@@ -41,6 +41,19 @@ function centre(el){const f=el.frame||{};return{x:Math.round((f.x||0)+(f.width||
 async function iosTap(el,duration){const c=centre(el);idb('ui','tap',String(c.x),String(c.y),...(duration?['--duration',String(duration)]:[]));await sleep(1500);}
 const iosLabel=(el)=>String(el.AXLabel||el.AXValue||el.title||'');
 
+if(android){try{adb('shell','cmd','overlay','enable-exclusive','--category','com.android.internal.systemui.navbar.gestural');}catch{}await sleep(5000);log('navigation mode: '+adb('shell','settings','get','secure','navigation_mode'));}
+/* A real finger touch counts as activity for the lock timer; scripted presses do not, so mark one. */
+const touch=()=>js('window.dispatchEvent(new Event("pointerdown"));true');
+/* Screen position of an element inside the app, for real finger gestures. */
+async function screenPoint(selectorOrText){
+  const r=await js(`(()=>{const q=${JSON.stringify(selectorOrText)};let el=q.startsWith('#')||q.startsWith('.')?document.querySelector(q):[...document.querySelectorAll('#chatArea .msg-text')].reverse().find(e=>e.textContent.includes(q));if(!el)return null;el.scrollIntoView({block:'center'});const b=el.getBoundingClientRect();return {x:b.left+b.width/2,y:b.top+b.height/2,dpr:devicePixelRatio,vh:innerHeight}})()`);
+  if(!r)return null;
+  if(android){const wv=d.nodes().filter(n=>/WebView/.test(n.cls)).sort((a,b)=>b.h-a.h)[0];const top=wv?wv.y-Math.floor(wv.h/2):0;return{x:Math.round(r.x*r.dpr),y:Math.round(top+r.y*r.dpr)};}
+  return{x:Math.round(r.x),y:Math.round(r.y)};
+}
+async function longPressAt(p,ms=1300){if(android)adb('shell','input','swipe',String(p.x),String(p.y),String(p.x),String(p.y),String(ms));else idb('ui','tap',String(p.x),String(p.y),'--duration',String(ms/1000));await sleep(1600);}
+async function tapAt(p){if(android)adb('shell','input','tap',String(p.x),String(p.y));else idb('ui','tap',String(p.x),String(p.y));await sleep(1200);}
+const openChat=async()=>{if(await present('#messageBox'))return;await js('(()=>{const r=[...document.querySelectorAll(".conversation-open,.group-list-row")][0];r&&r.click();return !!r})()');await until(()=>present('#messageBox'),'chat reopened',20000);};
 /* ---- sign in and open a direct chat with Simulator Bob ---- */
 log(`FIDUNIO input probe — ${platform} — ${label}`);
 d.reinstall(APP,artifact);d.launch(APP);
@@ -66,33 +79,40 @@ const isLocked=async()=>!(await present('#messageBox'))&&!(await present('#newBt
 
 /* 1. COPY: press and hold a message; FIDUNIO's sheet should offer Copy. */
 await check('COPY','Press and hold a message, tap Copy','sheet offers Copy; the phone clipboard then holds the message text',async()=>{
-  if(android){const node=androidNode(x=>/Copy test 4417/.test(x.text));if(!node)throw new Error('message bubble not on screen');await androidLongPress(node);}
-  else{const el=iosFind(e=>/Copy test 4417/.test(iosLabel(e)));if(!el)throw new Error('message bubble not found by touch layer');await iosTap(el,1.2);}
+  await openChat();const p=await screenPoint('Copy test 4417');if(!p)throw new Error('message bubble not on screen');await longPressAt(p);
   const s=await shot('copy-sheet');
   const sheet=await js('document.querySelector("#pendingMessageTitle")?"open":"closed"');
   const hasCopy=await present('#modalCopy');
   if(!hasCopy){await d.press('#modalCancel').catch(()=>{});return{ok:false,observed:`action sheet ${sheet}; NO Copy button`,shots:[s]};}
-  if(android){const b=androidNode(x=>x.text==='Copy');if(b)adb('shell','input','tap',String(b.x),String(b.y));else await d.press('#modalCopy');}
-  else{const b=iosFind(e=>iosLabel(e)==='Copy');if(b)await iosTap(b);else await d.press('#modalCopy');}
+  {const b=await screenPoint('#modalCopy');if(b)await tapAt(b);else await d.press('#modalCopy');}
   await sleep(2000);
   let clip='';
   if(!android)clip=run('xcrun',['simctl','pbpaste',UDID]);
-  else{await d.fill('#messageBox','');const box=androidNode(x=>/EditText/.test(x.cls));await androidLongPress(box);const p=androidNode(x=>/^Paste$/i.test(x.text)||/^Paste$/i.test(x.desc));if(p){adb('shell','input','tap',String(p.x),String(p.y));await sleep(1500);}clip=await js('document.querySelector("#messageBox")?.value||""');await d.fill('#messageBox','');}
+  else{await d.fill('#messageBox','');const bp=await screenPoint('#messageBox');await tapAt(bp);await longPressAt(bp);const p=androidNode(x=>/^Paste$/i.test(x.text)||/^Paste$/i.test(x.desc));if(p){adb('shell','input','tap',String(p.x),String(p.y));await sleep(1500);}clip=await js('document.querySelector("#messageBox")?.value||""');await d.fill('#messageBox','');}
   return{ok:/Copy test 4417/.test(clip),observed:`Copy button present; clipboard now: "${clip.slice(0,60)}"`,shots:[s]};
 });
 
 /* 2. PASTE text into the message box with the phone's own Paste menu. */
 await check('PASTE','Press and hold the message box, tap the phone\'s Paste','the copied text appears in the message box',async()=>{
-  await d.fill('#messageBox','');
-  if(android){await js('(()=>{const t=document.createElement("textarea");t.value="Paste test 2286";document.body.appendChild(t);t.select();document.execCommand("copy");t.remove();return true})()');}
-  else{execFileSync('xcrun',['simctl','pbcopy',UDID],{input:'Paste test 2286'});}
-  let menu='';
-  if(android){const box=androidNode(x=>/EditText/.test(x.cls));if(!box)throw new Error('message box not found by touch layer');adb('shell','input','tap',String(box.x),String(box.y));await sleep(1200);await androidLongPress(box);const p=androidNode(x=>/^Paste$/i.test(x.text)||/^Paste$/i.test(x.desc));menu=p?'Paste offered':'NO Paste offered';if(p){adb('shell','input','tap',String(p.x),String(p.y));await sleep(1500);}}
-  else{const box=iosFind(e=>/Type a message/.test(iosLabel(e))||/TextArea|TextView|TextField/.test(String(e.type||e.role||'')));if(!box)throw new Error('message box not found by touch layer');await iosTap(box);await sleep(800);await iosTap(box,1.0);const s0=await shot('paste-menu');let p=iosFind(e=>/^Paste$/.test(iosLabel(e)));menu=p?'Paste offered':'NO Paste offered';if(p)await iosTap(p);}
+  await openChat();await d.fill('#messageBox','');
+  const bp=await screenPoint('#messageBox');if(!bp)throw new Error('message box not on screen');
+  let menu='',copied='';
+  if(android){
+    /* Real typing, then the phone's own Select all + Copy, so the clipboard is set the way a person sets it. */
+    await tapAt(bp);adb('shell','input','text','Paste%stest%s2286');await sleep(1200);
+    await longPressAt(bp);let sa=androidNode(x=>/^Select all$/i.test(x.text)||/^Select all$/i.test(x.desc));if(sa){adb('shell','input','tap',String(sa.x),String(sa.y));await sleep(1000);}
+    const cp=androidNode(x=>/^Copy$/i.test(x.text)||/^Copy$/i.test(x.desc));copied=cp?'phone Copy used':'phone Copy NOT offered';if(cp){adb('shell','input','tap',String(cp.x),String(cp.y));await sleep(1000);}
+    await d.fill('#messageBox','');await tapAt(bp);await longPressAt(bp);
+    const p=androidNode(x=>/^Paste$/i.test(x.text)||/^Paste$/i.test(x.desc));menu=p?'Paste offered':'NO Paste offered';if(p){adb('shell','input','tap',String(p.x),String(p.y));await sleep(1500);}
+  }else{
+    execFileSync('xcrun',['simctl','pbcopy',UDID],{input:'Paste test 2286'});copied='simulator clipboard set';
+    await tapAt(bp);await sleep(600);await longPressAt(bp,1000);await shot('paste-menu');
+    const p=iosFind(e=>/^Paste$/.test(iosLabel(e)));menu=p?'Paste offered':'NO Paste offered';if(p)await iosTap(p);
+  }
   const s=await shot('after-paste');
   const value=await js('document.querySelector("#messageBox")?.value||""');
   await d.fill('#messageBox','');
-  return{ok:/Paste test 2286/.test(value),observed:`${menu}; message box now: "${value.slice(0,60)}"`,shots:[s]};
+  return{ok:/Paste test 2286/.test(value),observed:`${copied}; ${menu}; message box now: "${value.slice(0,60)}"`,shots:[s]};
 });
 
 /* 3. STICKER / pasted picture: the paste carries an image file. Real keyboard
@@ -118,7 +138,7 @@ if(android){
   await check('KEYBOARD-GIF-OFFER','Does the message box tell the keyboard it accepts GIFs?','yes on the fix branch',async()=>{
     const box=androidNode(x=>/EditText/.test(x.cls));if(box){adb('shell','input','tap',String(box.x),String(box.y));await sleep(1500);}
     const dump=adb('shell','dumpsys','input_method');
-    const has=/image\/gif|CONTENT_MIME_TYPES|contentMimeTypes/.test(dump);
+    const has=/image\/gif/.test(dump);
     fs.writeFileSync(path.join(out,'input-method.txt'),dump);
     return{ok:has,observed:has?'GIF types offered to the keyboard':'no GIF types visible in the keyboard connection',shots:[]};
   });
@@ -141,7 +161,7 @@ await check('CAMERA','Photo → Take a Picture','the camera opens',async()=>{
 
 /* 5. LEAVE AND COME BACK within the grace period (default 5 min). */
 await check('GRACE','Switch to another app for ~15 s, then back','FIDUNIO opens unlocked (5 min grace)',async()=>{
-  await unlockIfLocked();
+  await unlockIfLocked();await touch();
   if(android){adb('shell','am','start','-W','-n','com.android.settings/.Settings');}else{run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);}
   await sleep(15000);
   d.launch(APP);await sleep(4000);
@@ -152,19 +172,16 @@ await check('GRACE','Switch to another app for ~15 s, then back','FIDUNIO opens 
 /* 6. ANDROID BACK gesture inside FIDUNIO. */
 if(android){
   const {w,h}=d.screenSize();
-  try{adb('shell','cmd','overlay','enable-exclusive','--category','com.android.internal.systemui.navbar.gestural');await sleep(3000);}catch{}
   const backSwipe=()=>adb('shell','input','touchscreen','swipe','1',String(h>>1),String(Math.round(w*0.45)),String(h>>1),'250');
   await check('BACK-CHAT','Back swipe from the edge while in a chat','goes back to the Messages list, FIDUNIO stays in front',async()=>{
-    await unlockIfLocked();
-    if(!(await present('#messageBox')))throw new Error('not in the chat');
+    await unlockIfLocked();await openChat();await touch();
     backSwipe();await sleep(3000);
     const f=d.front(),s=await shot('back-from-chat');
     const onList=/fidunio/.test(f)&&(await present('#newBtn')||await present('#tabletNewBtn'))&&!(await present('#messageBox'));
     return{ok:onList,observed:/fidunio/.test(f)?(onList?'Messages list shown':'still on: '+(await d.appText()).replace(/\s+/g,' ').slice(0,80)):'left FIDUNIO: '+f,shots:[s]};
   });
   await check('BACK-POPUP','Back swipe with a pop-up open','the pop-up closes first',async()=>{
-    await d.press((await present('#newBtn'))?'#newBtn':'#tabletNewBtn').catch(()=>{});await sleep(1000);
-    const c=await js('(()=>{const r=[...document.querySelectorAll(".conversation-open,.group-list-row")][0];r&&r.click();return !!r})()');await sleep(2500);
+    await unlockIfLocked();await openChat();await touch();
     await js('(()=>{const b=[...document.querySelectorAll(".tool")].find(x=>x.textContent.trim()==="Photo");b&&b.click();return !!b})()');await sleep(1500);
     const open=await present('#photoCameraBtn');
     backSwipe();await sleep(2500);
@@ -173,20 +190,19 @@ if(android){
     return{ok:open&&closed,observed:`pop-up ${open?'was open':'did not open'}; after Back: ${closed?'closed, chat still shown':'not closed'}`,shots:[s]};
   });
   await check('BACK-MAIN','Back swipe on the Messages list','FIDUNIO goes to the background (still running)',async()=>{
-    if(await present('#messageBox')){backSwipe();await sleep(2500);}
+    await unlockIfLocked();if(await present('#messageBox')){await d.press('#backBtn');await sleep(1500);}await touch();
+    const onList=await present('#newBtn')||await present('#tabletNewBtn');
     backSwipe();await sleep(3000);
     const f=d.front();let pid='';try{pid=adb('shell','pidof',APP);}catch{}
     const s=await shot('back-main');
-    return{ok:!/fidunio/.test(f)&&!!pid,observed:`in front: ${f}; FIDUNIO ${pid?'still running':'ENDED'}`,shots:[s]};
+    return{ok:!/fidunio/.test(f)&&!!pid,observed:`started on ${onList?'Messages list':'another screen'}; in front: ${f}; FIDUNIO ${pid?'still running':'ENDED'}`,shots:[s]};
   });
   await check('BACK-RETURN','Return right after the Back swipe','unlocked (within grace)',async()=>{
     d.launch(APP);await sleep(3500);const locked=await isLocked();const s=await shot('return-after-back');
     return{ok:!locked,observed:locked?'LOCKED — PIN asked':'unlocked',shots:[s]};
   });
   await check('BACK-KEY','3-button Back key while in a chat','goes back to the Messages list',async()=>{
-    await unlockIfLocked();
-    await js('(()=>{const r=[...document.querySelectorAll(".conversation-open,.group-list-row")][0];r&&r.click();return !!r})()');await sleep(2500);
-    if(!(await present('#messageBox')))throw new Error('could not open chat');
+    await unlockIfLocked();await openChat();
     adb('shell','input','keyevent','4');await sleep(3000);
     const ok=/fidunio/.test(d.front())&&!(await present('#messageBox'))&&(await present('#newBtn')||await present('#tabletNewBtn'));
     const s=await shot('back-key');
