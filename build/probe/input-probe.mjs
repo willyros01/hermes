@@ -300,7 +300,7 @@ if(label==='fix'){
   await unlockIfLocked();
 
   await check('HELP-SETTINGS','Settings → HELP Alert: Turn on, tick Simulator Bob, Save','"Saved."; the server has HELP on with Bob as the only contact',async()=>{
-    await toSettings();await setBox('#helpEnabled',true);
+    await toSettings();log('HELP card is in: '+await js('document.querySelector("#helpSettingsHost")?.closest(".fidunio-settings-panel")?.dataset.group||"no section"'));await setBox('#helpEnabled',true);
     const k=await js('[...document.querySelectorAll(".help-helpers label")].findIndex(l=>/Bob/.test(l.textContent))+1');
     if(!k)return{ok:false,observed:'Bob is not in the HELP contacts list',shots:[await shot('help-settings')]};
     await setBox(`.help-helpers label:nth-child(${k}) input`,true);
@@ -392,6 +392,7 @@ if(label==='fix'){
     while(Date.now()<end){
       if((await allowLocation(300)).length)continue;
       if(await present('#helpCancel')){t=await js('document.querySelector(".help-sent")?.textContent||""');await realTap('#helpCancel');s1=await shot('help-test');break;}
+      if(await present('.help-sent')&&!t){t=await js('document.querySelector(".help-sent")?.textContent||""');}
       await sleep(400);
     }
     await sleep(3000);
