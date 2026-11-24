@@ -78,7 +78,8 @@ try{await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'
 log('signed in');
 await d.press((await present('#newBtn'))?'#newBtn':'#tabletNewBtn');
 await until(()=>js('[...document.querySelectorAll(".fidunio-recipient-choice")].some(b=>/Bob/.test(b.textContent))'),'Bob in contacts',60000);
-await js('(()=>{const b=[...document.querySelectorAll(".fidunio-recipient-choice")].find(b=>/Bob/.test(b.textContent));b.click();return true})()');
+/* The contact list can redraw while loading: tap Bob once he is really there. */
+await until(()=>js('(()=>{const b=[...document.querySelectorAll(".fidunio-recipient-choice")].find(b=>/Bob/.test(b.textContent));if(!b)return false;b.click();return true})()'),'tap Bob',30000);
 await until(()=>present('#messageBox'),'chat with Bob',90000);
 const sendText=async(t)=>{await d.fill('#messageBox',t);await d.press('#sendBtn');await until(()=>js(`document.querySelector("#chatArea")?.innerText.includes(${JSON.stringify(t)})`),'own message shown',60000);await sleep(1500);};
 await sendText('Copy test 4417');
