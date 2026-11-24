@@ -131,12 +131,14 @@ if(label==='fix')await check('LINK','Send "Visit https://example.com today", tap
   const stayed=await present('#messageBox')&&!(await present('#openLinkTitle'));
   p=await lp();await tapAt(p);await until(()=>present('#openLinkGo'),'Open button',8000).catch(()=>{});
   if(await present('#openLinkGo'))await tapAt(await screenPoint('#openLinkGo'));await sleep(6000);
-  let outside='';
-  if(android){const f=d.front();outside=/fidunio/.test(f)?'':f;}
-  else{const els=iosElements().map(iosLabel).filter(Boolean).join(' | ');outside=/example\.com|Address|Safari|Example Domain/i.test(els)?'Safari: '+els.slice(0,80):'';}
-  const s2=await shot('link-opened');
-  d.launch(APP);await sleep(4000);await unlockIfLocked();
-  return{ok:asked&&stayed&&!!outside,observed:`asked first: ${asked}; Cancel stayed in chat: ${stayed}; after Open: ${outside||'still in FIDUNIO'}`,shots:[s1,s2]};
+  let outside='',s2='';
+  try{
+    if(android){const f=d.front();outside=/fidunio/.test(f)?'':f;}
+    else{/* Safari may still be opening: ask the touch layer a few times. */
+      for(let i=0;i<5&&!outside;i++){try{const els=iosElements().map(iosLabel).filter(Boolean).join(' | ');if(/example\.com|Address|Safari|Example Domain/i.test(els))outside='Safari: '+els.slice(0,80);}catch{}if(!outside)await sleep(2000);}}
+    s2=await shot('link-opened');
+  }finally{d.launch(APP);await sleep(4000);if(!android)d.disconnect?.();await unlockIfLocked();}
+  return{ok:asked&&stayed&&!!outside,observed:`asked first: ${asked}; Cancel stayed in chat: ${stayed}; after Open: ${outside||'still in FIDUNIO'}`,shots:[s1,s2].filter(Boolean)};
 });
 
 /* 2. PASTE text into the message box with the phone's own Paste menu. */
