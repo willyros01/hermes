@@ -98,6 +98,24 @@ await check('COPY','Press and hold a message, tap Copy','sheet offers Copy; the 
   return{ok:/Copy test 4417/.test(clip),observed:`Copy button present; clipboard now: "${clip.slice(0,60)}"`,shots:[s]};
 });
 
+/* 1b. SELECT TEXT: copy only part of a message (fix branch). */
+if(label==='fix')await check('SELECT-TEXT','Press and hold a message, Select Text, press and hold one word, tap Copy, then Done','only that word is copied; Done goes back to the same chat',async()=>{
+  await openChat();await hideKeyboard();const p=await screenPoint('Copy test 4417');if(!p)throw new Error('message bubble not on screen');await longPressAt(p);
+  if(!(await present('#modalSelectText'))){await d.press('#modalCancel').catch(()=>{});return{ok:false,observed:'no Select Text button',shots:[await shot('select-missing')]};}
+  await tapAt(await screenPoint('#modalSelectText'));await until(()=>present('#selectTextBox'),'Select Text box',10000);
+  const r=await js(`(()=>{const b=document.querySelector("#selectTextBox");const q=b.getBoundingClientRect();const v=window.visualViewport||{offsetLeft:0,offsetTop:0};return{x:q.left+24-v.offsetLeft,y:q.top+22-v.offsetTop,dpr:devicePixelRatio}})()`);
+  let pt;if(android){const wv=d.nodes().filter(n=>/WebView/.test(n.cls)).sort((a,b)=>b.h-a.h)[0];const top=wv?wv.y-Math.floor(wv.h/2):0;pt={x:Math.round(r.x*r.dpr),y:Math.round(top+r.y*r.dpr)};}else pt={x:Math.round(r.x),y:Math.round(r.y)};
+  await longPressAt(pt,1200);
+  const sel=await js('(()=>{const b=document.querySelector("#selectTextBox");return b.value.slice(b.selectionStart,b.selectionEnd)})()');
+  const s1=await shot('select-text-marked');
+  await tapAt(await screenPoint('#selectTextCopy'));await sleep(1500);
+  const note=await js('document.querySelector("#selectTextMsg")?.textContent||""');
+  let clip='';if(!android)clip=run('xcrun',['simctl','pbpaste',UDID]);else clip=(note.match(/Copied: "(.*)"/)||[])[1]||'';
+  await tapAt(await screenPoint('#modalCancel'));await sleep(1500);
+  const back=await present('#messageBox')&&!(await present('#selectTextBox'));const s2=await shot('select-text-done');
+  return{ok:!!sel&&sel.length<'Copy test 4417'.length&&clip.trim()===sel.trim()&&back,observed:`marked: "${sel}"; copied: "${clip.slice(0,40)}"; after Done: ${back?'same chat':'somewhere else'}`,shots:[s1,s2]};
+});
+
 /* 2. PASTE text into the message box with the phone's own Paste menu. */
 await check('PASTE','Press and hold the message box, tap the phone\'s Paste','the copied text appears in the message box',async()=>{
   await openChat();await d.fill('#messageBox','');
@@ -227,7 +245,10 @@ if(label==='fix'){
   const bobDb=env.authenticatedContext(bobUid).firestore();
   const admin=async fn=>{let v;await env.withSecurityRulesDisabled(async c=>{v=await fn(c.firestore());});return v;};
   const alertsFor=async field=>admin(async db=>(await getDocs(collection(db,'helpAlerts'))).docs.map(x=>({id:x.id,...x.data()})));
+  /* Alice's account id, from the local test Auth (her email is in the fixture). */
   let aliceUid='';
+  try{const r=await fetch('http://127.0.0.1:9099/emulator/v1/projects/'+fixture.project+'/accounts',{headers:{authorization:'Bearer owner'}});const v=await r.json();aliceUid=(v.userInfo||[]).find(u=>u.email===fixture.alice.email)?.localId||'';}catch(e){log('alice lookup: '+e.message);}
+  log('Alice account found: '+(aliceUid?'yes':'NO'));
   const realTap=async sel=>{const p=await screenPoint(sel);if(!p)throw new Error(sel+' not on screen');await tapAt(p);};
   const toMessages=async()=>{for(let i=0;i<4&&!(await present('#newBtn'))&&!(await present('#tabletNewBtn'));i++){if(await present('#backBtn'))await realTap('#backBtn');else break;await sleep(1200);}};
   const toSettings=async()=>{await toMessages();await realTap((await present('#settingsBtn'))?'#settingsBtn':'#tabletSettingsBtn');await until(()=>present('#helpEnabled'),'HELP card in Settings',30000);};
@@ -250,7 +271,7 @@ if(label==='fix'){
     await until(async()=>/Saved|Not saved|Choose/.test(await js('document.querySelector("#helpSettingsMsg")?.textContent||""')),'save result',30000);
     const msg=await js('document.querySelector("#helpSettingsMsg").textContent');const s=await shot('help-settings-saved');
     const rows=await admin(async db=>(await getDocs(query(collection(db,'helpSettings'),where('helperUids','array-contains',bobUid)))).docs.map(x=>({id:x.id,...x.data()})));
-    const r=rows[0];aliceUid=r?.id||'';
+    const r=rows.find(x=>x.id===aliceUid)||rows[0];aliceUid=aliceUid||r?.id||'';
     return{ok:/Saved/.test(msg)&&r?.enabled===true&&r.helperUids.length===1,observed:`screen: "${msg}"; server: ${r?`enabled=${r.enabled}, contacts=${r.helperUids.length}`:'no HELP settings saved'}`,shots:[s]};
   });
 
