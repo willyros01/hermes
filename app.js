@@ -74,6 +74,7 @@ import {createAccountVaultOwner} from "./account-vault-owner.js";
 import {reconcileAccountVaultPayload} from "./account-vault-reconciliation.js";
 import {activateVerifiedAccountVault} from "./account-vault-activation.js";
 import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {installAndroidBackGesture} from "./android-back-platform-adapter.js";
 import {subscribePlatformBackgroundMessages} from "./background-platform-adapter.js";
 
 /* FIDUNIO single-authority local lock integration */
@@ -222,6 +223,24 @@ function lockLocalApp(reason="manual"){
   unlockError="";
   unlockPinFallbackVisible=false;
   render();
+}
+/* Android Back swipe/key (2026-11-24). Runs the same control a tap would:
+ * close an open pop-up first, then the screen's own Back/Close control.
+ * Returns false when there is nothing to go back to (Android then moves
+ * FIDUNIO to the background). The lock screen is never bypassed. */
+function handleAndroidBack(){
+  if(!state.unlocked)return false;
+  const visible=el=>!!el&&!el.disabled&&el.offsetParent!==null;
+  if(state.modal){
+    const host=document.querySelector(".modal-backdrop");
+    const cancel=[...(host?.querySelectorAll("#modalCancel,.modal-cancel")||[])].find(visible);
+    if(cancel)cancel.click();else if(host)host.click();else{state.modal=null;render();}
+    return true;
+  }
+  if(state.toolsOpen){state.toolsOpen=false;render();return true;}
+  const control=["#closeRecoveryResultBtn","#inviteModalCancel","#adminCloseBtn","#backBtn"].map(id=>document.querySelector(id)).find(visible);
+  if(control){control.click();return true;}
+  return false;
 }
 function unlockLocalApp(){
   state.unlocked=true;
@@ -1394,6 +1413,7 @@ async function initApp(){
   state.online=navigator.onLine;
   if(consumeSuccessfulAuthBypass()) state.unlocked=true;
   installInactivityMonitor({isUnlocked:()=>state.unlocked&&!attachmentPickerActive,onLock:reason=>lockLocalApp(reason)});
+  installAndroidBackGesture({handleBack:handleAndroidBack});
   if(state.unlocked) noteLocalUnlock();
   void requestAppActivation("initial-hydration");
 
@@ -1991,6 +2011,15 @@ function renderChat(){
   box.addEventListener("focus",saveComposerState);
   box.addEventListener("blur",saveComposerState);
   box.addEventListener("select",saveComposerState);
+  /* Keyboard stickers (iOS) and pasted pictures arrive as a paste with an image.
+   * A text box cannot hold a picture, so FIDUNIO sends it as a photo. Text paste
+   * is left untouched. (2026-11-24, FID-IOS-STICKER) */
+  box.addEventListener("paste",event=>{
+    const file=imageFileFromClipboard(event.clipboardData);
+    if(!file)return;
+    event.preventDefault();
+    void sendKeyboardImage(file);
+  });
   document.querySelector("#sendBtn").onclick=async event=>{
     const button=event.currentTarget;button.disabled=true;
     try{await sendCurrent();}catch(err){alert(err?.message||String(err));}finally{if(button.isConnected)button.disabled=false;}
@@ -2043,6 +2072,25 @@ function renderConversationMessages(msgs,c){
   }).join("");
 }
 
+/* Copy (2026-11-24, FID-COPYPASTE): press-and-hold opens FIDUNIO's own action
+ * sheet, so the system text-selection menu never appears; Copy lives there.
+ * Only the readable text is copied (never an attachment descriptor). */
+function messageCopyText(m){
+  if(!m||m.system)return"";
+  const reply=parseGroupReplyDescriptor(m.text);
+  if(reply)return String(reply.text||"");
+  if(parseAttachmentDescriptor(m.text))return"";
+  return String(m.text||"");
+}
+async function copyTextToClipboard(text){
+  const value=String(text||"");if(!value)return false;
+  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);return true;}}catch{}
+  const area=document.createElement("textarea");
+  area.value=value;area.setAttribute("readonly","");area.style.position="fixed";area.style.opacity="0";area.style.top="0";
+  document.body.appendChild(area);area.select();area.setSelectionRange(0,value.length);
+  let ok=false;try{ok=document.execCommand("copy");}catch{}
+  area.remove();return ok;
+}
 function renderBubble(m,c){
   if(m.system) return `<div class="day-divider">${esc(m.text)} • ${esc(m.time)}</div>`;
   const label=m.state==="waiting-wifi"?"Waiting for Wi-Fi":m.state==="queued"?"Queued":m.state==="sending"?"Sending":m.state==="sent"?"Sent":
@@ -2195,6 +2243,35 @@ async function sendSelectedAttachmentFile(kind,file){
   await continueSelectedAttachmentSend(record);
 }
 
+function imageFileFromClipboard(data){
+  if(!data)return null;
+  const items=[...(data.items||[])];
+  const fromItems=items.filter(item=>item.kind==="file"&&/^image\//i.test(item.type)).map(item=>item.getAsFile()).find(Boolean);
+  if(fromItems)return fromItems;
+  return [...(data.files||[])].find(file=>/^image\//i.test(file.type))||null;
+}
+/* One owner for pictures that come from the keyboard (iOS stickers, Android
+ * keyboard GIFs/stickers, pasted pictures). Sent like a picked photo; the
+ * picture is kept as it is so stickers keep transparency and GIFs keep moving. */
+async function sendKeyboardImage(file){
+  const c=currentConversation();
+  if(!c||state.route!=="chat"||!state.unlocked)return;
+  if(c.cloudGroup&&composerStateByConversation.get(String(c.id))?.replyTo){alert("Send or cancel the text reply before sending a picture.");return;}
+  if(directConversationBlockedByMe(c))return alert(blockedDirectMessage());
+  const type=String(file.type||"image/png").toLowerCase();
+  const ext=type.split("/")[1]?.replace("jpeg","jpg").replace(/[^a-z0-9]/g,"")||"png";
+  const named=file.name&&file.name!=="image."+ext&&!/^image\.(png|gif|jpe?g|webp)$/i.test(file.name)?file:new File([file],`picture-${Date.now()}.${ext}`,{type});
+  await sendSelectedAttachmentFile("photo",named);
+}
+window.addEventListener("fidunio-keyboard-image",event=>{
+  const detail=event?.detail||{};
+  try{
+    const raw=atob(String(detail.data||""));const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    if(!bytes.length)return;
+    const type=String(detail.type||"image/gif");
+    void sendKeyboardImage(new File([bytes],String(detail.name||"keyboard-picture"),{type}));
+  }catch(error){console.warn("FIDUNIO keyboard picture could not be read",error);}
+});
 async function chooseAndSendAttachment(kind,accept,capture){
   const c=currentConversation();if(!firebaseUser||(!c?.cloud&&!c?.cloudGroup))return alert("Attachments require a signed-in cloud conversation.");
   if(directConversationBlockedByMe(c))return alert(blockedDirectMessage());
@@ -2741,12 +2818,13 @@ function renderModal(){
     const canReact=(!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&!!(conversation?.cloud||conversation?.cloudGroup)&&message.authoritativeSource!==false)&&!directConversationBlockedByMe(conversation);
     const canReply=!!conversation?.cloudGroup&&!!message&&!isPending&&["sent","delivered","read"].includes(message.state)&&message.authoritativeSource!==false&&!(Number(message.disappearAfterSeconds)>0);
     const myReaction=firebaseUser?.uid&&message?.reactions?.[firebaseUser.uid]||"";
+    const copyText=messageCopyText(message);
     const reactionButtons=canReact?MESSAGE_REACTION_CHOICES.map(reaction=>`<button class="message-reaction-btn ${myReaction===reaction?"selected":""}" type="button" data-reaction="${reaction}" aria-label="React ${reaction}" aria-pressed="${myReaction===reaction?"true":"false"}">${reaction}</button>`).join(""):"";
     host.innerHTML=`
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pendingMessageTitle">
         <h2 id="pendingMessageTitle">Message actions</h2>
         <p>${isPending?"This message has not completed sending. Delete it and permanently stop future retries?":canReply?"Reply, react, or manage this message below.":"Choose a reaction, or manage this message below."}</p>
-        ${canReply?'<div class="modal-actions" style="margin-bottom:12px"><button class="modal-confirm" id="modalReply">Reply</button></div>':""}
+        ${canReply||copyText?`<div class="modal-actions" style="margin-bottom:12px">${canReply?'<button class="modal-confirm" id="modalReply">Reply</button>':""}${copyText?'<button class="modal-confirm" id="modalCopy">Copy</button>':""}</div>`:""}
         ${canReact?`<section class="message-reaction-section" aria-label="React to message"><div class="message-reaction-title">React</div><div class="message-reaction-picker">${reactionButtons}</div><div class="small-note">Tap your selected reaction again to remove it.</div></section>`:""}
         <div class="modal-actions ${isPending?"":"message-delete-actions"} ${isPending?"":"message-delete-section"}">
           ${isPending?'<button class="modal-delete" id="modalDeletePending">Delete Message</button>':'<button class="modal-delete" id="modalDeleteForMe">Delete for Me</button>'}
@@ -2764,6 +2842,7 @@ function renderModal(){
       }
       catch(err){button.disabled=false;alert(err?.message||String(err));}
     };
+    const copyBtn=host.querySelector("#modalCopy");if(copyBtn)copyBtn.onclick=async()=>{copyBtn.disabled=true;const ok=await copyTextToClipboard(copyText);copyBtn.textContent=ok?"Copied":"Could not copy";setTimeout(()=>{if(state.modal===modal){state.modal=null;host.remove();render();}},ok?700:1600);};
     const replyBtn=host.querySelector("#modalReply");if(replyBtn)replyBtn.onclick=()=>{state.modal=null;host.remove();beginGroupReply(conversation,message);};
     host.querySelectorAll(".message-reaction-btn").forEach(button=>button.onclick=()=>perform(button,()=>setCloudMessageReaction(modal.conversationId,modal.messageId,conversation?.cloudGroup?"group":"direct",button.dataset.reaction,myReaction===button.dataset.reaction?"remove":"apply")));
     const pendingBtn=host.querySelector("#modalDeletePending");if(pendingBtn)pendingBtn.onclick=()=>perform(pendingBtn,()=>cancelPendingOutboxMessage(modal.messageId,modal.conversationId));
