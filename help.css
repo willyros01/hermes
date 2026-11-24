@@ -30,3 +30,7 @@
 .help-toggle{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;min-height:44px}
 .help-toggle input{width:26px;height:26px}
 .help-settings .secondary{margin-top:10px}
+/* Big, easy targets: the whole row toggles (2026-11-24). */
+.help-helpers .member-option{grid-template-columns:36px 1fr;min-height:56px;font-size:18px;font-weight:700;cursor:pointer}
+.help-helpers .member-option input,.help-toggle input{width:28px;height:28px;margin:0}
+.help-toggle{cursor:pointer;padding:6px 0}
