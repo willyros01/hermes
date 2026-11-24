@@ -1,24 +1,3 @@
 FIDUNIO input probe — ios — fix
 iPhone pre-Join read: {"state":"success"}
 signed in
-
-COPY: Press and hold a message, tap Copy
-DIFFERENT COPY — observed: Copy button present; clipboard now: ""
-
-SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap Copy, then Done
-AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
-
-LINK: Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open
-TEST ERROR LINK: Command failed: idb ui describe-all --udid 44BD2F18-416F-4F70-B2C2-BE4EBA0C2F50
-The simulator's accessibility service named no frontmost application
-
-
-PASTE: Press and hold the message box, tap the phone's Paste
-TEST ERROR PASTE: the app did not answer
-
-PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-TEST ERROR PICTURE-PASTE: the app did not answer
-
-GRACE: Switch to another app for ~15 s, then back
-TEST ERROR GRACE: the app did not answer
-Alice account found: yes
