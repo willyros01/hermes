@@ -1,0 +1,15 @@
+    // ---- FIDUNIO HELP alerts (2026-11-24, owner-approved build plan) ----
+    function helpSettingsPath(uid){return /databases/$(database)/documents/helpSettings/$(uid);}
+    function validHelpSettings(d){return d.keys().hasOnly(["enabled","helperUids","protected","updatedAt"])&&d.keys().hasAll(["enabled","helperUids","protected","updatedAt"])&&d.enabled is bool&&d.protected is bool&&d.helperUids is list&&d.helperUids.size()<=5&&!(request.auth.uid in d.helperUids)&&d.updatedAt==request.time;}
+    function validHelpAlertCreate(d){return d.keys().hasOnly(["senderUid","helperUids","state","test","acks","createdAt"])&&d.keys().hasAll(["senderUid","helperUids","state","test","acks","createdAt"])&&d.senderUid==request.auth.uid&&d.state=="open"&&d.test is bool&&d.acks is map&&d.acks.size()==0&&d.createdAt==request.time&&d.helperUids is list&&d.helperUids.size()>=1&&d.helperUids.size()<=5&&exists(helpSettingsPath(request.auth.uid))&&get(helpSettingsPath(request.auth.uid)).data.enabled==true&&d.helperUids.hasOnly(get(helpSettingsPath(request.auth.uid)).data.helperUids);}
+    function helpAlertMember(d){return d.senderUid==request.auth.uid||request.auth.uid in d.helperUids;}
+    match /helpSettings/{uid}{allow get: if registered()&&request.auth.uid==uid;allow list: if false;allow create,update: if registered()&&request.auth.uid==uid&&validHelpSettings(request.resource.data);allow delete: if registered()&&request.auth.uid==uid;}
+    match /helpAlerts/{alertId}{
+      allow get,list: if registered()&&helpAlertMember(resource.data);
+      allow create: if registered()&&validHelpAlertCreate(request.resource.data);
+      allow update: if registered()&&resource.data.state=="open"&&(
+        (resource.data.senderUid==request.auth.uid&&request.resource.data.state in ["safe","cancelled"]&&request.resource.data.closedAt==request.time&&request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state","closedAt"]))||
+        (request.auth.uid in resource.data.helperUids&&request.resource.data.diff(resource.data).affectedKeys().hasOnly(["acks"])&&request.resource.data.acks.diff(resource.data.acks).affectedKeys().hasOnly([request.auth.uid])&&!(request.auth.uid in resource.data.acks)&&request.resource.data.acks[request.auth.uid].keys().hasOnly(["at"])&&request.resource.data.acks[request.auth.uid].at==request.time));
+      allow delete: if false;
+    }
+    // ---- end FIDUNIO HELP ----
