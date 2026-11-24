@@ -38,7 +38,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 9:38 PM Sent )",
+      "observed": "a new message appeared ( 9:56 PM Sending )",
       "shots": [
         "07-picture-paste.png"
       ]
@@ -57,8 +57,8 @@
       "id": "HELP-SETTINGS",
       "what": "Settings → HELP Alert: Turn on, tick Simulator Bob, Save",
       "expected": "\"Saved.\"; the server has HELP on with Bob as the only contact",
-      "ok": false,
-      "observed": "screen: \"Saved.\"; server: no HELP settings saved",
+      "ok": true,
+      "observed": "screen: \"Saved.\"; server: enabled=true, contacts=1",
       "shots": [
         "09-help-settings-saved.png"
       ]
@@ -67,8 +67,8 @@
       "id": "HELP-BUTTON",
       "what": "Back to Messages",
       "expected": "a red HELP button is on the Messages screen",
-      "ok": false,
-      "observed": "no HELP button",
+      "ok": true,
+      "observed": "HELP button shown",
       "shots": [
         "10-help-fab.png"
       ]
@@ -77,50 +77,61 @@
       "id": "HELP-QUICK-TAP",
       "what": "HELP screen: a quick tap on the big button (not held)",
       "expected": "nothing is sent (it needs a 2-second hold)",
-      "ok": false,
-      "observed": "TEST ERROR: #helpFab not on screen"
+      "ok": true,
+      "observed": "nothing sent",
+      "shots": [
+        "11-help-quick-tap.png"
+      ]
     },
     {
       "id": "HELP-SEND",
       "what": "Press and hold the HELP button for 3 seconds; allow location when the phone asks",
       "expected": "\"Help alert sent\", a Cancel button, and the server has an open alert for Bob",
-      "ok": false,
-      "observed": "TEST ERROR: Cannot read properties of null (reading 'x')"
+      "ok": true,
+      "observed": "screen: \"Help alert sent\"; location prompts answered: Allow Once, Allow; server: open alert for Bob",
+      "shots": [
+        "12-help-sent.png"
+      ]
     },
     {
       "id": "HELP-PICTURE",
       "what": "Tap the \"I'm hurt\" picture button",
       "expected": "the button marks as sent",
-      "ok": false,
-      "observed": "no picture buttons",
+      "ok": true,
+      "observed": "\"I'm hurt\" sent",
       "shots": [
-        "13-help-pictures.png"
+        "13-help-picture.png"
       ]
     },
     {
       "id": "HELP-ACK",
       "what": "Bob answers \"I'm on it\" (from his phone)",
       "expected": "Alice's HELP screen shows \"Simulator Bob is coming\"",
-      "ok": false,
-      "observed": "no alert to answer",
-      "shots": []
+      "ok": true,
+      "observed": "screen: \"Simulator Bob is coming\"",
+      "shots": [
+        "14-help-ack.png"
+      ]
     },
     {
       "id": "HELP-CHAT-CARDS",
       "what": "Open the chat with Bob",
       "expected": "HELP cards in the chat: the alert with \"Open location on a map\", and \"I'm hurt\"",
-      "ok": false,
-      "observed": "NO map link; chat text: November 24, 2026 Copy test 4417 9:36 PM Sent 9:38 PM Sent ",
+      "ok": true,
+      "observed": "map link shown; chat text: y test 4417 9:52 PM Sent 9:56 PM Sent You are now one of my HELP contacts. 9:57 PM Sent 🆘 HELP alert Open location on a map 9:57 PM Sent I'm hurt 9:58 PM Sent ",
       "shots": [
-        "14-help-chat-cards.png"
+        "15-help-chat-cards.png"
       ]
     },
     {
       "id": "HELP-SAFE",
       "what": "Open the HELP alert from the banner, tap \"I'm safe now\"",
       "expected": "the alert closes (server: safe); HELP screen is back to the big button",
-      "ok": false,
-      "observed": "TEST ERROR: .help-banner not on screen"
+      "ok": true,
+      "observed": "server: safe; screen: big HELP button",
+      "shots": [
+        "16-help-safe.png"
+      ]
     },
     {
       "id": "HELP-INCOMING",
@@ -129,18 +140,19 @@
       "ok": true,
       "observed": "opened: \"🆘 Simulator Bob needs help\"; server: Alice is on it",
       "shots": [
-        "16-help-incoming.png",
-        "17-help-onit.png"
+        "17-help-incoming.png",
+        "18-help-onit.png"
       ]
     },
     {
       "id": "HELP-TEST",
       "what": "Settings → \"Test my HELP alert\", then \"Cancel — it was a mistake\"",
       "expected": "TEST alert sent, then cancelled (server: cancelled)",
-      "ok": false,
-      "observed": "screen: \"no Cancel button seen\"; server: no test alert",
+      "ok": true,
+      "observed": "screen: \"TEST — Help alert sent\"; server: cancelled",
       "shots": [
-        "18-help-test-cancelled.png"
+        "19-help-test.png",
+        "20-help-test-cancelled.png"
       ]
     },
     {
@@ -150,7 +162,7 @@
       "ok": true,
       "observed": "PIN asked to protect: true; server protected=true; Sign Out asked PIN: true; after Cancel still signed in: true",
       "shots": [
-        "19-help-protect-signout.png"
+        "21-help-protect-signout.png"
       ]
     }
   ]
