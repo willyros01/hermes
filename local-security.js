@@ -70,10 +70,23 @@ let monitor=null,activityAt=Date.now(),hiddenAt=null,idleTimer=null;
 function scheduleIdleCheck(){clearTimeout(idleTimer);if(!monitor||!monitor.isUnlocked())return;const timeout=getLockTimeoutMs();if(timeout<=0)return;const remaining=Math.max(0,timeout-(Date.now()-activityAt));idleTimer=setTimeout(()=>{if(!monitor||!monitor.isUnlocked())return;if(Date.now()-activityAt>=getLockTimeoutMs())monitor.onLock("inactivity");else scheduleIdleCheck();},Math.min(remaining+25,2147483000));}
 function noteActivity(){if(!monitor?.isUnlocked())return;activityAt=Date.now();scheduleIdleCheck();}
 export function noteLocalUnlock(){activityAt=Date.now();hiddenAt=null;scheduleIdleCheck();}
-export function installInactivityMonitor({isUnlocked,onLock}){if(monitor)return;monitor={isUnlocked,onLock};["pointerdown","keydown","touchstart"].forEach(name=>window.addEventListener(name,noteActivity,{passive:true}));document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){leaveApp();return;}returnToApp();});window.addEventListener("pagehide",leaveApp);window.addEventListener("pageshow",returnToApp);scheduleIdleCheck();}
+export function installInactivityMonitor({isUnlocked,onLock}){if(monitor)return;monitor={isUnlocked,onLock};["pointerdown","keydown","touchstart"].forEach(name=>window.addEventListener(name,noteActivity,{passive:true}));document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){leaveApp();return;}returnToApp();});window.addEventListener("pagehide",leaveApp);window.addEventListener("pageshow",returnToApp);installNativeAppStateWatch();scheduleIdleCheck();}
+/* 2026-11-24: the iPhone simulator showed the web page's own hidden/visible
+ * signals do not arrive when the native iPhone app goes to the background, so
+ * FIDUNIO never locked there. The native app's own state change (Capacitor
+ * "pause"/"resume" and the App plugin's appStateChange) is used as well;
+ * both paths go through the same leave/return owner and are safe to repeat. */
+function installNativeAppStateWatch(){
+  document.addEventListener("pause",leaveApp);
+  document.addEventListener("resume",()=>returnToApp(true));
+  try{
+    const app=globalThis.Capacitor?.isNativePlatform?.()===true?globalThis.Capacitor?.Plugins?.App:null;
+    if(app?.addListener)Promise.resolve(app.addListener("appStateChange",state=>{if(state?.isActive)returnToApp(true);else leaveApp();})).catch(()=>{});
+  }catch{}
+}
 /* 2026-11-24 (owner): leaving FIDUNIO is inactivity too. With "Immediately" it locks
  * the moment FIDUNIO leaves the screen. Otherwise it stays unlocked while away, and on
  * return it locks only if the chosen time has passed since the last touch. A fresh
  * start after the operating system closed FIDUNIO always begins locked. */
 function leaveApp(){if(!monitor)return;hiddenAt=hiddenAt??Date.now();clearTimeout(idleTimer);if(monitor.isUnlocked()&&getLockTimeoutMs()===0)monitor.onLock("background");}
-function returnToApp(){if(!monitor||document.visibilityState==="hidden")return;hiddenAt=null;if(!monitor.isUnlocked())return;const timeout=getLockTimeoutMs();if(timeout===0||Date.now()-activityAt>=timeout){monitor.onLock("background");return;}scheduleIdleCheck();}
+function returnToApp(nativeActive=false){if(!monitor||(!nativeActive&&document.visibilityState==="hidden"))return;hiddenAt=null;if(!monitor.isUnlocked())return;const timeout=getLockTimeoutMs();if(timeout===0||Date.now()-activityAt>=timeout){monitor.onLock("background");return;}scheduleIdleCheck();}
