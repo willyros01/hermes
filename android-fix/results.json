@@ -27,7 +27,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (7:15 PM Sent)",
+      "observed": "a new message appeared (8:27 PM Sent)",
       "shots": [
         "05-picture-paste.png"
       ]
@@ -119,6 +119,109 @@
       "shots": [
         "13-back-key.png"
       ]
+    },
+    {
+      "id": "HELP-SETTINGS",
+      "what": "Settings → HELP Alert: Turn on, tick Simulator Bob, Save",
+      "expected": "\"Saved.\"; the server has HELP on with Bob as the only contact",
+      "ok": false,
+      "observed": "TEST ERROR: timed out: save result"
+    },
+    {
+      "id": "HELP-BUTTON",
+      "what": "Back to Messages",
+      "expected": "a red HELP button is on the Messages screen",
+      "ok": true,
+      "observed": "HELP button shown",
+      "shots": [
+        "15-help-fab.png"
+      ]
+    },
+    {
+      "id": "HELP-QUICK-TAP",
+      "what": "HELP screen: a quick tap on the big button (not held)",
+      "expected": "nothing is sent (it needs a 2-second hold)",
+      "ok": true,
+      "observed": "nothing sent",
+      "shots": [
+        "16-help-quick-tap.png"
+      ]
+    },
+    {
+      "id": "HELP-SEND",
+      "what": "Press and hold the HELP button for 3 seconds; allow location when the phone asks",
+      "expected": "\"Help alert sent\", a Cancel button, and the server has an open alert for Bob",
+      "ok": false,
+      "observed": "screen: \"Help alert sent\"; location prompts answered: ONLY THIS TIME; server: NO alert",
+      "shots": [
+        "17-help-sent.png"
+      ]
+    },
+    {
+      "id": "HELP-PICTURE",
+      "what": "Tap the \"I'm hurt\" picture button",
+      "expected": "the button marks as sent",
+      "ok": false,
+      "observed": "not marked sent",
+      "shots": [
+        "18-help-picture.png"
+      ]
+    },
+    {
+      "id": "HELP-ACK",
+      "what": "Bob answers \"I'm on it\" (from his phone)",
+      "expected": "Alice's HELP screen shows \"Simulator Bob is coming\"",
+      "ok": false,
+      "observed": "no alert to answer",
+      "shots": []
+    },
+    {
+      "id": "HELP-CHAT-CARDS",
+      "what": "Open the chat with Bob",
+      "expected": "HELP cards in the chat: the alert with \"Open location on a map\", and \"I'm hurt\"",
+      "ok": true,
+      "observed": "map link shown; chat text: ent 8:27 PM Sent 8:27 PM Sent You are now one of my HELP contacts. 8:29 PM Sending 🆘 HELP alert Open location on a map 8:30 PM Sending I'm hurt 8:30 PM Sending",
+      "shots": [
+        "19-help-chat-cards.png"
+      ]
+    },
+    {
+      "id": "HELP-SAFE",
+      "what": "Open the HELP alert from the banner, tap \"I'm safe now\"",
+      "expected": "the alert closes (server: safe); HELP screen is back to the big button",
+      "ok": false,
+      "observed": "server: undefined; screen: big HELP button",
+      "shots": [
+        "20-help-safe.png"
+      ]
+    },
+    {
+      "id": "HELP-INCOMING",
+      "what": "Bob sends HELP to Alice (from his phone)",
+      "expected": "Alice's FIDUNIO opens \"Simulator Bob needs help\" by itself; \"I'm on it\" tells the server",
+      "ok": false,
+      "observed": "screen: \"HELP screen did not open\"",
+      "shots": [
+        "21-help-incoming.png"
+      ]
+    },
+    {
+      "id": "HELP-TEST",
+      "what": "Settings → \"Test my HELP alert\", then \"Cancel — it was a mistake\"",
+      "expected": "TEST alert sent, then cancelled (server: cancelled)",
+      "ok": false,
+      "observed": "screen: \"TEST — Help alert sent\"; server: no test alert",
+      "shots": [
+        "22-help-test.png",
+        "23-help-test-cancelled.png"
+      ]
+    },
+    {
+      "id": "HELP-PROTECT",
+      "what": "Settings: tick \"Protect this account\", Save (asks PIN), then try Sign Out",
+      "expected": "PIN asked to protect; Sign Out then asks the PIN, and Cancel keeps Alice signed in",
+      "ok": false,
+      "observed": "TEST ERROR: Android WebView did not answer within 20 seconds"
     }
   ]
 }
