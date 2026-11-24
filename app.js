@@ -1366,7 +1366,10 @@ async function sendHelpText(peerUid,text){
   state.messages[conversationId].push(m);
   c.preview=messagePreview(text);c.time=m.time;
   await queueOutboxMessage(conversationId,m);
+  await persistState();
   render({background:true});
+  /* Same as a typed message: the Outbox is authoritative, then send it now when online. */
+  if(state.online)await flushQueuedAfterAuthoritativeReconcile();
 }
 function helpCardsForAlert(senderUid,alertId){
   const c=state.conversations.find(row=>row.cloud&&String(row.peerUid||"")===String(senderUid));

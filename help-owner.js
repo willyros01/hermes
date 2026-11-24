@@ -57,7 +57,7 @@ export function helpPreview(card){return card.kind==="alert"?"🆘 HELP":card.ki
 /* ---- the owner ---- */
 export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin,isWide=()=>false,isUnlocked=()=>true,shellTop,onError=m=>alert(m)}){
   const shown=new Set();
-  const st={uid:"",settings:{enabled:false,helperUids:[],protected:false},settingsLoaded:false,mine:[],incoming:[],people:[],unsub:[],viewAlertId:"",holdTimer:null,cancelUntil:0,sending:false,lastError:""};
+  const st={uid:"",settings:{enabled:false,helperUids:[],protected:false},settingsLoaded:false,mine:[],incoming:[],people:[],unsub:[],viewAlertId:"",holdTimer:null,cancelUntil:0,sending:false,lastError:"",sentNotes:{},settingsMsg:"",noteDraft:""};
   let services=null;
   const fs=()=>services.fsSdk,db=()=>services.db;
 
@@ -125,6 +125,7 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
   async function sendNote(note){
     const a=st.mine[0];if(!a)return;const text=String(note||"").trim().slice(0,NOTE_MAX);if(!text)return;
     await sendCardToHelpers(a,{kind:"note",note:text});
+    (st.sentNotes[a.id]||(st.sentNotes[a.id]=[])).push(text);render();
   }
   async function close(kind){
     const a=st.mine[0];if(!a)return;const s=fs();
@@ -189,8 +190,9 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
       <p class="help-sent">${a.test?"TEST — ":""}Help alert sent</p>
       <p class="help-status">${acks.length?acks.map(u=>`<strong>${esc(nameOf(u))} is coming</strong>`).join("<br>"):"Waiting for someone to answer…"}</p>
       ${canCancel?'<button class="help-cancel" id="helpCancel">Cancel — it was a mistake</button>':""}
-      <div class="help-pictures">${HELP_PICTURE_MESSAGES.map(p=>`<button class="help-picture" data-help-note="${esc(p.text)}"><span aria-hidden="true">${p.icon}</span>${esc(p.text)}</button>`).join("")}</div>
-      <div class="help-note-row"><input class="text-input" id="helpNote" maxlength="${NOTE_MAX}" placeholder="Short message (optional)"><button class="help-note-send" id="helpNoteSend">Send</button></div>
+      <div class="help-pictures">${HELP_PICTURE_MESSAGES.map(p=>`<button class="help-picture${(st.sentNotes[a.id]||[]).includes(p.text)?" sent":""}" data-help-note="${esc(p.text)}"><span aria-hidden="true">${p.icon}</span>${esc(p.text)}</button>`).join("")}</div>
+      <div class="help-note-row"><input class="text-input" id="helpNote" maxlength="${NOTE_MAX}" placeholder="Short message (optional)" value="${esc(st.noteDraft)}"><button class="help-note-send" id="helpNoteSend">Send</button></div>
+      ${(st.sentNotes[a.id]||[]).length?`<p class="help-sub" id="helpNotesSent">Sent: ${st.sentNotes[a.id].map(esc).join(" · ")}</p>`:""}
       <button class="help-safe" id="helpSafe">I'm safe now</button>`;
     app.innerHTML=`<main class="app-shell help-shell">${shellTop("HELP",'<button class="back-btn" id="backBtn">‹</button>')}<section class="content help-content">${body}</section></main>`;
     document.querySelector("#backBtn").onclick=()=>navigate("messages");
@@ -203,9 +205,10 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
     }
     document.querySelector("#helpCancel")?.addEventListener("click",()=>void close("cancel"));
     document.querySelector("#helpSafe")?.addEventListener("click",()=>void close("safe"));
-    document.querySelectorAll("[data-help-note]").forEach(b=>b.onclick=async()=>{b.disabled=true;await sendNote(b.dataset.helpNote);b.classList.add("sent");b.disabled=false;});
+    document.querySelectorAll("[data-help-note]").forEach(b=>b.onclick=async()=>{b.disabled=true;await sendNote(b.dataset.helpNote);});
     const note=document.querySelector("#helpNote"),noteBtn=document.querySelector("#helpNoteSend");
-    if(noteBtn)noteBtn.onclick=async()=>{noteBtn.disabled=true;await sendNote(note.value);note.value="";noteBtn.disabled=false;noteBtn.textContent="Sent";};
+    if(note)note.oninput=()=>{st.noteDraft=note.value;};
+    if(noteBtn)noteBtn.onclick=async()=>{noteBtn.disabled=true;const text=note.value;st.noteDraft="";note.value="";await sendNote(text);};
   }
 
   /* ---- a helper's view of one alert ---- */
@@ -239,7 +242,7 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
       <p class="small-note">Sign Out and these HELP settings then need this account's PIN.</p>
       <button class="secondary" id="helpSave">Save HELP settings</button>
       <button class="secondary" id="helpTest" ${s.enabled&&s.helperUids.length?"":"disabled"}>Test my HELP alert</button>
-      <p class="small-note" id="helpSettingsMsg" role="status"></p></div>`;
+      <p class="small-note" id="helpSettingsMsg" role="status">${esc(st.settingsMsg)}</p></div>`;
     const msg=host.querySelector("#helpSettingsMsg");
     host.querySelectorAll(".help-helper").forEach(b=>b.onchange=()=>{const n=host.querySelectorAll(".help-helper:checked").length;if(n>MAX_HELPERS){b.checked=false;msg.textContent="Up to 5 HELP contacts.";}});
     host.querySelector("#helpSave").onclick=async e=>{
@@ -249,7 +252,8 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
       if(next.protected&&!st.settings.protected&&!(await askPin("Protect this account")))return;
       if(next.enabled&&!next.helperUids.length){msg.textContent="Choose at least one HELP contact.";return;}
       btn.disabled=true;msg.textContent="Saving…";
-      try{await saveSettings(next);msg.textContent="Saved.";}
+      /* The screen redraws when the server confirms, so the result is kept for the redrawn card. */
+      try{await saveSettings(next);st.settingsMsg="Saved.";const m=document.querySelector("#helpSettingsMsg");if(m)m.textContent="Saved.";setTimeout(()=>{st.settingsMsg="";},6000);}
       catch(err){msg.textContent="Not saved: "+(err?.message||err)+". Your previous HELP settings are unchanged.";}
       finally{btn.disabled=false;}
     };
