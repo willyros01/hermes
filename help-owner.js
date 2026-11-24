@@ -251,7 +251,7 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
   async function mountSettingsCard(host){
     if(!host)return;await people();
     const s=st.settings,list=st.people.filter(p=>String(p.uid)!==st.uid);
-    host.innerHTML=`<div class="card help-settings"><h2>HELP Alert</h2>
+    host.innerHTML=`<h2>HELP Alert</h2>
       <label class="help-toggle"><input type="checkbox" id="helpEnabled" ${s.enabled?"checked":""}> Turn on HELP</label>
       <p class="small-note">A red HELP button appears on Messages. Holding it for 2 seconds alerts your HELP contacts with your location.</p>
       <h3>My HELP contacts (up to 5)</h3>
@@ -260,7 +260,7 @@ export function createHelpOwner({app,render,navigate,sendHelpText,verifyLocalPin
       <p class="small-note">Sign Out and these HELP settings then need this account's PIN.</p>
       <button class="secondary" id="helpSave">Save HELP settings</button>
       <button class="secondary" id="helpTest" ${s.enabled&&s.helperUids.length?"":"disabled"}>Test my HELP alert</button>
-      <p class="small-note" id="helpSettingsMsg" role="status">${esc(st.settingsMsg)}</p></div>`;
+      <p class="small-note" id="helpSettingsMsg" role="status">${esc(st.settingsMsg)}</p>`;
     const msg=host.querySelector("#helpSettingsMsg");
     host.querySelectorAll(".help-helper").forEach(b=>b.onchange=()=>{const n=host.querySelectorAll(".help-helper:checked").length;if(n>MAX_HELPERS){b.checked=false;msg.textContent="Up to 5 HELP contacts.";}});
     host.querySelector("#helpSave").onclick=async e=>{

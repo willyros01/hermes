@@ -90,7 +90,7 @@ const GROUPS=[
   {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
   {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
   {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},
-  {id:"safety",label:"Safety",icon:"!",subtitle:"Report abusive behavior or objectionable content to FIDUNIO administrators."},
+  {id:"safety",label:"Safety",icon:"!",subtitle:"HELP alerts to your family, and reports of abusive behavior or objectionable content.",cards:["HELP Alert"]},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
@@ -302,7 +302,9 @@ async function renderAccountDeletion(profileHost,usersHost,info){
 }
 
 async function renderSafety(safetyHost,info){
+  const helpCard=safetyHost.querySelector("#helpSettingsHost");/* HELP Alert card stays first in Safety */
   safetyHost.innerHTML='<div class="card" id="fidunioSafetyFilterCard"><h2>Message Safety Filter</h2><p class="small-note"><strong>On.</strong> FIDUNIO checks outgoing text on this device before encryption for a narrow set of high-confidence abusive or threatening phrases. Message text is not sent to a moderation service. The filter cannot inspect encrypted attachment contents, so Report Abuse and Blocked Users remain available for other cases.</p></div><div class="card" id="fidunioAbuseReportCard"><h2>Report Abuse</h2><p class="small-note">Report harassment, objectionable content, scams, impersonation, or other abusive behavior. FIDUNIO administrators receive the report, not the contents of unrelated conversations.</p><label class="form-label" for="abuseReason">Reason</label><select class="text-input" id="abuseReason"><option value="">Choose a reason</option><option value="harassment">Harassment or bullying</option><option value="objectionable-content">Objectionable content</option><option value="spam-scam">Spam or scam</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select><label class="form-label" for="abuseTarget">Person involved (optional)</label><select class="text-input" id="abuseTarget"><option value="">No specific user</option></select><label class="form-label" for="abuseDetails">Details (optional)</label><textarea class="text-input" id="abuseDetails" maxlength="1000" rows="5" placeholder="Briefly describe what happened. Do not paste passwords, PINs, or private recovery information."></textarea><button class="primary" id="submitAbuseReportBtn" style="margin-top:14px">Send Report</button><div id="abuseReportNote" aria-live="polite"></div></div>';
+  if(helpCard)safetyHost.prepend(helpCard);
   const card=safetyHost.querySelector("#fidunioAbuseReportCard"),target=card.querySelector("#abuseTarget"),note=card.querySelector("#abuseReportNote"),button=card.querySelector("#submitAbuseReportBtn");
   try{
     const users=await listCloudUsers();
