@@ -1,0 +1,41 @@
+navigation mode: 2
+FIDUNIO input probe — android — released
+signed in
+
+COPY: Press and hold a message, tap Copy
+DIFFERENT COPY — observed: action sheet open; NO Copy button
+
+PASTE: Press and hold the message box, tap the phone's Paste
+DIFFERENT PASTE — observed: phone Copy NOT offered; NO Paste offered; message box now: "  "
+
+PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
+DIFFERENT PICTURE-PASTE — observed: nothing was sent
+
+KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
+DIFFERENT KEYBOARD-GIF — observed: nothing was sent
+
+KEYBOARD-GIF-OFFER: Does the message box tell the keyboard it accepts GIFs?
+DIFFERENT KEYBOARD-GIF-OFFER — observed: no GIF types visible in the keyboard connection
+
+CAMERA: Photo → Take a Picture
+DIFFERENT CAMERA — observed: in front: com.android.providers.media.module/com.android.providers.media.photopicker.PhotoPickerGetContentActivity
+
+GRACE: Switch to another app for ~15 s, then back
+DIFFERENT GRACE — observed: LOCKED — PIN asked
+
+BACK-CHAT: Back swipe from the edge while in a chat
+DIFFERENT BACK-CHAT — observed: still on: Simulator Bob ● Cloud Sign Out November 24, 2026 Copy test 4417 7:07 PM Sent Yes
+
+BACK-POPUP: Back swipe with a pop-up open
+DIFFERENT BACK-POPUP — observed: pop-up was open; after Back: not closed
+
+BACK-MAIN: Back swipe on the Messages list
+DIFFERENT BACK-MAIN — observed: started on Messages list; in front: io.github.willyros01.fidunio/.MainActivity; FIDUNIO still running
+
+BACK-RETURN: Return right after the Back swipe
+AS EXPECTED BACK-RETURN — observed: unlocked
+
+BACK-KEY: 3-button Back key while in a chat
+DIFFERENT BACK-KEY — observed: in front: io.github.willyros01.fidunio/.MainActivity
+
+RESULT: probe finished

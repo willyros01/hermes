@@ -1,0 +1,124 @@
+{
+  "platform": "android",
+  "label": "released",
+  "results": [
+    {
+      "id": "COPY",
+      "what": "Press and hold a message, tap Copy",
+      "expected": "sheet offers Copy; the phone clipboard then holds the message text",
+      "ok": false,
+      "observed": "action sheet open; NO Copy button",
+      "shots": [
+        "02-copy-sheet.png"
+      ]
+    },
+    {
+      "id": "PASTE",
+      "what": "Press and hold the message box, tap the phone's Paste",
+      "expected": "the copied text appears in the message box",
+      "ok": false,
+      "observed": "phone Copy NOT offered; NO Paste offered; message box now: \"  \"",
+      "shots": [
+        "03-after-paste.png"
+      ]
+    },
+    {
+      "id": "PICTURE-PASTE",
+      "what": "A paste that carries a picture (what an iPhone sticker sends)",
+      "expected": "FIDUNIO sends it as a photo",
+      "ok": false,
+      "observed": "nothing was sent",
+      "shots": [
+        "04-picture-paste.png"
+      ]
+    },
+    {
+      "id": "KEYBOARD-GIF",
+      "what": "A GIF handed over by the keyboard (fix branch: native hand-over event)",
+      "expected": "FIDUNIO sends it as a photo",
+      "ok": false,
+      "observed": "nothing was sent",
+      "shots": [
+        "05-keyboard-gif.png"
+      ]
+    },
+    {
+      "id": "KEYBOARD-GIF-OFFER",
+      "what": "Does the message box tell the keyboard it accepts GIFs?",
+      "expected": "yes on the fix branch",
+      "ok": false,
+      "observed": "no GIF types visible in the keyboard connection",
+      "shots": []
+    },
+    {
+      "id": "CAMERA",
+      "what": "Photo → Take a Picture",
+      "expected": "the camera opens",
+      "ok": false,
+      "observed": "in front: com.android.providers.media.module/com.android.providers.media.photopicker.PhotoPickerGetContentActivity",
+      "shots": [
+        "06-after-take-picture.png"
+      ]
+    },
+    {
+      "id": "GRACE",
+      "what": "Switch to another app for ~15 s, then back",
+      "expected": "FIDUNIO opens unlocked (5 min grace)",
+      "ok": false,
+      "observed": "LOCKED — PIN asked",
+      "shots": [
+        "07-back-after-15s.png"
+      ]
+    },
+    {
+      "id": "BACK-CHAT",
+      "what": "Back swipe from the edge while in a chat",
+      "expected": "goes back to the Messages list, FIDUNIO stays in front",
+      "ok": false,
+      "observed": "still on: Simulator Bob ● Cloud Sign Out November 24, 2026 Copy test 4417 7:07 PM Sent Yes",
+      "shots": [
+        "08-back-from-chat.png"
+      ]
+    },
+    {
+      "id": "BACK-POPUP",
+      "what": "Back swipe with a pop-up open",
+      "expected": "the pop-up closes first",
+      "ok": false,
+      "observed": "pop-up was open; after Back: not closed",
+      "shots": [
+        "09-back-popup.png"
+      ]
+    },
+    {
+      "id": "BACK-MAIN",
+      "what": "Back swipe on the Messages list",
+      "expected": "FIDUNIO goes to the background (still running)",
+      "ok": false,
+      "observed": "started on Messages list; in front: io.github.willyros01.fidunio/.MainActivity; FIDUNIO still running",
+      "shots": [
+        "10-back-main.png"
+      ]
+    },
+    {
+      "id": "BACK-RETURN",
+      "what": "Return right after the Back swipe",
+      "expected": "unlocked (within grace)",
+      "ok": true,
+      "observed": "unlocked",
+      "shots": [
+        "11-return-after-back.png"
+      ]
+    },
+    {
+      "id": "BACK-KEY",
+      "what": "3-button Back key while in a chat",
+      "expected": "goes back to the Messages list",
+      "ok": false,
+      "observed": "in front: io.github.willyros01.fidunio/.MainActivity",
+      "shots": [
+        "12-back-key.png"
+      ]
+    }
+  ]
+}
