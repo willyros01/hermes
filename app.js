@@ -74,6 +74,7 @@ import {createAccountVaultOwner} from "./account-vault-owner.js";
 import {reconcileAccountVaultPayload} from "./account-vault-reconciliation.js";
 import {activateVerifiedAccountVault} from "./account-vault-activation.js";
 import {isNativeIOSRuntime} from "./platform-runtime.js";
+import {installAndroidBackGesture} from "./android-back-platform-adapter.js";
 import {subscribePlatformBackgroundMessages} from "./background-platform-adapter.js";
 
 /* FIDUNIO single-authority local lock integration */
@@ -222,6 +223,24 @@ function lockLocalApp(reason="manual"){
   unlockError="";
   unlockPinFallbackVisible=false;
   render();
+}
+/* Android Back swipe/key (2026-11-24). Runs the same control a tap would:
+ * close an open pop-up first, then the screen's own Back/Close control.
+ * Returns false when there is nothing to go back to (Android then moves
+ * FIDUNIO to the background). The lock screen is never bypassed. */
+function handleAndroidBack(){
+  if(!state.unlocked)return false;
+  const visible=el=>!!el&&!el.disabled&&el.offsetParent!==null;
+  if(state.modal){
+    const host=document.querySelector(".modal-backdrop");
+    const cancel=[...(host?.querySelectorAll("#modalCancel,.modal-cancel")||[])].find(visible);
+    if(cancel)cancel.click();else if(host)host.click();else{state.modal=null;render();}
+    return true;
+  }
+  if(state.toolsOpen){state.toolsOpen=false;render();return true;}
+  const control=["#closeRecoveryResultBtn","#inviteModalCancel","#adminCloseBtn","#backBtn"].map(id=>document.querySelector(id)).find(visible);
+  if(control){control.click();return true;}
+  return false;
 }
 function unlockLocalApp(){
   state.unlocked=true;
@@ -1394,6 +1413,7 @@ async function initApp(){
   state.online=navigator.onLine;
   if(consumeSuccessfulAuthBypass()) state.unlocked=true;
   installInactivityMonitor({isUnlocked:()=>state.unlocked&&!attachmentPickerActive,onLock:reason=>lockLocalApp(reason)});
+  installAndroidBackGesture({handleBack:handleAndroidBack});
   if(state.unlocked) noteLocalUnlock();
   void requestAppActivation("initial-hydration");
 
