@@ -46,7 +46,10 @@ if(android){try{adb('shell','cmd','overlay','enable-exclusive','--category','com
 const touch=()=>js('window.dispatchEvent(new Event("pointerdown"));true');
 /* Screen position of an element inside the app, for real finger gestures. */
 async function screenPoint(selectorOrText){
-  const r=await js(`(()=>{const q=${JSON.stringify(selectorOrText)};let el=q.startsWith('#')||q.startsWith('.')?document.querySelector(q):[...document.querySelectorAll('#chatArea .msg-text')].reverse().find(e=>e.textContent.includes(q));if(!el)return null;el.scrollIntoView({block:'center'});const b=el.getBoundingClientRect();const v=window.visualViewport||{offsetLeft:0,offsetTop:0};return {x:b.left+b.width/2-v.offsetLeft,y:b.top+b.height/2-v.offsetTop,left:b.left-v.offsetLeft,bottom:b.bottom-v.offsetTop,dpr:devicePixelRatio,vh:innerHeight}})()`);
+  /* Scroll it into view first and let the scrolling stop, then measure (a moving page made taps miss). */
+  await js(`(()=>{const q=${JSON.stringify(selectorOrText)};const el=q.startsWith('#')||q.startsWith('.')?document.querySelector(q):[...document.querySelectorAll('#chatArea .msg-text')].reverse().find(e=>e.textContent.includes(q));if(el)el.scrollIntoView({block:'center',behavior:'instant'});return true})()`);
+  await sleep(700);
+  const r=await js(`(()=>{const q=${JSON.stringify(selectorOrText)};let el=q.startsWith('#')||q.startsWith('.')?document.querySelector(q):[...document.querySelectorAll('#chatArea .msg-text')].reverse().find(e=>e.textContent.includes(q));if(!el)return null;const b=el.getBoundingClientRect();const v=window.visualViewport||{offsetLeft:0,offsetTop:0};return {x:b.left+b.width/2-v.offsetLeft,y:b.top+b.height/2-v.offsetTop,left:b.left-v.offsetLeft,bottom:b.bottom-v.offsetTop,dpr:devicePixelRatio,vh:innerHeight}})()`);
   if(!r)return null;
   if(android){const wv=d.nodes().filter(n=>/WebView/.test(n.cls)).sort((a,b)=>b.h-a.h)[0];const top=wv?wv.y-Math.floor(wv.h/2):0;return{x:Math.round(r.x*r.dpr),y:Math.round(top+r.y*r.dpr)};}
   return{x:Math.round(r.x),y:Math.round(r.y),left:Math.round(r.left),bottom:Math.round(r.bottom)};
