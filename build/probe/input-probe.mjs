@@ -62,7 +62,10 @@ log(`FIDUNIO input probe — ${platform} — ${label}`);
 d.reinstall(APP,artifact);d.launch(APP);
 await d.waitApp(/Terms of Use/,90000);
 await d.press('#startupTermsTick');await d.press('#startupTermsAccept');
-await until(()=>present('#joinTab'),'Join tab');await d.press('#joinTab');
+try{await until(()=>present('#joinTab'),'Join tab');}
+catch(e){await shot('join-tab-missing');log('screen: '+String(await d.appText().catch(x=>x.message)).replace(/\s+/g,' ').slice(0,400));
+  /* Accept once more in case the first tap landed before the screen was ready. */
+  await d.press('#startupTermsTick').catch(()=>{});await d.press('#startupTermsAccept').catch(()=>{});await until(()=>present('#joinTab'),'Join tab (second try)');}await d.press('#joinTab');
 await until(()=>present('#joinPinHost'),'Join form');
 if(!android){/* Same warm-up the iPhone simulator suite uses before Join (local Firestore connection). */
   await js(`(() => {window.__probeRead={state:"pending"};import("./firebase.js").then(m=>m.validateInvitation(${JSON.stringify(fixture.inviteToken)})).then(()=>{window.__probeRead={state:"success"}},e=>{window.__probeRead={state:"failed",error:String(e?.code||e?.message||e)}});return true})()`);
