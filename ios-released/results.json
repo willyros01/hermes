@@ -1,0 +1,56 @@
+{
+  "platform": "ios",
+  "label": "released",
+  "results": [
+    {
+      "id": "COPY",
+      "what": "Press and hold a message, tap Copy",
+      "expected": "sheet offers Copy; the phone clipboard then holds the message text",
+      "ok": false,
+      "observed": "action sheet closed; NO Copy button",
+      "shots": [
+        "02-copy-sheet.png"
+      ]
+    },
+    {
+      "id": "PASTE",
+      "what": "Press and hold the message box, tap the phone's Paste",
+      "expected": "the copied text appears in the message box",
+      "ok": false,
+      "observed": "simulator clipboard set; NO Paste offered; message box now: \"\"",
+      "shots": [
+        "04-after-paste.png"
+      ]
+    },
+    {
+      "id": "PICTURE-PASTE",
+      "what": "A paste that carries a picture (what an iPhone sticker sends)",
+      "expected": "FIDUNIO sends it as a photo",
+      "ok": false,
+      "observed": "nothing was sent",
+      "shots": [
+        "05-picture-paste.png"
+      ]
+    },
+    {
+      "id": "CAMERA",
+      "what": "Photo → Take a Picture",
+      "expected": "the camera opens",
+      "ok": false,
+      "observed": "screen shows: FIDUNIO | Toolbar | I | The | I’m | Q | W | E | R | T | Y | U | I | O | P | A | S | D | F | G | H | J | K | L | shift",
+      "shots": [
+        "06-after-take-picture.png"
+      ]
+    },
+    {
+      "id": "GRACE",
+      "what": "Switch to another app for ~15 s, then back",
+      "expected": "FIDUNIO opens unlocked (5 min grace)",
+      "ok": true,
+      "observed": "unlocked",
+      "shots": [
+        "07-back-after-15s.png"
+      ]
+    }
+  ]
+}

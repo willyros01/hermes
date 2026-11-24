@@ -1,1 +1,20 @@
 FIDUNIO input probe — ios — released
+iPhone pre-Join read: {"state":"success"}
+signed in
+
+COPY: Press and hold a message, tap Copy
+DIFFERENT COPY — observed: action sheet closed; NO Copy button
+
+PASTE: Press and hold the message box, tap the phone's Paste
+DIFFERENT PASTE — observed: simulator clipboard set; NO Paste offered; message box now: ""
+
+PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
+DIFFERENT PICTURE-PASTE — observed: nothing was sent
+
+CAMERA: Photo → Take a Picture
+DIFFERENT CAMERA — observed: screen shows: FIDUNIO | Toolbar | I | The | I’m | Q | W | E | R | T | Y | U | I | O | P | A | S | D | F | G | H | J | K | L | shift
+
+GRACE: Switch to another app for ~15 s, then back
+AS EXPECTED GRACE — observed: unlocked
+
+RESULT: probe finished
