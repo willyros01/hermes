@@ -2210,7 +2210,7 @@ function bindPendingMessageActions(){
   document.querySelectorAll(".pending-message-action").forEach(row=>{
     let timer=null,startX=0,startY=0;
     const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
-    const open=()=>{clear();state.modal={type:"pendingMessage",messageId:row.dataset.messageId,conversationId:row.dataset.conversationId};render();};
+    const open=()=>{clear();try{window.getSelection()?.removeAllRanges();}catch{}state.modal={type:"pendingMessage",messageId:row.dataset.messageId,conversationId:row.dataset.conversationId};render();};
     row.oncontextmenu=e=>{if(e.target.closest?.(".message-reaction-chip[data-reaction]"))return;e.preventDefault();open();};
     row.onpointerdown=e=>{if(e.button!==0||e.target.closest?.(".message-reaction-chip[data-reaction]")||e.target.closest?.("a.msg-link"))return;startX=e.clientX;startY=e.clientY;clear();timer=setTimeout(open,650);};
     row.onpointermove=e=>{if(Math.abs(e.clientX-startX)>10||Math.abs(e.clientY-startY)>10)clear();};
