@@ -2,9 +2,9 @@
 
 | Check | What | Expected | Observed | |
 |---|---|---|---|---|
-| COPY | Press and hold a message, tap Copy | sheet offers Copy; the phone clipboard then holds the message text | Copy button present; clipboard now: "  " | **DIFFERENT** |
-| PASTE | Press and hold the message box, tap the phone's Paste | the copied text appears in the message box | phone Copy NOT offered; NO Paste offered; message box now: "" | **DIFFERENT** |
-| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (7:07 PM Sent) | as expected |
+| COPY | Press and hold a message, tap Copy | sheet offers Copy; the phone clipboard then holds the message text | Copy button present; clipboard now: " Copy test 4417" | as expected |
+| PASTE | Press and hold the message box, tap the phone's Paste | the copied text appears in the message box | phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286" | as expected |
+| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (7:15 PM Sent) | as expected |
 | KEYBOARD-GIF | A GIF handed over by the keyboard (fix branch: native hand-over event) | FIDUNIO sends it as a photo | GIF message appeared | as expected |
 | KEYBOARD-GIF-OFFER | Does the message box tell the keyboard it accepts GIFs? | yes on the fix branch | GIF types offered to the keyboard | as expected |
 | CAMERA | Photo → Take a Picture | the camera opens | in front: com.android.camera2/com.android.camera.CaptureActivity | as expected |
@@ -19,42 +19,42 @@
 
 ![02-copy-sheet.png](02-copy-sheet.png)
 
-### PASTE — 03-after-paste.png
+### PASTE — 04-after-paste.png
 
-![03-after-paste.png](03-after-paste.png)
+![04-after-paste.png](04-after-paste.png)
 
-### PICTURE-PASTE — 04-picture-paste.png
+### PICTURE-PASTE — 05-picture-paste.png
 
-![04-picture-paste.png](04-picture-paste.png)
+![05-picture-paste.png](05-picture-paste.png)
 
-### KEYBOARD-GIF — 05-keyboard-gif.png
+### KEYBOARD-GIF — 06-keyboard-gif.png
 
-![05-keyboard-gif.png](05-keyboard-gif.png)
+![06-keyboard-gif.png](06-keyboard-gif.png)
 
-### CAMERA — 06-after-take-picture.png
+### CAMERA — 07-after-take-picture.png
 
-![06-after-take-picture.png](06-after-take-picture.png)
+![07-after-take-picture.png](07-after-take-picture.png)
 
-### GRACE — 07-back-after-15s.png
+### GRACE — 08-back-after-15s.png
 
-![07-back-after-15s.png](07-back-after-15s.png)
+![08-back-after-15s.png](08-back-after-15s.png)
 
-### BACK-CHAT — 08-back-from-chat.png
+### BACK-CHAT — 09-back-from-chat.png
 
-![08-back-from-chat.png](08-back-from-chat.png)
+![09-back-from-chat.png](09-back-from-chat.png)
 
-### BACK-POPUP — 09-back-popup.png
+### BACK-POPUP — 10-back-popup.png
 
-![09-back-popup.png](09-back-popup.png)
+![10-back-popup.png](10-back-popup.png)
 
-### BACK-MAIN — 10-back-main.png
+### BACK-MAIN — 11-back-main.png
 
-![10-back-main.png](10-back-main.png)
+![11-back-main.png](11-back-main.png)
 
-### BACK-RETURN — 11-return-after-back.png
+### BACK-RETURN — 12-return-after-back.png
 
-![11-return-after-back.png](11-return-after-back.png)
+![12-return-after-back.png](12-return-after-back.png)
 
-### BACK-KEY — 12-back-key.png
+### BACK-KEY — 13-back-key.png
 
-![12-back-key.png](12-back-key.png)
+![13-back-key.png](13-back-key.png)

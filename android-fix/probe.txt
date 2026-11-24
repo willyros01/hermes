@@ -3,13 +3,13 @@ FIDUNIO input probe — android — fix
 signed in
 
 COPY: Press and hold a message, tap Copy
-DIFFERENT COPY — observed: Copy button present; clipboard now: "  "
+AS EXPECTED COPY — observed: Copy button present; clipboard now: " Copy test 4417"
 
 PASTE: Press and hold the message box, tap the phone's Paste
-DIFFERENT PASTE — observed: phone Copy NOT offered; NO Paste offered; message box now: ""
+AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286"
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared (7:07 PM Sent)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared (7:15 PM Sent)
 
 KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
 AS EXPECTED KEYBOARD-GIF — observed: GIF message appeared
