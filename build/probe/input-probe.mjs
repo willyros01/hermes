@@ -85,7 +85,9 @@ const isLocked=async()=>!(await present('#messageBox'))&&!(await present('#newBt
 
 /* 1. COPY: press and hold a message; FIDUNIO's sheet should offer Copy. */
 await check('COPY','Press and hold a message, tap Copy','sheet offers Copy; the phone clipboard then holds the message text',async()=>{
-  await openChat();await hideKeyboard();const p=await screenPoint('Copy test 4417');if(!p)throw new Error('message bubble not on screen');await longPressAt(p);
+  await openChat();await hideKeyboard();await sleep(1000);
+  /* The chat can still be settling after the keyboard closes: measure again and press once more if the sheet did not open. */
+  for(let i=0;i<2&&!(await present('#pendingMessageTitle'));i++){const p=await screenPoint('Copy test 4417');if(!p)throw new Error('message bubble not on screen');await longPressAt(p);}
   const s=await shot('copy-sheet');
   const sheet=await js('document.querySelector("#pendingMessageTitle")?"open":"closed"');
   const hasCopy=await present('#modalCopy');
@@ -344,12 +346,17 @@ if(label==='fix'){
   });
 
   await check('HELP-TEST','Settings → "Test my HELP alert", then "Cancel — it was a mistake"','TEST alert sent, then cancelled (server: cancelled)',async()=>{
-    await toSettings();await realTap('#helpTest');await allowLocation(4000);
-    await until(()=>present('#helpCancel'),'Cancel button',20000).catch(()=>{});
-    const t=await js('document.querySelector(".help-sent")?.textContent||""');const s1=await shot('help-test');
-    if(await present('#helpCancel'))await realTap('#helpCancel');await sleep(3000);
+    await toSettings();await realTap('#helpTest');
+    /* Like a person: answer the phone's location question if it shows, and tap Cancel as soon as it is there. */
+    let t='',s1='';const end=Date.now()+20000;
+    while(Date.now()<end){
+      if((await allowLocation(1)).length)continue;
+      if(await present('#helpCancel')){t=await js('document.querySelector(".help-sent")?.textContent||""');await realTap('#helpCancel');s1=await shot('help-test');break;}
+      await sleep(400);
+    }
+    await sleep(3000);
     const a=(await alertsFor()).filter(x=>x.senderUid===aliceUid&&x.test===true).pop();const s2=await shot('help-test-cancelled');
-    return{ok:/TEST/.test(t)&&a?.state==='cancelled',observed:`screen: "${t}"; server: ${a?a.state:'no test alert'}`,shots:[s1,s2]};
+    return{ok:/TEST/.test(t)&&a?.state==='cancelled',observed:`screen: "${t||'no Cancel button seen'}"; server: ${a?a.state:'no test alert'}`,shots:[s1,s2].filter(Boolean)};
   });
 
   await check('HELP-PROTECT','Settings: tick "Protect this account", Save (asks PIN), then try Sign Out','PIN asked to protect; Sign Out then asks the PIN, and Cancel keeps Alice signed in',async()=>{
