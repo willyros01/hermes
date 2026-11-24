@@ -121,6 +121,24 @@ if(label==='fix')await check('SELECT-TEXT','Press and hold a message, Select Tex
   return{ok:!!sel&&sel.length<'Copy test 4417'.length&&clip.trim()===sel.trim()&&back,observed:`marked: "${sel}"; copied: "${clip.slice(0,40)}"; after Done: ${back?'same chat':'somewhere else'}`,shots:[s1,s2]};
 });
 
+/* 1c. LINKS: a web address is tappable, asks first, Cancel stays, Open leaves for the browser (fix branch). */
+if(label==='fix')await check('LINK','Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open','"Open this link?" first; Cancel stays in the chat; Open shows the web page outside FIDUNIO',async()=>{
+  await openChat();await sendText('Visit https://example.com today');await hideKeyboard();
+  const lp=async()=>{const r=await js(`(()=>{const a=[...document.querySelectorAll("#chatArea a.msg-link")].pop();if(!a)return null;a.id="probeLink";return true})()`);return r?await screenPoint('#probeLink'):null;};
+  let p=await lp();if(!p)return{ok:false,observed:'the address is not a link',shots:[await shot('link-missing')]};
+  await tapAt(p);const asked=await until(()=>present('#openLinkTitle'),'Open this link?',8000).then(()=>true,()=>false);const s1=await shot('link-ask');
+  if(asked)await tapAt(await screenPoint('#modalCancel'));await sleep(1500);
+  const stayed=await present('#messageBox')&&!(await present('#openLinkTitle'));
+  p=await lp();await tapAt(p);await until(()=>present('#openLinkGo'),'Open button',8000).catch(()=>{});
+  if(await present('#openLinkGo'))await tapAt(await screenPoint('#openLinkGo'));await sleep(6000);
+  let outside='';
+  if(android){const f=d.front();outside=/fidunio/.test(f)?'':f;}
+  else{const els=iosElements().map(iosLabel).filter(Boolean).join(' | ');outside=/example\.com|Address|Safari|Example Domain/i.test(els)?'Safari: '+els.slice(0,80):'';}
+  const s2=await shot('link-opened');
+  d.launch(APP);await sleep(4000);await unlockIfLocked();
+  return{ok:asked&&stayed&&!!outside,observed:`asked first: ${asked}; Cancel stayed in chat: ${stayed}; after Open: ${outside||'still in FIDUNIO'}`,shots:[s1,s2]};
+});
+
 /* 2. PASTE text into the message box with the phone's own Paste menu. */
 await check('PASTE','Press and hold the message box, tap the phone\'s Paste','the copied text appears in the message box',async()=>{
   await openChat();await d.fill('#messageBox','');
