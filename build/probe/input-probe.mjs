@@ -350,7 +350,7 @@ if(label==='fix'){
     /* Like a person: answer the phone's location question if it shows, and tap Cancel as soon as it is there. */
     let t='',s1='';const end=Date.now()+20000;
     while(Date.now()<end){
-      if((await allowLocation(1)).length)continue;
+      if((await allowLocation(300)).length)continue;
       if(await present('#helpCancel')){t=await js('document.querySelector(".help-sent")?.textContent||""');await realTap('#helpCancel');s1=await shot('help-test');break;}
       await sleep(400);
     }
