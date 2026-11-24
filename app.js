@@ -54,6 +54,7 @@ import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycl
 import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions,listMessageReactionAuthors} from "./message-reaction-policy.js";
 import {encodeGroupReplyDescriptor,parseGroupReplyDescriptor} from "./group-reply-policy.js";
 import {linkifyMessageText} from "./message-link-policy.js";
+import {createHelpOwner,parseHelpCard,renderHelpCardBubble,helpPreview} from "./help-owner.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
@@ -166,6 +167,8 @@ function parseAttachmentDescriptor(text){
   try{const descriptor=JSON.parse(text);return descriptor?.fidunioAttachment===1?descriptor:null;}catch{return null;}
 }
 function messagePreview(text){
+  const helpCard=parseHelpCard(text);
+  if(helpCard)return helpPreview(helpCard);
   const reply=parseGroupReplyDescriptor(text);
   if(reply)return reply.text;
   const descriptor=parseAttachmentDescriptor(text);
@@ -1351,6 +1354,25 @@ function planPartialDirectMessageProjection(existingRows,priorityRows){
   }
   return{rows:[...byId.values()],purgeMessageIds:[],purgeOutboxMessageIds:[],authoritative:false};
 }
+/* HELP alerts (2026-11-24). helpOwner owns HELP state and screens; app.js only hands it these. */
+async function sendHelpText(peerUid,text){
+  const remote=await startDirectConversation(peerUid);
+  mergeCloudConversation(remote);
+  const conversationId=String(remote.id);
+  const c=state.conversations.find(row=>String(row.id)===conversationId);
+  if(!c)throw new Error("HELP contact conversation is unavailable.");
+  const m={id:crypto.randomUUID(),mine:true,text,time:nowTime(),createdAt:new Date(),state:state.online?"sending":"queued",cloud:true};
+  if(!state.messages[conversationId])state.messages[conversationId]=[];
+  state.messages[conversationId].push(m);
+  c.preview=messagePreview(text);c.time=m.time;
+  await queueOutboxMessage(conversationId,m);
+  render({background:true});
+}
+function helpCardsForAlert(senderUid,alertId){
+  const c=state.conversations.find(row=>row.cloud&&String(row.peerUid||"")===String(senderUid));
+  return c?(state.messages[c.id]||[]).map(m=>!m.mine?parseHelpCard(m.text):null).filter(card=>card&&card.alertId===alertId):[];
+}
+const helpOwner=createHelpOwner({app,render,navigate:route=>{state.route=route;render();},sendHelpText,verifyLocalPin,shellTop,isUnlocked:()=>state.unlocked});
 async function initializeFirebaseLayer(){
   if(!isFirebaseConfigured()) return;
   try{
@@ -1364,7 +1386,9 @@ async function initializeFirebaseLayer(){
         beginCloudConversationSubscription();
         beginBlockedUsersSubscription();
         beginCloudGroupSubscription();
+        void helpOwner.start(user.uid).catch(err=>console.warn("HELP could not start",err));
       }else{
+        helpOwner.stop();
         stopNotificationRegistrationMaintenance();
         composerStateByConversation.clear();
         optimisticOutgoingProjection.reset();
@@ -1386,7 +1410,7 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
-    if(firebaseUser){startNotificationRegistrationMaintenance(firebaseUser.uid);publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
+    if(firebaseUser){void helpOwner.start(firebaseUser.uid).catch(err=>console.warn("HELP could not start",err));startNotificationRegistrationMaintenance(firebaseUser.uid);publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
     void requestAppActivation("firebase-initialize-complete");
   }catch(err){
     firebaseError=err?.message || String(err);
@@ -1460,7 +1484,7 @@ function shellTop(title,left=`<span class="topbar-spacer"></span>`,right=`<span 
 function mainSignOutMarkup(){
   return '<button class="secondary" id="fidunioMainSignOutBtn" type="button" aria-label="Sign Out" style="width:auto;margin:0 6px;padding:8px 12px">Sign Out</button>';
 }
-async function signOutWithNotificationCleanup(){const user=getFirebaseUser();if(user?.uid)await removeNotificationRegistrationForSignOut(user.uid);await signOutFidunio();}
+async function signOutWithNotificationCleanup(){if(!(await helpOwner.allowSignOut()))throw new Error("Sign Out needs this account's PIN.");const user=getFirebaseUser();if(user?.uid)await removeNotificationRegistrationForSignOut(user.uid);await signOutFidunio();}
 function bindMainSignOut(){
   const btn=document.querySelector("#fidunioMainSignOutBtn");
   if(!btn)return;
@@ -1506,7 +1530,9 @@ function renderConversationSidebar(active="messages"){
         <input class="search" id="tabletSearchBox" placeholder="Search conversations" />
         <button class="conversation-view-toggle" id="tabletArchivedViewBtn">${state.archivedView?"Back to Messages":`Archived (${Object.keys(state.archivedConversations).length})`}</button>
       </div>
+      ${helpOwner.bannerMarkup()}
       <div class="tablet-conversation-list" id="tabletConversationList"></div>
+      ${helpOwner.fabMarkup()}
       <nav class="tablet-bottom-nav" aria-label="FIDUNIO sections">
         <button class="tablet-nav-item ${active==="messages"?"active":""}" id="tabletMessagesNav">${icon2d("chats",22)}<span>Messages</span></button>
         <button class="tablet-nav-item ${active==="groups"?"active":""}" id="tabletGroupsNav">${icon2d("groups",22)}<span>Groups</span></button>
@@ -1516,6 +1542,7 @@ function renderConversationSidebar(active="messages"){
     </aside>`;
 }
 function bindTabletNavigation(){
+  helpOwner.bindShared();
   document.querySelector("#tabletMessagesNav")?.addEventListener("click",()=>{state.route="messages";render();});
   document.querySelector("#tabletGroupsNav")?.addEventListener("click",()=>{state.route="groups";render();});
   document.querySelector("#tabletContactsNav")?.addEventListener("click",()=>{state.route="newConversation";render();});
@@ -1684,7 +1711,8 @@ function render({background=false,entry=false}={}){
   const routes={
     messages:renderMessages, groups:renderGroups, chat:renderChat, settings:renderSettings,
     newConversation:renderNewConversation, newGroup:renderNewGroup,
-    groupName:renderGroupName, groupInfo:renderGroupInfo
+    groupName:renderGroupName, groupInfo:renderGroupInfo,
+    help:()=>helpOwner.renderHelp(), helpAlert:()=>helpOwner.renderHelpAlert(helpCardsForAlert)
   };
   (routes[state.route]||renderMessages)();
   if(state.modal) renderModal();
@@ -1815,11 +1843,14 @@ function renderMessages(){
       ${shellTop("Messages",undefined,'<button class="icon-btn icon-2d" id="settingsBtn" aria-label="Settings">'+icon2d("settings",23)+'</button>'+mainSignOutMarkup())}
       <section class="content">
         <input class="search" id="searchBox" placeholder="Search conversations" />
+        ${helpOwner.bannerMarkup()}
         <button class="conversation-view-toggle" id="archivedViewBtn">${state.archivedView?"Back to Messages":`Archived (${Object.keys(state.archivedConversations).length})`}</button>
         <div class="conversation-list" id="conversationList"></div>
       </section>
+      ${helpOwner.fabMarkup()}
       <button class="fab icon-2d" id="newBtn" aria-label="New conversation">${icon2d("plus",26)}</button>
     </main>`;
+  helpOwner.bindShared();
   document.querySelector("#settingsBtn").onclick=()=>{state.route="settings";render()};
   document.querySelector("#newBtn").onclick=()=>{state.route="newConversation";render()};
   bindMainSignOut();
@@ -2077,7 +2108,7 @@ function renderConversationMessages(msgs,c){
  * sheet, so the system text-selection menu never appears; Copy lives there.
  * Only the readable text is copied (never an attachment descriptor). */
 function messageCopyText(m){
-  if(!m||m.system)return"";
+  if(!m||m.system||parseHelpCard(m.text))return"";
   const reply=parseGroupReplyDescriptor(m.text);
   if(reply)return String(reply.text||"");
   if(parseAttachmentDescriptor(m.text))return"";
@@ -2098,9 +2129,10 @@ function renderBubble(m,c){
     m.state==="delivered"?"Delivered":m.state==="failed"?"Failed":"Read";
   const cls=(m.state==="queued"||m.state==="waiting-wifi")?"state-queued":m.state==="failed"?"state-failed":"";
   const hasMessageAction=!m.system;
-  const reply=parseGroupReplyDescriptor(m.text);
-  const descriptor=reply?null:parseAttachmentDescriptor(m.text);
-  let messageContent=reply
+  const helpCard=parseHelpCard(m.text);
+  const reply=helpCard?null:parseGroupReplyDescriptor(m.text);
+  const descriptor=reply||helpCard?null:parseAttachmentDescriptor(m.text);
+  let messageContent=helpCard?renderHelpCardBubble(helpCard):reply
     ?`<div style="border-left:3px solid currentColor;padding:5px 8px;margin-bottom:7px;opacity:.82"><strong>${esc(reply.replyToSender)}</strong><div class="small-note">${esc(reply.replyPreview)}</div></div><div class="msg-text">${linkifyMessageText(reply.text)}</div>`
     :`<div class="msg-text">${linkifyMessageText(m.text)}</div>`;
   if(descriptor){
@@ -3053,6 +3085,7 @@ function renderSettings(){
     <main class="app-shell">
       ${shellTop("Settings",'<button class="back-btn" id="backBtn">‹</button>')}
       <section class="content settings">
+        <div id="helpSettingsHost"></div>
         <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
           ${(()=>{const security=getLocalSecurityStatus(),nativeIOS=isNativeIOSRuntime();return `
             <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Face ID or biometric enabled":""}</span></div>
@@ -3228,6 +3261,7 @@ function renderSettings(){
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
   };
   mountSettingsLifecycle({accountVaultOwner});
+  void helpOwner.mountSettingsCard(document.querySelector("#helpSettingsHost"));
 }
 function settingRow(label,key){
   return `<div class="row"><span>${esc(label)}</span><button class="toggle ${state.settings[key]?"on":""}" data-key="${key}" aria-label="${esc(label)}"></button></div>`;
