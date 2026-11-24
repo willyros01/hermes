@@ -19,7 +19,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # build/probe/PLATFORMS lists which platforms a push re-runs (avoids repeating passed runs).
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      platforms: ${{ steps.p.outputs.platforms }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: echo "platforms=$(cat build/probe/PLATFORMS 2>/dev/null || echo 'android ios')" >> "$GITHUB_OUTPUT"
   android:
+    needs: plan
+    if: contains(needs.plan.outputs.platforms, 'android')
     strategy:
       fail-fast: false
       matrix:
@@ -85,6 +96,8 @@ jobs:
           retention-days: 90
 
   ios:
+    needs: plan
+    if: contains(needs.plan.outputs.platforms, 'ios')
     strategy:
       fail-fast: false
       matrix:
