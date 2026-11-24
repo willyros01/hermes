@@ -257,7 +257,15 @@ if(label==='fix'){
   const realTap=async sel=>{const p=await screenPoint(sel);if(!p)throw new Error(sel+' not on screen');await tapAt(p);};
   const toMessages=async()=>{for(let i=0;i<4&&!(await present('#newBtn'))&&!(await present('#tabletNewBtn'));i++){if(await present('#backBtn'))await realTap('#backBtn');else break;await sleep(1200);}};
   const toSettings=async()=>{await toMessages();await realTap((await present('#settingsBtn'))?'#settingsBtn':'#tabletSettingsBtn');await until(()=>present('#helpEnabled'),'HELP card in Settings',30000);};
-  const setBox=async(sel,want)=>{const on=await js(`!!document.querySelector(${JSON.stringify(sel)})?.checked`);if(on!==want)await realTap(sel);};
+  /* Like a person: tap the switch's whole row (its label), then check it really changed. */
+  const setBox=async(sel,want)=>{
+    for(let i=0;i<3;i++){
+      const on=await js(`!!document.querySelector(${JSON.stringify(sel)})?.checked`);if(on===want)return;
+      const id=await js(`(()=>{const l=document.querySelector(${JSON.stringify(sel)})?.closest("label");if(!l)return "";l.id=l.id||"probeRow"+Math.random().toString(36).slice(2);return l.id})()`);
+      await realTap(id?'#'+id:sel);await sleep(600);
+    }
+    throw new Error('could not set '+sel);
+  };
   const enterPin=async()=>{await until(()=>present('#helpPinHost .pin-code-slot'),'HELP PIN box',15000);for(let i=0;i<6;i++)await d.fill(`#helpPinHost .pin-code-slot:nth-child(${i+1})`,fixture.alice.pin[i]);await sleep(2500);};
   const allowLocation=async ms=>{const end=Date.now()+ms;let seen=[];while(Date.now()<end){
       if(android){const b=androidNode(x=>/^(While using the app|Only this time|Allow)$/i.test(x.text||''));if(b){seen.push(b.text);adb('shell','input','tap',String(b.x),String(b.y));await sleep(1500);continue;}}
