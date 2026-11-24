@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import {linkifyMessageText,safeWebLink} from "./message-link-policy.js";
+assert.equal(linkifyMessageText("hello"),"hello");
+assert.equal(linkifyMessageText("<b>x</b>"),"&lt;b&gt;x&lt;/b&gt;");
+assert.match(linkifyMessageText("see https://example.com/a?b=1&c=2."),/^see <a class="msg-link" href="https:\/\/example\.com\/a\?b=1&amp;c=2" target="_blank" rel="noopener noreferrer nofollow">https:\/\/example\.com\/a\?b=1&amp;c=2<\/a>\.$/);
+assert.doesNotMatch(linkifyMessageText("javascript:alert(1)"),/<a/);
+assert.doesNotMatch(linkifyMessageText('https://x.com/"onmouseover="alert(1)'),/onmouseover="alert/);
+assert.match(linkifyMessageText("(https://example.com/x)"),/>https:\/\/example\.com\/x<\/a>\)$/);
+assert.match(linkifyMessageText("https://en.wikipedia.org/wiki/Foo_(bar)"),/Foo_\(bar\)<\/a>$/);
+assert.equal(safeWebLink("ftp://x"),"");
+const app=(await import("node:fs")).readFileSync("app.js","utf8");
+assert.match(app,/<div class="msg-text">\$\{linkifyMessageText\(m\.text\)\}<\/div>/);
+console.log("Message link gate passed");
