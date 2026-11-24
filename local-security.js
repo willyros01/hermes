@@ -15,13 +15,16 @@ const PBKDF2_ITERATIONS=210000;
 
 export const LOCK_TIMEOUTS=Object.freeze([
   {value:0,label:"Immediately"},{value:60*1000,label:"1 min"},{value:5*60*1000,label:"5 min"},
-  {value:15*60*1000,label:"15 min"},{value:30*60*1000,label:"30 min"},{value:60*60*1000,label:"1 hr"},{value:-1,label:"Never"}
+  {value:15*60*1000,label:"15 min"},{value:30*60*1000,label:"30 min"},{value:60*60*1000,label:"1 hr"}
 ]);
+/* 2026-11-24 (owner): "Never" removed; a stored Never becomes the longest choice. */
+const LONGEST_TIMEOUT_MS=60*60*1000;
+function allowedTimeout(ms){return LOCK_TIMEOUTS.some(x=>x.value===ms)?ms:(Number.isFinite(ms)&&ms<0?LONGEST_TIMEOUT_MS:DEFAULT_TIMEOUT_MS);}
 function idbRequest(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error||new Error("IndexedDB transaction failed"));tx.onabort=()=>reject(tx.error||new Error("IndexedDB transaction aborted"));});}
 function openDb(){return new Promise((resolve,reject)=>{let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;clearTimeout(timer);fn(value);};const req=indexedDB.open(DB_NAME,DB_VERSION);const timer=setTimeout(()=>finish(reject,new Error("Local PIN storage did not open in time.")),8000);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("meta"))db.createObjectStore("meta");if(!db.objectStoreNames.contains("outbox"))db.createObjectStore("outbox",{keyPath:"id"});if(!db.objectStoreNames.contains("history"))db.createObjectStore("history");};req.onsuccess=()=>{if(settled){req.result?.close();return;}finish(resolve,req.result);};req.onerror=()=>finish(reject,req.error);req.onblocked=()=>finish(reject,new Error("Local PIN storage is blocked by another FIDUNIO window."));});}
 function defaultConfig(){return{pin:null,timeoutMs:DEFAULT_TIMEOUT_MS,biometric:null};}
-function normalizeConfig(value){const cfg=value&&typeof value==="object"?value:{};return{pin:cfg.pin||null,timeoutMs:Number.isFinite(cfg.timeoutMs)?cfg.timeoutMs:DEFAULT_TIMEOUT_MS,biometric:cfg.biometric||null};}
+function normalizeConfig(value){const cfg=value&&typeof value==="object"?value:{};return{pin:cfg.pin||null,timeoutMs:Number.isFinite(cfg.timeoutMs)?allowedTimeout(cfg.timeoutMs):DEFAULT_TIMEOUT_MS,biometric:cfg.biometric||null};}
 async function writeStoredConfig(config){const db=await openDb();const tx=db.transaction("meta","readwrite");tx.objectStore("meta").put(normalizeConfig(config),CONFIG_KEY);await txDone(tx);}
 let configAvailable=false;
 let configReadError="";
@@ -64,7 +67,13 @@ export async function disableBiometric(){await queueConfigMutation(cfg=>{cfg.bio
 export function markSuccessfulAuthBypass(){try{sessionStorage.setItem(AUTH_BYPASS_KEY,"1");}catch{}}
 export function consumeSuccessfulAuthBypass(){try{const yes=sessionStorage.getItem(AUTH_BYPASS_KEY)==="1";sessionStorage.removeItem(AUTH_BYPASS_KEY);return yes;}catch{return false;}}
 let monitor=null,activityAt=Date.now(),hiddenAt=null,idleTimer=null;
-function scheduleIdleCheck(){clearTimeout(idleTimer);if(!monitor||!monitor.isUnlocked())return;const timeout=getLockTimeoutMs();if(timeout<0||timeout===0)return;const remaining=Math.max(0,timeout-(Date.now()-activityAt));idleTimer=setTimeout(()=>{if(!monitor||!monitor.isUnlocked())return;if(Date.now()-activityAt>=getLockTimeoutMs())monitor.onLock("inactivity");else scheduleIdleCheck();},Math.min(remaining+25,2147483000));}
+function scheduleIdleCheck(){clearTimeout(idleTimer);if(!monitor||!monitor.isUnlocked())return;const timeout=getLockTimeoutMs();if(timeout<=0)return;const remaining=Math.max(0,timeout-(Date.now()-activityAt));idleTimer=setTimeout(()=>{if(!monitor||!monitor.isUnlocked())return;if(Date.now()-activityAt>=getLockTimeoutMs())monitor.onLock("inactivity");else scheduleIdleCheck();},Math.min(remaining+25,2147483000));}
 function noteActivity(){if(!monitor?.isUnlocked())return;activityAt=Date.now();scheduleIdleCheck();}
 export function noteLocalUnlock(){activityAt=Date.now();hiddenAt=null;scheduleIdleCheck();}
-export function installInactivityMonitor({isUnlocked,onLock}){if(monitor)return;monitor={isUnlocked,onLock};["pointerdown","keydown","touchstart"].forEach(name=>window.addEventListener(name,noteActivity,{passive:true}));document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now();if(isUnlocked())onLock("background");return;}if(!isUnlocked())return;activityAt=Date.now();hiddenAt=null;scheduleIdleCheck();});window.addEventListener("pagehide",()=>{hiddenAt=Date.now();if(isUnlocked())onLock("background");});window.addEventListener("pageshow",()=>{if(!isUnlocked())return;scheduleIdleCheck();});scheduleIdleCheck();}
+export function installInactivityMonitor({isUnlocked,onLock}){if(monitor)return;monitor={isUnlocked,onLock};["pointerdown","keydown","touchstart"].forEach(name=>window.addEventListener(name,noteActivity,{passive:true}));document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){leaveApp();return;}returnToApp();});window.addEventListener("pagehide",leaveApp);window.addEventListener("pageshow",returnToApp);scheduleIdleCheck();}
+/* 2026-11-24 (owner): leaving FIDUNIO is inactivity too. With "Immediately" it locks
+ * the moment FIDUNIO leaves the screen. Otherwise it stays unlocked while away, and on
+ * return it locks only if the chosen time has passed since the last touch. A fresh
+ * start after the operating system closed FIDUNIO always begins locked. */
+function leaveApp(){if(!monitor)return;hiddenAt=hiddenAt??Date.now();clearTimeout(idleTimer);if(monitor.isUnlocked()&&getLockTimeoutMs()===0)monitor.onLock("background");}
+function returnToApp(){if(!monitor||document.visibilityState==="hidden")return;hiddenAt=null;if(!monitor.isUnlocked())return;const timeout=getLockTimeoutMs();if(timeout===0||Date.now()-activityAt>=timeout){monitor.onLock("background");return;}scheduleIdleCheck();}
