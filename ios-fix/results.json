@@ -49,7 +49,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 10:58 PM Sent )",
+      "observed": "a new message appeared ( 11:18 PM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -129,7 +129,7 @@
       "what": "Open the chat with Bob",
       "expected": "HELP cards in the chat: the alert with \"Open location on a map\", and \"I'm hurt\"",
       "ok": true,
-      "observed": "map link shown; chat text:  today 10:55 PM Sent 10:58 PM Sent You are now one of my HELP contacts. 10:59 PM Sent 🆘 HELP alert Open location on a map 10:59 PM Sent I'm hurt 11:00 PM Sent ",
+      "observed": "map link shown; chat text:  today 11:14 PM Sent 11:18 PM Sent You are now one of my HELP contacts. 11:19 PM Sent 🆘 HELP alert Open location on a map 11:20 PM Sent I'm hurt 11:20 PM Sent ",
       "shots": [
         "17-help-chat-cards.png"
       ]
