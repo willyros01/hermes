@@ -2,6 +2,8 @@
 # Investigation only: local demo Firebase emulators + seed, then the gesture probe.
 set -Eeuo pipefail
 KIND="$1"; OUT="$2"; APK="$3"; LABEL="$4"; mkdir -p "$OUT"
+# HELP rules (copied from fix/nov24-android) added to the emulator's rules; the released app never uses them.
+grep -q 'FIDUNIO HELP alerts' firestore.rules || node build/probe/merge-help-rules.mjs firestore.rules build/probe/firestore-help.rules firestore.rules
 export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
 ./node_modules/.bin/firebase emulators:start --config firebase.simulator.json --only auth,firestore,storage \
   --project demo-fidunio-simulator-tests > "$OUT/firebase-emulator.log" 2>&1 &
