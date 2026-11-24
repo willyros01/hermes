@@ -1501,6 +1501,8 @@ function shellTop(title,left=`<span class="topbar-spacer"></span>`,right=`<span 
 function mainSignOutMarkup(){
   return '<button class="secondary" id="fidunioMainSignOutBtn" type="button" aria-label="Sign Out" style="width:auto;margin:0 6px;padding:8px 12px">Sign Out</button>';
 }
+/* Cancel on the protected-account PIN box just closes it: no extra pop-up. */
+function signOutWasCancelled(err){return err?.message==="Sign Out needs this account's PIN.";}
 async function signOutWithNotificationCleanup(){if(!(await helpOwner.allowSignOut()))throw new Error("Sign Out needs this account's PIN.");const user=getFirebaseUser();if(user?.uid)await removeNotificationRegistrationForSignOut(user.uid);await signOutFidunio();}
 function bindMainSignOut(){
   const btn=document.querySelector("#fidunioMainSignOutBtn");
@@ -1508,7 +1510,7 @@ function bindMainSignOut(){
   btn.onclick=async()=>{
     btn.disabled=true;btn.textContent="Signing Out…";
     try{await signOutWithNotificationCleanup();location.reload();}
-    catch(err){btn.disabled=false;btn.textContent="Sign Out";alert(err?.message||String(err));}
+    catch(err){btn.disabled=false;btn.textContent="Sign Out";if(!signOutWasCancelled(err))alert(err?.message||String(err));}
   };
 }
 
@@ -3337,7 +3339,7 @@ function renderSettings(){
     catch(err){firebaseError=err?.message||String(err);render();}
   };
   const signOutBtn=document.querySelector("#firebaseSignOutBtn");
-  if(signOutBtn) signOutBtn.onclick=async()=>{signOutBtn.disabled=true;try{await signOutWithNotificationCleanup();firebaseError="";render();}catch(err){signOutBtn.disabled=false;alert(err?.message||String(err));}};
+  if(signOutBtn) signOutBtn.onclick=async()=>{signOutBtn.disabled=true;try{await signOutWithNotificationCleanup();firebaseError="";render();}catch(err){signOutBtn.disabled=false;if(!signOutWasCancelled(err))alert(err?.message||String(err));}};
   const copyBtn=document.querySelector("#copyUidBtn");
   if(copyBtn) copyBtn.onclick=async()=>{
     try{await navigator.clipboard.writeText(firebaseUser.uid);copyBtn.textContent="Copied";}catch{alert(firebaseUser.uid);}
