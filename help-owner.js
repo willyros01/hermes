@@ -70,17 +70,25 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   function watch(gen,makeQuery,onNext){
     if(gen!==generation)return;
     const s=fs();
-    const unsub=s.onSnapshot(makeQuery(s),onNext,()=>{try{unsub();}catch{}setTimeout(()=>watch(gen,makeQuery,onNext),3000);});
+    const unsub=s.onSnapshot(makeQuery(s),onNext,err=>{console.warn("HELP listener stopped; starting it again",err?.code||err);try{unsub();}catch{}setTimeout(()=>watch(gen,makeQuery,onNext),3000);});
     st.unsub.push(unsub);
   }
   async function start(uid){
+    /* Signed in again as the same person (sign-in events can repeat): keep the running listeners
+     * and the saved HELP contacts; restarting wiped them on screen (Android simulator, 1.1.83). */
+    if(String(uid||"")&&String(uid)===st.uid&&(st.unsub.length||st.starting))return;
     stop();st.uid=String(uid||"");if(!st.uid)return;
+    st.starting=true;
     const gen=++generation;
-    services=await initFirebase();
-    if(gen!==generation)return;
-    await prepareUrgentAlerts();
-    if(gen!==generation)return;
+    try{
+      services=await initFirebase();
+      if(gen!==generation)return;
+      await prepareUrgentAlerts();
+      if(gen!==generation)return;
+    }finally{if(gen===generation)st.starting=false;}
     watch(gen,s=>s.doc(db(),"helpSettings",st.uid),snap=>{
+      /* "Not in this phone's cache" is not "no HELP contacts": wait for the server's answer. */
+      if(!snap.exists()&&snap.metadata?.fromCache&&st.settingsLoaded)return;
       const d=snap.exists()?snap.data():{};
       const helperUids=Array.isArray(d.helperUids)?d.helperUids.slice(0,MAX_HELPERS):[];
       st.settings={enabled:d.enabled===true&&helperUids.length>0,helperUids};
@@ -94,7 +102,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       if(!openUnanswered())render({background:true});
     });
   }
-  function stop(){generation++;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;}
+  function stop(){generation++;st.starting=false;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;}
   async function people(){if(!st.people.length){try{st.people=(await listCloudUsers())||[];}catch{}}return st.people;}
   const nameOf=uid=>{const p=st.people.find(p=>String(p.uid)===String(uid));return p?.displayName||p?.email||"A FIDUNIO member";};
 
