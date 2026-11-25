@@ -29,4 +29,5 @@ assert.match(owner,/String\(uid\)===st\.uid&&\(st\.unsub\.length\|\|st\.starting
 assert.ok(!/initFirebase/.test(owner),"HELP never adds its own sign-in listener");
 assert.match(app,/await startupStep\("HELP",\(\)=>helpOwner\.start\(user\.uid\)\)/,"HELP is started once and waited for");
 assert.equal((app.match(/helpOwner\.start\(/g)||[]).length,1,"HELP is started from one place only");
+assert.match(owner,/getDocFromServer/,"a listener answer that disagrees is checked with a server read");
 console.log("HELP app gate passed");
