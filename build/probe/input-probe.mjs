@@ -427,6 +427,8 @@ if(label==='fix'&&android){
   });
 }
 
+/* Android: keep the app's own HELP / Firebase messages as evidence (no keys or message text are logged). */
+if(android){try{const l=adb('logcat','-d','-v','time','Capacitor/Console:*','*:S');fs.writeFileSync(path.join(out,'app-console.txt'),l.split('\n').filter(x=>/HELP|helpSettings|permission|listener/i.test(x)).join('\n'));}catch(e){log('logcat: '+e.message);}}
 const lines=[`# FIDUNIO input probe — ${platform} — ${label}`,'','| Check | What | Expected | Observed | |','|---|---|---|---|---|'];
 for(const r of results)lines.push(`| ${r.id} | ${r.what} | ${r.expected} | ${String(r.observed).replace(/\|/g,'/')} | ${r.ok?'as expected':'**DIFFERENT**'} |`);
 lines.push('');for(const r of results)for(const s of r.shots||[])lines.push(`### ${r.id} — ${s}`,'',`![${s}](${s})`,'');
