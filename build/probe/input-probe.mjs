@@ -1,5 +1,4 @@
 /* INVESTIGATION + FIX CHECK (Willy, 24 Nov 2026). Runs the SAME steps on the
-/* 25 Nov 08:55: run on HELP server-read fix (e8d4de3 / 8c2f859). */
  * released FIDUNIO and on the fix branch, on the Android emulator (Pixel) or the
  * iPhone simulator, with LOCAL demo Firebase only. Real finger gestures:
  * adb input (Android) and idb (iPhone). Each check prints EXPECTED vs OBSERVED.
@@ -468,3 +467,4 @@ fs.writeFileSync(path.join(out,'REPORT.md'),lines.join('\n'));
 fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({platform,label,results},null,2));
 log('\nRESULT: probe finished');
 process.exit(0);
+// 25 Nov 08:55: run on HELP server-read fix (e8d4de3 / 8c2f859).
