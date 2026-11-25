@@ -35,6 +35,10 @@ Any session resuming this work MUST read this whole file before touching code, t
   origin/ios into the fix branches before the next release.
 - 25 Nov 09:05 owner: "forget about hl1 or hl2" — he will NOT run hl2.txt or hlg.txt. Do not push them again. HELP server stays as
   deployed by hlp.txt (2-minute re-alerts, at most 5). The Fire 8 no-ring cause must be found another way (ask him first).
+- 25 Nov 09:35-09:50 NO-RING ROOT CAUSE (from owner's hlg log): Eventarc calls to helpalertcreatedv1/helpalertupdatedv1 were refused
+  ("not authenticated ... lacks run.routes.invoke") since the hlp.txt deploy, so HELP never rang a phone. Owner ran hip.txt:
+  roles/run.invoker for fidunio-notification@ on both services, old retried events discarded (pubsub seek). SUCCESS, backup +
+  rollback at ~/fidunio-help-invoker-20261125T144343Z. Awaiting the owner's real HELP test (Fire 8 should ring).
 - 1.1.83 WORK IS COMPLETE. Remaining: Willy runs hl2.txt; real-device checks (see TODO.md).
 - RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
