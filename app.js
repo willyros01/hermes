@@ -1468,7 +1468,8 @@ async function initializeFirebaseLayer(){
     });
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
-    if(firebaseUser){void helpOwner.start(firebaseUser.uid).catch(err=>console.warn("HELP could not start",err));startNotificationRegistrationMaintenance(firebaseUser.uid);publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
+    /* HELP starts in ONE place only: the "signed in" report above (serialization guideline). */
+    if(firebaseUser){startNotificationRegistrationMaintenance(firebaseUser.uid);publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
     void requestAppActivation("firebase-initialize-complete");
   }catch(err){
     firebaseError=err?.message || String(err);
