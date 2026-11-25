@@ -1,0 +1,106 @@
+name: FIDUNIO iPad update + PIN check
+
+# Willy, 24 Nov 2026: after updating to 1.1.82 the iPad app refused the PIN.
+# Released 1.1.81 is signed in with a PIN on an iPad simulator, then 1.1.82 is
+# installed over it (data kept, like a TestFlight update) and the same PIN is
+# typed. Disposable debug apps, local demo Firebase only.
+on:
+  push:
+    branches: [simulator-tests]
+    paths:
+      - 'build/upgrade/**'
+      - '.github/workflows/ipad-update-pin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ipad:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: b21c142ec62b851acfd5a794380741956fc82074
+          path: old-src
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: willyros01/hermes
+          ref: ios
+          path: new-src
+          persist-credentials: false
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Tools and iPad simulator
+        run: |
+          set -Eeuo pipefail
+          brew install ios-webkit-debug-proxy
+          brew tap facebook/fb
+          brew trust --formula facebook/fb/idb-companion
+          brew install facebook/fb/idb-companion
+          python3 -m pip install --break-system-packages --quiet fb-idb
+          npm ci --no-audit --no-fund
+          UDID="$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const all=Object.entries(d).filter(([rt])=>/iOS/.test(rt)).flatMap(([,list])=>list);const pick=all.reverse().find(x=>/^iPad/.test(x.name));if(!pick)process.exit(1);console.log(pick.udid+" "+pick.name)')"
+          echo "iPad: $UDID"
+          echo "UDID=${UDID%% *}" >> "$GITHUB_ENV"
+      - name: Build released 1.1.81 and new 1.1.82 (same app id)
+        run: |
+          set -Eeuo pipefail
+          for v in old new; do
+            ( cd $v-src
+              echo "$v source: $(git rev-parse HEAD) version: $(cat version.js)"
+              npm ci --no-audit --no-fund
+              npm run ios:prepare
+              node ../build/simulator/patch-sandbox.mjs . ios
+              npx cap add ios
+              npx cap sync ios
+              node ../build/simulator/patch-ios-key-clone.mjs ios/App/App/public
+              plutil -replace NSFaceIDUsageDescription -string 'Test FIDUNIO simulator' ios/App/App/Info.plist
+              plutil -replace NSCameraUsageDescription -string 'Test FIDUNIO simulator camera' ios/App/App/Info.plist
+              if [ -f build/apply-ios-help.mjs ]; then
+                # As in the TestFlight build: FIDUNIO's own screen + Wi-Fi plugin.
+                test -f ios/App/App/App.entitlements || printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n</dict>\n</plist>\n' > ios/App/App/App.entitlements
+                node build/apply-ios-help.mjs
+              fi
+              xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination "id=$UDID" -derivedDataPath "$RUNNER_TEMP/dd-$v" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/xcb-$v.log" 2>&1 || { tail -60 "$RUNNER_TEMP/xcb-$v.log"; exit 1; } )
+          done
+      - name: Boot iPad, Web Inspector and touch layer
+        run: |
+          set -Eeuo pipefail
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          SOCKET="$(lsof -aUc launchd_sim 2>/dev/null | grep -o '/private/tmp/com.apple.launchd[^ ]*/com.apple.webinspectord_sim.socket' | head -1)"
+          test -n "$SOCKET"
+          mkdir -p out-upgrade
+          nohup ios_webkit_debug_proxy -s "unix:$SOCKET" -F > out-upgrade/inspector.log 2>&1 &
+          idb connect "$UDID" || true
+          sleep 3
+      - name: Update and PIN check
+        run: |
+          OLD="$(find "$RUNNER_TEMP/dd-old/Build/Products" -maxdepth 2 -name App.app | head -1)"
+          NEW="$(find "$RUNNER_TEMP/dd-new/Build/Products" -maxdepth 2 -name App.app | head -1)"
+          bash build/upgrade/run.sh out-upgrade "$OLD" "$NEW"
+      - name: Publish evidence to the probe-evidence branch
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          test -d out-upgrade || exit 0
+          D="$RUNNER_TEMP/ev"; rm -rf "$D"; mkdir -p "$D"; cd "$D"; git init -q
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          for i in 1 2 3 4 5; do
+            rm -rf ./* .git/index 2>/dev/null || true
+            if git fetch -q --depth 1 origin probe-evidence; then git checkout -q -B probe-evidence FETCH_HEAD; else git checkout -q --orphan probe-evidence; fi
+            rm -rf ipad-update; mkdir -p ipad-update
+            cp -R "$GITHUB_WORKSPACE/out-upgrade/." ipad-update/
+            rm -f ipad-update/native-fixture.json ipad-update/*.log
+            git add -A && git -c user.name=github-actions -c user.email=actions@github.com commit -qm "[skip ci] iPad update PIN evidence ${{ github.run_id }}" || true
+            git push -q origin HEAD:probe-evidence && break; sleep $((i*3))
+          done
