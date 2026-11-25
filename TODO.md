@@ -1,3 +1,13 @@
+## 2026-11-26 — FIDUNIO 1.1.84 build (scheduled 08:05)
+
+- [ ] **HELP alarm sound** on iPhone, iPad, Android and Fire (today only the ordinary notification sound / "bonk").
+- [ ] **HELP "Write a message"** fix: open the existing chat; never rewrite its members ("Conversation could not be started" on Fire 8).
+- [ ] **Option A**: the HELP conversation on the big HELP screen.
+- [ ] **Abuse reports in Settings**: collapsed by default; highlighted when a report is outstanding.
+- [ ] **Delete the "Install FIDUNIO" section** from Settings.
+- [ ] **Remove "Functional Prototype"** from the logo/app (it is in the App Store); scan the whole app and cut unnecessary wording.
+- [ ] Ask owner: Apple "critical alert" request (sound on silent)?
+
 ## 2026-11-25 — FIDUNIO 1.1.83 (PIN record repair + KISS HELP) — OPEN items
 
 - [ ] **Owner runs `hl2.txt` in Cloud Shell** (functions only): HELP rings every 30 seconds until answered. Until then HELP re-alerts every 2 minutes, at most 5 times.
