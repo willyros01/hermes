@@ -259,9 +259,12 @@ async function enterAfterPasswordSignIn(user,bound,password){
     if(bound.hasIdentity){await renderPasswordResetRecovery(user,password,{reason:"missing-local"});return;}
     throw new Error("Secure messaging is not available on this device. Rejoin or recover this installation.");
   }
-  /* Owner design: signing in asks for the PIN as well as the password (PIN check, or the
-   * password + PIN restore when this device's lock PIN record is missing). */
-  await renderSessionUnlock(user,{hasIdentity:true,identity:bound.identity,password});
+  /* Password-only sign-in stays as it is (owner, 2026-11-24 22:39). One addition: if this
+   * device's lock PIN record is missing, the PIN is asked once so the same PIN is saved back. */
+  if(!getLocalSecurityStatus().hasPin){await renderSessionUnlock(user,{hasIdentity:true,identity:bound.identity,password});return;}
+  restoreLocalAccountE2EE(saved);
+  markSuccessfulAuthBypass();
+  await startAppAfterLegalAcceptance(user);
 }
 
 function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){

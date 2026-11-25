@@ -89,7 +89,7 @@ const GROUPS=[
   {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
   {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
   {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},
-  {id:"safety",label:"Safety",icon:"!",subtitle:"HELP alerts to your family, and reports of abusive behavior or objectionable content.",cards:["HELP Alert"]},
+  {id:"safety",label:"Safety",icon:"!",subtitle:"HELP for your family, and reports of abusive behavior or objectionable content.",cards:["HELP"]},
   {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
   {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},
   {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
