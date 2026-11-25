@@ -25,4 +25,5 @@ assert.match(owner,/id="helpChoose">Choose HELP contacts</,"contacts list stays 
 const app=fs.readFileSync("app.js","utf8");
 assert.match(app,/help:\(\)=>helpOwner\.renderHelp\(\)/);
 assert.match(app,/helpOwner\.afterUnlock\(\);/,"an unanswered HELP opens after unlock");
+assert.match(owner,/String\(uid\)===st\.uid&&\(st\.unsub\.length\|\|st\.starting\)\)return;/,"a repeated sign-in event for the same person keeps the HELP contacts");
 console.log("HELP app gate passed");
