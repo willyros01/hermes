@@ -25,7 +25,7 @@ assert.match(owner,/id="helpChoose">Choose HELP contacts</,"contacts list stays 
 const app=fs.readFileSync("app.js","utf8");
 assert.match(app,/help:\(\)=>helpOwner\.renderHelp\(\)/);
 assert.match(app,/helpOwner\.afterUnlock\(\);/,"an unanswered HELP opens after unlock");
-assert.match(owner,/String\(uid\)===st\.uid&&\(st\.unsub\.length\|\|st\.starting\)\)return;/,"a repeated sign-in event for the same person keeps the HELP contacts");
+assert.match(owner,/String\(uid\)===st\.uid&&\(st\.unsub\.length\|\|st\.starting\)\)\{trace\("start skipped/,"a repeated sign-in event for the same person keeps the HELP contacts");
 assert.ok(!/initFirebase/.test(owner),"HELP never adds its own sign-in listener");
 assert.match(app,/await startupStep\("HELP",\(\)=>helpOwner\.start\(user\.uid\)\)/,"HELP is started once and waited for");
 assert.equal((app.match(/helpOwner\.start\(/g)||[]).length,1,"HELP is started from one place only");
