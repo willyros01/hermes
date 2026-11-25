@@ -148,13 +148,30 @@ async function unlockAccountForMessaging(user,password,pin,{hasIdentity}={}){
   markSuccessfulAuthBypass();
 }
 
+/* Lock PIN record missing on this device (2026-11-25, owner design): the lock PIN and the
+ * encryption PIN are the same PIN. The typed PIN is checked together with the password
+ * against the encryption key ONLY (no recovery, no re-wrap); only then is the same PIN saved
+ * back as this device's lock PIN. A wrong password or PIN leaves everything as it was. */
+async function restoreMissingLocalPin(user,password,pin){
+  if(!/^\d{6}$/.test(pin))throw new Error("Enter your six-digit FIDUNIO PIN.");
+  if(!password)throw new Error("Enter your password.");
+  try{await unlockAccountE2EE({uid:user.uid,password,pin});}
+  catch(error){throw new Error("Could not unlock with this password and PIN. Nothing was changed.");}
+  if(!getLocalSecurityStatus().hasPin)await setLocalPin(pin);
+  if(!await verifyLocalPin(pin))throw new Error("This device uses a different FIDUNIO PIN.");
+  await saveLocalAccountE2EEIdentity(getAccountE2EERuntimeIdentity());
+  markSuccessfulAuthBypass();
+}
+
 async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   const saved=identity?await readLocalAccountE2EEIdentity(user.uid,identity):null;
   const security=getLocalSecurityStatus();
+  /* The device holds its key copy but its lock PIN record is gone: password + PIN, never PIN-only. */
+  const restorePin=!!saved&&!security.hasPin;
 
   const signOut=async()=>{resetAccountE2EEForSignOut();await signOutFidunio();renderGate("signin");};
 
-  if(saved){
+  if(saved&&!restorePin){
     let showPinFallback=!security.hasBiometric;
     const paint=(message="")=>{
       authShell(`<p class="small-note">Welcome back, ${esc(user.email||"FIDUNIO user")}.</p>${security.hasBiometric?'<button class="primary" id="sessionDeviceBtn">Unlock with Face ID or Biometric</button>':""}${security.hasBiometric&&!showPinFallback?'<button class="secondary" id="sessionShowPinBtn" style="margin-top:10px">Use PIN instead</button>':""}${showPinFallback?'<label class="form-label" id="sessionPinLabel">FIDUNIO PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">Unlock with PIN</button>':""}<button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote">${message?`<p class="warning-note" role="alert">${esc(message)}</p>`:""}</div>`);
@@ -194,14 +211,16 @@ async function renderSessionUnlock(user,{hasIdentity,identity,password=""}={}){
   }
 
   const passwordField=password?"":'<label class="form-label" for="sessionPassword">Password</label><input class="text-input" id="sessionPassword" type="password" autocomplete="current-password" placeholder="Password">';
-  authShell(`<p class="small-note">${hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${esc(user.email||"this device")}.</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
+  authShell(`<p class="small-note">${restorePin?"This device's PIN record is missing. Enter your password and PIN to unlock":hasIdentity?"Resynchronize secure messaging for":"Set up secure messaging for"} ${restorePin?"":esc(user.email||"this device")}${restorePin?"":"."}</p>${passwordField}<label class="form-label" id="sessionPinLabel">${hasIdentity?"Enter your existing":"Choose your"} six-digit PIN</label><div id="sessionPinHost"></div><button class="primary" id="sessionUnlockBtn" style="margin-top:14px">${hasIdentity?"Restore Messaging":"Continue"}</button><button class="secondary" id="sessionSignOutBtn" style="margin-top:10px">Use Another Account</button><div id="sessionNote"></div>`);
   const pinInput=mountSixDigitPinInput(document.querySelector("#sessionPinHost"),{onComplete:()=>document.querySelector("#sessionUnlockBtn")?.click()});
   document.querySelector("#sessionUnlockBtn").onclick=async()=>{
     const btn=document.querySelector("#sessionUnlockBtn"),note=document.querySelector("#sessionNote"),pin=pinInput.value();
     if(!/^\d{6}$/.test(pin)){note.innerHTML='<p class="warning-note" role="alert">Enter your six-digit FIDUNIO PIN.</p>';pinInput.clear();pinInput.focus();return;}
     btn.disabled=true;btn.textContent="Unlocking…";pinInput.setDisabled(true);
     try{
-      await unlockAccountForMessaging(user,password||document.querySelector("#sessionPassword")?.value||"",pin,{hasIdentity});
+      const typedPassword=password||document.querySelector("#sessionPassword")?.value||"";
+      if(restorePin)await restoreMissingLocalPin(user,typedPassword,pin);
+      else await unlockAccountForMessaging(user,typedPassword,pin,{hasIdentity});
     }catch(err){
       note.innerHTML=`<p class="warning-note" role="alert">${esc(err?.message||String(err))}</p>`;
       btn.disabled=false;btn.textContent="Unlock Messaging";pinInput.setDisabled(false);pinInput.clear();pinInput.focus();return;
@@ -240,9 +259,9 @@ async function enterAfterPasswordSignIn(user,bound,password){
     if(bound.hasIdentity){await renderPasswordResetRecovery(user,password,{reason:"missing-local"});return;}
     throw new Error("Secure messaging is not available on this device. Rejoin or recover this installation.");
   }
-  restoreLocalAccountE2EE(saved);
-  markSuccessfulAuthBypass();
-  await startAppAfterLegalAcceptance(user);
+  /* Owner design: signing in asks for the PIN as well as the password (PIN check, or the
+   * password + PIN restore when this device's lock PIN record is missing). */
+  await renderSessionUnlock(user,{hasIdentity:true,identity:bound.identity,password});
 }
 
 function renderGate(mode=inviteTokenFromUrl()?"join":"signin",message=""){
