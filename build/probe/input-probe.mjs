@@ -280,7 +280,7 @@ if(label==='fix'){
   log('Alice account found: '+(aliceUid?'yes':'NO'));
   const realTap=async sel=>{const p=await screenPoint(sel);if(!p)throw new Error(sel+' not on screen');await tapAt(p);};
   const toMessages=async()=>{for(let i=0;i<4&&!(await present('#newBtn'))&&!(await present('#tabletNewBtn'));i++){if(await present('#backBtn'))await realTap('#backBtn');else break;await sleep(1200);}};
-  const toSettings=async()=>{await toMessages();await realTap((await present('#settingsBtn'))?'#settingsBtn':'#tabletSettingsBtn');await until(()=>present('#helpEnabled'),'HELP card in Settings',30000);};
+  const toSettings=async()=>{await toMessages();await realTap((await present('#settingsBtn'))?'#settingsBtn':'#tabletSettingsBtn');await until(()=>present('#helpSettingsHost'),'HELP card in Settings',30000);await until(()=>js('!!document.querySelector("#helpChoose,#helpSave")'),'HELP card filled',20000);};
   /* Like a person: tap the switch's whole row (its label), then check it really changed. */
   const setBox=async(sel,want)=>{
     for(let i=0;i<3;i++){
@@ -299,22 +299,28 @@ if(label==='fix'){
   else{try{run('xcrun',['simctl','location',UDID,'set','43.6532,-79.3832']);}catch(e){log('simctl location: '+e.message);}}
   await unlockIfLocked();
 
-  await check('HELP-SETTINGS','Settings → HELP Alert: Turn on, tick Simulator Bob, Save','"Saved."; the server has HELP on with Bob as the only contact',async()=>{
-    await toSettings();log('HELP card is in: '+await js('document.querySelector("#helpSettingsHost")?.closest(".fidunio-settings-panel")?.dataset.group||"no section"'));await setBox('#helpEnabled',true);
+  /* ---- KISS HELP (1.1.83): Choose → tick → Save; red HELP bar; hold 2 s; red "HELP is sent";
+   * Write a message → the HELP chat; helper answers → green "<name> is coming"; I'm OK now. ---- */
+  await check('HELP-SETTINGS','Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save','list closed at first; "Saved."; the server has Bob as the only HELP contact',async()=>{
+    await toSettings();
+    const closed=!(await present('.help-helper'))&&await present('#helpChoose');
+    const s0=await shot('help-settings-closed');
+    await realTap('#helpChoose');await until(()=>present('.help-helper'),'contacts list',15000);
     const k=await js('[...document.querySelectorAll(".help-helpers label")].findIndex(l=>/Bob/.test(l.textContent))+1');
-    if(!k)return{ok:false,observed:'Bob is not in the HELP contacts list',shots:[await shot('help-settings')]};
+    if(!k)return{ok:false,observed:'Bob is not in the HELP contacts list',shots:[s0,await shot('help-settings')]};
     await setBox(`.help-helpers label:nth-child(${k}) input`,true);
     await realTap('#helpSave');
-    await until(async()=>/Saved|Not saved|Choose/.test(await js('document.querySelector("#helpSettingsMsg")?.textContent||""')),'save result',30000);
-    const msg=await js('document.querySelector("#helpSettingsMsg").textContent');const s=await shot('help-settings-saved');
+    await until(async()=>/Saved|Not saved/.test(await js('document.querySelector("#helpSettingsMsg")?.textContent||""')),'save result',30000);
+    const msg=await js('document.querySelector("#helpSettingsMsg").textContent');
+    const chosen=await js('document.querySelector(".help-chosen")?.textContent||""');const s=await shot('help-settings-saved');
     const rows=await admin(async db=>(await getDocs(query(collection(db,'helpSettings'),where('helperUids','array-contains',bobUid)))).docs.map(x=>({id:x.id,...x.data()})));
     const r=rows.find(x=>x.id===aliceUid)||rows[0];aliceUid=aliceUid||r?.id||'';
-    return{ok:/Saved/.test(msg)&&r?.enabled===true&&r.helperUids.length===1,observed:`screen: "${msg}"; server: ${r?`enabled=${r.enabled}, contacts=${r.helperUids.length}`:'no HELP settings saved'}`,shots:[s]};
+    return{ok:closed&&/Saved/.test(msg)&&/Bob/.test(chosen)&&r?.enabled===true&&r.helperUids.length===1,observed:`list closed at first: ${closed}; screen: "${msg}", "${chosen.trim()}"; server: ${r?`enabled=${r.enabled}, contacts=${r.helperUids.length}`:'no HELP settings saved'}`,shots:[s0,s]};
   });
 
-  await check('HELP-BUTTON','Back to Messages','a red HELP button is on the Messages screen',async()=>{
-    await toMessages();const ok=await present('#helpFab');const s=await shot('help-fab');
-    return{ok,observed:ok?'HELP button shown':'no HELP button',shots:[s]};
+  await check('HELP-BAR','Back to Messages','one red HELP bar on the Messages screen, no banners',async()=>{
+    await toMessages();const ok=await present('#helpFab.help-bar');const banners=await present('.help-banner');const s=await shot('help-bar');
+    return{ok:ok&&!banners,observed:`${ok?'HELP bar shown':'no HELP bar'}; banners: ${banners?'YES':'none'}`,shots:[s]};
   });
 
   await check('HELP-QUICK-TAP','HELP screen: a quick tap on the big button (not held)','nothing is sent (it needs a 2-second hold)',async()=>{
@@ -325,100 +331,95 @@ if(label==='fix'){
   });
 
   let alertId='';
-  await check('HELP-SEND','Press and hold the HELP button for 3 seconds; allow location when the phone asks','"Help alert sent", a Cancel button, and the server has an open alert for Bob',async()=>{
+  await check('HELP-SEND','Press and hold the HELP button for 3 seconds; allow location when the phone asks','red "HELP is sent — Simulator Bob is being called", "Write a message", "I\'m OK now"; server has an open alert for Bob',async()=>{
     const p=await screenPoint('#helpHold');await longPressAt(p,3000);
-    const allowed=await allowLocation(15000);
-    await until(()=>present('.help-sent'),'Help alert sent',30000).catch(()=>{});
-    const sent=await js('document.querySelector(".help-sent")?.textContent||""');const cancel=await present('#helpCancel')||allowed.length>0;
-    const s=await shot('help-sent');
-    const mine=(await alertsFor()).filter(a=>a.senderUid===aliceUid&&a.state==='open'&&!a.test);
+    const allowed=await allowLocation(12000);
+    await until(()=>present('#helpOk'),'HELP is sent',30000).catch(()=>{});
+    const t=await js('document.querySelector(".help-shell")?.innerText||""');const s=await shot('help-sent');
+    const mine=(await alertsFor()).filter(a=>a.senderUid===aliceUid&&a.state==='open');
     alertId=mine[0]?.id||'';
-    return{ok:/Help alert sent/.test(sent)&&!!alertId&&mine[0].helperUids.join()===bobUid,observed:`screen: "${sent||'not sent'}"; location prompts answered: ${allowed.join(', ')||'none shown'}; server: ${alertId?'open alert for Bob':'NO alert'}`,shots:[s]};
+    const ok=/HELP is sent/.test(t)&&/Bob/.test(t)&&/being called/.test(t)&&await present('#helpWrite')&&await present('#helpOk')&&!!alertId&&mine[0].helperUids.join()===bobUid;
+    return{ok,observed:`screen: "${t.replace(/\s+/g,' ').slice(0,120)}"; location prompts answered: ${allowed.join(', ')||'none shown'}; server: ${alertId?'open alert for Bob':'NO alert'}`,shots:[s]};
   });
 
-  await check('HELP-PICTURE','Tap the "I\'m hurt" picture button','the button marks as sent',async()=>{
-    await sleep(6000);
-    const k=await js('[...document.querySelectorAll(".help-picture")].findIndex(b=>/hurt/.test(b.textContent))+1');
-    if(!k)return{ok:false,observed:'no picture buttons',shots:[await shot('help-pictures')]};
-    await realTap(`.help-picture:nth-child(${k})`);await until(()=>js(`document.querySelector(".help-picture:nth-child(${k})").classList.contains("sent")`),'picture sent',30000).catch(()=>{});
-    const ok=await js(`document.querySelector(".help-picture:nth-child(${k})").classList.contains("sent")`);const s=await shot('help-picture');
-    return{ok,observed:ok?'"I\'m hurt" sent':'not marked sent',shots:[s]};
+  await check('HELP-WRITE','Tap "Write a message", type and send "Where are you?"','the HELP chat with Bob opens, with the HELP card and the map link; the message is sent',async()=>{
+    await sleep(5000);await realTap('#helpWrite');await until(()=>present('#messageBox'),'HELP chat',20000);
+    await sendText('Help chat 7731');await hideKeyboard();
+    const t=await js('document.querySelector("#chatArea")?.innerText||""');const map=await present('#chatArea .help-card-map');const s=await shot('help-chat');
+    const title=await js('(document.querySelector(".chat-title,.app-shell h1,.topbar h1")?.textContent||"").trim()');
+    return{ok:/HELP/.test(t)&&/Help chat 7731/.test(t),observed:`chat: "${title}"; ${map?'map link shown':'no map link (no location in the emulator)'}; text: ${t.replace(/\s+/g,' ').slice(-140)}`,shots:[s]};
   });
 
-  await check('HELP-ACK','Bob answers "I\'m on it" (from his phone)','Alice\'s HELP screen shows "Simulator Bob is coming"',async()=>{
+  await check('HELP-COMING-SEEN','Bob answers "I\'m coming" (from his phone); Alice opens the HELP bar','green "Simulator Bob is coming", "Write a message", "I\'m OK now"',async()=>{
     if(!alertId)return{ok:false,observed:'no alert to answer',shots:[]};
     await updateDoc(doc(bobDb,'helpAlerts',alertId),{[`acks.${bobUid}`]:{at:serverTimestamp()}});
-    await until(async()=>/Bob is coming/.test(await js('document.querySelector(".help-status")?.textContent||""')),'Bob is coming',30000).catch(()=>{});
-    const t=await js('document.querySelector(".help-status")?.textContent||""');const s=await shot('help-ack');
-    return{ok:/Bob is coming/.test(t),observed:`screen: "${t}"`,shots:[s]};
+    await toMessages();const bar=await js('document.querySelector("#helpFab")?.textContent||""');await realTap('#helpFab');
+    await until(async()=>/Bob\s*is coming/.test(await js('document.querySelector(".help-shell")?.innerText||""')),'Bob is coming',30000).catch(()=>{});
+    const t=await js('document.querySelector(".help-shell")?.innerText||""');const green=await present('.help-green');const s=await shot('help-coming');
+    return{ok:green&&/Bob\s*is coming/.test(t)&&await present('#helpOk'),observed:`bar said: "${bar}"; screen: "${t.replace(/\s+/g,' ').slice(0,100)}"; green: ${green}`,shots:[s]};
   });
 
-  await check('HELP-CHAT-CARDS','Open the chat with Bob','HELP cards in the chat: the alert with "Open location on a map", and "I\'m hurt"',async()=>{
-    await toMessages();await openChat();await sleep(3000);
-    const t=await js('document.querySelector("#chatArea")?.innerText||""');const map=await present('#chatArea .help-card-map');
-    const s=await shot('help-chat-cards');
-    return{ok:/HELP/.test(t)&&map&&/hurt/.test(t),observed:`${map?'map link shown':'NO map link'}; chat text: ${t.replace(/\s+/g,' ').slice(-160)}`,shots:[s]};
+  await check('HELP-OK','Tap "I\'m OK now"','the alert closes (server: safe); back on Messages with the plain HELP bar',async()=>{
+    await realTap('#helpOk');await until(()=>present('#newBtn').then(a=>a||present('#tabletNewBtn')),'Messages',20000).catch(()=>{});await sleep(2500);
+    const a=(await alertsFor()).find(x=>x.id===alertId);const bar=await js('document.querySelector("#helpFab")?.textContent||""');const s=await shot('help-ok');
+    return{ok:a?.state==='safe'&&bar.trim()==='HELP',observed:`server: ${a?.state}; bar: "${bar}"`,shots:[s]};
   });
 
-  await check('HELP-SAFE','Open the HELP alert from the banner, tap "I\'m safe now"','the alert closes (server: safe); HELP screen is back to the big button',async()=>{
-    await toMessages();await realTap('.help-banner');await until(()=>present('#helpSafe'),'I\'m safe now',15000);
-    await realTap('#helpSafe');await until(()=>present('#helpHold'),'HELP button again',20000).catch(()=>{});
-    const a=(await alertsFor()).find(x=>x.id===alertId);const back=await present('#helpHold');const s=await shot('help-safe');
-    return{ok:a?.state==='safe'&&back,observed:`server: ${a?.state}; screen: ${back?'big HELP button':'still the alert'}`,shots:[s]};
-  });
-
-  await check('HELP-INCOMING','Bob sends HELP to Alice (from his phone)','Alice\'s FIDUNIO opens "Simulator Bob needs help" by itself; "I\'m on it" tells the server',async()=>{
+  await check('HELP-INCOMING','Bob sends HELP to Alice (from his phone)','Alice\'s FIDUNIO opens the red "Simulator Bob needs HELP" by itself; "I\'m coming" tells the server and opens the chat with Bob',async()=>{
     await toMessages();
     await setDoc(doc(bobDb,'helpSettings',bobUid),{enabled:true,helperUids:[aliceUid],protected:false,updatedAt:serverTimestamp()});
     const ref=await addDoc(collection(bobDb,'helpAlerts'),{senderUid:bobUid,helperUids:[aliceUid],state:'open',test:false,acks:{},createdAt:serverTimestamp()});
-    await until(()=>present('#helpOnIt'),'incoming HELP screen',30000).catch(()=>{});
-    const title=await js('document.querySelector(".help-sent")?.textContent||""');const s1=await shot('help-incoming');
-    if(!(await present('#helpOnIt')))return{ok:false,observed:`screen: "${title||'HELP screen did not open'}"`,shots:[s1]};
-    await realTap('#helpOnIt');await sleep(4000);
-    const a=(await getDoc(doc(bobDb,'helpAlerts',ref.id))).data();const s2=await shot('help-onit');
+    await until(()=>present('#helpComing'),'incoming HELP screen',30000).catch(()=>{});
+    const t=await js('document.querySelector(".help-shell")?.innerText||""');const s1=await shot('help-incoming');
+    if(!(await present('#helpComing')))return{ok:false,observed:`screen: "${t.replace(/\s+/g,' ').slice(0,100)||'HELP screen did not open'}"`,shots:[s1]};
+    await realTap('#helpComing');await until(()=>present('#messageBox'),'chat with Bob',20000).catch(()=>{});
+    const a=(await getDoc(doc(bobDb,'helpAlerts',ref.id))).data();const chat=await present('#messageBox');const s2=await shot('help-im-coming');
     await updateDoc(doc(bobDb,'helpAlerts',ref.id),{state:'safe',closedAt:serverTimestamp()});
-    return{ok:/Bob needs help/.test(title)&&!!a?.acks?.[aliceUid],observed:`opened: "${title}"; server: ${a?.acks?.[aliceUid]?'Alice is on it':'no answer recorded'}`,shots:[s1,s2]};
+    return{ok:/Bob\s*needs HELP/.test(t)&&!!a?.acks?.[aliceUid]&&chat,observed:`opened: "${t.replace(/\s+/g,' ').slice(0,80)}"; server: ${a?.acks?.[aliceUid]?'Alice is coming':'no answer recorded'}; chat opened: ${chat}`,shots:[s1,s2]};
   });
 
-  await check('HELP-TEST','Settings → "Test my HELP alert", then "Cancel — it was a mistake"','TEST alert sent, then cancelled (server: cancelled)',async()=>{
-    await toSettings();
-    const info=async()=>js(`(()=>{const b=document.querySelector("#helpTest");if(!b)return "no Test button";const r=b.getBoundingClientRect();return "Test button disabled="+b.disabled+" top="+Math.round(r.top)+" scrollY="+Math.round(scrollY)+" screen="+(document.querySelector(".app-shell h1,.app-shell .title")?.textContent||"").trim().slice(0,20)})()`);
-    log('before tap: '+await info());
-    const tp=await screenPoint('#helpTest');log('tap point: '+JSON.stringify(tp)+'; then: '+await info());
-    const hit=await js(`(()=>{const v=window.visualViewport||{offsetLeft:0,offsetTop:0};const e=document.elementFromPoint(${tp?tp.x:0}+v.offsetLeft,${tp?tp.y:0}+v.offsetTop);return e?(e.id||e.className||e.tagName):"nothing"})()`);log('element under the tap point: '+hit);
-    await tapAt(tp);await sleep(800);log('after tap: '+await info()+'; help screen: '+await present('#helpHold')+'/'+await present('.help-sent'));
-    /* Like a person: answer the phone's location question if it shows, and tap Cancel as soon as it is there. */
-    let t='',s1='';const end=Date.now()+20000;
-    while(Date.now()<end){
-      if((await allowLocation(300)).length)continue;
-      if(await present('#helpCancel')){
-        /* The Cancel button is on screen already: tap it straight away (the slow simulator otherwise misses the 5 seconds). */
-        const r=await js(`(()=>{const b=document.querySelector("#helpCancel").getBoundingClientRect();const v=window.visualViewport||{offsetLeft:0,offsetTop:0};return{x:b.left+b.width/2-v.offsetLeft,y:b.top+b.height/2-v.offsetTop,dpr:devicePixelRatio,t:document.querySelector(".help-sent")?.textContent||""}})()`);
-        let q;if(android){const wv=d.nodes().filter(n=>/WebView/.test(n.cls)).sort((a,b)=>b.h-a.h)[0];const top=wv?wv.y-Math.floor(wv.h/2):0;q={x:Math.round(r.x*r.dpr),y:Math.round(top+r.y*r.dpr)};}else q={x:Math.round(r.x),y:Math.round(r.y)};
-        await tapAt(q);t=r.t;s1=await shot('help-test');break;}
-      if(await present('.help-sent')&&!t){t=await js('document.querySelector(".help-sent")?.textContent||""');}
-      await sleep(400);
-    }
-    await sleep(3000);
-    const a=(await alertsFor()).filter(x=>x.senderUid===aliceUid&&x.test===true).pop();const s2=await shot('help-test-cancelled');
-    return{ok:/TEST/.test(t)&&a?.state==='cancelled',observed:`screen: "${t||'no Cancel button seen'}"; server: ${a?a.state:'no test alert'}`,shots:[s1,s2].filter(Boolean)};
-  });
-
-  await check('HELP-PROTECT','Settings: tick "Protect this account", Save (asks PIN), then try Sign Out','PIN asked to protect; Sign Out then asks the PIN, and Cancel keeps Alice signed in',async()=>{
-    await toSettings();await setBox('#helpProtected',true);await realTap('#helpSave');
-    const asked=await until(()=>present('#helpPinHost'),'PIN box',15000).then(()=>true,()=>false);
-    if(asked)await enterPin();
-    await until(async()=>/Saved|Not saved/.test(await js('document.querySelector("#helpSettingsMsg")?.textContent||""')),'saved',20000).catch(()=>{});
-    const r=aliceUid?await admin(async db=>(await getDoc(doc(db,'helpSettings',aliceUid))).data()):null;
-    const out=(await present('#firebaseSignOutBtn'))?'#firebaseSignOutBtn':'#fidunioMainSignOutBtn';
-    let signOutAsked=false;
-    if(await present(out)){await realTap(out);signOutAsked=await until(()=>js('/protected account/.test(document.querySelector("#helpPinTitle")?.textContent||"")'),'Sign Out PIN',10000).then(()=>true,()=>false);}
-    const s=await shot('help-protect-signout');
-    if(await present('#helpPinCancel'))await realTap('#helpPinCancel');await sleep(2500);
-    const still=await present('#helpEnabled')||await present('#newBtn')||await present('#tabletNewBtn');
-    return{ok:asked&&r?.protected===true&&signOutAsked&&still,observed:`PIN asked to protect: ${asked}; server protected=${r?.protected}; Sign Out asked PIN: ${signOutAsked}; after Cancel still signed in: ${still}`,shots:[s]};
+  await check('HELP-SIGNOUT','Settings: Sign Out button','no PIN asked for Sign Out (protection removed); not tapped',async()=>{
+    await toSettings();const out=(await present('#firebaseSignOutBtn'))||(await present('#fidunioMainSignOutBtn'));
+    const gone=!(await present('#helpProtected'))&&!(await present('#helpTest'));const s=await shot('help-settings-kiss');
+    return{ok:out&&gone,observed:`Sign Out shown: ${out}; Protect/Test removed: ${gone}`,shots:[s]};
   });
   await env.cleanup().catch(()=>{});
+}
+
+/* ================= PIN record missing (fix branch, 1.1.83) =================
+ * What the iPad had: the key copy is on the device but the lock PIN record is gone.
+ * Delete ONLY the lock PIN record, restart FIDUNIO. Expected: password + PIN (never
+ * PIN-only, never open without a PIN); a wrong PIN stays locked; the right password +
+ * PIN opens and saves the same PIN back. Android only: the iPhone simulator loses its
+ * key copy on every restart, so it cannot show this case. */
+if(label==='fix'&&android){
+  const dropPinRecord=()=>js(`new Promise(ok=>{const r=indexedDB.open("fidunio-local");r.onsuccess=()=>{const t=r.result.transaction("meta","readwrite");t.objectStore("meta").delete("local-security-v1");t.oncomplete=()=>ok(true);t.onerror=()=>ok(false);};r.onerror=()=>ok(false);})`);
+  const hasPinRecord=()=>js(`new Promise(ok=>{const r=indexedDB.open("fidunio-local");r.onsuccess=()=>{const g=r.result.transaction("meta","readonly").objectStore("meta").get("local-security-v1");g.onsuccess=()=>ok(!!(g.result&&g.result.pin&&g.result.pin.hash));g.onerror=()=>ok(false);};r.onerror=()=>ok(false);})`);
+  const restart=async()=>{adb('shell','am','force-stop',APP);await sleep(2500);d.launch(APP);await sleep(6000);};
+  const fillPin=async pin=>{for(let i=0;i<6;i++)await d.fill(`#sessionPinHost .pin-code-slot:nth-child(${i+1})`,pin[i]);await sleep(500);};
+  await check('PIN-MISSING-ASKS','Delete only the lock PIN record, restart FIDUNIO','password + PIN screen ("PIN record is missing"); no PIN-only screen; FIDUNIO not open',async()=>{
+    const before=await hasPinRecord();const dropped=await dropPinRecord();await restart();
+    await until(()=>present('#sessionPinHost'),'unlock screen',60000).catch(()=>{});
+    const t=await js('document.body.innerText');const pw=await present('#sessionPassword');const open=await present('#newBtn')||await present('#tabletNewBtn');const s=await shot('pin-missing');
+    return{ok:before&&dropped&&pw&&/PIN record is missing/.test(t)&&!open,observed:`record before: ${before}; deleted: ${dropped}; password box: ${pw}; FIDUNIO open: ${open}; screen: "${t.replace(/\s+/g,' ').slice(0,120)}"`,shots:[s]};
+  });
+  await check('PIN-MISSING-WRONG','Type the password and a WRONG PIN','stays locked, "Nothing was changed"',async()=>{
+    await d.fill('#sessionPassword',fixture.alice.password);const wrong=fixture.alice.pin==='000000'?'111111':'000000';await fillPin(wrong);
+    await d.press('#sessionUnlockBtn').catch(()=>{});await sleep(9000);
+    const t=await js('document.querySelector("#sessionNote")?.innerText||""');const open=await present('#newBtn')||await present('#tabletNewBtn');const rec=await hasPinRecord();const s=await shot('pin-wrong');
+    return{ok:!open&&!rec&&/Nothing was changed|different|Could not/.test(t),observed:`FIDUNIO open: ${open}; PIN record written: ${rec}; message: "${t}"`,shots:[s]};
+  });
+  await check('PIN-MISSING-RIGHT','Type the password and the right PIN','FIDUNIO opens; the same PIN is saved back; after a restart the normal PIN screen unlocks with it',async()=>{
+    await d.fill('#sessionPassword',fixture.alice.password);await fillPin(fixture.alice.pin);
+    await d.press('#sessionUnlockBtn').catch(()=>{});
+    await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'),'FIDUNIO open',60000).catch(()=>{});
+    const open=await present('#newBtn')||await present('#tabletNewBtn');const rec=await hasPinRecord();const s1=await shot('pin-restored');
+    await restart();await until(()=>present('#sessionPinHost'),'normal PIN screen',60000).catch(()=>{});
+    const pinOnly=!(await present('#sessionPassword'));await fillPin(fixture.alice.pin);await d.press('#sessionUnlockBtn').catch(()=>{});
+    await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'),'FIDUNIO open again',60000).catch(()=>{});
+    const again=await present('#newBtn')||await present('#tabletNewBtn');const s2=await shot('pin-normal-again');
+    return{ok:open&&rec&&pinOnly&&again,observed:`opened: ${open}; PIN record saved back: ${rec}; next start PIN-only: ${pinOnly}; same PIN unlocks: ${again}`,shots:[s1,s2]};
+  });
 }
 
 const lines=[`# FIDUNIO input probe — ${platform} — ${label}`,'','| Check | What | Expected | Observed | |','|---|---|---|---|---|'];
