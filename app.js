@@ -1763,13 +1763,14 @@ function renderUnlock(){
       <main class="app-shell unlock">
         <section class="unlock-card">
           <div class="unlock-brand"><img class="brand-logo" src="fidunio-logo.png" alt="Fidunio logo"></div>
-          <h1>Fidunio</h1>
-          <p>This installation does not have a local PIN yet. Continue to FIDUNIO, then set one in Settings → Privacy & Access.</p>
-          <button class="primary" id="continueBtn">Continue to FIDUNIO</button>
+          <h1>FIDUNIO is locked</h1>
+          <p>This device's PIN record is missing. Unlock with your password and PIN.</p>
+          <button class="primary" id="continueBtn">Unlock</button>
           <div class="small-note">FIDUNIO ${esc(FIDUNIO_VERSION)}</div>
         </section>
       </main>`;
-    document.querySelector("#continueBtn").onclick=unlockLocalApp;
+    /* Never open without a PIN (2026-11-25): start again through the password + PIN unlock. */
+    document.querySelector("#continueBtn").onclick=()=>location.reload();
     return;
   }
   const showPinFallback=!security.hasBiometric||unlockPinFallbackVisible;
