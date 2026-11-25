@@ -2,7 +2,7 @@
 
 - [ ] **HELP alarm sound** on iPhone, iPad, Android and Fire (today only the ordinary notification sound / "bonk").
 - [ ] **HELP "Write a message"** fix: open the existing chat; never rewrite its members ("Conversation could not be started" on Fire 8).
-- [ ] **Option A**: the HELP conversation on the big HELP screen.
+- [ ] **Option A**: the HELP conversation on the big HELP screen; the regular conversation is also updated with everything that happens there (same messages, same order).
 - [ ] **Abuse reports in Settings**: collapsed by default; highlighted when a report is outstanding.
 - [ ] **Delete the "Install FIDUNIO" section** from Settings.
 - [ ] **Remove "Functional Prototype"** from the logo/app (it is in the App Store); scan the whole app and cut unnecessary wording.

@@ -9,7 +9,9 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
 2. "WRITE A MESSAGE" FIX (proven cause above: startDirectConversation rewrites members order -> permission-denied on an
    existing DM): HELP opens/sends to the EXISTING direct chat; never rewrite members. Also fixes the helper's "I'm coming" card.
 3. OPTION A (owner choice): the HELP conversation on the big HELP screen — large messages, one large text box, Send,
-   "I'm OK now" always visible; same messages also in the normal chat. KISS, real profile names.
+   "I'm OK now" always visible. OWNER RULE (25 Nov 11:17): the regular conversation is ALSO updated with everything
+   that happens on the big HELP screen (alert, location, "I'm coming", every typed message, "I'm OK now") — one shared
+   record; the big screen is only a larger view of it. KISS, real profile names. Test both views stay in step.
 4. Simulator tap-through (Android + iPhone) incl. an EXISTING chat between sender and helper; then TestFlight + APK + web.
    Merge origin/main and origin/ios into the fix branches first (two [skip ci] commits there).
 5. Owner additions (25 Nov 11:15), same build:
