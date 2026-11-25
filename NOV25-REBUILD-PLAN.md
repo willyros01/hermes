@@ -1,3 +1,21 @@
+# >>> TASK FOR 26 NOV 2026 08:05 (owner scheduled it 25 Nov 10:10 — "remember it for tomorrow's task") <<<
+FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; device code only in same-named adapters):
+1. HELP ALARM SOUND (owner real-device test 25 Nov: Fire 8 notification shows but NO sound; iPhone/iPad only the short
+   "bonk"). Cause: functions-help/help-push.mjs asks sound:"default" (APNs + Android); FidunioAdmService HELP channel
+   "fidunio_help" = ordinary notification sound. Fix: a loud alarm-style sound file (<=30 s, .caf for iOS in the app bundle,
+   res/raw for Android); iOS: server asks sound "<file>.caf" + keep time-sensitive; Android/Fire: NEW channel id (channels
+   are immutable) with that sound + AudioAttributes USAGE_ALARM; FCM android.notification.channelId -> new channel.
+   Server change -> one functions-only Cloud Shell script (3-letter .txt) for Willy; old bodies/channels still accepted.
+2. "WRITE A MESSAGE" FIX (proven cause above: startDirectConversation rewrites members order -> permission-denied on an
+   existing DM): HELP opens/sends to the EXISTING direct chat; never rewrite members. Also fixes the helper's "I'm coming" card.
+3. OPTION A (owner choice): the HELP conversation on the big HELP screen — large messages, one large text box, Send,
+   "I'm OK now" always visible; same messages also in the normal chat. KISS, real profile names.
+4. Simulator tap-through (Android + iPhone) incl. an EXISTING chat between sender and helper; then TestFlight + APK + web.
+   Merge origin/main and origin/ios into the fix branches first (two [skip ci] commits there).
+5. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
+Server state now: hlp.txt rules, hl2.txt functions (30-second ring, no limit, body "HELP — <name>"), hip.txt run.invoker
+permission for fidunio-notification@ on helpalertcreatedv1/helpalertupdatedv1 (proven working: Fire 8 gets the notification).
+
 # READ THIS FIRST — before any more FIDUNIO 1.1.83 work (Willy, 25 Nov 2026 02:39)
 Any session resuming this work MUST read this whole file before touching code, tests or releases.
 
