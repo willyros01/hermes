@@ -49,7 +49,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (11:49 PM Sent)",
+      "observed": "a new message appeared (6:26 AM Sent)",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -144,22 +144,23 @@
     },
     {
       "id": "HELP-SETTINGS",
-      "what": "Settings → HELP Alert: Turn on, tick Simulator Bob, Save",
-      "expected": "\"Saved.\"; the server has HELP on with Bob as the only contact",
+      "what": "Settings → HELP: the contacts list is closed; tap \"Choose HELP contacts\", tick Simulator Bob, Save",
+      "expected": "list closed at first; \"Saved.\"; the server has Bob as the only HELP contact",
       "ok": true,
-      "observed": "screen: \"Saved.\"; server: enabled=true, contacts=1",
+      "observed": "list closed at first: true; screen: \"Saved.\", \"HELP contacts: Simulator Bob\"; server: enabled=true, contacts=1",
       "shots": [
-        "18-help-settings-saved.png"
+        "18-help-settings-closed.png",
+        "19-help-settings-saved.png"
       ]
     },
     {
-      "id": "HELP-BUTTON",
+      "id": "HELP-BAR",
       "what": "Back to Messages",
-      "expected": "a red HELP button is on the Messages screen",
+      "expected": "one red HELP bar on the Messages screen, no banners",
       "ok": true,
-      "observed": "HELP button shown",
+      "observed": "HELP bar shown; banners: none",
       "shots": [
-        "19-help-fab.png"
+        "20-help-bar.png"
       ]
     },
     {
@@ -169,89 +170,99 @@
       "ok": true,
       "observed": "nothing sent",
       "shots": [
-        "20-help-quick-tap.png"
+        "21-help-quick-tap.png"
       ]
     },
     {
       "id": "HELP-SEND",
       "what": "Press and hold the HELP button for 3 seconds; allow location when the phone asks",
-      "expected": "\"Help alert sent\", a Cancel button, and the server has an open alert for Bob",
+      "expected": "red \"HELP is sent — Simulator Bob is being called\", \"Write a message\", \"I'm OK now\"; server has an open alert for Bob",
       "ok": true,
-      "observed": "screen: \"Help alert sent\"; location prompts answered: ONLY THIS TIME; server: open alert for Bob",
+      "observed": "screen: \"HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now\"; location prompts answered: ONLY THIS TIME; server: open alert for Bob",
       "shots": [
-        "21-help-sent.png"
+        "22-help-sent.png"
       ]
     },
     {
-      "id": "HELP-PICTURE",
-      "what": "Tap the \"I'm hurt\" picture button",
-      "expected": "the button marks as sent",
+      "id": "HELP-WRITE",
+      "what": "Tap \"Write a message\", type and send \"Where are you?\"",
+      "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
       "ok": true,
-      "observed": "\"I'm hurt\" sent",
+      "observed": "chat: \"\"; map link shown; text:  Sent 6:26 AM Sent 6:26 AM Sent You are now one of my HELP contacts. 6:28 AM Sent HELP Open in Maps 6:28 AM Sent Help chat 7731 6:28 AM Sent",
       "shots": [
-        "22-help-picture.png"
+        "23-help-chat.png"
       ]
     },
     {
-      "id": "HELP-ACK",
-      "what": "Bob answers \"I'm on it\" (from his phone)",
-      "expected": "Alice's HELP screen shows \"Simulator Bob is coming\"",
+      "id": "HELP-COMING-SEEN",
+      "what": "Bob answers \"I'm coming\" (from his phone); Alice opens the HELP bar",
+      "expected": "green \"Simulator Bob is coming\", \"Write a message\", \"I'm OK now\"",
       "ok": true,
-      "observed": "screen: \"Simulator Bob is coming\"",
+      "observed": "bar said: \"HELP is on — open\"; screen: \"Simulator Bob is coming Stay where you are. Write a message I'm OK now\"; green: true",
       "shots": [
-        "23-help-ack.png"
+        "24-help-coming.png"
       ]
     },
     {
-      "id": "HELP-CHAT-CARDS",
-      "what": "Open the chat with Bob",
-      "expected": "HELP cards in the chat: the alert with \"Open location on a map\", and \"I'm hurt\"",
+      "id": "HELP-OK",
+      "what": "Tap \"I'm OK now\"",
+      "expected": "the alert closes (server: safe); back on Messages with the plain HELP bar",
       "ok": true,
-      "observed": "map link shown; chat text: PM Sent 11:49 PM Sent 11:49 PM Sent You are now one of my HELP contacts. 11:50 PM Sent 🆘 HELP alert Open location on a map 11:51 PM Sent I'm hurt 11:51 PM Sent",
+      "observed": "server: safe; bar: \"HELP\"",
       "shots": [
-        "24-help-chat-cards.png"
-      ]
-    },
-    {
-      "id": "HELP-SAFE",
-      "what": "Open the HELP alert from the banner, tap \"I'm safe now\"",
-      "expected": "the alert closes (server: safe); HELP screen is back to the big button",
-      "ok": true,
-      "observed": "server: safe; screen: big HELP button",
-      "shots": [
-        "25-help-safe.png"
+        "25-help-ok.png"
       ]
     },
     {
       "id": "HELP-INCOMING",
       "what": "Bob sends HELP to Alice (from his phone)",
-      "expected": "Alice's FIDUNIO opens \"Simulator Bob needs help\" by itself; \"I'm on it\" tells the server",
+      "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
       "ok": true,
-      "observed": "opened: \"🆘 Simulator Bob needs help\"; server: Alice is on it",
+      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 6:29 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
       "shots": [
         "26-help-incoming.png",
-        "27-help-onit.png"
+        "27-help-im-coming.png"
       ]
     },
     {
-      "id": "HELP-TEST",
-      "what": "Settings → \"Test my HELP alert\", then \"Cancel — it was a mistake\"",
-      "expected": "TEST alert sent, then cancelled (server: cancelled)",
+      "id": "HELP-SIGNOUT",
+      "what": "Settings: Sign Out button",
+      "expected": "no PIN asked for Sign Out (protection removed); not tapped",
       "ok": true,
-      "observed": "screen: \"TEST — Help alert sent\"; server: cancelled",
+      "observed": "Sign Out shown: true; Protect/Test removed: true",
       "shots": [
-        "28-help-test.png",
-        "29-help-test-cancelled.png"
+        "28-help-settings-kiss.png"
       ]
     },
     {
-      "id": "HELP-PROTECT",
-      "what": "Settings: tick \"Protect this account\", Save (asks PIN), then try Sign Out",
-      "expected": "PIN asked to protect; Sign Out then asks the PIN, and Cancel keeps Alice signed in",
+      "id": "PIN-MISSING-ASKS",
+      "what": "Delete only the lock PIN record, restart FIDUNIO",
+      "expected": "password + PIN screen (\"PIN record is missing\"); no PIN-only screen; FIDUNIO not open",
       "ok": true,
-      "observed": "PIN asked to protect: true; server protected=true; Sign Out asked PIN: true; after Cancel still signed in: true",
+      "observed": "record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: \"FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass\"",
       "shots": [
-        "30-help-protect-signout.png"
+        "29-pin-missing.png"
+      ]
+    },
+    {
+      "id": "PIN-MISSING-WRONG",
+      "what": "Type the password and a WRONG PIN",
+      "expected": "stays locked, \"Nothing was changed\"",
+      "ok": false,
+      "observed": "FIDUNIO open: false; PIN record written: false; message: \"Enter your six-digit FIDUNIO PIN.\"",
+      "shots": [
+        "30-pin-wrong.png"
+      ]
+    },
+    {
+      "id": "PIN-MISSING-RIGHT",
+      "what": "Type the password and the right PIN",
+      "expected": "FIDUNIO opens; the same PIN is saved back; after a restart the normal PIN screen unlocks with it",
+      "ok": true,
+      "observed": "opened: true; PIN record saved back: true; next start PIN-only: true; same PIN unlocks: true",
+      "shots": [
+        "31-pin-restored.png",
+        "32-pin-normal-again.png"
       ]
     }
   ]

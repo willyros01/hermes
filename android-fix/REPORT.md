@@ -6,7 +6,7 @@
 | SELECT-TEXT | Press and hold a message, Select Text, press and hold one word, tap Copy, then Done | only that word is copied; Done goes back to the same chat | marked: "Copy"; copied: "Copy"; after Done: same chat | as expected |
 | LINK | Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open | "Open this link?" first; Cancel stays in the chat; Open shows the web page outside FIDUNIO | asked first: true; Cancel stayed in chat: true; after Open: org.chromium.webview_shell/.WebViewBrowserActivity | as expected |
 | PASTE | Press and hold the message box, tap the phone's Paste | the copied text appears in the message box | phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286" | as expected |
-| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (11:49 PM Sent) | as expected |
+| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (6:26 AM Sent) | as expected |
 | KEYBOARD-GIF | A GIF handed over by the keyboard (fix branch: native hand-over event) | FIDUNIO sends it as a photo | GIF message appeared | as expected |
 | KEYBOARD-GIF-OFFER | Does the message box tell the keyboard it accepts GIFs? | yes on the fix branch | GIF types offered to the keyboard | as expected |
 | CAMERA | Photo → Take a Picture | the camera opens | in front: com.android.camera2/com.android.camera.CaptureActivity | as expected |
@@ -16,17 +16,18 @@
 | BACK-MAIN | Back swipe on the Messages list | FIDUNIO goes to the background (still running) | started on Messages list; in front: com.android.settings/.Settings; FIDUNIO still running | as expected |
 | BACK-RETURN | Return right after the Back swipe | unlocked (within grace) | unlocked | as expected |
 | BACK-KEY | 3-button Back key while in a chat | goes back to the Messages list | Messages list shown | as expected |
-| HELP-SETTINGS | Settings → HELP Alert: Turn on, tick Simulator Bob, Save | "Saved."; the server has HELP on with Bob as the only contact | screen: "Saved."; server: enabled=true, contacts=1 | as expected |
-| HELP-BUTTON | Back to Messages | a red HELP button is on the Messages screen | HELP button shown | as expected |
+| HELP-SETTINGS | Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save | list closed at first; "Saved."; the server has Bob as the only HELP contact | list closed at first: true; screen: "Saved.", "HELP contacts: Simulator Bob"; server: enabled=true, contacts=1 | as expected |
+| HELP-BAR | Back to Messages | one red HELP bar on the Messages screen, no banners | HELP bar shown; banners: none | as expected |
 | HELP-QUICK-TAP | HELP screen: a quick tap on the big button (not held) | nothing is sent (it needs a 2-second hold) | nothing sent | as expected |
-| HELP-SEND | Press and hold the HELP button for 3 seconds; allow location when the phone asks | "Help alert sent", a Cancel button, and the server has an open alert for Bob | screen: "Help alert sent"; location prompts answered: ONLY THIS TIME; server: open alert for Bob | as expected |
-| HELP-PICTURE | Tap the "I'm hurt" picture button | the button marks as sent | "I'm hurt" sent | as expected |
-| HELP-ACK | Bob answers "I'm on it" (from his phone) | Alice's HELP screen shows "Simulator Bob is coming" | screen: "Simulator Bob is coming" | as expected |
-| HELP-CHAT-CARDS | Open the chat with Bob | HELP cards in the chat: the alert with "Open location on a map", and "I'm hurt" | map link shown; chat text: PM Sent 11:49 PM Sent 11:49 PM Sent You are now one of my HELP contacts. 11:50 PM Sent 🆘 HELP alert Open location on a map 11:51 PM Sent I'm hurt 11:51 PM Sent | as expected |
-| HELP-SAFE | Open the HELP alert from the banner, tap "I'm safe now" | the alert closes (server: safe); HELP screen is back to the big button | server: safe; screen: big HELP button | as expected |
-| HELP-INCOMING | Bob sends HELP to Alice (from his phone) | Alice's FIDUNIO opens "Simulator Bob needs help" by itself; "I'm on it" tells the server | opened: "🆘 Simulator Bob needs help"; server: Alice is on it | as expected |
-| HELP-TEST | Settings → "Test my HELP alert", then "Cancel — it was a mistake" | TEST alert sent, then cancelled (server: cancelled) | screen: "TEST — Help alert sent"; server: cancelled | as expected |
-| HELP-PROTECT | Settings: tick "Protect this account", Save (asks PIN), then try Sign Out | PIN asked to protect; Sign Out then asks the PIN, and Cancel keeps Alice signed in | PIN asked to protect: true; server protected=true; Sign Out asked PIN: true; after Cancel still signed in: true | as expected |
+| HELP-SEND | Press and hold the HELP button for 3 seconds; allow location when the phone asks | red "HELP is sent — Simulator Bob is being called", "Write a message", "I'm OK now"; server has an open alert for Bob | screen: "HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now"; location prompts answered: ONLY THIS TIME; server: open alert for Bob | as expected |
+| HELP-WRITE | Tap "Write a message", type and send "Where are you?" | the HELP chat with Bob opens, with the HELP card and the map link; the message is sent | chat: ""; map link shown; text:  Sent 6:26 AM Sent 6:26 AM Sent You are now one of my HELP contacts. 6:28 AM Sent HELP Open in Maps 6:28 AM Sent Help chat 7731 6:28 AM Sent | as expected |
+| HELP-COMING-SEEN | Bob answers "I'm coming" (from his phone); Alice opens the HELP bar | green "Simulator Bob is coming", "Write a message", "I'm OK now" | bar said: "HELP is on — open"; screen: "Simulator Bob is coming Stay where you are. Write a message I'm OK now"; green: true | as expected |
+| HELP-OK | Tap "I'm OK now" | the alert closes (server: safe); back on Messages with the plain HELP bar | server: safe; bar: "HELP" | as expected |
+| HELP-INCOMING | Bob sends HELP to Alice (from his phone) | Alice's FIDUNIO opens the red "Simulator Bob needs HELP" by itself; "I'm coming" tells the server and opens the chat with Bob | opened: "‹ Simulator Bob needs HELP Sent at 6:29 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true | as expected |
+| HELP-SIGNOUT | Settings: Sign Out button | no PIN asked for Sign Out (protection removed); not tapped | Sign Out shown: true; Protect/Test removed: true | as expected |
+| PIN-MISSING-ASKS | Delete only the lock PIN record, restart FIDUNIO | password + PIN screen ("PIN record is missing"); no PIN-only screen; FIDUNIO not open | record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: "FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass" | as expected |
+| PIN-MISSING-WRONG | Type the password and a WRONG PIN | stays locked, "Nothing was changed" | FIDUNIO open: false; PIN record written: false; message: "Enter your six-digit FIDUNIO PIN." | **DIFFERENT** |
+| PIN-MISSING-RIGHT | Type the password and the right PIN | FIDUNIO opens; the same PIN is saved back; after a restart the normal PIN screen unlocks with it | opened: true; PIN record saved back: true; next start PIN-only: true; same PIN unlocks: true | as expected |
 
 ### COPY — 02-copy-sheet.png
 
@@ -88,54 +89,62 @@
 
 ![17-back-key.png](17-back-key.png)
 
-### HELP-SETTINGS — 18-help-settings-saved.png
+### HELP-SETTINGS — 18-help-settings-closed.png
 
-![18-help-settings-saved.png](18-help-settings-saved.png)
+![18-help-settings-closed.png](18-help-settings-closed.png)
 
-### HELP-BUTTON — 19-help-fab.png
+### HELP-SETTINGS — 19-help-settings-saved.png
 
-![19-help-fab.png](19-help-fab.png)
+![19-help-settings-saved.png](19-help-settings-saved.png)
 
-### HELP-QUICK-TAP — 20-help-quick-tap.png
+### HELP-BAR — 20-help-bar.png
 
-![20-help-quick-tap.png](20-help-quick-tap.png)
+![20-help-bar.png](20-help-bar.png)
 
-### HELP-SEND — 21-help-sent.png
+### HELP-QUICK-TAP — 21-help-quick-tap.png
 
-![21-help-sent.png](21-help-sent.png)
+![21-help-quick-tap.png](21-help-quick-tap.png)
 
-### HELP-PICTURE — 22-help-picture.png
+### HELP-SEND — 22-help-sent.png
 
-![22-help-picture.png](22-help-picture.png)
+![22-help-sent.png](22-help-sent.png)
 
-### HELP-ACK — 23-help-ack.png
+### HELP-WRITE — 23-help-chat.png
 
-![23-help-ack.png](23-help-ack.png)
+![23-help-chat.png](23-help-chat.png)
 
-### HELP-CHAT-CARDS — 24-help-chat-cards.png
+### HELP-COMING-SEEN — 24-help-coming.png
 
-![24-help-chat-cards.png](24-help-chat-cards.png)
+![24-help-coming.png](24-help-coming.png)
 
-### HELP-SAFE — 25-help-safe.png
+### HELP-OK — 25-help-ok.png
 
-![25-help-safe.png](25-help-safe.png)
+![25-help-ok.png](25-help-ok.png)
 
 ### HELP-INCOMING — 26-help-incoming.png
 
 ![26-help-incoming.png](26-help-incoming.png)
 
-### HELP-INCOMING — 27-help-onit.png
+### HELP-INCOMING — 27-help-im-coming.png
 
-![27-help-onit.png](27-help-onit.png)
+![27-help-im-coming.png](27-help-im-coming.png)
 
-### HELP-TEST — 28-help-test.png
+### HELP-SIGNOUT — 28-help-settings-kiss.png
 
-![28-help-test.png](28-help-test.png)
+![28-help-settings-kiss.png](28-help-settings-kiss.png)
 
-### HELP-TEST — 29-help-test-cancelled.png
+### PIN-MISSING-ASKS — 29-pin-missing.png
 
-![29-help-test-cancelled.png](29-help-test-cancelled.png)
+![29-pin-missing.png](29-pin-missing.png)
 
-### HELP-PROTECT — 30-help-protect-signout.png
+### PIN-MISSING-WRONG — 30-pin-wrong.png
 
-![30-help-protect-signout.png](30-help-protect-signout.png)
+![30-pin-wrong.png](30-pin-wrong.png)
+
+### PIN-MISSING-RIGHT — 31-pin-restored.png
+
+![31-pin-restored.png](31-pin-restored.png)
+
+### PIN-MISSING-RIGHT — 32-pin-normal-again.png
+
+![32-pin-normal-again.png](32-pin-normal-again.png)
