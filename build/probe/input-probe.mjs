@@ -332,6 +332,25 @@ if(label==='fix'){
     return{ok:closed&&/Saved/.test(msg)&&/Bob/.test(chosen)&&r?.enabled===true&&r.helperUids.length===1,observed:`list closed at first: ${closed}; screen: "${msg}", "${chosen.trim()}"; server: ${r?`enabled=${r.enabled}, contacts=${r.helperUids.length}`:'no HELP settings saved'}`,shots:[s0,s]};
   });
 
+  /* Repeat Save 5 times (off and on) to catch the intermittent "Saved. / Nobody yet" fault, with the HELP trace. */
+  await check('HELP-SAVE-REPEAT','5 times: untick Bob → Save, then tick Bob → Save; check the contacts line and the HELP bar each time','every Save shows the right contacts, and the HELP bar follows',async()=>{
+    const bad=[];
+    const saveWith=async want=>{
+      await toSettings();await realTap('#helpChoose');await until(()=>present('.help-helper'),'contacts list',15000);
+      const k=await js('[...document.querySelectorAll(".help-helpers label")].findIndex(l=>/Bob/.test(l.textContent))+1');
+      await setBox(`.help-helpers label:nth-child(${k}) input`,want);await realTap('#helpSave');
+      await until(async()=>/Saved|Not saved/.test(await js('document.querySelector("#helpSettingsMsg")?.textContent||""')),'save result',30000);
+      await sleep(3000);
+      const line=await js('document.querySelector(".help-chosen")?.textContent||""');
+      await toMessages();await sleep(1500);const bar=await present('#helpFab');
+      return{line,bar,good:want?(/Bob/.test(line)&&bar):(/Nobody/.test(line)&&!bar)};
+    };
+    for(let i=1;i<=5;i++){for(const want of [false,true]){const r=await saveWith(want);if(!r.good)bad.push(`round ${i} ${want?'on':'off'}: "${r.line.trim()}", bar ${r.bar}`);}}
+    const tr=await js('JSON.stringify(globalThis.FIDUNIO_HELP_TRACE||[])').catch(()=>'');fs.writeFileSync(path.join(out,'help-trace-repeat.txt'),String(tr));
+    const s=await shot('help-save-repeat');
+    return{ok:bad.length===0,observed:bad.length?bad.join('; '):'all 10 saves right',shots:[s]};
+  });
+
   await check('HELP-BAR','Back to Messages','one red HELP bar on the Messages screen, no banners',async()=>{
     await toMessages();const ok=await present('#helpFab.help-bar');const banners=await present('.help-banner');const s=await shot('help-bar');
     return{ok:ok&&!banners,observed:`${ok?'HELP bar shown':'no HELP bar'}; banners: ${banners?'YES':'none'}`,shots:[s]};
