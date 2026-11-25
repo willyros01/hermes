@@ -1,0 +1,5 @@
+FIDUNIO iPad update + PIN probe — device: iPad Air 11-inch (M3) (ABF743D3-A9E9-4317-BB4C-DDCFB58C38DE) (Booted)
+released version signed in: 1.1.81
+new version installed over the old one (no uninstall)
+DIFFERENT UPDATE-OPENS-LOCKED — observed: version 1.1.81 → 1.1.82; unlock screen with PIN boxes: false
+RESULT: probe finished
