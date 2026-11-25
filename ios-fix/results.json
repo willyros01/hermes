@@ -14,8 +14,8 @@
       "id": "COPY",
       "what": "Press and hold a message, tap Copy",
       "expected": "sheet offers Copy; the phone clipboard then holds the message text",
-      "ok": true,
-      "observed": "Copy button present; clipboard now: \"Copy test 4417\"",
+      "ok": false,
+      "observed": "Copy button present; clipboard now: \"\"",
       "shots": [
         "02-copy-sheet.png"
       ]
@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 8:25 AM Sent )",
+      "observed": "a new message appeared ( 8:45 AM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -76,11 +76,21 @@
       "id": "HELP-SETTINGS",
       "what": "Settings → HELP: the contacts list is closed; tap \"Choose HELP contacts\", tick Simulator Bob, Save",
       "expected": "list closed at first; \"Saved.\"; the server has Bob as the only HELP contact",
-      "ok": true,
-      "observed": "list closed at first: true; screen: \"Saved.\", \"HELP contacts: Simulator Bob\"; server: enabled=true, contacts=1",
+      "ok": false,
+      "observed": "list closed at first: true; screen: \"Saved.\", \"HELP contacts: Nobody yet\"; server: enabled=true, contacts=1",
       "shots": [
         "11-help-settings-closed.png",
         "12-help-settings-saved.png"
+      ]
+    },
+    {
+      "id": "HELP-SAVE-REPEAT",
+      "what": "5 times: untick Bob → Save, then tick Bob → Save; check the contacts line and the HELP bar each time",
+      "expected": "every Save shows the right contacts, and the HELP bar follows",
+      "ok": true,
+      "observed": "all 10 saves right",
+      "shots": [
+        "13-help-save-repeat.png"
       ]
     },
     {
@@ -90,7 +100,7 @@
       "ok": true,
       "observed": "HELP bar shown; banners: none",
       "shots": [
-        "13-help-bar.png"
+        "14-help-bar.png"
       ]
     },
     {
@@ -100,7 +110,7 @@
       "ok": true,
       "observed": "nothing sent",
       "shots": [
-        "14-help-quick-tap.png"
+        "15-help-quick-tap.png"
       ]
     },
     {
@@ -110,7 +120,7 @@
       "ok": true,
       "observed": "screen: \"HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now\"; location prompts answered: Allow Once, Allow; server: open alert for Bob",
       "shots": [
-        "15-help-sent.png"
+        "16-help-sent.png"
       ]
     },
     {
@@ -118,9 +128,9 @@
       "what": "Tap \"Write a message\", type and send \"Where are you?\"",
       "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
       "ok": true,
-      "observed": "chat: \"\"; map link shown; text: oday 8:20 AM Sent 8:25 AM Sent You are now one of my HELP contacts. 8:26 AM Sent HELP Open in Maps 8:27 AM Sent Help chat 7731 8:27 AM Sent ",
+      "observed": "chat: \"\"; map link shown; text: my HELP contacts. 8:50 AM Sent You are now one of my HELP contacts. 8:51 AM Sent HELP Open in Maps 8:51 AM Sent Help chat 7731 8:52 AM Sent ",
       "shots": [
-        "16-help-chat.png"
+        "17-help-chat.png"
       ]
     },
     {
@@ -130,7 +140,7 @@
       "ok": true,
       "observed": "bar said: \"HELP is on — open\"; screen: \"Simulator Bob is coming Stay where you are. Write a message I'm OK now\"; green: true",
       "shots": [
-        "17-help-coming.png"
+        "18-help-coming.png"
       ]
     },
     {
@@ -140,7 +150,7 @@
       "ok": true,
       "observed": "server: safe; bar: \"HELP\"",
       "shots": [
-        "18-help-ok.png"
+        "19-help-ok.png"
       ]
     },
     {
@@ -148,10 +158,10 @@
       "what": "Bob sends HELP to Alice (from his phone)",
       "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
       "ok": true,
-      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 8:28 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
+      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 8:52 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
       "shots": [
-        "19-help-incoming.png",
-        "20-help-im-coming.png"
+        "20-help-incoming.png",
+        "21-help-im-coming.png"
       ]
     },
     {
@@ -161,7 +171,7 @@
       "ok": true,
       "observed": "Sign Out shown: true; Protect/Test removed: true",
       "shots": [
-        "21-help-settings-kiss.png"
+        "22-help-settings-kiss.png"
       ]
     }
   ]
