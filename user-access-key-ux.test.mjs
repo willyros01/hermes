@@ -26,9 +26,9 @@ requireTrue(auth.includes('class="auth-choice')&&auth.includes('auth-choice-icon
 requireTrue(bootstrap.includes('button.classList.add("is-busy")')&&bootstrap.includes('aria-busy'),"disabled action buttons must receive shared spinner feedback");
 requireTrue(auth.includes('id="joinPinHost"')&&auth.includes("mountSixDigitPinInput"),"Join must create the PIN with the shared six-slot owner");
 requireTrue(auth.includes("enterAfterPasswordSignIn(user,bound,password)"),"successful password sign-in must preserve its password only for a bounded stale-revision repair");
-/* Owner rule, 2026-11-25: password sign-in asks for the PIN as well; a missing lock PIN record means password + PIN, never PIN-only and never no PIN. */
-requireTrue(/async function enterAfterPasswordSignIn[\s\S]*?await renderSessionUnlock\(user,\{hasIdentity:true,identity:bound\.identity,password\}\);\s*\}/.test(auth),"password sign-in must also ask for the PIN");
-requireTrue(auth.includes("if(saved&&!restorePin)")&&auth.includes("restoreLocalAccountE2EE(saved)")&&auth.includes("async function restoreMissingLocalPin"),"a saved identity unlocks with the PIN; a missing lock PIN record needs password + PIN");
+/* Owner rule, 2026-11-24 22:39: password-only sign-in stays; a missing lock PIN record means the PIN is asked (with the password) and the same PIN saved back — never PIN-only, never no PIN. */
+requireTrue(/hasPin\)\{await renderSessionUnlock\([^;]*;return;\}\s*restoreLocalAccountE2EE\(saved\);\s*markSuccessfulAuthBypass\(\);/.test(auth),"a current saved identity must enter without another PIN prompt");
+requireTrue(auth.includes("if(saved&&!restorePin)")&&auth.includes("async function restoreMissingLocalPin")&&auth.includes("if(!getLocalSecurityStatus().hasPin){await renderSessionUnlock("),"a missing lock PIN record needs password + PIN");
 requireTrue(auth.includes("restoreLocalAccountE2EE(saved)"),"password sign-in must restore the saved device encryption identity");
 requireTrue(auth.includes("unlockAccountE2EE({uid:user.uid,password,pin})"),"account recovery must retain the existing password and PIN cryptographic path");
 requireTrue(auth.includes("recoverAccountE2EE({uid:user.uid,newPassword:password,pin})"),"a stale password wrapper must have one bounded same-identity recovery path");

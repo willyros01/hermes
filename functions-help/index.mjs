@@ -25,4 +25,5 @@ export const helpAlertCreatedV1=onDocumentCreated({...opts,document:"helpAlerts/
   e=>core.alertCreated({alertId:e.params.alertId,alert:e.data?.data()}));
 export const helpAlertUpdatedV1=onDocumentUpdated({...opts,document:"helpAlerts/{alertId}",retry:false},
   e=>core.alertUpdated({alertId:e.params.alertId,before:e.data?.before?.data(),after:e.data?.after?.data()}));
-export const helpAlertSweepV1=onSchedule({...opts,schedule:"every 1 minutes",timeZone:"UTC"},()=>core.sweep());
+/* Two passes per run (now and 30 s later) give the 30-second ring; 120 s leaves room. */
+export const helpAlertSweepV1=onSchedule({...opts,timeoutSeconds:120,schedule:"every 1 minutes",timeZone:"UTC"},()=>core.sweep());

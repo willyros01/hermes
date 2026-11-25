@@ -14,7 +14,6 @@ npx cap sync android
 bash build/android-native.sh
 node build/install-fidunio-input.mjs
 bash build/fadm.sh
-node build/install-fidunio-wifi.mjs
 java build/AndroidIcons.java icon-512.png android/app/src/main/res
 bash build/android-sign.sh
 trap 'rm -f android/app/fidunio-signing.p12 android/app/fidunio-sign.gradle android/app/google-services.json android/app/src/main/assets/api_key.txt' EXIT

@@ -54,7 +54,7 @@ import {createGroupMessageStreamLifecycle} from "./group-message-stream-lifecycl
 import {MESSAGE_REACTION_CHOICES,summarizeMessageReactions,listMessageReactionAuthors} from "./message-reaction-policy.js";
 import {encodeGroupReplyDescriptor,parseGroupReplyDescriptor} from "./group-reply-policy.js";
 import {linkifyMessageText} from "./message-link-policy.js";
-import {createHelpOwner,parseHelpCard,renderHelpCardBubble,helpPreview} from "./help-owner.js";
+import {createHelpOwner,parseHelpCard,renderHelpCardBubble,helpPreview,HELP_GROUP_PREFIX} from "./help-owner.js";
 
 const MESSAGE_DELETE_FOR_EVERYONE_ENABLED=true;
 import { planPhysicalLocalMessagePurge } from "./disappearing-local-storage-plan.js";
@@ -76,7 +76,7 @@ import {createAccountVaultOwner} from "./account-vault-owner.js";
 import {reconcileAccountVaultPayload} from "./account-vault-reconciliation.js";
 import {activateVerifiedAccountVault} from "./account-vault-activation.js";
 import {isNativeIOSRuntime} from "./platform-runtime.js";
-import {installAndroidBackGesture} from "./android-back-platform-adapter.js";
+import {installBackGesture} from "./back-platform-adapter.js";
 import {subscribePlatformBackgroundMessages} from "./background-platform-adapter.js";
 
 /* FIDUNIO single-authority local lock integration */
@@ -253,6 +253,7 @@ function unlockLocalApp(){
   noteLocalUnlock();
   render();
   void requestAppActivation("unlock");
+  helpOwner.afterUnlock();
 }
 function setUnlockTransitionStatus(message){
   const button=document.querySelector("#localPinUnlockBtn")||document.querySelector("#deviceUnlockBtn");
@@ -1371,11 +1372,51 @@ async function sendHelpText(peerUid,text){
   /* Same as a typed message: the Outbox is authoritative, then send it now when online. */
   if(state.online)await flushQueuedAfterAuthoritativeReconcile();
 }
-function helpCardsForAlert(senderUid,alertId){
-  const c=state.conversations.find(row=>row.cloud&&String(row.peerUid||"")===String(senderUid));
-  return c?(state.messages[c.id]||[]).map(m=>!m.mine?parseHelpCard(m.text):null).filter(card=>card&&card.alertId===alertId):[];
+/* HELP chat helpers (KISS HELP, 2026-11-25): with one HELP contact the HELP chat is the direct
+ * chat; with two or more it is one encrypted group "HELP — <child's profile name>". */
+async function sendHelpGroupText(groupId,text){
+  const c=state.conversations.find(row=>row.cloudGroup&&String(row.id)===String(groupId));
+  if(!c)throw new Error("HELP chat is unavailable.");
+  const m={id:crypto.randomUUID(),mine:true,text,time:nowTime(),createdAt:new Date(),state:state.online?"sending":"queued",cloud:true,group:true};
+  if(!state.messages[c.id])state.messages[c.id]=[];
+  optimisticOutgoingProjection.stage(c.id,m);
+  state.messages[c.id].push(m);
+  c.preview=messagePreview(text);c.time=m.time;
+  await queueGroupTextForApp({groupId:c.id,messageId:m.id,text,time:m.time,disappearAfterSeconds:null,persistEncryptedOutbox:persistGroupOutboxPayload});
+  await persistState();
+  render({background:true});
+  if(state.online)await flushQueuedAfterAuthoritativeReconcile();
 }
-const helpOwner=createHelpOwner({app,render,navigate:route=>{state.route=route;render();},sendHelpText,verifyLocalPin,shellTop,isUnlocked:()=>state.unlocked});
+function findHelpGroup(ownerUid){
+  const c=state.conversations.find(row=>row.cloudGroup&&String(row.ownerUid||"")===String(ownerUid)&&String(row.name||"").startsWith(HELP_GROUP_PREFIX));
+  return c?String(c.id):null;
+}
+async function ensureHelpGroup(helperUids,myName){
+  const me=String(firebaseUser?.uid||"");
+  if(!me||helperUids.length<2)return null;
+  let gid=findHelpGroup(me);
+  if(!gid){
+    const group=await createCloudGroup(HELP_GROUP_PREFIX+String(myName||"FIDUNIO member").slice(0,100),helperUids);
+    mergeCloudGroup(group);persistSoon();return String(group.id);
+  }
+  const c=state.conversations.find(row=>String(row.id)===gid);
+  const now=new Set((c?.members||[]).map(m=>String(m.id)));
+  for(const uid of helperUids)if(!now.has(String(uid)))await addGroupMemberForApp(gid,uid);
+  for(const uid of now)if(uid!==me&&!helperUids.includes(uid))await removeGroupMemberForApp(gid,uid);
+  return gid;
+}
+async function openHelpDirect(uid){
+  const remote=await startDirectConversation(uid);
+  mergeCloudConversation(remote);
+  state.selectedId=String(remote.id);state.route="chat";render();
+}
+function openHelpConversation(id){state.selectedId=String(id);state.route="chat";render();}
+function helpCardsForAlert(senderUid,alertId,helperUids=[]){
+  const rooms=state.conversations.filter(row=>(row.cloud&&String(row.peerUid||"")===String(senderUid))||(row.cloudGroup&&String(row.ownerUid||"")===String(senderUid)&&String(row.name||"").startsWith(HELP_GROUP_PREFIX)));
+  return rooms.flatMap(c=>(state.messages[c.id]||[]).map(m=>!m.mine?parseHelpCard(m.text):null)).filter(card=>card&&card.alertId===alertId);
+}
+const helpOwner=createHelpOwner({app,render,navigate:route=>{state.route=route;render();},shellTop,isUnlocked:()=>state.unlocked,
+  chat:{sendDirect:sendHelpText,sendGroup:sendHelpGroupText,ensureGroup:ensureHelpGroup,findGroup:findHelpGroup,openDirect:uid=>{void openHelpDirect(uid).catch(err=>alert(err?.message||err));},openConversation:openHelpConversation}});
 async function initializeFirebaseLayer(){
   if(!isFirebaseConfigured()) return;
   try{
@@ -1441,7 +1482,7 @@ async function initApp(){
   state.online=navigator.onLine;
   if(consumeSuccessfulAuthBypass()) state.unlocked=true;
   installInactivityMonitor({isUnlocked:()=>state.unlocked&&!attachmentPickerActive,onLock:reason=>lockLocalApp(reason)});
-  installAndroidBackGesture({handleBack:handleAndroidBack});
+  installBackGesture({handleBack:handleAndroidBack});
   /* Links in messages ask first; FIDUNIO's own HELP map link opens straight away. */
   document.addEventListener("click",e=>{
     const a=e.target.closest?.("a.msg-link");
@@ -3132,7 +3173,7 @@ function renderSettings(){
     <main class="app-shell">
       ${shellTop("Settings",'<button class="back-btn" id="backBtn">‹</button>')}
       <section class="content settings">
-        <div class="card help-settings" id="helpSettingsHost"><h2>HELP Alert</h2></div>
+        <div class="card help-settings" id="helpSettingsHost"><h2>HELP</h2></div>
         <div class="card" id="localSecurityCard"><h2>Privacy & Access</h2>
           ${(()=>{const security=getLocalSecurityStatus(),nativeIOS=isNativeIOSRuntime();return `
             <div class="row-main"><strong>FIDUNIO PIN</strong><span>${security.hasPin?"Configured":"Complete Security setup below"}${security.hasBiometric?" • Face ID or biometric enabled":""}</span></div>

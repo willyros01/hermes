@@ -3,7 +3,7 @@
  * "HELP from <name>" — never the message, location or Wi-Fi name. */
 const ADM_OAUTH="https://api.amazon.com/auth/O2/token";
 const ADM_SEND="https://api.amazon.com/messaging/registrations/";
-const BODY=/^(TEST — )?(HELP from .{1,80}( \(reminder [1-5]\))?|.{1,80} is coming|.{1,80} is safe now|.{1,80}: sorry, it was a mistake)$/;
+const BODY=/^(TEST — )?(HELP — .{1,80}|HELP from .{1,80}( \(reminder [1-5]\))?|.{1,80} is coming|.{1,80} is (safe|OK) now|.{1,80}: sorry, it was a mistake)$/;
 
 export function helpFcmMessage(tokens,data){
   if(!BODY.test(String(data?.notificationBody||"")))throw new Error("Unapproved HELP notification body.");

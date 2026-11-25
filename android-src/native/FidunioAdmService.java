@@ -73,7 +73,7 @@ public final class FidunioAdmService extends A3LMessagingService {
     final String alertId=data.get("alertId");
     String body=data.get("notificationBody");
     if(!valid(alertId)||body==null||body.length()>120)return;
-    if(!(body.startsWith("HELP from ")||body.startsWith("TEST — HELP from ")||body.endsWith(" is coming")||body.endsWith(" is safe now")||body.endsWith(": sorry, it was a mistake")))return;
+    if(!(body.startsWith("HELP — ")||body.startsWith("HELP from ")||body.startsWith("TEST — HELP from ")||body.endsWith(" is coming")||body.endsWith(" is safe now")||body.endsWith(" is OK now")||body.endsWith(": sorry, it was a mistake")))return;
     if(Build.VERSION.SDK_INT>=33&&
        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return;
     final NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);

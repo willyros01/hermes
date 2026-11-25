@@ -1,36 +1,45 @@
-/* FIDUNIO HELP (2026-11-24): large, high-contrast, few words. */
-.help-fab{position:fixed;left:18px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#C62828;color:#fff;border:3px solid #8E1B1B;font-size:20px;font-weight:800;letter-spacing:.5px;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:20;cursor:pointer}
-.tablet-sidebar{position:relative}
-.tablet-sidebar .help-fab{position:absolute;bottom:92px;left:16px}
-.help-banners{display:flex;flex-direction:column;gap:8px;margin:10px 0}
-.help-banner{width:100%;min-height:56px;border-radius:14px;border:3px solid #8E1B1B;background:#FDECEA;color:#8E1B1B;font-size:18px;font-weight:800;text-align:left;padding:10px 14px;cursor:pointer}
-.help-content{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding-bottom:40px}
-.help-lead,.help-sent{font-size:22px;font-weight:800;margin:8px 0}
-.help-sub,.help-status{font-size:18px}
-.help-hold{position:relative;width:min(72vw,300px);height:min(72vw,300px);border-radius:50%;background:#C62828;color:#fff;border:6px solid #8E1B1B;font-size:46px;font-weight:900;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer}
+/* FIDUNIO HELP — KISS (2026-11-25): one action per screen, big words, high contrast. */
+
+/* Messages: one full-width red bar that covers nothing (the + button keeps its corner). */
+.help-bar{display:block;width:calc(100% - 32px);margin:10px 16px;min-height:64px;border-radius:16px;border:0;background:#C62828;color:#fff;font-size:26px;font-weight:900;letter-spacing:2px;cursor:pointer}
+.app-shell>.help-bar{position:fixed;left:0;bottom:16px;width:calc(100% - 128px);margin:0 0 0 16px;z-index:5;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.app-shell:has(>.help-bar) .content{padding-bottom:110px}
+.tablet-sidebar .help-bar{width:calc(100% - 32px);margin:8px 16px}
+.help-bar-open{background:#2E7D32;letter-spacing:0;font-size:22px}
+
+/* Full-screen HELP screens. */
+.help-shell{min-height:100vh;min-height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:22px;padding:calc(20px + env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom));text-align:center}
+.help-hold-screen,.help-plain{background:var(--bg,#fff);color:var(--text,#1A1D21)}
+.help-red{background:#C62828;color:#fff}
+.help-green{background:#2E7D32;color:#fff}
+.help-top{align-self:stretch;display:flex}
+.help-back{width:56px;height:56px;border-radius:16px;border:2px solid currentColor;background:transparent;color:inherit;font-size:32px;line-height:1;cursor:pointer}
+.help-title{margin:16px 0 0;font-size:42px;line-height:1.15;font-weight:900}
+.help-lead{margin:0;font-size:24px;font-weight:700;line-height:1.35}
+.help-box{margin:0;font-size:22px;line-height:1.4;background:rgba(0,0,0,.18);border-radius:18px;padding:14px 20px}
+.help-hint{margin:0;font-size:20px;font-weight:600;opacity:.8}
+.help-actions{margin-top:auto;align-self:stretch;display:flex;flex-direction:column;gap:14px;max-width:520px;width:100%;margin-left:auto;margin-right:auto}
+.help-secondary,.help-ok{display:flex;align-items:center;justify-content:center;min-height:72px;border-radius:20px;font-size:26px;font-weight:900;text-decoration:none;cursor:pointer;box-sizing:border-box;width:100%;max-width:520px}
+.help-secondary{background:rgba(255,255,255,.18);border:3px solid #fff;color:#fff}
+.help-ok{background:#fff;border:0;color:#2E7D32}
+.help-red .help-ok{color:#C62828}
+.help-map{align-self:stretch;margin:0 auto}
+
+/* The big hold button with its filling ring. */
+.help-hold{position:relative;margin:auto 0;width:min(72vw,300px);height:min(72vw,300px);border-radius:50%;background:#C62828;color:#fff;border:0;box-shadow:0 0 0 14px #FFE3E0;font-size:56px;font-weight:900;letter-spacing:3px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:pointer}
 .help-hold span{position:relative;z-index:1}
-.help-ring{position:absolute;inset:-14px;width:calc(100% + 28px);height:calc(100% + 28px);transform:rotate(-90deg)}
-.help-ring circle{fill:none;stroke:#FFC107;stroke-width:6;stroke-dasharray:100;stroke-dashoffset:100}
+.help-ring{position:absolute;inset:-22px;width:calc(100% + 44px);height:calc(100% + 44px);transform:rotate(-90deg)}
+.help-ring circle{fill:none;stroke:#FFB300;stroke-width:5;stroke-dasharray:100;stroke-dashoffset:100}
 .help-hold.holding .help-ring circle{transition:stroke-dashoffset 2s linear;stroke-dashoffset:0}
-.help-cancel,.help-safe,.help-onit{width:100%;max-width:420px;min-height:64px;border-radius:16px;font-size:22px;font-weight:800;cursor:pointer}
-.help-cancel{background:#fff;color:#8E1B1B;border:3px solid #8E1B1B}
-.help-safe{background:#2E7D32;color:#fff;border:0}
-.help-onit{background:#C62828;color:#fff;border:0}
-.help-pictures{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:420px}
-.help-picture{min-height:84px;border-radius:16px;border:2px solid var(--line,#ccc);background:var(--tool,#f4f6f8);color:inherit;font-size:20px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
-.help-picture span{font-size:32px}
-.help-picture.sent{border-color:#2E7D32}
-.help-note-row{display:flex;gap:8px;width:100%;max-width:420px}
-.help-note-row input{flex:1;font-size:18px}
-.help-note-send{min-width:84px;border-radius:14px;font-size:18px;font-weight:800}
+
+/* HELP card inside a chat. */
 .help-card{border-left:6px solid #C62828;padding-left:10px}
-.help-card-title{font-weight:800;color:#C62828}
-.help-card-map{display:inline-block;margin-top:6px}
-.help-settings h3{font-size:17px;margin:14px 0 6px}
-.help-toggle{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;min-height:44px}
-.help-toggle input{width:26px;height:26px}
-.help-settings .secondary{margin-top:10px}
-/* Big, easy targets: the whole row toggles (2026-11-24). */
+.help-card-title{font-weight:900;color:#C62828;font-size:20px}
+.help-card-map{display:inline-block;margin-top:6px;font-weight:800}
+
+/* Settings → Safety → HELP. */
+.help-chosen{font-size:18px;margin:10px 0}
+.help-helpers{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .help-helpers .member-option{grid-template-columns:36px 1fr;min-height:56px;font-size:18px;font-weight:700;cursor:pointer}
-.help-helpers .member-option input,.help-toggle input{width:28px;height:28px;margin:0}
-.help-toggle{cursor:pointer;padding:6px 0}
+.help-helpers .member-option input{width:28px;height:28px;margin:0}
+.help-setup-actions{display:flex;gap:10px;flex-wrap:wrap}

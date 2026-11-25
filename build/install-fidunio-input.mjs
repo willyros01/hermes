@@ -12,9 +12,7 @@ const APP='android/app';
 const pkg=APP+'/src/main/java/io/github/willyros01/fidunio/';
 assert.ok(fs.existsSync(pkg+'MainActivity.java'),'Capacitor MainActivity missing');
 fs.copyFileSync('android-src/native/FidunioWebView.java',pkg+'FidunioWebView.java');
-/* HELP (2026-11-24): Wi-Fi network name plugin, registered in MainActivity. */
-fs.copyFileSync('android-src/native/FidunioWifiPlugin.java',pkg+'FidunioWifiPlugin.java');
-/* Registered in MainActivity by build/install-fidunio-wifi.mjs, after build/fadm.sh. */
+
 const layoutDir=APP+'/src/main/res/layout';
 fs.mkdirSync(layoutDir,{recursive:true});
 fs.writeFileSync(layoutDir+'/capacitor_bridge_layout_main.xml',`<?xml version="1.0" encoding="utf-8"?>
@@ -29,8 +27,8 @@ fs.writeFileSync(layoutDir+'/capacitor_bridge_layout_main.xml',`<?xml version="1
 `);
 const manifest=APP+'/src/main/AndroidManifest.xml';
 let xml=fs.readFileSync(manifest,'utf8');
-/* HELP: location (asked only when HELP is turned on / sent) and Wi-Fi name. */
-for(const perm of ['android.permission.ACCESS_COARSE_LOCATION','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_WIFI_STATE']){
+/* HELP: location, asked only when HELP is sent. */
+for(const perm of ['android.permission.ACCESS_COARSE_LOCATION','android.permission.ACCESS_FINE_LOCATION']){
   if(!xml.includes('"'+perm+'"'))xml=xml.replace('<application','<uses-permission android:name="'+perm+'" />\n    <application');
 }
 if(!xml.includes('android.media.action.IMAGE_CAPTURE')){
