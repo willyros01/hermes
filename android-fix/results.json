@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (8:13 AM Sent)",
+      "observed": "a new message appeared (8:37 AM Sent)",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -162,13 +162,23 @@
       ]
     },
     {
+      "id": "HELP-SAVE-REPEAT",
+      "what": "5 times: untick Bob → Save, then tick Bob → Save; check the contacts line and the HELP bar each time",
+      "expected": "every Save shows the right contacts, and the HELP bar follows",
+      "ok": true,
+      "observed": "all 10 saves right",
+      "shots": [
+        "20-help-save-repeat.png"
+      ]
+    },
+    {
       "id": "HELP-BAR",
       "what": "Back to Messages",
       "expected": "one red HELP bar on the Messages screen, no banners",
       "ok": true,
       "observed": "HELP bar shown; banners: none",
       "shots": [
-        "20-help-bar.png"
+        "21-help-bar.png"
       ]
     },
     {
@@ -178,7 +188,7 @@
       "ok": true,
       "observed": "nothing sent",
       "shots": [
-        "21-help-quick-tap.png"
+        "22-help-quick-tap.png"
       ]
     },
     {
@@ -188,7 +198,7 @@
       "ok": true,
       "observed": "screen: \"HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now\"; location prompts answered: ONLY THIS TIME; server: open alert for Bob",
       "shots": [
-        "22-help-sent.png"
+        "23-help-sent.png"
       ]
     },
     {
@@ -196,9 +206,9 @@
       "what": "Tap \"Write a message\", type and send \"Where are you?\"",
       "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
       "ok": true,
-      "observed": "chat: \"\"; map link shown; text:  Sent 8:13 AM Sent 8:13 AM Sent You are now one of my HELP contacts. 8:15 AM Sent HELP Open in Maps 8:16 AM Sent Help chat 7731 8:16 AM Sent",
+      "observed": "chat: \"\"; map link shown; text:  my HELP contacts. 8:43 AM Sent You are now one of my HELP contacts. 8:43 AM Sent HELP Open in Maps 8:44 AM Sent Help chat 7731 8:44 AM Sent",
       "shots": [
-        "23-help-chat.png"
+        "24-help-chat.png"
       ]
     },
     {
@@ -208,7 +218,7 @@
       "ok": true,
       "observed": "bar said: \"HELP is on — open\"; screen: \"Simulator Bob is coming Stay where you are. Write a message I'm OK now\"; green: true",
       "shots": [
-        "24-help-coming.png"
+        "25-help-coming.png"
       ]
     },
     {
@@ -218,7 +228,7 @@
       "ok": true,
       "observed": "server: safe; bar: \"HELP\"",
       "shots": [
-        "25-help-ok.png"
+        "26-help-ok.png"
       ]
     },
     {
@@ -226,10 +236,10 @@
       "what": "Bob sends HELP to Alice (from his phone)",
       "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
       "ok": true,
-      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 8:16 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
+      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 8:45 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
       "shots": [
-        "26-help-incoming.png",
-        "27-help-im-coming.png"
+        "27-help-incoming.png",
+        "28-help-im-coming.png"
       ]
     },
     {
@@ -239,7 +249,7 @@
       "ok": true,
       "observed": "Sign Out shown: true; Protect/Test removed: true",
       "shots": [
-        "28-help-settings-kiss.png"
+        "29-help-settings-kiss.png"
       ]
     },
     {
@@ -249,7 +259,7 @@
       "ok": true,
       "observed": "record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: \"FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass\"",
       "shots": [
-        "29-pin-missing.png"
+        "30-pin-missing.png"
       ]
     },
     {
@@ -259,7 +269,7 @@
       "ok": true,
       "observed": "FIDUNIO open: false; PIN record written: false; message: \"Could not unlock with this password and PIN. Nothing was changed.\"",
       "shots": [
-        "30-pin-wrong.png"
+        "31-pin-wrong.png"
       ]
     },
     {
@@ -269,8 +279,8 @@
       "ok": true,
       "observed": "opened: true; PIN record saved back: true; next start PIN-only: true; same PIN unlocks: true",
       "shots": [
-        "31-pin-restored.png",
-        "32-pin-normal-again.png"
+        "32-pin-restored.png",
+        "33-pin-normal-again.png"
       ]
     }
   ]
