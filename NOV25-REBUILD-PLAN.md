@@ -9,7 +9,11 @@ Any session resuming this work MUST read this whole file before touching code, t
 - NOT RELEASED. TestFlight / APK / web are still 1.1.82. Nothing was changed in Firebase.
 - Simulator run 1: all HELP + PIN repair passed. Run 2: Android HELP contacts saved on the server but the screen
   showed "Nobody yet" and no HELP bar -> traced to a DOUBLE START (see Phase 5). Run 4 is on the code before Phase 5.
-- WAITING FOR WILLY'S "GO" ON PHASE 5. Recommended: option 2 (narrow). Do NOT start Phase 5 without his go.
+- 02:43: WILLY GAVE THE GO for Phase 5 option 2 ("Go option 2 now"); restart scheduled 08:05 (send_later in this session).
+- Phase 5 CODE DONE 03:xx (commit d0a4bec ios / eea77c1 Android / 97463b5 web): one start-up place (onFirebaseAuthReport),
+  reports queued one at a time, each step awaited (startupStep, 30 s bound), HELP via getFirebaseServices (firebase.js).
+  globalThis.FIDUNIO_STARTUP_STEPS records step names. Unit tests pass (only pre-existing failures).
+- NEXT: simulator probe run with STARTUP-ONCE check (simulator-tests 3a624f7) on Android + iPhone; if all pass -> release.
 - RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
 
