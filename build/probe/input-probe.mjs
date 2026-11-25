@@ -391,7 +391,11 @@ if(label==='fix'){
     let t='',s1='';const end=Date.now()+20000;
     while(Date.now()<end){
       if((await allowLocation(300)).length)continue;
-      if(await present('#helpCancel')){t=await js('document.querySelector(".help-sent")?.textContent||""');await realTap('#helpCancel');s1=await shot('help-test');break;}
+      if(await present('#helpCancel')){
+        /* The Cancel button is on screen already: tap it straight away (the slow simulator otherwise misses the 5 seconds). */
+        const r=await js(`(()=>{const b=document.querySelector("#helpCancel").getBoundingClientRect();const v=window.visualViewport||{offsetLeft:0,offsetTop:0};return{x:b.left+b.width/2-v.offsetLeft,y:b.top+b.height/2-v.offsetTop,dpr:devicePixelRatio,t:document.querySelector(".help-sent")?.textContent||""}})()`);
+        let q;if(android){const wv=d.nodes().filter(n=>/WebView/.test(n.cls)).sort((a,b)=>b.h-a.h)[0];const top=wv?wv.y-Math.floor(wv.h/2):0;q={x:Math.round(r.x*r.dpr),y:Math.round(top+r.y*r.dpr)};}else q={x:Math.round(r.x),y:Math.round(r.y)};
+        await tapAt(q);t=r.t;s1=await shot('help-test');break;}
       if(await present('.help-sent')&&!t){t=await js('document.querySelector(".help-sent")?.textContent||""');}
       await sleep(400);
     }
