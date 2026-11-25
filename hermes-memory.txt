@@ -1342,3 +1342,14 @@ The legal wiring gate expected the obsolete heading `No warranty`; it now checks
 Terms uses a bounded scroll area with visible decision controls; browser journeys assert disabled Accept, decline lock, read again, acceptance before auth, 45 seconds of reading without auth initialization, initial iPhone control bounds, reload/persistence, failed SDK/retry and stalled startup. The native artifact from run 37257137156 showed Terms but controls below the viewport; compilation passed and the step hit its 12-minute infrastructure timeout. The native step now allows 20 minutes and is accurately named Terms startup. Native OCR still requires Terms, checkbox wording, Accept and Decline.
 
 Local legal wiring, platform boundaries, auth transitions, native bootstrap and all 91 packaged JavaScript syntax checks passed. Local Chromium launch is blocked by the macOS sandbox (MachPort permission denied); browser and simulator results must be established by the automatic GitHub push workflows. No device acceptance is claimed. No production main/main2, backend, enforcement, APNs, account/E2EE identity, or TestFlight trigger changed. After all required repair checks pass, update version.js once to trigger the existing automatic exact-commit gated TestFlight workflow; do not dispatch manually. Synchronization is deferred at the user's direction.
+
+## 2026-11-25 — FIDUNIO 1.1.83 lessons (owner rules, keep)
+
+- Lock PIN and encryption PIN are the SAME PIN, by design. A missing lock PIN record is repaired only with password + PIN checked against the encryption key, then the same PIN is saved back. Never PIN-only on a missing record, never open without a PIN, never change the PIN.
+- Sign-in stays password-only when the device has its key copy and its PIN record (owner: "keep it as password only, it might break again").
+- Settings changes must re-read the stored security record before writing (queueConfigMutation), so they can never overwrite the PIN.
+- One main program for every device; device differences live only inside same-named `*-platform-adapter.js` modules that return the same answer shape on every device (back, app-state, help, biometric, background, ...). Shared files must be byte-identical on ios, Android and main.
+- KISS for anything a child or a person in danger uses: one action per screen, real profile names (never "Mom/Dad"), no hidden extras. HELP: bar → hold 2 s → "HELP is sent" → Write a message / I'm OK now; helper: "needs HELP" → I'm coming. Lists such as HELP contacts stay collapsed until needed, like Manage Users.
+- Never advise deleting or resetting the app on a misbehaving device before the evidence (and the recovery file) is saved.
+- No live Firebase change by Claude: prepare a 3-letter .txt Cloud Shell script that sets and checks the project first, writes a rollback first, and changes only what it says.
+

@@ -1,3 +1,25 @@
+## FIDUNIO 1.1.83 — PIN record repair, KISS HELP, same-named device modules — 2026-11-25
+
+1.1.82 -> 1.1.83 (owner-authorized rebuild, Willy 24 Nov 22:34). Released to TestFlight (ios), the Android APK (Android branch, published on the Cuberoot website) and the web (main).
+
+Why: on the owner's iPad, 1.1.82 refused the PIN. The device still held its saved key copy but its lock PIN record was gone, and two code paths ignored the owner's recovery design (lock PIN = encryption PIN). The 1.1.82 HELP alert was also judged "half baked, unusable" by the owner.
+
+PIN (lock PIN and encryption PIN stay the same; nothing in Firebase changes):
+- `auth-ui-clean.js`: saved key present but no lock PIN record -> password + PIN screen, checked only with `unlockAccountE2EE({uid,password,pin})`; success saves the SAME PIN back with `setLocalPin`; failure stays locked and changes nothing. Never PIN-only, never open without a PIN.
+- Password sign-in stays password-only when the PIN record is present (owner, 24 Nov 22:39); it asks the PIN only when the record is missing.
+- `app.js` in-app lock: the "Continue to FIDUNIO" path with no PIN is gone; the lock screen reloads into the password + PIN gate.
+- `local-security.js queueConfigMutation`: every change is applied to the freshly read stored record, so lock-time / Face ID changes can never write over the PIN.
+
+HELP (KISS, storyboard https://claude.ai/artifact/RKFose2qr6mm1SShgjyWDw): one red HELP bar on Messages; hold 2 s; red "HELP is sent — <names> is being called"; "Write a message" opens the HELP chat (direct chat, or the group "HELP — <name>" for 2+ contacts) where both sides can write; helper sees red "<name> needs HELP" with Open in Maps and "I'm coming"; child sees green "<name> is coming"; "I'm OK now" closes it. Settings → Safety → HELP: contacts list collapsed until "Choose HELP contacts" (like Manage Users). Removed: Protect this account, Sign Out PIN, Test button, picture buttons, note box, 5-second Cancel, Wi-Fi name, banners. Names are always the FIDUNIO profile display names.
+
+Server (needs the owner's Cloud Shell script `hl2.txt`, functions only, rules unchanged): HELP rings every 30 seconds until someone answers or the sender is OK (no limit); body "HELP — <name>", "<name> is OK now". Until `hl2.txt` runs, 1.1.83 works with the 1.1.82 server (re-alerts every 2 minutes, at most 5).
+
+One main program, same-named device modules: `back-platform-adapter.js` (was android-back-platform-adapter.js; Android Back, iOS/web no-op), `app-state-platform-adapter.js` (app left / came back, used by local-security.js), `help-platform-adapter.js` (Android urgent channel, location). Removed: the iOS shell change (FidunioViewController, storyboard class) and the Wi-Fi plugins (iOS Swift, Android Java, wifi-info entitlement). Shared files are byte-identical on ios, Android and main.
+
+Validation: all unit tests on the three branches (only the pre-existing failures: Firestore rules tests need the emulator, build/ios-browser-release on every branch, and the Android-branch pre-existing notification/app-check/platform-boundary tests); simulator probe on the Android emulator and the iPhone simulator (KISS HELP journeys, missing PIN record: wrong PIN stays locked, right password + PIN restores the same PIN). Real-device checks remain with the owner.
+
+Earlier in this series: 1.1.81 (released), 1.1.82 (copy/select text, stickers, Android camera, keyboard GIFs, Android Back, lock grace period, tappable links, first HELP alert) — superseded by 1.1.83 for the reasons above.
+
 ## 2026-10-27 UTC — ARCHIVE HOUSEKEEPING COMPLETE (authoritative current state)
 
 **GitHub cleanup completed with the owner's explicit, exact-list authorization:** 44 inactive historical branch references listed in [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md) were deleted; live Hermes branches changed **53 → 9**. The nine retained branches are `main`, `ios`, `Android`, `backups`, `simulator-tests`, `simulator-evidence`, `main2`, `main-3` and `archive`. The two legacy web notice branches remain NON-RUNNABLE. Older checkpoints below saying no branch was deleted are superseded by this completed operation.

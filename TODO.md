@@ -1,3 +1,13 @@
+## 2026-11-25 — FIDUNIO 1.1.83 (PIN record repair + KISS HELP) — OPEN items
+
+- [ ] **Owner runs `hl2.txt` in Cloud Shell** (functions only): HELP rings every 30 seconds until answered. Until then HELP re-alerts every 2 minutes, at most 5 times.
+- [ ] **Owner real-device checks:** iPad/iPhone/Fire HD 8: PIN unlock; if the iPad shows "This device's PIN record is missing", enter password + PIN once (same PIN). HELP: Settings → Safety → HELP → Choose HELP contacts → tick → Save; HELP bar → hold → helper's phone rings → "I'm coming" → "Write a message" both ways → "I'm OK now".
+- [ ] **Close old 1.1.82 test HELP alerts** if any still show as open.
+- [ ] **Apple: Xcode 27 / iOS 27 SDK** required for App Store uploads from April 2027 — move the TestFlight workflow before then.
+- [ ] **App Store privacy: location** — "Precise location, linked to user, App functionality (HELP)" must be declared in App Store Connect before App Store review.
+- [ ] **Old 1.1.82 Fire phones** do not show the new "HELP — <name>" ADM text until they update to 1.1.83.
+- [ ] **Root cause of the lost PIN record on the iPad** is not proven (the iPad app was deleted before the evidence was captured). 1.1.83 makes the case safe (password + PIN restores the same PIN; settings changes can no longer write over it). Rule: never delete or reset a misbehaving device before saving the evidence.
+
 ## 2026-11-24 — ALL PLATFORMS: lock grace period when leaving the app (owner decision; NOT STARTED — needs explicit go-ahead)
 
 - [ ] **FID-LOCK-GRACE-20261124 — The "Lock after inactivity" time also covers time away from FIDUNIO.** Today FIDUNIO locks the moment it leaves the screen (switching apps, home screen), whatever the setting says; the setting only counts idle time while open. Agreed with the owner: switching away and coming back BEFORE the chosen time opens FIDUNIO unlocked, no PIN or face; after the chosen time it asks for PIN/biometric. "Immediately" keeps today's behaviour. If Android/iOS shuts FIDUNIO down while away, a fresh start always asks for the PIN. Recommended (confirm with owner while building): remove "Never" (longest 1 hr). Away time must be measured by the device clock and kept durably, not in memory. Acceptance: iPhone simulator + Android emulator, switch away and back before and after the time, plus app killed while away.

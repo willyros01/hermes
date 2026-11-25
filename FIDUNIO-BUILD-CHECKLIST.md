@@ -1,3 +1,12 @@
+## 2026-11-25 — 1.1.83 build checklist additions
+
+- [x] Missing lock PIN record → password + PIN, same PIN saved back; wrong PIN stays locked (unit test + Android emulator probe).
+- [x] No unlock path without a PIN (app.js renderUnlock, auth-ui-clean.js renderSessionUnlock).
+- [x] Settings writes re-read the stored security record (local-security.js).
+- [x] Shared files byte-identical on ios / Android / main; device code only in same-named platform adapters.
+- [x] KISS HELP journeys on the Android emulator and iPhone simulator.
+- [ ] Owner: hl2.txt (HELP rings every 30 s), real-device PIN + HELP checks.
+
 ## 2026-10-27 UTC — ARCHIVE HOUSEKEEPING COMPLETE (authoritative current state)
 
 **GitHub cleanup completed with the owner's explicit, exact-list authorization:** 44 inactive historical branch references listed in [archive/ARCHIVE-MANIFEST.md](https://github.com/willyros01/hermes/blob/archive/ARCHIVE-MANIFEST.md) were deleted; live Hermes branches changed **53 → 9**. The nine retained branches are `main`, `ios`, `Android`, `backups`, `simulator-tests`, `simulator-evidence`, `main2`, `main-3` and `archive`. The two legacy web notice branches remain NON-RUNNABLE. Older checkpoints below saying no branch was deleted are superseded by this completed operation.
