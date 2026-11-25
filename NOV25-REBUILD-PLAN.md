@@ -13,7 +13,11 @@ Any session resuming this work MUST read this whole file before touching code, t
 - Phase 5 CODE DONE 03:xx (commit d0a4bec ios / eea77c1 Android / 97463b5 web): one start-up place (onFirebaseAuthReport),
   reports queued one at a time, each step awaited (startupStep, 30 s bound), HELP via getFirebaseServices (firebase.js).
   globalThis.FIDUNIO_STARTUP_STEPS records step names. Unit tests pass (only pre-existing failures).
-- NEXT: simulator probe run with STARTUP-ONCE check (simulator-tests 3a624f7) on Android + iPhone; if all pass -> release.
+- STARTUP-ONCE proven on both simulators (every step exactly once, in order).
+- HELP contacts fault ROOT CAUSE PROVEN (HELP trace, iPhone sim): 2 s after a confirmed Save the listener delivered an
+  out-of-date "no settings" server answer. Fix e8d4de3/8c2f859/8760a24: a disagreeing listener answer is checked with
+  getDocFromServer before it is applied. Proven: Android 28/28 incl. 10 saves; iPhone all 10 saves right (run 45583668271).
+- 09:40: RELEASING 1.1.83 (ios, Android, main).
 - RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
 
