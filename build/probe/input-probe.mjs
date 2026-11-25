@@ -326,6 +326,9 @@ if(label==='fix'){
     const chosen=await js('document.querySelector(".help-chosen")?.textContent||""');const s=await shot('help-settings-saved');
     const rows=await admin(async db=>(await getDocs(query(collection(db,'helpSettings'),where('helperUids','array-contains',bobUid)))).docs.map(x=>({id:x.id,...x.data()})));
     const r=rows.find(x=>x.id===aliceUid)||rows[0];aliceUid=aliceUid||r?.id||'';
+    await sleep(4000);const chosen2=await js('document.querySelector(".help-chosen")?.textContent||""');
+    const tr=await js('JSON.stringify({help:globalThis.FIDUNIO_HELP_TRACE||[],steps:globalThis.FIDUNIO_STARTUP_STEPS||[]})').catch(e=>'trace unreadable: '+e.message);
+    fs.writeFileSync(path.join(out,'help-trace.txt'),String(tr));log('HELP trace: '+tr);log('contacts line 4 s later: '+chosen2.trim());
     return{ok:closed&&/Saved/.test(msg)&&/Bob/.test(chosen)&&r?.enabled===true&&r.helperUids.length===1,observed:`list closed at first: ${closed}; screen: "${msg}", "${chosen.trim()}"; server: ${r?`enabled=${r.enabled}, contacts=${r.helperUids.length}`:'no HELP settings saved'}`,shots:[s0,s]};
   });
 
