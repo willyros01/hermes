@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Inspect FIDUNIO accessibility declarations
+      - name: Publish verified FIDUNIO Dark Interface support
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -52,4 +52,49 @@ jobs:
           console.log('App Store versions', JSON.stringify(versions.data.map(v=>({id:v.id,version:v.attributes.versionString,state:v.attributes.appStoreState}))));
           const declarations = await api('/v1/apps/'+appId+'/accessibilityDeclarations');
           console.log('Accessibility declarations',JSON.stringify(declarations.data));
+          if (!versions.data.some(v => v.attributes.versionString === '1.1.81' && ['READY_FOR_SALE','READY_FOR_DISTRIBUTION'].includes(v.attributes.appStoreState))) {
+            throw new Error('Expected live 1.1.81 release');
+          }
+          const desired = {
+            supportsDarkInterface:true,
+            supportsLargerText:false,
+            supportsVoiceover:false,
+            supportsVoiceControl:false,
+            supportsSufficientContrast:false,
+            supportsDifferentiateWithoutColorAlone:false,
+            supportsReducedMotion:false,
+            supportsCaptions:false,
+            supportsAudioDescriptions:false
+          };
+          for (const deviceFamily of ['IPHONE','IPAD']) {
+            const familyDeclarations = declarations.data.filter(d => d.attributes.deviceFamily === deviceFamily);
+            let declaration = familyDeclarations.find(d => d.attributes.state === 'DRAFT');
+            const published = familyDeclarations.find(d => d.attributes.state === 'PUBLISHED');
+            if (!declaration && published) {
+              if (!published.attributes.supportsDarkInterface) throw new Error('Existing published declaration requires review');
+              console.log('Already published',deviceFamily,JSON.stringify(published.attributes));
+              continue;
+            }
+            if (declaration) {
+              if (Object.entries(desired).some(([key,value]) => declaration.attributes[key] !== value)) {
+                declaration = (await api('/v1/accessibilityDeclarations/'+declaration.id,'PATCH',{
+                  data:{type:'accessibilityDeclarations',id:declaration.id,attributes:desired}
+                })).data;
+              }
+            } else {
+              declaration = (await api('/v1/accessibilityDeclarations','POST',{
+                data:{type:'accessibilityDeclarations',attributes:{deviceFamily,...desired},
+                  relationships:{app:{data:{type:'apps',id:appId}}}}
+              })).data;
+            }
+            console.log('Prepared',deviceFamily,declaration.id,JSON.stringify(declaration.attributes));
+            await api('/v1/accessibilityDeclarations/'+declaration.id,'PATCH',{
+              data:{type:'accessibilityDeclarations',id:declaration.id,attributes:{publish:true}}
+            });
+            const confirmed = (await api('/v1/accessibilityDeclarations/'+declaration.id)).data;
+            console.log('Confirmed',deviceFamily,JSON.stringify(confirmed.attributes));
+            if (!confirmed.attributes.supportsDarkInterface || confirmed.attributes.state !== 'PUBLISHED') {
+              throw new Error('Publication not confirmed for '+deviceFamily);
+            }
+          }
           JS
