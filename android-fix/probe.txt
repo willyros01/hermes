@@ -9,13 +9,14 @@ SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap
 AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
 
 LINK: Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open
+Open button shown: true; pop-up closed after the tap: true
 AS EXPECTED LINK — observed: asked first: true; Cancel stayed in chat: true; after Open: org.chromium.webview_shell/.WebViewBrowserActivity
 
 PASTE: Press and hold the message box, tap the phone's Paste
 AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286"
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared (6:26 AM Sent)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared (6:44 AM Sent)
 
 KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
 AS EXPECTED KEYBOARD-GIF — observed: GIF message appeared
@@ -46,28 +47,28 @@ AS EXPECTED BACK-KEY — observed: Messages list shown
 Alice account found: yes
 
 HELP-SETTINGS: Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save
-AS EXPECTED HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Simulator Bob"; server: enabled=true, contacts=1
+DIFFERENT HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Nobody yet"; server: enabled=true, contacts=1
 
 HELP-BAR: Back to Messages
-AS EXPECTED HELP-BAR — observed: HELP bar shown; banners: none
+DIFFERENT HELP-BAR — observed: no HELP bar; banners: none
 
 HELP-QUICK-TAP: HELP screen: a quick tap on the big button (not held)
-AS EXPECTED HELP-QUICK-TAP — observed: nothing sent
+TEST ERROR HELP-QUICK-TAP: #helpFab not on screen
 
 HELP-SEND: Press and hold the HELP button for 3 seconds; allow location when the phone asks
-AS EXPECTED HELP-SEND — observed: screen: "HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now"; location prompts answered: ONLY THIS TIME; server: open alert for Bob
+TEST ERROR HELP-SEND: Cannot read properties of null (reading 'x')
 
 HELP-WRITE: Tap "Write a message", type and send "Where are you?"
-AS EXPECTED HELP-WRITE — observed: chat: ""; map link shown; text:  Sent 6:26 AM Sent 6:26 AM Sent You are now one of my HELP contacts. 6:28 AM Sent HELP Open in Maps 6:28 AM Sent Help chat 7731 6:28 AM Sent
+TEST ERROR HELP-WRITE: #helpWrite not on screen
 
 HELP-COMING-SEEN: Bob answers "I'm coming" (from his phone); Alice opens the HELP bar
-AS EXPECTED HELP-COMING-SEEN — observed: bar said: "HELP is on — open"; screen: "Simulator Bob is coming Stay where you are. Write a message I'm OK now"; green: true
+DIFFERENT HELP-COMING-SEEN — observed: no alert to answer
 
 HELP-OK: Tap "I'm OK now"
-AS EXPECTED HELP-OK — observed: server: safe; bar: "HELP"
+TEST ERROR HELP-OK: #helpOk not on screen
 
 HELP-INCOMING: Bob sends HELP to Alice (from his phone)
-AS EXPECTED HELP-INCOMING — observed: opened: "‹ Simulator Bob needs HELP Sent at 6:29 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true
+AS EXPECTED HELP-INCOMING — observed: opened: "‹ Simulator Bob needs HELP Sent at 6:46 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true
 
 HELP-SIGNOUT: Settings: Sign Out button
 AS EXPECTED HELP-SIGNOUT — observed: Sign Out shown: true; Protect/Test removed: true
@@ -76,7 +77,7 @@ PIN-MISSING-ASKS: Delete only the lock PIN record, restart FIDUNIO
 AS EXPECTED PIN-MISSING-ASKS — observed: record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: "FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass"
 
 PIN-MISSING-WRONG: Type the password and a WRONG PIN
-DIFFERENT PIN-MISSING-WRONG — observed: FIDUNIO open: false; PIN record written: false; message: "Enter your six-digit FIDUNIO PIN."
+AS EXPECTED PIN-MISSING-WRONG — observed: FIDUNIO open: false; PIN record written: false; message: "Could not unlock with this password and PIN. Nothing was changed."
 
 PIN-MISSING-RIGHT: Type the password and the right PIN
 AS EXPECTED PIN-MISSING-RIGHT — observed: opened: true; PIN record saved back: true; next start PIN-only: true; same PIN unlocks: true

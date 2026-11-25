@@ -49,7 +49,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (6:26 AM Sent)",
+      "observed": "a new message appeared (6:44 AM Sent)",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -146,8 +146,8 @@
       "id": "HELP-SETTINGS",
       "what": "Settings → HELP: the contacts list is closed; tap \"Choose HELP contacts\", tick Simulator Bob, Save",
       "expected": "list closed at first; \"Saved.\"; the server has Bob as the only HELP contact",
-      "ok": true,
-      "observed": "list closed at first: true; screen: \"Saved.\", \"HELP contacts: Simulator Bob\"; server: enabled=true, contacts=1",
+      "ok": false,
+      "observed": "list closed at first: true; screen: \"Saved.\", \"HELP contacts: Nobody yet\"; server: enabled=true, contacts=1",
       "shots": [
         "18-help-settings-closed.png",
         "19-help-settings-saved.png"
@@ -157,8 +157,8 @@
       "id": "HELP-BAR",
       "what": "Back to Messages",
       "expected": "one red HELP bar on the Messages screen, no banners",
-      "ok": true,
-      "observed": "HELP bar shown; banners: none",
+      "ok": false,
+      "observed": "no HELP bar; banners: none",
       "shots": [
         "20-help-bar.png"
       ]
@@ -167,61 +167,47 @@
       "id": "HELP-QUICK-TAP",
       "what": "HELP screen: a quick tap on the big button (not held)",
       "expected": "nothing is sent (it needs a 2-second hold)",
-      "ok": true,
-      "observed": "nothing sent",
-      "shots": [
-        "21-help-quick-tap.png"
-      ]
+      "ok": false,
+      "observed": "TEST ERROR: #helpFab not on screen"
     },
     {
       "id": "HELP-SEND",
       "what": "Press and hold the HELP button for 3 seconds; allow location when the phone asks",
       "expected": "red \"HELP is sent — Simulator Bob is being called\", \"Write a message\", \"I'm OK now\"; server has an open alert for Bob",
-      "ok": true,
-      "observed": "screen: \"HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now\"; location prompts answered: ONLY THIS TIME; server: open alert for Bob",
-      "shots": [
-        "22-help-sent.png"
-      ]
+      "ok": false,
+      "observed": "TEST ERROR: Cannot read properties of null (reading 'x')"
     },
     {
       "id": "HELP-WRITE",
       "what": "Tap \"Write a message\", type and send \"Where are you?\"",
       "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
-      "ok": true,
-      "observed": "chat: \"\"; map link shown; text:  Sent 6:26 AM Sent 6:26 AM Sent You are now one of my HELP contacts. 6:28 AM Sent HELP Open in Maps 6:28 AM Sent Help chat 7731 6:28 AM Sent",
-      "shots": [
-        "23-help-chat.png"
-      ]
+      "ok": false,
+      "observed": "TEST ERROR: #helpWrite not on screen"
     },
     {
       "id": "HELP-COMING-SEEN",
       "what": "Bob answers \"I'm coming\" (from his phone); Alice opens the HELP bar",
       "expected": "green \"Simulator Bob is coming\", \"Write a message\", \"I'm OK now\"",
-      "ok": true,
-      "observed": "bar said: \"HELP is on — open\"; screen: \"Simulator Bob is coming Stay where you are. Write a message I'm OK now\"; green: true",
-      "shots": [
-        "24-help-coming.png"
-      ]
+      "ok": false,
+      "observed": "no alert to answer",
+      "shots": []
     },
     {
       "id": "HELP-OK",
       "what": "Tap \"I'm OK now\"",
       "expected": "the alert closes (server: safe); back on Messages with the plain HELP bar",
-      "ok": true,
-      "observed": "server: safe; bar: \"HELP\"",
-      "shots": [
-        "25-help-ok.png"
-      ]
+      "ok": false,
+      "observed": "TEST ERROR: #helpOk not on screen"
     },
     {
       "id": "HELP-INCOMING",
       "what": "Bob sends HELP to Alice (from his phone)",
       "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
       "ok": true,
-      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 6:29 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
+      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 6:46 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
       "shots": [
-        "26-help-incoming.png",
-        "27-help-im-coming.png"
+        "25-help-incoming.png",
+        "26-help-im-coming.png"
       ]
     },
     {
@@ -231,7 +217,7 @@
       "ok": true,
       "observed": "Sign Out shown: true; Protect/Test removed: true",
       "shots": [
-        "28-help-settings-kiss.png"
+        "27-help-settings-kiss.png"
       ]
     },
     {
@@ -241,17 +227,17 @@
       "ok": true,
       "observed": "record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: \"FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass\"",
       "shots": [
-        "29-pin-missing.png"
+        "28-pin-missing.png"
       ]
     },
     {
       "id": "PIN-MISSING-WRONG",
       "what": "Type the password and a WRONG PIN",
       "expected": "stays locked, \"Nothing was changed\"",
-      "ok": false,
-      "observed": "FIDUNIO open: false; PIN record written: false; message: \"Enter your six-digit FIDUNIO PIN.\"",
+      "ok": true,
+      "observed": "FIDUNIO open: false; PIN record written: false; message: \"Could not unlock with this password and PIN. Nothing was changed.\"",
       "shots": [
-        "30-pin-wrong.png"
+        "29-pin-wrong.png"
       ]
     },
     {
@@ -261,8 +247,8 @@
       "ok": true,
       "observed": "opened: true; PIN record saved back: true; next start PIN-only: true; same PIN unlocks: true",
       "shots": [
-        "31-pin-restored.png",
-        "32-pin-normal-again.png"
+        "30-pin-restored.png",
+        "31-pin-normal-again.png"
       ]
     }
   ]
