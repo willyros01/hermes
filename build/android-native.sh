@@ -18,7 +18,10 @@ const buildNumber=Number(process.env.GITHUB_RUN_NUMBER||1);
 if(!Number.isSafeInteger(buildNumber)||buildNumber<1||buildNumber>2000000000)throw Error('Invalid build number');
 if(!/^\s*versionCode\s+\d+/m.test(s)||!/^\s*versionName\s+["'][^"']+["']/m.test(s))throw Error('Gradle version fields missing');
 s=s.replace(/^(\s*versionCode\s+)\d+/m,(_,a)=>a+String(100000+buildNumber));
-s=s.replace(/^(\s*versionName\s+)["'][^"']+["']/m,(_,a)=>a+'"1.1.78"');
+/* The Android version name follows FIDUNIO's one version file, so all platforms show the same number. */
+const appVersion=(fs.readFileSync('version.js','utf8').match(/version:\s*"(\d+\.\d+\.\d+)"/)||[])[1];
+if(!appVersion)throw Error('version.js has no version');
+s=s.replace(/^(\s*versionName\s+)["'][^"']+["']/m,(_,a)=>a+'"'+appVersion+'"');
 fs.writeFileSync(gradle,s);
 const manifest='android/app/src/main/AndroidManifest.xml';
 let xml=fs.readFileSync(manifest,'utf8');
