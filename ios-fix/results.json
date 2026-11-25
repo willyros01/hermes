@@ -28,7 +28,7 @@
       "what": "Send \"Visit https://example.com today\", tap the link: Cancel, then tap again: Open",
       "expected": "\"Open this link?\" first; Cancel stays in the chat; Open shows the web page outside FIDUNIO",
       "ok": true,
-      "observed": "asked first: true; Cancel stayed in chat: true; after Open: Safari: Safari | dismiss popup | Close | View Bookmarks, Share Menu, and Open Tabs | You",
+      "observed": "asked first: true; Cancel stayed in chat: true; after Open: Safari: Safari | dismiss popup | Close",
       "shots": [
         "05-link-ask.png",
         "06-link-opened.png"
@@ -49,7 +49,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 12:02 AM Sent )",
+      "observed": "a new message appeared ( 12:23 AM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -129,7 +129,7 @@
       "what": "Open the chat with Bob",
       "expected": "HELP cards in the chat: the alert with \"Open location on a map\", and \"I'm hurt\"",
       "ok": true,
-      "observed": "map link shown; chat text: nt November 25, 2026 12:02 AM Sent You are now one of my HELP contacts. 12:03 AM Sent 🆘 HELP alert Open location on a map 12:04 AM Sent I'm hurt 12:04 AM Sent ",
+      "observed": "map link shown; chat text:  today 12:19 AM Sent 12:23 AM Sent You are now one of my HELP contacts. 12:24 AM Sent 🆘 HELP alert Open location on a map 12:25 AM Sent I'm hurt 12:25 AM Sent ",
       "shots": [
         "17-help-chat-cards.png"
       ]
@@ -159,8 +159,8 @@
       "id": "HELP-TEST",
       "what": "Settings → \"Test my HELP alert\", then \"Cancel — it was a mistake\"",
       "expected": "TEST alert sent, then cancelled (server: cancelled)",
-      "ok": false,
-      "observed": "screen: \"TEST — Help alert sent\"; server: open",
+      "ok": true,
+      "observed": "screen: \"TEST — Help alert sent\"; server: cancelled",
       "shots": [
         "21-help-test.png",
         "22-help-test-cancelled.png"
