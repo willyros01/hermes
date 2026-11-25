@@ -134,12 +134,14 @@ if(label==='fix')await check('LINK','Send "Visit https://example.com today", tap
   if(asked)await tapAt(await screenPoint('#modalCancel'));await sleep(1500);
   const stayed=await present('#messageBox')&&!(await present('#openLinkTitle'));
   p=await lp();await tapAt(p);await until(()=>present('#openLinkGo'),'Open button',8000).catch(()=>{});
-  if(await present('#openLinkGo'))await tapAt(await screenPoint('#openLinkGo'));await sleep(6000);
+  const goShown=await present('#openLinkGo');if(goShown)await tapAt(await screenPoint('#openLinkGo'));await sleep(3000);
+  const goClosed=!(await present('#openLinkGo').catch(()=>false));log('Open button shown: '+goShown+'; pop-up closed after the tap: '+goClosed);await sleep(3000);
   let outside='',s2='';
   try{
     if(android){const f=d.front();outside=/fidunio/.test(f)?'':f;}
     else{/* Safari may still be opening: ask the touch layer a few times. */
-      for(let i=0;i<5&&!outside;i++){try{const els=iosElements().map(iosLabel).filter(Boolean).join(' | ');if(/example\.com|Address|Safari|Example Domain/i.test(els))outside='Safari: '+els.slice(0,80);}catch{}if(!outside)await sleep(2000);}}
+      for(let i=0;i<10&&!outside;i++){try{const els=iosElements().map(iosLabel).filter(Boolean).join(' | ');if(/example\.com|Address|Safari|Example Domain/i.test(els))outside='Safari: '+els.slice(0,80);}catch{}
+        if(!outside&&d.running?.('com.apple.mobilesafari'))outside='Safari is running (opened by FIDUNIO)';if(!outside)await sleep(2000);}}
     s2=await shot('link-opened');
   }finally{d.launch(APP);await sleep(4000);if(!android)d.disconnect?.();await unlockIfLocked();}
   return{ok:asked&&stayed&&!!outside,observed:`asked first: ${asked}; Cancel stayed in chat: ${stayed}; after Open: ${outside||'still in FIDUNIO'}`,shots:[s1,s2].filter(Boolean)};
@@ -396,7 +398,10 @@ if(label==='fix'&&android){
   const dropPinRecord=()=>js(`new Promise(ok=>{const r=indexedDB.open("fidunio-local");r.onsuccess=()=>{const t=r.result.transaction("meta","readwrite");t.objectStore("meta").delete("local-security-v1");t.oncomplete=()=>ok(true);t.onerror=()=>ok(false);};r.onerror=()=>ok(false);})`);
   const hasPinRecord=()=>js(`new Promise(ok=>{const r=indexedDB.open("fidunio-local");r.onsuccess=()=>{const g=r.result.transaction("meta","readonly").objectStore("meta").get("local-security-v1");g.onsuccess=()=>ok(!!(g.result&&g.result.pin&&g.result.pin.hash));g.onerror=()=>ok(false);};r.onerror=()=>ok(false);})`);
   const restart=async()=>{adb('shell','am','force-stop',APP);await sleep(2500);d.launch(APP);await sleep(6000);};
-  const fillPin=async pin=>{for(let i=0;i<6;i++)await d.fill(`#sessionPinHost .pin-code-slot:nth-child(${i+1})`,pin[i]);await sleep(500);};
+  const fillPin=async pin=>{for(let i=0;i<6;i++)await d.fill(`#sessionPinHost .pin-code-slot:nth-child(${i+1})`,pin[i]);await sleep(4000);
+    /* The sixth digit normally sends it by itself; press Unlock only if nothing happened (never a second send). */
+    const idle=await js('(()=>{const b=document.querySelector("#sessionUnlockBtn");const n=document.querySelector("#sessionNote");return !!b&&!b.disabled&&!(n&&n.innerText.trim())})()').catch(()=>false);
+    if(idle){log('PIN did not send by itself: pressing Unlock');await d.press('#sessionUnlockBtn').catch(()=>{});}};
   await check('PIN-MISSING-ASKS','Delete only the lock PIN record, restart FIDUNIO','password + PIN screen ("PIN record is missing"); no PIN-only screen; FIDUNIO not open',async()=>{
     const before=await hasPinRecord();const dropped=await dropPinRecord();await restart();
     await until(()=>present('#sessionPinHost'),'unlock screen',60000).catch(()=>{});
@@ -404,18 +409,18 @@ if(label==='fix'&&android){
     return{ok:before&&dropped&&pw&&/PIN record is missing/.test(t)&&!open,observed:`record before: ${before}; deleted: ${dropped}; password box: ${pw}; FIDUNIO open: ${open}; screen: "${t.replace(/\s+/g,' ').slice(0,120)}"`,shots:[s]};
   });
   await check('PIN-MISSING-WRONG','Type the password and a WRONG PIN','stays locked, "Nothing was changed"',async()=>{
+    /* The sixth digit sends it by itself, as for a person: no extra Unlock press (that sent an empty PIN). */
     await d.fill('#sessionPassword',fixture.alice.password);const wrong=fixture.alice.pin==='000000'?'111111':'000000';await fillPin(wrong);
-    await d.press('#sessionUnlockBtn').catch(()=>{});await sleep(9000);
+    await sleep(9000);
     const t=await js('document.querySelector("#sessionNote")?.innerText||""');const open=await present('#newBtn')||await present('#tabletNewBtn');const rec=await hasPinRecord();const s=await shot('pin-wrong');
     return{ok:!open&&!rec&&/Nothing was changed|different|Could not/.test(t),observed:`FIDUNIO open: ${open}; PIN record written: ${rec}; message: "${t}"`,shots:[s]};
   });
   await check('PIN-MISSING-RIGHT','Type the password and the right PIN','FIDUNIO opens; the same PIN is saved back; after a restart the normal PIN screen unlocks with it',async()=>{
     await d.fill('#sessionPassword',fixture.alice.password);await fillPin(fixture.alice.pin);
-    await d.press('#sessionUnlockBtn').catch(()=>{});
     await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'),'FIDUNIO open',60000).catch(()=>{});
     const open=await present('#newBtn')||await present('#tabletNewBtn');const rec=await hasPinRecord();const s1=await shot('pin-restored');
     await restart();await until(()=>present('#sessionPinHost'),'normal PIN screen',60000).catch(()=>{});
-    const pinOnly=!(await present('#sessionPassword'));await fillPin(fixture.alice.pin);await d.press('#sessionUnlockBtn').catch(()=>{});
+    const pinOnly=!(await present('#sessionPassword'));await fillPin(fixture.alice.pin);
     await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'),'FIDUNIO open again',60000).catch(()=>{});
     const again=await present('#newBtn')||await present('#tabletNewBtn');const s2=await shot('pin-normal-again');
     return{ok:open&&rec&&pinOnly&&again,observed:`opened: ${open}; PIN record saved back: ${rec}; next start PIN-only: ${pinOnly}; same PIN unlocks: ${again}`,shots:[s1,s2]};
