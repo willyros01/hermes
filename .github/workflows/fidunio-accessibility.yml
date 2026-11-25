@@ -1,0 +1,55 @@
+name: FIDUNIO App Store accessibility
+on:
+  push:
+    branches: [fidunio-accessibility]
+    paths: ['.github/workflows/fidunio-accessibility.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fidunio-app-store-accessibility
+  cancel-in-progress: false
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect FIDUNIO accessibility declarations
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          node --input-type=module <<'JS'
+          import crypto from 'node:crypto';
+          const enc = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+          for (const name of ['ASC_KEY_ID', 'ASC_ISSUER_ID', 'ASC_KEY_P8']) {
+            if (!process.env[name]) throw new Error('Missing secret ' + name);
+          }
+          const now = Math.floor(Date.now() / 1000);
+          const unsigned = enc({alg:'ES256',kid:process.env.ASC_KEY_ID,typ:'JWT'}) + '.' +
+            enc({iss:process.env.ASC_ISSUER_ID,iat:now,exp:now+900,aud:'appstoreconnect-v1'});
+          const signature = crypto.sign('sha256',Buffer.from(unsigned),{
+            key:process.env.ASC_KEY_P8,dsaEncoding:'ieee-p1363'
+          }).toString('base64url');
+          const token = unsigned + '.' + signature;
+          async function api(path, method='GET', body) {
+            const response = await fetch('https://api.appstoreconnect.apple.com'+path,{
+              method, headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+              body:body ? JSON.stringify(body) : undefined
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(method+' '+path+' '+response.status+' '+JSON.stringify(result.errors));
+            return result;
+          }
+          const appId = '6818880685';
+          const app = (await api('/v1/apps/'+appId)).data;
+          if (app.attributes.bundleId !== 'io.github.willyros01.fidunio') throw new Error('Unexpected app');
+          console.log('Verified app', app.id, app.attributes.name, app.attributes.bundleId);
+          const versions = await api('/v1/apps/'+appId+'/appStoreVersions?filter[platform]=IOS&limit=10');
+          console.log('App Store versions', JSON.stringify(versions.data.map(v=>({id:v.id,version:v.attributes.versionString,state:v.attributes.appStoreState}))));
+          const declarations = await api('/v1/apps/'+appId+'/accessibilityDeclarations');
+          console.log('Accessibility declarations',JSON.stringify(declarations.data));
+          JS
