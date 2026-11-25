@@ -1,0 +1,55 @@
+FIDUNIO input probe — ios — fix
+iPhone pre-Join read: {"state":"success"}
+signed in
+
+STARTUP-ONCE: After sign-in, count how many times each start-up step started
+AS EXPECTED STARTUP-ONCE — observed: order: notification upkeep → conversations → blocked users → groups → HELP → activation → publish E2EE key | counts: {"notification upkeep":1,"conversations":1,"blocked users":1,"groups":1,"HELP":1,"activation":1,"publish E2EE key":1}
+
+COPY: Press and hold a message, tap Copy
+AS EXPECTED COPY — observed: Copy button present; clipboard now: "Copy test 4417"
+
+SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap Copy, then Done
+AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
+
+LINK: Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open
+Open button shown: true; pop-up closed after the tap: true
+AS EXPECTED LINK — observed: asked first: true; Cancel stayed in chat: true; after Open: Safari is running (opened by FIDUNIO)
+
+PASTE: Press and hold the message box, tap the phone's Paste
+DIFFERENT PASTE — observed: simulator clipboard set; NO Paste found by the touch layer; message box now: ""
+
+PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared ( 8:03 AM Sent )
+
+GRACE: Switch to another app for ~15 s, then back
+AS EXPECTED GRACE — observed: unlocked
+Alice account found: yes
+
+HELP-SETTINGS: Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save
+DIFFERENT HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Nobody yet"; server: enabled=true, contacts=1
+
+HELP-BAR: Back to Messages
+DIFFERENT HELP-BAR — observed: no HELP bar; banners: none
+
+HELP-QUICK-TAP: HELP screen: a quick tap on the big button (not held)
+TEST ERROR HELP-QUICK-TAP: #helpFab not on screen
+
+HELP-SEND: Press and hold the HELP button for 3 seconds; allow location when the phone asks
+TEST ERROR HELP-SEND: Cannot read properties of null (reading 'x')
+
+HELP-WRITE: Tap "Write a message", type and send "Where are you?"
+TEST ERROR HELP-WRITE: #helpWrite not on screen
+
+HELP-COMING-SEEN: Bob answers "I'm coming" (from his phone); Alice opens the HELP bar
+DIFFERENT HELP-COMING-SEEN — observed: no alert to answer
+
+HELP-OK: Tap "I'm OK now"
+TEST ERROR HELP-OK: #helpOk not on screen
+
+HELP-INCOMING: Bob sends HELP to Alice (from his phone)
+AS EXPECTED HELP-INCOMING — observed: opened: "‹ Simulator Bob needs HELP Sent at 8:04 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true
+
+HELP-SIGNOUT: Settings: Sign Out button
+AS EXPECTED HELP-SIGNOUT — observed: Sign Out shown: true; Protect/Test removed: true
+
+RESULT: probe finished
