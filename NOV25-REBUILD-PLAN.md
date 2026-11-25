@@ -17,7 +17,12 @@ Any session resuming this work MUST read this whole file before touching code, t
 - HELP contacts fault ROOT CAUSE PROVEN (HELP trace, iPhone sim): 2 s after a confirmed Save the listener delivered an
   out-of-date "no settings" server answer. Fix e8d4de3/8c2f859/8760a24: a disagreeing listener answer is checked with
   getDocFromServer before it is applied. Proven: Android 28/28 incl. 10 saves; iPhone all 10 saves right (run 45583668271).
-- 09:40: RELEASING 1.1.83 (ios, Android, main).
+- RELEASED 25 Nov ~05:25 Toronto (10:25 UTC): TestFlight 1.1.83 (96) VALID at Apple; Android APK run 45587781054 success
+  (queued for the Cuberoot publisher); web main 8760a24 published. TestFlight first blocked: the repo firestore.rules lacked
+  the HELP block hlp.txt put live -> repo file rebuilt from the same sources = live (943e1f0); no Firebase change.
+  The same rules-file commit is on fix/nov24-android (fbf3cea) and fix/nov24-web (dacb8fb), NOT yet released (would rebuild
+  the APK/web for no app change) — send with their next build.
+- 1.1.83 WORK IS COMPLETE. Remaining: Willy runs hl2.txt; real-device checks (see TODO.md).
 - RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
 
