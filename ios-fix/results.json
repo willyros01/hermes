@@ -49,7 +49,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 11:37 PM Sending )",
+      "observed": "a new message appeared ( 12:02 AM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -129,7 +129,7 @@
       "what": "Open the chat with Bob",
       "expected": "HELP cards in the chat: the alert with \"Open location on a map\", and \"I'm hurt\"",
       "ok": true,
-      "observed": "map link shown; chat text:  today 11:34 PM Sent 11:37 PM Sent You are now one of my HELP contacts. 11:38 PM Sent 🆘 HELP alert Open location on a map 11:38 PM Sent I'm hurt 11:39 PM Sent ",
+      "observed": "map link shown; chat text: nt November 25, 2026 12:02 AM Sent You are now one of my HELP contacts. 12:03 AM Sent 🆘 HELP alert Open location on a map 12:04 AM Sent I'm hurt 12:04 AM Sent ",
       "shots": [
         "17-help-chat-cards.png"
       ]
@@ -160,7 +160,11 @@
       "what": "Settings → \"Test my HELP alert\", then \"Cancel — it was a mistake\"",
       "expected": "TEST alert sent, then cancelled (server: cancelled)",
       "ok": false,
-      "observed": "TEST ERROR: #helpCancel not on screen"
+      "observed": "screen: \"TEST — Help alert sent\"; server: open",
+      "shots": [
+        "21-help-test.png",
+        "22-help-test-cancelled.png"
+      ]
     },
     {
       "id": "HELP-PROTECT",
@@ -169,7 +173,7 @@
       "ok": true,
       "observed": "PIN asked to protect: true; server protected=true; Sign Out asked PIN: true; after Cancel still signed in: true",
       "shots": [
-        "22-help-protect-signout.png"
+        "23-help-protect-signout.png"
       ]
     }
   ]
