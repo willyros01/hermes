@@ -1285,3 +1285,14 @@ Local legal wiring, platform boundaries, auth transitions, native bootstrap and 
 
 
 2026-10-09 verified notification checkpoint: Production `main` b57ea951 and iOS `ios` f586060c passed their notification gates. User confirmed sender-name preference works on both web and iOS devices. Installation-local sender-name preference is written after a successful bounded cloud preference update and included on lease activation/renewal. iOS GitHub TestFlight workflow passed. Pending: multi-user logout/offline revoke, stale lease cleanup, inbox modal investigation, full cross-platform acceptance. Do not reapply Firebase rules or change tokens solely for docs.
+
+## 2026-11-25 — FIDUNIO 1.1.83 lessons (owner rules, keep)
+
+- Lock PIN and encryption PIN are the SAME PIN, by design. A missing lock PIN record is repaired only with password + PIN checked against the encryption key, then the same PIN is saved back. Never PIN-only on a missing record, never open without a PIN, never change the PIN.
+- Sign-in stays password-only when the device has its key copy and its PIN record (owner: "keep it as password only, it might break again").
+- Settings changes must re-read the stored security record before writing (queueConfigMutation), so they can never overwrite the PIN.
+- One main program for every device; device differences live only inside same-named `*-platform-adapter.js` modules that return the same answer shape on every device (back, app-state, help, biometric, background, ...). Shared files must be byte-identical on ios, Android and main.
+- KISS for anything a child or a person in danger uses: one action per screen, real profile names (never "Mom/Dad"), no hidden extras. HELP: bar → hold 2 s → "HELP is sent" → Write a message / I'm OK now; helper: "needs HELP" → I'm coming. Lists such as HELP contacts stay collapsed until needed, like Manage Users.
+- Never advise deleting or resetting the app on a misbehaving device before the evidence (and the recovery file) is saved.
+- No live Firebase change by Claude: prepare a 3-letter .txt Cloud Shell script that sets and checks the project first, writes a rollback first, and changes only what it says.
+
