@@ -25,13 +25,13 @@ jobs:
         with:
           repository: willyros01/hermes
           ref: b21c142ec62b851acfd5a794380741956fc82074
-          path: old-src
+          path: old/ios-src
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
           repository: willyros01/hermes
           ref: ios
-          path: new-src
+          path: new/ios-src
           persist-credentials: false
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -55,14 +55,14 @@ jobs:
         run: |
           set -Eeuo pipefail
           for v in old new; do
-            ( cd $v-src
+            ( cd $v/ios-src
               echo "$v source: $(git rev-parse HEAD) version: $(cat version.js)"
               npm ci --no-audit --no-fund
               npm run ios:prepare
-              node ../build/simulator/patch-sandbox.mjs . ios
+              node ../../build/simulator/patch-sandbox.mjs . ios
               npx cap add ios
               npx cap sync ios
-              node ../build/simulator/patch-ios-key-clone.mjs ios/App/App/public
+              node ../../build/simulator/patch-ios-key-clone.mjs ios/App/App/public
               plutil -replace NSFaceIDUsageDescription -string 'Test FIDUNIO simulator' ios/App/App/Info.plist
               plutil -replace NSCameraUsageDescription -string 'Test FIDUNIO simulator camera' ios/App/App/Info.plist
               if [ -f build/apply-ios-help.mjs ]; then
