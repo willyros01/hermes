@@ -15,7 +15,7 @@
  * The location travels only inside end-to-end encrypted messages (a HELP card in the chat).
  * Device-specific work (Android alert channel, location) is in help-platform-adapter.js.
  */
-import {initFirebase,listCloudUsers} from "./firebase.js";
+import {getFirebaseServices,listCloudUsers} from "./firebase.js";
 import {prepareUrgentAlerts,currentLocation} from "./help-platform-adapter.js";
 
 const HOLD_MS=2000,MAX_HELPERS=5;
@@ -81,7 +81,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     st.starting=true;
     const gen=++generation;
     try{
-      services=await initFirebase();
+      services=await getFirebaseServices();   /* no extra sign-in listener (it piled up on every start) */
       if(gen!==generation)return;
       await prepareUrgentAlerts();
       if(gen!==generation)return;

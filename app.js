@@ -1430,47 +1430,86 @@ function helpCardsForAlert(senderUid,alertId,helperUids=[]){
 }
 const helpOwner=createHelpOwner({app,render,navigate:route=>{state.route=route;render();},shellTop,isUnlocked:()=>state.unlocked,
   chat:{sendDirect:sendHelpText,sendGroup:sendHelpGroupText,ensureGroup:ensureHelpGroup,findGroup:findHelpGroup,openDirect:uid=>{void openHelpDirect(uid).catch(err=>alert(err?.message||err));},openConversation:openHelpConversation}});
+/*
+ * Start-up serialization (owner guideline, 25 Nov 2026): every sign-in / sign-out report from Firebase is
+ * handled in ONE place, one report at a time, and each step is started once and waited for before the next.
+ * Before 1.1.83 the jobs were also started from a second place right after Firebase started, so every
+ * start-up started them twice (a race: HELP lost its contacts, the blocked list could empty for a moment).
+ * A step that fails is logged and the next step still runs. A step that needs the network is waited for at
+ * most STARTUP_STEP_WAIT_MS so an offline start-up never hangs; it then finishes on its own, guarded.
+ */
+const STARTUP_STEP_WAIT_MS=30000;
+let authReportQueue=Promise.resolve();
+let authReportGeneration=0;
+async function startupStep(name,run){
+  let timer=null;
+  /* Diagnostic record of each step started (names only), so tests can prove each starts exactly once. */
+  try{(globalThis.FIDUNIO_STARTUP_STEPS||(globalThis.FIDUNIO_STARTUP_STEPS=[])).push(name);console.info("FIDUNIO start-up step: "+name);}catch{}
+  try{
+    await Promise.race([
+      Promise.resolve().then(run),
+      new Promise(resolve=>{timer=setTimeout(()=>{console.warn(`FIDUNIO start-up: "${name}" is still running after ${STARTUP_STEP_WAIT_MS/1000} s; continuing, it finishes on its own`);resolve();},STARTUP_STEP_WAIT_MS);})
+    ]);
+  }catch(err){console.warn(`FIDUNIO start-up: "${name}" failed`,err);}
+  finally{clearTimeout(timer);}
+}
+async function handleSignedIn(user,generation){
+  const still=()=>generation===authReportGeneration&&firebaseUser?.uid===user.uid;
+  /* Fast local steps first, so messages show even when the network is slow. */
+  await startupStep("notification upkeep",()=>startNotificationRegistrationMaintenance(user.uid));
+  if(!still())return;
+  await startupStep("web notification lease",()=>renewWebNotificationLease(user.uid));
+  if(!still())return;
+  await startupStep("conversations",()=>beginCloudConversationSubscription());
+  if(!still())return;
+  await startupStep("blocked users",()=>beginBlockedUsersSubscription());
+  if(!still())return;
+  await startupStep("groups",()=>beginCloudGroupSubscription());
+  if(!still())return;
+  await startupStep("HELP",()=>helpOwner.start(user.uid));
+  if(!still())return;
+  await startupStep("activation",()=>requestAppActivation("firebase-auth-ready"));
+  if(!still())return;
+  /* Network steps last: each one waited for in turn. */
+  if(getAccountE2EELifecycleState().manager.state!=="READY")await startupStep("account E2EE identity lookup",()=>bindAuthenticatedAccountE2EE(user.uid));
+  if(!still())return;
+  await startupStep("publish E2EE key",()=>publishMyE2EEKey());
+}
+async function handleSignedOut(){
+  helpOwner.stop();
+  stopNotificationRegistrationMaintenance();
+  composerStateByConversation.clear();
+  optimisticOutgoingProjection.reset();
+  bulkMessageDeleteProjection.reset();
+  attachmentReceiveService.releaseAll();
+  for(const url of localAttachmentPreviewUrls)URL.revokeObjectURL(url);
+  localAttachmentPreviewUrls.clear();
+  attachmentRuntime.clear();
+  resetGroupAppIntegrationForSignOut();
+  cloudGroupMessageConversationId=null;
+  resetAccountE2EEForSignOut();
+  if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
+  stopBlockedUsersSubscription();
+  stopPeerDisplayNameSubscription();
+  if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
+  stopCloudMessageSubscription();
+  await startupStep("activation",()=>requestAppActivation("firebase-auth-signed-out"));
+}
+function onFirebaseAuthReport(user){
+  const generation=++authReportGeneration;
+  firebaseUser=user;
+  firebaseReady=true;
+  authReportQueue=authReportQueue.then(()=>user?handleSignedIn(user,generation):handleSignedOut())
+    .catch(err=>console.warn("FIDUNIO start-up failed",err));
+  return authReportQueue;
+}
 async function initializeFirebaseLayer(){
   if(!isFirebaseConfigured()) return;
   try{
-    await initFirebase(user=>{
-      firebaseUser=user;
-      firebaseReady=true;
-      if(user){
-        startNotificationRegistrationMaintenance(user.uid);
-        renewWebNotificationLease(user.uid);
-        if(getAccountE2EELifecycleState().manager.state!=="READY")bindAuthenticatedAccountE2EE(user.uid).catch(err=>console.warn("Account E2EE identity lookup failed",err));
-        publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));
-        beginCloudConversationSubscription();
-        beginBlockedUsersSubscription();
-        beginCloudGroupSubscription();
-        void helpOwner.start(user.uid).catch(err=>console.warn("HELP could not start",err));
-      }else{
-        helpOwner.stop();
-        stopNotificationRegistrationMaintenance();
-        composerStateByConversation.clear();
-        optimisticOutgoingProjection.reset();
-        bulkMessageDeleteProjection.reset();
-        attachmentReceiveService.releaseAll();
-        for(const url of localAttachmentPreviewUrls)URL.revokeObjectURL(url);
-        localAttachmentPreviewUrls.clear();
-        attachmentRuntime.clear();
-        resetGroupAppIntegrationForSignOut();
-        cloudGroupMessageConversationId=null;
-        resetAccountE2EEForSignOut();
-        if(cloudConversationUnsub){cloudConversationUnsub();cloudConversationUnsub=null;}
-        stopBlockedUsersSubscription();
-        stopPeerDisplayNameSubscription();
-        if(cloudGroupUnsub){cloudGroupUnsub();cloudGroupUnsub=null;}
-        stopCloudMessageSubscription();
-      }
-      void requestAppActivation(user?"firebase-auth-ready":"firebase-auth-signed-out");
-    });
+    /* The ONE start-up place: Firebase always reports the current user to a new listener. */
+    await initFirebase(onFirebaseAuthReport);
     firebaseReady=true;
     firebaseUser=getFirebaseUser();
-    /* HELP starts in ONE place only: the "signed in" report above (serialization guideline). */
-    if(firebaseUser){startNotificationRegistrationMaintenance(firebaseUser.uid);publishMyE2EEKey().catch(err=>console.warn("Could not publish E2EE key",err));beginBlockedUsersSubscription();}
-    void requestAppActivation("firebase-initialize-complete");
   }catch(err){
     firebaseError=err?.message || String(err);
   }
