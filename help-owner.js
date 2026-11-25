@@ -65,18 +65,21 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     viewAlertId:"",holdTimer:null,sending:false,lastError:"",settingsMsg:"",choosing:false};
   let services=null,generation=0;
   const fs=()=>services.fsSdk,db=()=>services.db;
+  /* Diagnostic trace (event names and counts only — no names, ids or message text), last 60 events. */
+  const trace=e=>{try{const t=(globalThis.FIDUNIO_HELP_TRACE||(globalThis.FIDUNIO_HELP_TRACE=[]));t.push(new Date().toISOString().slice(11,19)+" "+e);if(t.length>60)t.shift();}catch{}};
 
   /* A listener that stops on an error is started again after a short wait (same account only). */
   function watch(gen,makeQuery,onNext){
     if(gen!==generation)return;
     const s=fs();
-    const unsub=s.onSnapshot(makeQuery(s),onNext,err=>{console.warn("HELP listener stopped; starting it again",err?.code||err);try{unsub();}catch{}setTimeout(()=>watch(gen,makeQuery,onNext),3000);});
+    const unsub=s.onSnapshot(makeQuery(s),onNext,err=>{trace("listener error "+(err?.code||"?"));console.warn("HELP listener stopped; starting it again",err?.code||err);try{unsub();}catch{}setTimeout(()=>watch(gen,makeQuery,onNext),3000);});
     st.unsub.push(unsub);
   }
   async function start(uid){
     /* Signed in again as the same person (sign-in events can repeat): keep the running listeners
      * and the saved HELP contacts; restarting wiped them on screen (Android simulator, 1.1.83). */
-    if(String(uid||"")&&String(uid)===st.uid&&(st.unsub.length||st.starting))return;
+    if(String(uid||"")&&String(uid)===st.uid&&(st.unsub.length||st.starting)){trace("start skipped (already running)");return;}
+    trace("start");
     stop();st.uid=String(uid||"");if(!st.uid)return;
     st.starting=true;
     const gen=++generation;
@@ -88,8 +91,9 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     }finally{if(gen===generation)st.starting=false;}
     watch(gen,s=>s.doc(db(),"helpSettings",st.uid),snap=>{
       /* "Not in this phone's cache" is not "no HELP contacts": wait for the server's answer. */
+      const d0=snap.exists()?snap.data():{};trace(`settings snapshot exists=${snap.exists()} cache=${!!snap.metadata?.fromCache} pending=${!!snap.metadata?.hasPendingWrites} contacts=${Array.isArray(d0.helperUids)?d0.helperUids.length:"-"}`);
       if(!snap.exists()&&snap.metadata?.fromCache&&st.settingsLoaded)return;
-      const d=snap.exists()?snap.data():{};
+      const d=d0;
       const helperUids=Array.isArray(d.helperUids)?d.helperUids.slice(0,MAX_HELPERS):[];
       st.settings={enabled:d.enabled===true&&helperUids.length>0,helperUids};
       st.settingsLoaded=true;render({background:true});
@@ -102,7 +106,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       if(!openUnanswered())render({background:true});
     });
   }
-  function stop(){generation++;st.starting=false;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;}
+  function stop(){trace("stop");generation++;st.starting=false;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;}
   async function people(){if(!st.people.length){try{st.people=(await listCloudUsers())||[];}catch{}}return st.people;}
   const nameOf=uid=>{const p=st.people.find(p=>String(p.uid)===String(uid));return p?.displayName||p?.email||"A FIDUNIO member";};
 
@@ -173,6 +177,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     const added=clean.filter(u=>!st.settings.helperUids.includes(u));
     await s.setDoc(s.doc(db(),"helpSettings",st.uid),{enabled:clean.length>0,helperUids:clean,protected:false,updatedAt:s.serverTimestamp()});
     st.settings={enabled:clean.length>0,helperUids:clean.slice()};st.settingsLoaded=true;   /* the server has it */
+    trace("saved contacts="+clean.length);
     if(clean.length>=2)await chat.ensureGroup(clean,nameOf(st.uid)).catch(e=>console.warn("HELP chat group",e));
     for(const uid of added){try{await chat.sendDirect(uid,encodeHelpCard({alertId:"contact",kind:"contact"}));}catch{}}
   }
@@ -252,7 +257,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   /* ---- Settings → Safety → HELP (contacts list collapsed until needed, like Manage Users) ---- */
   async function mountSettingsCard(host){
     if(!host)return;await people();
-    const chosen=st.settings.helperUids;
+    const chosen=st.settings.helperUids;trace("settings card contacts="+chosen.length+(st.settingsMsg?" ("+st.settingsMsg+")":""));
     const list=st.people.filter(p=>String(p.uid)!==st.uid);
     const summary=chosen.length?esc(joinNames(chosen.map(nameOf))):"Nobody yet";
     host.innerHTML=`<h2>HELP</h2>
