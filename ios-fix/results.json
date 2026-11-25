@@ -14,8 +14,8 @@
       "id": "COPY",
       "what": "Press and hold a message, tap Copy",
       "expected": "sheet offers Copy; the phone clipboard then holds the message text",
-      "ok": false,
-      "observed": "Copy button present; clipboard now: \"\"",
+      "ok": true,
+      "observed": "Copy button present; clipboard now: \"Copy test 4417\"",
       "shots": [
         "02-copy-sheet.png"
       ]
@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 8:45 AM Sent )",
+      "observed": "a new message appeared ( 9:09 AM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -76,8 +76,8 @@
       "id": "HELP-SETTINGS",
       "what": "Settings → HELP: the contacts list is closed; tap \"Choose HELP contacts\", tick Simulator Bob, Save",
       "expected": "list closed at first; \"Saved.\"; the server has Bob as the only HELP contact",
-      "ok": false,
-      "observed": "list closed at first: true; screen: \"Saved.\", \"HELP contacts: Nobody yet\"; server: enabled=true, contacts=1",
+      "ok": true,
+      "observed": "list closed at first: true; screen: \"Saved.\", \"HELP contacts: Simulator Bob\"; server: enabled=true, contacts=1",
       "shots": [
         "11-help-settings-closed.png",
         "12-help-settings-saved.png"
@@ -87,11 +87,8 @@
       "id": "HELP-SAVE-REPEAT",
       "what": "5 times: untick Bob → Save, then tick Bob → Save; check the contacts line and the HELP bar each time",
       "expected": "every Save shows the right contacts, and the HELP bar follows",
-      "ok": true,
-      "observed": "all 10 saves right",
-      "shots": [
-        "13-help-save-repeat.png"
-      ]
+      "ok": false,
+      "observed": "TEST ERROR: timed out: contacts list"
     },
     {
       "id": "HELP-BAR",
@@ -128,7 +125,7 @@
       "what": "Tap \"Write a message\", type and send \"Where are you?\"",
       "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
       "ok": true,
-      "observed": "chat: \"\"; map link shown; text: my HELP contacts. 8:50 AM Sent You are now one of my HELP contacts. 8:51 AM Sent HELP Open in Maps 8:51 AM Sent Help chat 7731 8:52 AM Sent ",
+      "observed": "chat: \"\"; map link shown; text: my HELP contacts. 9:10 AM Sent You are now one of my HELP contacts. 9:11 AM Sent HELP Open in Maps 9:12 AM Sent Help chat 7731 9:12 AM Sent ",
       "shots": [
         "17-help-chat.png"
       ]
@@ -158,7 +155,7 @@
       "what": "Bob sends HELP to Alice (from his phone)",
       "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
       "ok": true,
-      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 8:52 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
+      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 9:13 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
       "shots": [
         "20-help-incoming.png",
         "21-help-im-coming.png"

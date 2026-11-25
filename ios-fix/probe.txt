@@ -6,7 +6,7 @@ STARTUP-ONCE: After sign-in, count how many times each start-up step started
 AS EXPECTED STARTUP-ONCE — observed: order: notification upkeep → conversations → blocked users → groups → HELP → activation → publish E2EE key | counts: {"notification upkeep":1,"conversations":1,"blocked users":1,"groups":1,"HELP":1,"activation":1,"publish E2EE key":1}
 
 COPY: Press and hold a message, tap Copy
-DIFFERENT COPY — observed: Copy button present; clipboard now: ""
+AS EXPECTED COPY — observed: Copy button present; clipboard now: "Copy test 4417"
 
 SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap Copy, then Done
 AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
@@ -19,19 +19,19 @@ PASTE: Press and hold the message box, tap the phone's Paste
 DIFFERENT PASTE — observed: simulator clipboard set; NO Paste found by the touch layer; message box now: ""
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared ( 8:45 AM Sent )
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared ( 9:09 AM Sent )
 
 GRACE: Switch to another app for ~15 s, then back
 AS EXPECTED GRACE — observed: unlocked
 Alice account found: yes
 
 HELP-SETTINGS: Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save
-HELP trace: {"help":["08:40:19 start","08:40:19 stop","08:40:20 settings snapshot exists=false cache=false pending=false contacts=-","08:46:46 settings card contacts=0","08:46:51 settings card contacts=0","08:46:56 settings snapshot exists=true cache=false pending=true contacts=1","08:46:56 settings card contacts=1","08:46:57 saved contacts=1","08:46:59 settings snapshot exists=false cache=false pending=false contacts=-","08:46:59 settings card contacts=0","08:46:59 settings card contacts=0","08:47:01 settings card contacts=0","08:47:01 settings card contacts=0 (Saved.)"],"steps":["notification upkeep","conversations","blocked users","groups","HELP","activation","publish E2EE key"]}
-contacts line 4 s later: HELP contacts: Nobody yet
-DIFFERENT HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Nobody yet"; server: enabled=true, contacts=1
+HELP trace: {"help":["09:04:45 start","09:04:45 stop","09:04:46 settings snapshot exists=false cache=false pending=false contacts=-","09:04:46 settings applied (server read) contacts=0","09:10:21 settings card contacts=0","09:10:24 settings card contacts=0","09:10:30 settings snapshot exists=true cache=false pending=true contacts=1","09:10:30 settings applied (this phone's save) contacts=1","09:10:30 settings card contacts=1","09:10:30 saved contacts=1","09:10:30 settings snapshot exists=true cache=false pending=false contacts=1","09:10:31 settings card contacts=1","09:10:43 settings card contacts=1","09:10:43 settings card contacts=1 (Saved.)"],"steps":["notification upkeep","conversations","blocked users","groups","HELP","activation","publish E2EE key"]}
+contacts line 4 s later: HELP contacts: Simulator Bob
+AS EXPECTED HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Simulator Bob"; server: enabled=true, contacts=1
 
 HELP-SAVE-REPEAT: 5 times: untick Bob → Save, then tick Bob → Save; check the contacts line and the HELP bar each time
-AS EXPECTED HELP-SAVE-REPEAT — observed: all 10 saves right
+TEST ERROR HELP-SAVE-REPEAT: timed out: contacts list
 
 HELP-BAR: Back to Messages
 AS EXPECTED HELP-BAR — observed: HELP bar shown; banners: none
@@ -43,7 +43,7 @@ HELP-SEND: Press and hold the HELP button for 3 seconds; allow location when the
 AS EXPECTED HELP-SEND — observed: screen: "HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now"; location prompts answered: Allow Once, Allow; server: open alert for Bob
 
 HELP-WRITE: Tap "Write a message", type and send "Where are you?"
-AS EXPECTED HELP-WRITE — observed: chat: ""; map link shown; text: my HELP contacts. 8:50 AM Sent You are now one of my HELP contacts. 8:51 AM Sent HELP Open in Maps 8:51 AM Sent Help chat 7731 8:52 AM Sent 
+AS EXPECTED HELP-WRITE — observed: chat: ""; map link shown; text: my HELP contacts. 9:10 AM Sent You are now one of my HELP contacts. 9:11 AM Sent HELP Open in Maps 9:12 AM Sent Help chat 7731 9:12 AM Sent 
 
 HELP-COMING-SEEN: Bob answers "I'm coming" (from his phone); Alice opens the HELP bar
 AS EXPECTED HELP-COMING-SEEN — observed: bar said: "HELP is on — open"; screen: "Simulator Bob is coming Stay where you are. Write a message I'm OK now"; green: true
@@ -52,7 +52,7 @@ HELP-OK: Tap "I'm OK now"
 AS EXPECTED HELP-OK — observed: server: safe; bar: "HELP"
 
 HELP-INCOMING: Bob sends HELP to Alice (from his phone)
-AS EXPECTED HELP-INCOMING — observed: opened: "‹ Simulator Bob needs HELP Sent at 8:52 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true
+AS EXPECTED HELP-INCOMING — observed: opened: "‹ Simulator Bob needs HELP Sent at 9:13 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true
 
 HELP-SIGNOUT: Settings: Sign Out button
 AS EXPECTED HELP-SIGNOUT — observed: Sign Out shown: true; Protect/Test removed: true
