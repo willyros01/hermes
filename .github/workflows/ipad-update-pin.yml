@@ -18,7 +18,7 @@ permissions:
 jobs:
   ipad:
     runs-on: macos-26
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -54,7 +54,8 @@ jobs:
       - name: Build released 1.1.81 and new 1.1.82 (same app id)
         run: |
           set -Eeuo pipefail
-          for v in old new; do
+          cp -R new webonly
+          for v in old webonly new; do
             ( cd $v/ios-src
               echo "$v source: $(git rev-parse HEAD) version: $(cat version.js)"
               npm ci --no-audit --no-fund
@@ -65,7 +66,7 @@ jobs:
               node ../../build/simulator/patch-ios-key-clone.mjs ios/App/App/public
               plutil -replace NSFaceIDUsageDescription -string 'Test FIDUNIO simulator' ios/App/App/Info.plist
               plutil -replace NSCameraUsageDescription -string 'Test FIDUNIO simulator camera' ios/App/App/Info.plist
-              if [ -f build/apply-ios-help.mjs ]; then
+              if [ "$v" = new ] && [ -f build/apply-ios-help.mjs ]; then
                 # As in the TestFlight build: FIDUNIO's own screen + Wi-Fi plugin.
                 test -f ios/App/App/App.entitlements || printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n</dict>\n</plist>\n' > ios/App/App/App.entitlements
                 node build/apply-ios-help.mjs
@@ -86,8 +87,9 @@ jobs:
       - name: Update and PIN check
         run: |
           OLD="$(find "$RUNNER_TEMP/dd-old/Build/Products" -maxdepth 2 -name App.app | head -1)"
+          WEB="$(find "$RUNNER_TEMP/dd-webonly/Build/Products" -maxdepth 2 -name App.app | head -1)"
           NEW="$(find "$RUNNER_TEMP/dd-new/Build/Products" -maxdepth 2 -name App.app | head -1)"
-          bash build/upgrade/run.sh out-upgrade "$OLD" "$NEW"
+          bash build/upgrade/run.sh out-upgrade "$OLD" "$WEB" "$NEW"
       - name: Publish evidence to the probe-evidence branch
         if: always()
         run: |
