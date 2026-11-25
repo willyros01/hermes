@@ -22,6 +22,17 @@ Any session resuming this work MUST read this whole file before touching code, t
   the HELP block hlp.txt put live -> repo file rebuilt from the same sources = live (943e1f0); no Firebase change.
   The same rules-file commit is on fix/nov24-android (fbf3cea) and fix/nov24-web (dacb8fb), NOT yet released (would rebuild
   the APK/web for no app change) — send with their next build.
+- 25 Nov 08:36-08:59 OWNER REAL-DEVICE TEST FOUND (NOT FIXED YET — owner: "do not fix until you give me a report"):
+  1. Fire 8 helper got NO notification/sound for HELP (alert 08:39; red screen appeared only on opening FIDUNIO). Cause unknown:
+     owner runs hlg.txt (read-only log + alerts + reminders) — read its output first.
+  2. Fire 8 "Write a message" -> "Conversation could not be started." PROVEN cause: startDirectConversation setDoc(merge) rewrites
+     members [me,peer]; existing DM had the other order; rule requires members unchanged -> permission-denied. Also silently
+     breaks the helper's "I'm coming" chat card (sendHelpText). Fix: open/send to the EXISTING DM, never rewrite members.
+  3. Owner chose OPTION A: the HELP conversation lives on the big HELP screen (large messages, one large text box, Send,
+     "I'm OK now" always visible); the same messages still appear in the normal chat.
+  Read-only GitHub identity works ONLY inside the "Live Backend Audit Gate" workflow (refused from simulator-tests and from a
+  hand-started run on ios). main and ios now carry two [skip ci] commits (add/remove that check): merge origin/main and
+  origin/ios into the fix branches before the next release.
 - 1.1.83 WORK IS COMPLETE. Remaining: Willy runs hl2.txt; real-device checks (see TODO.md).
 - RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
