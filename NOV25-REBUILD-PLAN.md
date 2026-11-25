@@ -33,6 +33,8 @@ Any session resuming this work MUST read this whole file before touching code, t
   Read-only GitHub identity works ONLY inside the "Live Backend Audit Gate" workflow (refused from simulator-tests and from a
   hand-started run on ios). main and ios now carry two [skip ci] commits (add/remove that check): merge origin/main and
   origin/ios into the fix branches before the next release.
+- 25 Nov 09:05 owner: "forget about hl1 or hl2" — he will NOT run hl2.txt or hlg.txt. Do not push them again. HELP server stays as
+  deployed by hlp.txt (2-minute re-alerts, at most 5). The Fire 8 no-ring cause must be found another way (ask him first).
 - 1.1.83 WORK IS COMPLETE. Remaining: Willy runs hl2.txt; real-device checks (see TODO.md).
 - RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
