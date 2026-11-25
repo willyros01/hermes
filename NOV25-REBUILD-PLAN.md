@@ -10,6 +10,7 @@ Any session resuming this work MUST read this whole file before touching code, t
 - Simulator run 1: all HELP + PIN repair passed. Run 2: Android HELP contacts saved on the server but the screen
   showed "Nobody yet" and no HELP bar -> traced to a DOUBLE START (see Phase 5). Run 4 is on the code before Phase 5.
 - WAITING FOR WILLY'S "GO" ON PHASE 5. Recommended: option 2 (narrow). Do NOT start Phase 5 without his go.
+- RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
 
 ## Phase 5 — start-up serialization (owner guideline: start a step, WAIT for it to end, then the next; no race conditions)
