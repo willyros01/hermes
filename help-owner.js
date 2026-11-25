@@ -89,14 +89,29 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       await prepareUrgentAlerts();
       if(gen!==generation)return;
     }finally{if(gen===generation)st.starting=false;}
-    watch(gen,s=>s.doc(db(),"helpSettings",st.uid),snap=>{
-      /* "Not in this phone's cache" is not "no HELP contacts": wait for the server's answer. */
-      const d0=snap.exists()?snap.data():{};trace(`settings snapshot exists=${snap.exists()} cache=${!!snap.metadata?.fromCache} pending=${!!snap.metadata?.hasPendingWrites} contacts=${Array.isArray(d0.helperUids)?d0.helperUids.length:"-"}`);
-      if(!snap.exists()&&snap.metadata?.fromCache&&st.settingsLoaded)return;
-      const d=d0;
-      const helperUids=Array.isArray(d.helperUids)?d.helperUids.slice(0,MAX_HELPERS):[];
+    /* HELP contacts: the server-confirmed state is the truth. Proven on the iPhone simulator (25 Nov):
+     * two seconds after a confirmed Save, the listener delivered an out-of-date "no settings" answer and
+     * the screen lost the contacts. So a listener answer that disagrees with what is on screen is never
+     * applied directly: it is checked with one direct read from the server (one at a time), and that
+     * read decides. A local Save echo (pending) is applied at once. */
+    const applySettings=(d,why)=>{
+      const helperUids=Array.isArray(d.helperUids)?d.helperUids.slice(0,MAX_HELPERS).map(String):[];
       st.settings={enabled:d.enabled===true&&helperUids.length>0,helperUids};
-      st.settingsLoaded=true;render({background:true});
+      st.settingsLoaded=true;trace(`settings applied (${why}) contacts=${helperUids.length}`);render({background:true});
+    };
+    const same=d=>{const h=Array.isArray(d.helperUids)?d.helperUids.map(String):[];return st.settingsLoaded&&h.length===st.settings.helperUids.length&&h.every((u,i)=>u===st.settings.helperUids[i])&&(d.enabled===true&&h.length>0)===st.settings.enabled;};
+    let check=Promise.resolve();
+    const confirmFromServer=fallback=>{check=check.then(async()=>{
+      if(gen!==generation)return;
+      const s=fs();
+      try{const doc=await s.getDocFromServer(s.doc(db(),"helpSettings",st.uid));if(gen!==generation)return;applySettings(doc.exists()?doc.data():{},"server read");}
+      catch(e){trace("server read failed "+(e?.code||"?"));if(!st.settingsLoaded)applySettings(fallback,"offline: last known");}
+    });return check;};
+    watch(gen,s=>s.doc(db(),"helpSettings",st.uid),snap=>{
+      const d=snap.exists()?snap.data():{};trace(`settings snapshot exists=${snap.exists()} cache=${!!snap.metadata?.fromCache} pending=${!!snap.metadata?.hasPendingWrites} contacts=${Array.isArray(d.helperUids)?d.helperUids.length:"-"}`);
+      if(snap.metadata?.hasPendingWrites){applySettings(d,"this phone's save");return;}
+      if(same(d))return;
+      void confirmFromServer(d);
     });
     watch(gen,s=>s.query(s.collection(db(),"helpAlerts"),s.where("senderUid","==",st.uid),s.where("state","==","open")),snap=>{
       st.mine=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.test!==true);render({background:true});
