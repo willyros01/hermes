@@ -39,6 +39,8 @@ Any session resuming this work MUST read this whole file before touching code, t
   ("not authenticated ... lacks run.routes.invoke") since the hlp.txt deploy, so HELP never rang a phone. Owner ran hip.txt:
   roles/run.invoker for fidunio-notification@ on both services, old retried events discarded (pubsub seek). SUCCESS, backup +
   rollback at ~/fidunio-help-invoker-20261125T144343Z. Awaiting the owner's real HELP test (Fire 8 should ring).
+- 25 Nov 09:56 owner ALSO ran hl2.txt after all: SUCCESS (HELP functions 30-second ring, no limit; body "HELP — <name>"; backup
+  ~/fidunio-help2-20261125T145515Z). Server now = Android-branch functions-help @910906b.
 - 1.1.83 WORK IS COMPLETE. Remaining: Willy runs hl2.txt; real-device checks (see TODO.md).
 - RELEASE TRAP: the newest commit pushed to ios / Android / main must NOT contain "[skip ci]" (it would skip the TestFlight / APK / web build).
 - Open owner question: none other. Reply to his questions first, in large headings, before doing anything.
