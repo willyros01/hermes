@@ -9,13 +9,14 @@ SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap
 AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
 
 LINK: Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open
-DIFFERENT LINK — observed: asked first: true; Cancel stayed in chat: true; after Open: still in FIDUNIO
+Open button shown: true; pop-up closed after the tap: true
+AS EXPECTED LINK — observed: asked first: true; Cancel stayed in chat: true; after Open: Safari is running (opened by FIDUNIO)
 
 PASTE: Press and hold the message box, tap the phone's Paste
 DIFFERENT PASTE — observed: simulator clipboard set; NO Paste found by the touch layer; message box now: ""
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared ( 6:33 AM Sent )
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared ( 6:55 AM Sent )
 
 GRACE: Switch to another app for ~15 s, then back
 AS EXPECTED GRACE — observed: unlocked
@@ -34,7 +35,7 @@ HELP-SEND: Press and hold the HELP button for 3 seconds; allow location when the
 AS EXPECTED HELP-SEND — observed: screen: "HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now"; location prompts answered: Allow Once, Allow; server: open alert for Bob
 
 HELP-WRITE: Tap "Write a message", type and send "Where are you?"
-AS EXPECTED HELP-WRITE — observed: chat: ""; map link shown; text: oday 6:29 AM Sent 6:33 AM Sent You are now one of my HELP contacts. 6:33 AM Sent HELP Open in Maps 6:34 AM Sent Help chat 7731 6:34 AM Sent 
+AS EXPECTED HELP-WRITE — observed: chat: ""; map link shown; text: oday 6:51 AM Sent 6:55 AM Sent You are now one of my HELP contacts. 6:56 AM Sent HELP Open in Maps 6:57 AM Sent Help chat 7731 6:57 AM Sent 
 
 HELP-COMING-SEEN: Bob answers "I'm coming" (from his phone); Alice opens the HELP bar
 AS EXPECTED HELP-COMING-SEEN — observed: bar said: "HELP is on — open"; screen: "Simulator Bob is coming Stay where you are. Write a message I'm OK now"; green: true
@@ -43,7 +44,7 @@ HELP-OK: Tap "I'm OK now"
 AS EXPECTED HELP-OK — observed: server: safe; bar: "HELP"
 
 HELP-INCOMING: Bob sends HELP to Alice (from his phone)
-AS EXPECTED HELP-INCOMING — observed: opened: "‹ Simulator Bob needs HELP Sent at 6:35 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true
+AS EXPECTED HELP-INCOMING — observed: opened: "‹ Simulator Bob needs HELP Sent at 6:57 AM Location is on its way… I'm coming"; server: Alice is coming; chat opened: true
 
 HELP-SIGNOUT: Settings: Sign Out button
 AS EXPECTED HELP-SIGNOUT — observed: Sign Out shown: true; Protect/Test removed: true

@@ -27,8 +27,8 @@
       "id": "LINK",
       "what": "Send \"Visit https://example.com today\", tap the link: Cancel, then tap again: Open",
       "expected": "\"Open this link?\" first; Cancel stays in the chat; Open shows the web page outside FIDUNIO",
-      "ok": false,
-      "observed": "asked first: true; Cancel stayed in chat: true; after Open: still in FIDUNIO",
+      "ok": true,
+      "observed": "asked first: true; Cancel stayed in chat: true; after Open: Safari is running (opened by FIDUNIO)",
       "shots": [
         "05-link-ask.png",
         "06-link-opened.png"
@@ -49,7 +49,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 6:33 AM Sent )",
+      "observed": "a new message appeared ( 6:55 AM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -110,7 +110,7 @@
       "what": "Tap \"Write a message\", type and send \"Where are you?\"",
       "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
       "ok": true,
-      "observed": "chat: \"\"; map link shown; text: oday 6:29 AM Sent 6:33 AM Sent You are now one of my HELP contacts. 6:33 AM Sent HELP Open in Maps 6:34 AM Sent Help chat 7731 6:34 AM Sent ",
+      "observed": "chat: \"\"; map link shown; text: oday 6:51 AM Sent 6:55 AM Sent You are now one of my HELP contacts. 6:56 AM Sent HELP Open in Maps 6:57 AM Sent Help chat 7731 6:57 AM Sent ",
       "shots": [
         "16-help-chat.png"
       ]
@@ -140,7 +140,7 @@
       "what": "Bob sends HELP to Alice (from his phone)",
       "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
       "ok": true,
-      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 6:35 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
+      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 6:57 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
       "shots": [
         "19-help-incoming.png",
         "20-help-im-coming.png"
