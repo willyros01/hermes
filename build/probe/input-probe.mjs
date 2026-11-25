@@ -336,7 +336,14 @@ if(label==='fix'){
   await check('HELP-SAVE-REPEAT','5 times: untick Bob → Save, then tick Bob → Save; check the contacts line and the HELP bar each time','every Save shows the right contacts, and the HELP bar follows',async()=>{
     const bad=[];
     const saveWith=async want=>{
-      await toSettings();await realTap('#helpChoose');await until(()=>present('.help-helper'),'contacts list',15000);
+      await toSettings();
+      /* Like a person: if the first tap did not open the list, look at what was under the finger and tap again. */
+      for(let t=1;t<=2&&!(await present('.help-helper'));t++){
+        const p=await screenPoint('#helpChoose');await tapAt(p);
+        const opened=await until(()=>present('.help-helper'),'contacts list',8000).then(()=>true,()=>false);
+        if(!opened){const under=await js(`(()=>{const v=window.visualViewport||{offsetLeft:0,offsetTop:0};const e=document.elementFromPoint(${p?p.x:0}+v.offsetLeft,${p?p.y:0}+v.offsetTop);const b=document.querySelector("#helpChoose")?.getBoundingClientRect();return (e?(e.id||e.className||e.tagName):"nothing")+" | button top="+(b?Math.round(b.top):"none")+" scrollY="+Math.round(scrollY)})()`).catch(x=>x.message);log(`round tap ${t} did not open the list; under the finger: ${under}; HELP trace tail: ${await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-6))').catch(()=>'')}`);}
+      }
+      await until(()=>present('.help-helper'),'contacts list',5000);
       const k=await js('[...document.querySelectorAll(".help-helpers label")].findIndex(l=>/Bob/.test(l.textContent))+1');
       await setBox(`.help-helpers label:nth-child(${k}) input`,want);await realTap('#helpSave');
       await until(async()=>/Saved|Not saved/.test(await js('document.querySelector("#helpSettingsMsg")?.textContent||""')),'save result',30000);
@@ -345,7 +352,7 @@ if(label==='fix'){
       await toMessages();await sleep(1500);const bar=await present('#helpFab');
       return{line,bar,good:want?(/Bob/.test(line)&&bar):(/Nobody/.test(line)&&!bar)};
     };
-    for(let i=1;i<=5;i++){for(const want of [false,true]){const r=await saveWith(want);if(!r.good)bad.push(`round ${i} ${want?'on':'off'}: "${r.line.trim()}", bar ${r.bar}`);}}
+    for(let i=1;i<=5;i++){for(const want of [false,true]){const r=await saveWith(want);log(`round ${i} ${want?'on':'off'}: ${r.good?'right':'WRONG'} ("${r.line.trim()}", bar ${r.bar})`);if(!r.good)bad.push(`round ${i} ${want?'on':'off'}: "${r.line.trim()}", bar ${r.bar}`);}}
     const tr=await js('JSON.stringify(globalThis.FIDUNIO_HELP_TRACE||[])').catch(()=>'');fs.writeFileSync(path.join(out,'help-trace-repeat.txt'),String(tr));
     const s=await shot('help-save-repeat');
     return{ok:bad.length===0,observed:bad.length?bad.join('; '):'all 10 saves right',shots:[s]};
