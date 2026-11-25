@@ -1,0 +1,88 @@
+name: HELP server log read (read-only, run by hand)
+# Owner-approved 25 Nov 2026 08:50/08:54: read-only look at the live HELP server log and today's
+# HELP alerts. Started by hand only (never on push), so it never starts a build. Run with ref=ios:
+# the read-only audit identity accepts only the ios branch. Reads only; prints no tokens, ids or text.
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Start, world time (UTC)"
+        default: "2026-11-25T13:00:00Z"
+      until:
+        description: "End, world time (UTC)"
+        default: "2026-11-25T16:00:00Z"
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/130339622893/locations/global/workloadIdentityPools/fidunio-github-audit/providers/hermes-ios-audit
+          service_account: fidunio-ci-audit@fidunio-fef13.iam.gserviceaccount.com
+          token_format: access_token
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: fidunio-fef13
+      - name: HELP functions as deployed
+        run: gcloud functions list --regions=us-central1 --format='table(name,state,updateTime)' 2>&1 | grep -i -E "NAME|help" || echo "cannot list functions"
+      - name: HELP server log
+        env:
+          SINCE: ${{ inputs.since }}
+          UNTIL: ${{ inputs.until }}
+        run: |
+          gcloud logging read "timestamp>=\"$SINCE\" AND timestamp<=\"$UNTIL\" AND (resource.labels.service_name=~\"helpalert\" OR resource.labels.function_name=~\"helpAlert\")" \
+            --project fidunio-fef13 --limit 300 --order asc \
+            --format='value(timestamp,severity,resource.labels.service_name,textPayload,jsonPayload.message,jsonPayload.error,jsonPayload.realerted,httpRequest.status)' 2>&1 \
+            | sed -E 's/[A-Za-z0-9_:-]{40,}/<long-id>/g' | grep -v -E '^\s*$' | head -300
+      - name: HELP alerts in that window (fields only)
+        env:
+          SINCE: ${{ inputs.since }}
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            "https://firestore.googleapis.com/v1/projects/fidunio-fef13/databases/(default)/documents:runQuery" \
+            -d "{\"structuredQuery\":{\"from\":[{\"collectionId\":\"helpAlerts\"}],\"where\":{\"fieldFilter\":{\"field\":{\"fieldPath\":\"createdAt\"},\"op\":\"GREATER_THAN_OR_EQUAL\",\"value\":{\"timestampValue\":\"$SINCE\"}}},\"limit\":20}}" > rows.json
+          python3 - <<'PY'
+          import json
+          rows=json.load(open("rows.json"))
+          if isinstance(rows,dict): print("query refused:",rows.get("error",{}).get("status")); raise SystemExit
+          n=0
+          for r in rows:
+              d=r.get("document")
+              if not d: continue
+              n+=1; f=d["fields"]; g=lambda k:list(f[k].values())[0] if k in f else "-"
+              print("alert at",g("createdAt"),"| state",g("state"),"| test",g("test"),
+                    "| helpers",len(f.get("helperUids",{}).get("arrayValue",{}).get("values",[])),
+                    "| answered",len(f.get("acks",{}).get("mapValue",{}).get("fields",{})),
+                    "| reminders sent",g("realertCount"),"| next ring ms",g("nextAlertAtMs"),"| last ring ms",g("lastAlertAtMs"))
+          print("alerts found:",n)
+          PY
+      - name: Notification devices of today's HELP helpers (platform and status only)
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          python3 - <<'PY'
+          import json,urllib.request,os
+          tok=os.popen("gcloud auth print-access-token").read().strip()
+          rows=json.load(open("rows.json"))
+          if isinstance(rows,dict): raise SystemExit
+          helpers=set()
+          for r in rows:
+              d=r.get("document")
+              if d: helpers|={v.get("stringValue") for v in d["fields"].get("helperUids",{}).get("arrayValue",{}).get("values",[])}
+          for i,uid in enumerate(sorted(h for h in helpers if h),1):
+              url=f"https://firestore.googleapis.com/v1/projects/fidunio-fef13/databases/(default)/documents/users/{uid}/notificationDevices?pageSize=20"
+              try:
+                  j=json.load(urllib.request.urlopen(urllib.request.Request(url,headers={"Authorization":"Bearer "+tok})))
+              except Exception as e:
+                  print(f"helper {i}: cannot read devices ({e})"); continue
+              docs=j.get("documents",[])
+              print(f"helper {i}: {len(docs)} notification device record(s)")
+              for d in docs:
+                  f=d.get("fields",{})
+                  keep={k:list(v.values())[0] for k,v in f.items() if k in ("platform","enabled","active","status","leaseExpiresAt","updatedAt","appVersion","revokedAt")}
+                  print("   ",keep, "| token present:", "fcmToken" in f)
+          PY
