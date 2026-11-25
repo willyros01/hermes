@@ -79,6 +79,15 @@ for(let i=0;i<6;i++)await d.fill(`#joinPinHost .pin-code-slot:nth-child(${i+1})`
 await d.press('#redeemBtn');
 try{await until(async()=>await present('#newBtn')||await present('#tabletNewBtn'),'Messages screen',150000);}catch(e){await shot('join-stuck');log('screen: '+String(await d.appText().catch(x=>x.message)).replace(/\s+/g,' ').slice(0,500));throw e;}
 log('signed in');
+/* Start-up serialization (1.1.83): each start-up step must have started exactly once for this sign-in. */
+if(label==='fix')await check('STARTUP-ONCE','After sign-in, count how many times each start-up step started','every step exactly once, in order',async()=>{
+  await sleep(20000);
+  const steps=await js('JSON.stringify(globalThis.FIDUNIO_STARTUP_STEPS||[])').then(JSON.parse).catch(()=>[]);
+  const counts={};for(const n of steps)counts[n]=(counts[n]||0)+1;
+  const need=['notification upkeep','conversations','blocked users','groups','HELP','activation','publish E2EE key'];
+  const ok=need.every(n=>counts[n]===1)&&Object.values(counts).every(c=>c===1);
+  return{ok,observed:'order: '+steps.join(' → ')+' | counts: '+JSON.stringify(counts),shots:[]};
+});
 await d.press((await present('#newBtn'))?'#newBtn':'#tabletNewBtn');
 await until(()=>js('[...document.querySelectorAll(".fidunio-recipient-choice")].some(b=>/Bob/.test(b.textContent))'),'Bob in contacts',60000);
 /* The contact list can redraw while loading: tap Bob once he is really there. */
@@ -428,7 +437,7 @@ if(label==='fix'&&android){
 }
 
 /* Android: keep the app's own HELP / Firebase messages as evidence (no keys or message text are logged). */
-if(android){try{const l=adb('logcat','-d','-v','time','Capacitor/Console:*','*:S');fs.writeFileSync(path.join(out,'app-console.txt'),l.split('\n').filter(x=>/HELP|helpSettings|permission|listener/i.test(x)).join('\n'));}catch(e){log('logcat: '+e.message);}}
+if(android){try{const l=adb('logcat','-d','-v','time','Capacitor/Console:*','*:S');fs.writeFileSync(path.join(out,'app-console.txt'),l.split('\n').filter(x=>/HELP|helpSettings|permission|listener|start-up/i.test(x)).join('\n'));}catch(e){log('logcat: '+e.message);}}
 const lines=[`# FIDUNIO input probe — ${platform} — ${label}`,'','| Check | What | Expected | Observed | |','|---|---|---|---|---|'];
 for(const r of results)lines.push(`| ${r.id} | ${r.what} | ${r.expected} | ${String(r.observed).replace(/\|/g,'/')} | ${r.ok?'as expected':'**DIFFERENT**'} |`);
 lines.push('');for(const r of results)for(const s of r.shots||[])lines.push(`### ${r.id} — ${s}`,'',`![${s}](${s})`,'');
