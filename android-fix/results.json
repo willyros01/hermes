@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (7:54 AM Sent)",
+      "observed": "a new message appeared (8:13 AM Sent)",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -196,7 +196,7 @@
       "what": "Tap \"Write a message\", type and send \"Where are you?\"",
       "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
       "ok": true,
-      "observed": "chat: \"\"; map link shown; text:  Sent 7:54 AM Sent 7:54 AM Sent You are now one of my HELP contacts. 7:56 AM Sent HELP Open in Maps 7:56 AM Sent Help chat 7731 7:56 AM Sent",
+      "observed": "chat: \"\"; map link shown; text:  Sent 8:13 AM Sent 8:13 AM Sent You are now one of my HELP contacts. 8:15 AM Sent HELP Open in Maps 8:16 AM Sent Help chat 7731 8:16 AM Sent",
       "shots": [
         "23-help-chat.png"
       ]
@@ -226,7 +226,7 @@
       "what": "Bob sends HELP to Alice (from his phone)",
       "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
       "ok": true,
-      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 7:57 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
+      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 8:16 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
       "shots": [
         "26-help-incoming.png",
         "27-help-im-coming.png"
