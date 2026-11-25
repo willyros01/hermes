@@ -1,3 +1,12 @@
+## 2026-11-25 — 1.1.83 build checklist additions
+
+- [x] Missing lock PIN record → password + PIN, same PIN saved back; wrong PIN stays locked (unit test + Android emulator probe).
+- [x] No unlock path without a PIN (app.js renderUnlock, auth-ui-clean.js renderSessionUnlock).
+- [x] Settings writes re-read the stored security record (local-security.js).
+- [x] Shared files byte-identical on ios / Android / main; device code only in same-named platform adapters.
+- [x] KISS HELP journeys on the Android emulator and iPhone simulator.
+- [ ] Owner: hl2.txt (HELP rings every 30 s), real-device PIN + HELP checks.
+
 ## 2026-10-26 — Android 1.1.80 group emoji attribution owner PASS; web now released
 
 Owner confirmed Fire HD 8 Android 1.1.80 emoji reaction author list **works perfectly**, with immediate emoji appearance. This is physical acceptance of the observed Android feature, not full 88-scenario app release certification. Signed Android APK CI #40412540776, exact APK publisher #40413232005 and Pages publication #40413284424 PASS. No native Android application-code changes were needed for web-only repair.

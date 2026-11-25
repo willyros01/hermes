@@ -1,3 +1,13 @@
+## 2026-11-25 — FIDUNIO 1.1.83 (PIN record repair + KISS HELP) — OPEN items
+
+- [ ] **Owner runs `hl2.txt` in Cloud Shell** (functions only): HELP rings every 30 seconds until answered. Until then HELP re-alerts every 2 minutes, at most 5 times.
+- [ ] **Owner real-device checks:** iPad/iPhone/Fire HD 8: PIN unlock; if the iPad shows "This device's PIN record is missing", enter password + PIN once (same PIN). HELP: Settings → Safety → HELP → Choose HELP contacts → tick → Save; HELP bar → hold → helper's phone rings → "I'm coming" → "Write a message" both ways → "I'm OK now".
+- [ ] **Close old 1.1.82 test HELP alerts** if any still show as open.
+- [ ] **Apple: Xcode 27 / iOS 27 SDK** required for App Store uploads from April 2027 — move the TestFlight workflow before then.
+- [ ] **App Store privacy: location** — "Precise location, linked to user, App functionality (HELP)" must be declared in App Store Connect before App Store review.
+- [ ] **Old 1.1.82 Fire phones** do not show the new "HELP — <name>" ADM text until they update to 1.1.83.
+- [ ] **Root cause of the lost PIN record on the iPad** is not proven (the iPad app was deleted before the evidence was captured). 1.1.83 makes the case safe (password + PIN restores the same PIN; settings changes can no longer write over it). Rule: never delete or reset a misbehaving device before saving the evidence.
+
 ## 2026-10-26 — Android 1.1.80 group emoji attribution owner PASS; web now released
 
 Owner confirmed Fire HD 8 Android 1.1.80 emoji reaction author list **works perfectly**, with immediate emoji appearance. This is physical acceptance of the observed Android feature, not full 88-scenario app release certification. Signed Android APK CI #40412540776, exact APK publisher #40413232005 and Pages publication #40413284424 PASS. No native Android application-code changes were needed for web-only repair.
