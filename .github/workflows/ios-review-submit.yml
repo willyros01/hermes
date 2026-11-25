@@ -1,0 +1,49 @@
+name: FIDUNIO Submit for Review
+# Release tooling only (no app code). Started on request through the API.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: inspect = read only, prepare = set up without submitting, submit = send to App Review
+        type: choice
+        options: [inspect, prepare, submit]
+        default: inspect
+      demo_user:
+        description: App Review sign-in email (prepare/submit)
+        required: false
+      demo_pass:
+        description: App Review sign-in password (prepare/submit)
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: fidunio-review-submit
+  cancel-in-progress: false
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: App Store Connect review submission
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          # Inputs are read from the event file so they never appear in the log.
+          STAGE="$(jq -r '.inputs.stage // "inspect"' "$GITHUB_EVENT_PATH")"
+          DEMO_USER="$(jq -r '.inputs.demo_user // ""' "$GITHUB_EVENT_PATH")"
+          DEMO_PASS="$(jq -r '.inputs.demo_pass // ""' "$GITHUB_EVENT_PATH")"
+          if [ -n "$DEMO_PASS" ]; then echo "::add-mask::$DEMO_PASS"; fi
+          export STAGE DEMO_USER DEMO_PASS
+          export KEY="$RUNNER_TEMP/AuthKey.p8"
+          trap 'rm -f "$KEY"' EXIT
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY"
+          unset ASC_KEY_P8
+          node build/asc-submit.mjs

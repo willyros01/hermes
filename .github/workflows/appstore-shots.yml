@@ -1,0 +1,61 @@
+name: FIDUNIO App Store screenshots
+# Release tooling only (no app code). Real FIDUNIO screens on LOCAL emulators
+# with sample family members; never production. Started on request via the API.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: fidunio-appstore-shots
+  cancel-in-progress: false
+jobs:
+  shots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ios
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build the app screens and pin them to local emulators
+        run: |
+          set -Eeuo pipefail
+          npm ci --no-audit --no-fund
+          npm run ios:web
+          node build/appstore/sandbox.mjs
+          npx playwright install --with-deps webkit
+          python3 -m pip install --quiet --break-system-packages pillow
+          printf '%s' '{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"storage":{"rules":"storage.rules"},"emulators":{"auth":{"port":9099,"host":"127.0.0.1"},"firestore":{"port":8080,"host":"127.0.0.1"},"storage":{"port":9199,"host":"127.0.0.1"},"ui":{"enabled":false},"singleProjectMode":false}}' > firebase.shots.json
+      - name: Capture screenshots
+        run: |
+          set -Eeuo pipefail
+          ./node_modules/.bin/firebase emulators:exec --config firebase.shots.json --only auth,firestore,storage \
+            --project demo-fidunio-simulator-tests \
+            "node build/appstore/local-functions.mjs >/tmp/fn.log 2>&1 & sleep 3; node build/appstore/shots.mjs out-shots"
+      - name: Size and publish to the appstore-assets branch
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          mkdir -p out-shots
+          python3 - <<'PY'
+          from PIL import Image
+          import glob
+          for f in glob.glob('out-shots/ipad-*.png'):
+              Image.open(f).convert('RGB').resize((2064,2752),Image.LANCZOS).save(f)
+          for f in sorted(glob.glob('out-shots/*.png')):
+              im=Image.open(f).convert('RGB'); im.save(f); print(f, im.size)
+          PY
+          git fetch --depth 1 origin appstore-assets || true
+          mkdir pub && cd pub && git init -q && git checkout -q -b appstore-assets
+          if git -C .. rev-parse -q --verify origin/appstore-assets >/dev/null; then git -C .. archive origin/appstore-assets | tar -x; fi
+          rm -rf fidunio-shots && mkdir fidunio-shots && cp ../out-shots/* fidunio-shots/
+          git add -A && git -c user.name=github-actions -c user.email=actions@github.com commit -qm "[skip ci] FIDUNIO App Store screenshots run $GITHUB_RUN_NUMBER"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" appstore-assets
+          echo "PUBLISHED: appstore-assets/fidunio-shots"
