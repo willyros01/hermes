@@ -1,0 +1,4 @@
+11-25 07:16:40.808 W/Capacitor/Console( 2410): File: https://localhost/account-guard.js - Line 21 - Msg: FIDUNIO account guard could not verify account state FirebaseError: [code=permission-denied]: 
+11-25 07:16:47.802 D/Capacitor/Console( 2410): File:  - Line 194 - Msg: Removing listener FirebaseMessaging tokenReceived
+11-25 07:22:19.828 D/Capacitor/Console( 4352): File:  - Line 194 - Msg: Removing listener FirebaseMessaging tokenReceived
+11-25 07:22:32.645 D/Capacitor/Console( 4542): File:  - Line 194 - Msg: Removing listener FirebaseMessaging tokenReceived
