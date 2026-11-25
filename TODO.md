@@ -6,7 +6,9 @@
 - [ ] **Apple: Xcode 27 / iOS 27 SDK** required for App Store uploads from April 2027 — move the TestFlight workflow before then.
 - [ ] **App Store privacy: location** — "Precise location, linked to user, App functionality (HELP)" must be declared in App Store Connect before App Store review.
 - [ ] **Old 1.1.82 Fire phones** do not show the new "HELP — <name>" ADM text until they update to 1.1.83.
-- [ ] **Start-up runs three older jobs twice** (since Sept/Oct): notification registration upkeep, publishing the encryption key, blocked-users watch are started both from the "signed in" report and again after Firebase starts. Against the serialization guideline; owner to decide when to change (HELP was moved to one place in 1.1.83).
+- [x] **Start-up double start — FIXED in 1.1.83**: one start-up place; each step started once and waited for (proven on both simulators: every step exactly once).
+- [ ] **Settings page settles after opening**: on the iPhone simulator a tap right after Settings opened twice hit empty space because the page was still moving; check the page does not jump.
+- [x] **HELP contacts vanishing after Save — FIXED in 1.1.83**: an out-of-date server answer is now checked with a direct server read (proven: 20/20 saves right).
 - [ ] **Root cause of the lost PIN record on the iPad** is not proven (the iPad app was deleted before the evidence was captured). 1.1.83 makes the case safe (password + PIN restores the same PIN; settings changes can no longer write over it). Rule: never delete or reset a misbehaving device before saving the evidence.
 
 ## 2026-10-26 — Android 1.1.80 group emoji attribution owner PASS; web now released
