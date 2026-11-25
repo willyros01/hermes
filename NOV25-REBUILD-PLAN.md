@@ -12,7 +12,13 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    "I'm OK now" always visible; same messages also in the normal chat. KISS, real profile names.
 4. Simulator tap-through (Android + iPhone) incl. an EXISTING chat between sender and helper; then TestFlight + APK + web.
    Merge origin/main and origin/ios into the fix branches first (two [skip ci] commits there).
-5. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
+5. Owner additions (25 Nov 11:15), same build:
+   a. Settings: the abuse report section collapsed by default (like Manage Users); HIGHLIGHT it when there is an
+      outstanding report.
+   b. Settings: DELETE the "Install FIDUNIO" card/section.
+   c. Logo/branding: remove "Functional Prototype" everywhere (FIDUNIO is in the App Store now). Scan the whole app for
+      unnecessary wording; make every screen's text brief and clear (owner UI rule: no clutter, concise words).
+6. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
 Server state now: hlp.txt rules, hl2.txt functions (30-second ring, no limit, body "HELP — <name>"), hip.txt run.invoker
 permission for fidunio-notification@ on helpalertcreatedv1/helpalertupdatedv1 (proven working: Fire 8 gets the notification).
 
