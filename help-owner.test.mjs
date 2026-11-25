@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 /* KISS HELP (2026-11-25): card format, names, no Wi-Fi, no pictures, no account protection. */
 const src=fs.readFileSync("help-owner.js","utf8").replace(/^import .*$/gm,"");
-const mod=await import("data:text/javascript;base64,"+Buffer.from(src+"\nconst initFirebase=0,listCloudUsers=0,prepareUrgentAlerts=0,currentLocation=0;").toString("base64"));
+const mod=await import("data:text/javascript;base64,"+Buffer.from(src+"\nconst getFirebaseServices=0,listCloudUsers=0,prepareUrgentAlerts=0,currentLocation=0;").toString("base64"));
 const {encodeHelpCard,parseHelpCard,renderHelpCardBubble,helpCardLines,mapLink,joinNames,HELP_GROUP_PREFIX}=mod;
 const t=encodeHelpCard({alertId:"a1",kind:"alert",location:{lat:43.65,lng:-79.38,acc:12.7},wifi:"HomeNet"});
 const c=parseHelpCard(t);
@@ -26,4 +26,7 @@ const app=fs.readFileSync("app.js","utf8");
 assert.match(app,/help:\(\)=>helpOwner\.renderHelp\(\)/);
 assert.match(app,/helpOwner\.afterUnlock\(\);/,"an unanswered HELP opens after unlock");
 assert.match(owner,/String\(uid\)===st\.uid&&\(st\.unsub\.length\|\|st\.starting\)\)return;/,"a repeated sign-in event for the same person keeps the HELP contacts");
+assert.ok(!/initFirebase/.test(owner),"HELP never adds its own sign-in listener");
+assert.match(app,/await startupStep\("HELP",\(\)=>helpOwner\.start\(user\.uid\)\)/,"HELP is started once and waited for");
+assert.equal((app.match(/helpOwner\.start\(/g)||[]).length,1,"HELP is started from one place only");
 console.log("HELP app gate passed");

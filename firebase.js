@@ -21,6 +21,8 @@ async function loadSdk(){if(sdkPromise)return sdkPromise;const version=getPlatfo
 async function ensureServices(){if(services)return services;if(!isFirebaseConfigured())throw new Error("Firebase is not configured yet.");const {appSdk,authSdk,fsSdk,appCheckSdk,functionsSdk,storageSdk,messagingSdk}=await loadSdk();const app=appSdk.initializeApp(firebaseConfig);const appCheck=await createPlatformFirebaseAppCheck({app,appCheckSdk,siteKey:FIDUNIO_RECAPTCHA_ENTERPRISE_SITE_KEY});const auth=createPlatformFirebaseAuth({app,authSdk}),db=fsSdk.getFirestore(app),functions=functionsSdk.getFunctions(app,"us-central1"),storage=storageSdk.getStorage(app);services={app,appCheck,auth,db,functions,storage,authSdk,fsSdk,functionsSdk,storageSdk,messagingSdk,messaging:null};return services;}
 export async function initFirebase(onUserChanged){const s=await ensureServices();s.authSdk.onAuthStateChanged(s.auth,user=>{authUser=user||null;onUserChanged?.(authUser);});return s;}
 export function getFirebaseUser(){return authUser;}
+/* Firebase services without adding another sign-in listener (HELP and other owners use this). */
+export async function getFirebaseServices(){return ensureServices();}
 export async function ensureFirebaseAuthSession(){const s=await ensureServices(),user=s.auth.currentUser;if(!user||!authUser||user.uid!==authUser.uid)throw new Error("Firebase authentication session is unavailable.");await user.getIdToken();authUser=user;return{uid:user.uid};}
 
 async function ensureNotificationMessaging(){const s=await ensureServices();if(!(await s.messagingSdk.isSupported()))return null;if(!s.messaging)s.messaging=s.messagingSdk.getMessaging(s.app);return{s,messaging:s.messaging};}
