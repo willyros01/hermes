@@ -1,5 +1,14 @@
-FIDUNIO iPad update + PIN probe — device: iPad Air 11-inch (M3) (ABF743D3-A9E9-4317-BB4C-DDCFB58C38DE) (Booted)
-released version signed in: 1.1.81
-new version installed over the old one (no uninstall)
-DIFFERENT UPDATE-OPENS-LOCKED — observed: version 1.1.81 → 1.1.82; unlock screen with PIN boxes: false
+FIDUNIO iPad update — saved data check — iPad Air 11-inch (M3) (ABF743D3-A9E9-4317-BB4C-DDCFB58C38DE) (Booted)
+
+=== SAME ===
+1.1.81 signed in, saved data: [object Object]
+after update, first open: [object Object]
+after closing and reopening: [object Object]
+DIFFERENT SAME — observed: first open keeps PIN settings + encryption key: false; after reopening: false
+
+=== WEBONLY ===
+could not sign in to 1.1.81: timed out: Sign In tab
+
+=== FULL ===
+could not sign in to 1.1.81: timed out: restore or Messages
 RESULT: probe finished
