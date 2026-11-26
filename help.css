@@ -9,7 +9,9 @@
 
 /* Full-screen HELP screens. */
 .help-shell{min-height:100vh;min-height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:22px;padding:calc(20px + env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom));text-align:center}
-.help-hold-screen,.help-plain{background:var(--bg,#fff);color:var(--text,#1A1D21)}
+/* The app's text colour is --ink (dark mode lightens it). --text does not exist, so dark mode showed dark text on a
+   dark background (owner, Fire 8, 26 Nov). */
+.help-hold-screen,.help-plain{background:var(--bg,#fff);color:var(--ink,#1A1D21)}
 .help-red{background:#C62828;color:#fff}
 .help-green{background:#2E7D32;color:#fff}
 .help-top{align-self:stretch;display:flex}

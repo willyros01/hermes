@@ -1,3 +1,7 @@
+## Next FIDUNIO build (batched, owner 26 Nov 11:52)
+
+- [x] **HELP hold screen in dark mode** (Fire 8): title, back arrow and hint were dark text on dark background — fixed in help.css (uses --ink); add a dark-mode check of every HELP screen to the simulator test.
+
 ## 2026-11-26 — FIDUNIO 1.1.84 build (scheduled 08:05)
 
 - [x] **TOP: HELP bar sometimes does not appear** — FIXED in 1.1.84 (iPad simulator: missing 3/3 on 1.1.83, shown 3/3 + live on 1.1.84) (owner, 25 Nov; seen since the first HELP build). Find the cause with evidence; the bar must show from the last server-confirmed HELP contacts kept on the device, never wait for a live answer.
