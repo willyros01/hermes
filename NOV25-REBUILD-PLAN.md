@@ -38,7 +38,11 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    sidebar, fabMarkup placement in the tablet sidebar, and whether the bar is drawn before settingsLoaded.
    Design rule to apply: the HELP bar must NEVER depend on a live answer arriving in time — keep the last server-confirmed
    HELP contacts on the device (durable, like a database commit) and show the bar from that at once; live answers only update it.
-7. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
+7. OWNER NOTE (19:55): the iPad two-panel REDRAW has been problematic from the start. Also: the first time Settings is
+   opened after a restart or a long break, it takes "forever" to fill in User Management, Invitations, etc. He gave up on
+   it because much time was spent and it was never fixed. Treat the HELP-bar-after-unlock bug as part of this redraw
+   problem; measure (time to fill each Settings card after restart) before changing anything; owner decides scope.
+8. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
 Server state now: hlp.txt rules, hl2.txt functions (30-second ring, no limit, body "HELP — <name>"), hip.txt run.invoker
 permission for fidunio-notification@ on helpalertcreatedv1/helpalertupdatedv1 (proven working: Fire 8 gets the notification).
 
