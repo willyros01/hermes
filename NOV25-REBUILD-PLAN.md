@@ -20,7 +20,13 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    b. Settings: DELETE the "Install FIDUNIO" card/section.
    c. Logo/branding: remove "Functional Prototype" everywhere (FIDUNIO is in the App Store now). Scan the whole app for
       unnecessary wording; make every screen's text brief and clear (owner UI rule: no clutter, concise words).
-6. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
+6. TOP PRIORITY (owner 25 Nov 19:42): "help button sometimes does not appear! you have this prob from the beginning."
+   Still happens on real devices in 1.1.83 despite the start-once and server-read fixes. Do NOT guess: find the cause with
+   evidence (the HELP trace globalThis.FIDUNIO_HELP_TRACE records start/stop/snapshots/applied; consider showing it to the
+   owner from a hidden spot, and repeat app-open/resume/unlock/background cycles in the simulator, not only Save).
+   Design rule to apply: the HELP bar must NEVER depend on a live answer arriving in time — keep the last server-confirmed
+   HELP contacts on the device (durable, like a database commit) and show the bar from that at once; live answers only update it.
+7. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
 Server state now: hlp.txt rules, hl2.txt functions (30-second ring, no limit, body "HELP — <name>"), hip.txt run.invoker
 permission for fidunio-notification@ on helpalertcreatedv1/helpalertupdatedv1 (proven working: Fire 8 gets the notification).
 
