@@ -1,3 +1,22 @@
+## FIDUNIO 1.1.84 — HELP bar on iPad, HELP alarm sound, HELP conversation on the big screen — 2026-11-26
+
+1.1.83 -> 1.1.84 (owner-scheduled build, 26 Nov 08:05). TestFlight (ios), Android APK (Android, Cuberoot website), web (main).
+
+- HELP bar missing on the iPad after a restart or unlock (owner, since the first HELP build): code-traced cause — on the
+  two-panel layout a background redraw patched only the open chat and the list and returned, so the HELP bar (outside the
+  list) was never drawn when the HELP contacts arrived. Now `render()` also redraws the HELP bar slot on that path
+  (`helpOwner.refreshBar()`); proven on the iPad simulator (live arrival + 3 restarts/unlocks, touch nothing).
+- "Write a message" on the helper's phone failed ("Conversation could not be started"): `startDirectConversation` rewrote an
+  existing chat's member list in the other order, which the rules refuse. An existing direct chat is now opened as it is.
+- Option A (owner): the HELP conversation is on the big HELP screen (large messages, one text box, Send, "I'm OK now"); it is
+  the same conversation as the regular chat, which shows everything that happened. Typing survives screen changes.
+- HELP alarm sound: iPhone/iPad play the bundled 15-second `help_alarm.caf` (server asks for it; Time Sensitive kept);
+  Android and Fire use a new "HELP alarm" channel (`fidunio-help-alarm`) with `res/raw/help_alarm` on the ALARM volume.
+  Server change = functions only (owner runs the Cloud Shell script).
+- Settings: Abuse Reports collapsed (Show reports) and highlighted, with the Safety menu item, when a report is waiting;
+  report details load one at a time (serialization guideline). "Install FIDUNIO" removed. "Functional Prototype" removed;
+  prototype/test notes removed; long notes and section subtitles shortened.
+
 ## FIDUNIO 1.1.83 — PIN record repair, KISS HELP, same-named device modules — 2026-11-25
 
 1.1.82 -> 1.1.83 (owner-authorized rebuild, Willy 24 Nov 22:34). Released to TestFlight (ios), the Android APK (Android branch, published on the Cuberoot website) and the web (main).
