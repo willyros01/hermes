@@ -541,7 +541,15 @@ async function hydrateAccountPanels(g,shell){
   try{
     const info=await getFidunioAccessInfo();if(!current(g,shell))return;
     if(!info?.user||!info?.profile){profileHost.innerHTML='<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">Account profile is unavailable.</p></div>';usersHost.innerHTML="";invitesHost.innerHTML="";return;}
-    renderProfile(profileHost,info);await renderAccountDeletion(profileHost,usersHost,info);renderAccountEncryption(encryptionHost,info);renderNotifications(notificationsHost,info);renderSafety(safetyHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);renderLegalSupport(host(shell,"legal"));
+    /* One page, one owner, in order (owner rule, 26 Nov): first every part that needs no further server answer is
+     * drawn at once, so the page is usable straight away; then each part that waits for the server is loaded and
+     * drawn one after another, each waited for. Before, the account-deletion status had to arrive before User
+     * Administration and Invitations were even drawn, and the rest loaded all at the same time. */
+    renderProfile(profileHost,info);renderAccountEncryption(encryptionHost,info);renderUserAdmin(usersHost,info);renderInvitations(invitesHost,info);renderAccountVault(host(shell,"data"),info);renderLegalSupport(host(shell,"legal"));
+    for(const [name,step] of [["account deletion",()=>renderAccountDeletion(profileHost,usersHost,info)],["notifications",()=>renderNotifications(notificationsHost,info)],["safety",()=>renderSafety(safetyHost,info)]]){
+      if(!current(g,shell))return;
+      try{await step();}catch(err){console.warn(`Settings: ${name} could not load`,err);}
+    }
   }catch(err){if(!current(g,shell))return;profileHost.innerHTML=`<div class="card" id="fidunioProfileCard"><h2>Profile</h2><p class="warning-note">${esc(err?.message||String(err))}</p></div>`;usersHost.innerHTML="";invitesHost.innerHTML="";}
 }
 

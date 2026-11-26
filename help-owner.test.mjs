@@ -36,4 +36,5 @@ assert.match(owner,/id="helpChatLog"/,"Option A: the conversation is on the big 
 assert.ok(!/id="helpWrite"/.test(owner),"Option A: no separate Write a message button");
 assert.match(app,/messages:id=>state\.messages\[String\(id\)\]\|\|\[\]/,"the big screen shows the regular chat's own messages");
 assert.match(app,/if\(conversationOnScreen\(conversationId\)\)render\(\{background:true\}\)/,"new messages redraw the big HELP screen too");
+assert.match(app,/state\.route==="settings"&&document\.querySelector\("#fidunioSettingsShell"\)\)\{helpOwner\.refreshSettingsCard/,"a background job never rebuilds Settings");
 console.log("HELP app gate passed");

@@ -1,3 +1,15 @@
+## FIDUNIO 1.1.85 — Settings opens fast after a restart — 2026-11-26
+
+1.1.84 -> 1.1.85 (owner go 26 Nov 10:24, same test cycle as 1.1.84).
+
+- Slow Settings right after a restart or a long break (owner, long-standing): code-traced cause — every redraw rebuilt the
+  whole Settings page and restarted every part's loading, and right after a restart several background jobs (E2EE key
+  publish, HELP contacts/alerts, chat-list errors) asked for redraws, so the loading kept starting over. Now a background
+  job never rebuilds Settings (only the HELP card refreshes, never while contacts are being ticked); the parts that need
+  no server answer are drawn at once, then each server part (account deletion, notifications, safety/abuse reports) loads
+  in order, each waited for (serialization guideline). Proven on the iPad simulator: time to fill Settings after a restart,
+  1.1.84 vs 1.1.85, and no rebuild while it loads.
+
 ## FIDUNIO 1.1.84 — HELP bar on iPad, HELP alarm sound, HELP conversation on the big screen — 2026-11-26
 
 1.1.83 -> 1.1.84 (owner-scheduled build, 26 Nov 08:05). TestFlight (ios), Android APK (Android, Cuberoot website), web (main).
