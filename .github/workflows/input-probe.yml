@@ -33,7 +33,12 @@ jobs:
           P="$(cat build/probe/PLATFORMS 2>/dev/null || echo 'android-released android-fix ios-released ios-fix')"
           mk(){ out="["; sep=""; for l in released fix; do case " $P " in *" $1-$l "*) r=$2; [ $l = fix ] && r=$3; out="$out$sep{\"label\":\"$l\",\"ref\":\"$r\"}"; sep=",";; esac; done; echo "$out]"; }
           echo "android=$(mk android Android fix/nov24-android)" >> "$GITHUB_OUTPUT"
-          echo "ios=$(mk ios ios fix/nov24-ios)" >> "$GITHUB_OUTPUT"
+          IOS="$(mk ios ios fix/nov24-ios)"
+          # ipad-fix: the fix branch on an iPad simulator (two-panel layout), short HELP-bar probe.
+          addios(){ if [ "$IOS" = "[]" ]; then IOS="[$1]"; else IOS="${IOS%]},$1]"; fi; }
+          case " $P " in *" ipad-released "*) addios '{"label":"released","ref":"ios","device":"ipad"}';; esac
+          case " $P " in *" ipad-fix "*) addios '{"label":"fix","ref":"fix/nov24-ios","device":"ipad"}';; esac
+          echo "ios=$IOS" >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
   android:
     needs: plan
@@ -157,7 +162,8 @@ jobs:
           plutil -replace NSFaceIDUsageDescription -string 'Test FIDUNIO simulator' ios/App/App/Info.plist
           plutil -replace NSCameraUsageDescription -string 'Test FIDUNIO simulator camera' ios/App/App/Info.plist
           plutil -replace NSLocationWhenInUseUsageDescription -string 'Test FIDUNIO simulator location' ios/App/App/Info.plist
-          UDID="$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const all=Object.entries(d).filter(([rt])=>/iOS/.test(rt)).flatMap(([,list])=>list);const pick=all.reverse().find(x=>/^iPhone \d+$/.test(x.name));if(!pick)process.exit(1);console.log(pick.udid)')"
+          export DEV="${{ matrix.device || 'iphone' }}"
+          UDID="$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0)).devices;const all=Object.entries(d).filter(([rt])=>/iOS/.test(rt)).flatMap(([,list])=>list);const want=process.env.DEV==="ipad"?/^iPad Pro 13/:/^iPhone \d+$/;const pick=all.reverse().find(x=>want.test(x.name))||(process.env.DEV==="ipad"?all.find(x=>/^iPad/.test(x.name)):null);if(!pick)process.exit(1);console.log(pick.udid)')"
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination "id=$UDID" -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/xcb.log" 2>&1 || { tail -60 "$RUNNER_TEMP/xcb.log"; exit 1; }
       - name: Boot iPhone, Web Inspector and touch layer
@@ -174,7 +180,7 @@ jobs:
       - name: Probe on iPhone simulator
         run: |
           APP="$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name App.app | head -1)"
-          bash build/probe/run.sh ios out-probe "$APP" ${{ matrix.label }}
+          PROBE_DEVICE="${{ matrix.device || 'iphone' }}" bash build/probe/run.sh ios out-probe "$APP" ${{ matrix.label }}
       - name: Publish evidence to the probe-evidence branch
         if: always()
         run: |
@@ -185,15 +191,15 @@ jobs:
           for i in 1 2 3 4 5; do
             rm -rf ./* .git/index 2>/dev/null || true
             if git fetch -q --depth 1 origin probe-evidence; then git checkout -q -B probe-evidence FETCH_HEAD; else git checkout -q --orphan probe-evidence; fi
-            rm -rf "ios-${{ matrix.label }}"; mkdir -p "ios-${{ matrix.label }}"
-            cp -R "$GITHUB_WORKSPACE/out-probe/." "ios-${{ matrix.label }}/"
-            rm -f ios-${{ matrix.label }}/native-fixture.json ios-${{ matrix.label }}/*.log
+            rm -rf "ios-${{ matrix.label }}${{ matrix.device && '-' || '' }}${{ matrix.device }}"; mkdir -p "ios-${{ matrix.label }}${{ matrix.device && '-' || '' }}${{ matrix.device }}"
+            cp -R "$GITHUB_WORKSPACE/out-probe/." "ios-${{ matrix.label }}${{ matrix.device && '-' || '' }}${{ matrix.device }}/"
+            rm -f ios-${{ matrix.label }}${{ matrix.device && '-' || '' }}${{ matrix.device }}/native-fixture.json ios-${{ matrix.label }}${{ matrix.device && '-' || '' }}${{ matrix.device }}/*.log
             git add -A && git -c user.name=github-actions -c user.email=actions@github.com commit -qm "[skip ci] probe evidence run ${{ github.run_id }} ios ${{ matrix.label }}" || true
             git push -q origin HEAD:probe-evidence && break; sleep $((i*3))
           done
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: probe-ios-${{ matrix.label }}
+          name: probe-ios-${{ matrix.label }}${{ matrix.device }}
           path: out-probe/
           retention-days: 90

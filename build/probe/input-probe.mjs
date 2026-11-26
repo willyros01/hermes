@@ -96,6 +96,54 @@ await until(()=>present('#messageBox'),'chat with Bob',90000);
 const sendText=async(t)=>{await d.fill('#messageBox',t);await d.press('#sendBtn');await until(()=>js(`document.querySelector("#chatArea")?.innerText.includes(${JSON.stringify(t)})`),'own message shown',60000);await sleep(1500);};
 await sendText('Copy test 4417');
 await shot('chat-open');
+/* ================= iPad (two-panel) HELP bar probe — owner 25 Nov =================
+ * The owner saw the HELP bar missing on the iPad after a restart / unlock, until a chat was highlighted.
+ * Here: a chat is open (two-panel), HELP contacts arrive from the server, FIDUNIO is restarted and
+ * unlocked — the bar must appear each time WITHOUT touching anything. */
+if(process.env.PROBE_DEVICE==='ipad'){
+  const {initializeTestEnvironment}=await import('@firebase/rules-unit-testing');
+  const {doc,setDoc,serverTimestamp}=await import('firebase/firestore');
+  const env=await initializeTestEnvironment({projectId:fixture.project,firestore:{host:'127.0.0.1',port:8080}});
+  const bobUid=fixture.peers.find(p=>p.label==='Bob').uid;
+  let aliceUid='';
+  try{const r=await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/'+fixture.project+'/accounts:query',{method:'POST',headers:{authorization:'Bearer owner','content-type':'application/json'},body:'{}'});const v=await r.json();aliceUid=(v.userInfo||[]).find(u=>u.email===fixture.alice.email)?.localId||'';}catch(e){log('alice lookup: '+e.message);}
+  const trace=async()=>js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-8))').catch(()=>'');
+  const barWithin=async ms=>{const end=Date.now()+ms;while(Date.now()<end){if(await present('#helpFab'))return true;await sleep(1000);}return false;};
+  await check('IPAD-LAYOUT','iPad simulator, chat with Bob open','two-panel layout (list on the left, chat on the right)',async()=>{
+    const two=await present('.tablet-shell')&&await present('#messageBox');const s=await shot('ipad-two-panel');
+    return{ok:two,observed:two?'two-panel with chat open':'not two-panel',shots:[s]};
+  });
+  await check('IPAD-BAR-LIVE','With the chat open, HELP contacts arrive from the server (Bob chosen on another device); touch nothing','the red HELP bar appears in the left panel within 20 s, without touching anything',async()=>{
+    await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'helpSettings',aliceUid),{enabled:true,helperUids:[bobUid],protected:false,updatedAt:serverTimestamp()});});
+    const ok=await barWithin(20000);const s=await shot('ipad-bar-live');
+    return{ok,observed:`HELP bar ${ok?'shown':'MISSING'}; still in chat: ${await present('#messageBox')}; trace ${await trace()}`,shots:[s]};
+  });
+  const restartAndUnlock=async()=>{
+    d.terminate(APP);await sleep(2500);d.launch(APP);await sleep(6000);
+    await until(async()=>await present('#sessionPinHost')||await present('#localUnlockPin')||await present('#tabletNewBtn'),'unlock screen',90000).catch(()=>{});
+    if(await present('#sessionPassword'))await d.fill('#sessionPassword',fixture.alice.password);
+    const host=(await present('#sessionPinHost'))?'#sessionPinHost':(await present('#localUnlockPin'))?'#localUnlockPin':'';
+    if(host){for(let i=0;i<6;i++)await d.fill(`${host} .pin-code-slot:nth-child(${i+1})`,fixture.alice.pin[i]);await sleep(4000);
+      const btn=(await present('#sessionUnlockBtn'))?'#sessionUnlockBtn':'';if(btn&&!(await present('#tabletNewBtn')))await d.press(btn).catch(()=>{});}
+    await until(()=>present('#tabletNewBtn'),'Messages after unlock',90000).catch(()=>{});
+  };
+  for(const round of [1,2,3]){
+    await check(`IPAD-BAR-RESTART-${round}`,`Restart FIDUNIO, unlock with the PIN, touch nothing (round ${round} of 3)`,'the red HELP bar is there within 20 s, without touching anything',async()=>{
+      await restartAndUnlock();const open=await present('#tabletNewBtn');
+      const ok=open&&await barWithin(20000);const s=await shot('ipad-bar-restart-'+round);
+      return{ok,observed:`unlocked: ${open}; HELP bar ${ok?'shown':'MISSING'}; route: ${await js('document.body.dataset.route').catch(()=>'?')}; trace ${await trace()}`,shots:[s]};
+    });
+  }
+  await env.cleanup().catch(()=>{});
+  const lines=[`# FIDUNIO input probe — ${platform} iPad — ${label}`,'','| Check | What | Expected | Observed | |','|---|---|---|---|---|'];
+  for(const r of results)lines.push(`| ${r.id} | ${r.what} | ${r.expected} | ${String(r.observed).replace(/\|/g,'/')} | ${r.ok?'as expected':'**DIFFERENT**'} |`);
+  lines.push('');for(const r of results)for(const s of r.shots||[])lines.push(`### ${r.id} — ${s}`,'',`![${s}](${s})`,'');
+  fs.writeFileSync(path.join(out,'REPORT.md'),lines.join('\n'));
+  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({platform,label,device:'ipad',results},null,2));
+  log('\nRESULT: iPad probe finished');
+  process.exit(0);
+}
+
 const unlockIfLocked=async()=>{const slots=await js('document.querySelectorAll(".pin-code-slot").length');if(slots===6&&!(await present('#messageBox'))&&!(await present('#newBtn'))){for(let i=0;i<6;i++)await d.fill(`.pin-code-slot:nth-child(${i+1})`,fixture.alice.pin[i]);await js('(()=>{const b=document.querySelector("#localPinUnlockBtn")||[...document.querySelectorAll("button")].find(x=>/unlock/i.test(x.textContent));b&&b.click();return !!b})()');await sleep(3000);}};
 const isLocked=async()=>!(await present('#messageBox'))&&!(await present('#newBtn'))&&!(await present('#tabletNewBtn'))&&(await js('document.querySelectorAll(".pin-code-slot").length'))===6;
 
@@ -382,40 +430,58 @@ if(label==='fix'){
     return{ok,observed:`screen: "${t.replace(/\s+/g,' ').slice(0,120)}"; location prompts answered: ${allowed.join(', ')||'none shown'}; server: ${alertId?'open alert for Bob':'NO alert'}`,shots:[s]};
   });
 
-  await check('HELP-WRITE','Tap "Write a message", type and send "Where are you?"','the HELP chat with Bob opens, with the HELP card and the map link; the message is sent',async()=>{
-    await sleep(5000);await realTap('#helpWrite');await until(()=>present('#messageBox'),'HELP chat',20000);
-    await sendText('Help chat 7731');await hideKeyboard();
-    const t=await js('document.querySelector("#chatArea")?.innerText||""');const map=await present('#chatArea .help-card-map');const s=await shot('help-chat');
-    const title=await js('(document.querySelector(".chat-title,.app-shell h1,.topbar h1")?.textContent||"").trim()');
-    return{ok:/HELP/.test(t)&&/Help chat 7731/.test(t),observed:`chat: "${title}"; ${map?'map link shown':'no map link (no location in the emulator)'}; text: ${t.replace(/\s+/g,' ').slice(-140)}`,shots:[s]};
+  await check('HELP-WRITE','On the same HELP screen: type "Help chat 7731" in the big box and tap Send','the message shows in the conversation on the HELP screen (no separate chat screen)',async()=>{
+    await sleep(5000);
+    const onScreen=await present('#helpChatText')&&await present('#helpChatLog');
+    if(!onScreen)return{ok:false,observed:'no conversation on the HELP screen',shots:[await shot('help-no-chat')]};
+    await until(async()=>!/Opening the conversation/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'conversation opened',30000).catch(()=>{});
+    await d.fill('#helpChatText','Help chat 7731');await realTap('#helpChatSend');
+    await until(async()=>/Help chat 7731/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'message in HELP conversation',30000).catch(()=>{});
+    const t=await js('document.querySelector("#helpChatLog")?.innerText||""');const s=await shot('help-chat-on-screen');
+    return{ok:/Help chat 7731/.test(t)&&!(await present('#messageBox')),observed:`conversation on HELP screen: ${t.replace(/\s+/g,' ').slice(-160)}`,shots:[s]};
   });
 
-  await check('HELP-COMING-SEEN','Bob answers "I\'m coming" (from his phone); Alice opens the HELP bar','green "Simulator Bob is coming", "Write a message", "I\'m OK now"',async()=>{
+  await check('HELP-COMING-SEEN','Alice starts typing "draft 88" (not sent); Bob answers "I\'m coming" (from his phone)','green "Simulator Bob is coming" on the same screen; the conversation and the unsent "draft 88" are still there',async()=>{
     if(!alertId)return{ok:false,observed:'no alert to answer',shots:[]};
+    await d.fill('#helpChatText','draft 88');await js('document.querySelector("#helpChatText").dispatchEvent(new Event("input"));true');
     await updateDoc(doc(bobDb,'helpAlerts',alertId),{[`acks.${bobUid}`]:{at:serverTimestamp()}});
-    await toMessages();const bar=await js('document.querySelector("#helpFab")?.textContent||""');await realTap('#helpFab');
     await until(async()=>/Bob\s*is coming/.test(await js('document.querySelector(".help-shell")?.innerText||""')),'Bob is coming',30000).catch(()=>{});
-    const t=await js('document.querySelector(".help-shell")?.innerText||""');const green=await present('.help-green');const s=await shot('help-coming');
-    return{ok:green&&/Bob\s*is coming/.test(t)&&await present('#helpOk'),observed:`bar said: "${bar}"; screen: "${t.replace(/\s+/g,' ').slice(0,100)}"; green: ${green}`,shots:[s]};
+    const t=await js('document.querySelector(".help-shell")?.innerText||""');const green=await present('.help-green');
+    const draft=await js('document.querySelector("#helpChatText")?.value||""');const log2=await js('document.querySelector("#helpChatLog")?.innerText||""');const s=await shot('help-coming');
+    return{ok:green&&/Bob\s*is coming/.test(t)&&await present('#helpOk')&&draft==='draft 88'&&/Help chat 7731/.test(log2),observed:`green: ${green}; screen: "${t.replace(/\s+/g,' ').slice(0,80)}"; unsent text kept: "${draft}"; conversation still shown: ${/Help chat 7731/.test(log2)}`,shots:[s]};
   });
 
-  await check('HELP-OK','Tap "I\'m OK now"','the alert closes (server: safe); back on Messages with the plain HELP bar',async()=>{
+  await check('HELP-OK','Tap "I\'m OK now", then open the regular chat with Bob','the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, "Help chat 7731", "I\'m OK now"',async()=>{
+    await d.fill('#helpChatText','');await js('document.querySelector("#helpChatText")?.dispatchEvent(new Event("input"));true');
     await realTap('#helpOk');await until(()=>present('#newBtn').then(a=>a||present('#tabletNewBtn')),'Messages',20000).catch(()=>{});await sleep(2500);
-    const a=(await alertsFor()).find(x=>x.id===alertId);const bar=await js('document.querySelector("#helpFab")?.textContent||""');const s=await shot('help-ok');
-    return{ok:a?.state==='safe'&&bar.trim()==='HELP',observed:`server: ${a?.state}; bar: "${bar}"`,shots:[s]};
+    const a=(await alertsFor()).find(x=>x.id===alertId);const bar=await js('document.querySelector("#helpFab")?.textContent||""');
+    await openChat();await sleep(3000);
+    const chatText=await js('document.querySelector("#chatArea")?.innerText||""');const s=await shot('help-ok-regular-chat');
+    const same=/HELP/.test(chatText)&&/Help chat 7731/.test(chatText)&&/I'm OK now/.test(chatText);
+    return{ok:a?.state==='safe'&&bar.trim()==='HELP'&&same,observed:`server: ${a?.state}; bar: "${bar}"; regular chat has HELP + message + OK: ${same} (${chatText.replace(/\s+/g,' ').slice(-160)})`,shots:[s]};
   });
 
-  await check('HELP-INCOMING','Bob sends HELP to Alice (from his phone)','Alice\'s FIDUNIO opens the red "Simulator Bob needs HELP" by itself; "I\'m coming" tells the server and opens the chat with Bob',async()=>{
+  await check('HELP-INCOMING','The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps "I\'m coming", types "On my way 5512" and taps Send','red "Simulator Bob needs HELP" opens by itself; after "I\'m coming" the conversation is on the same screen; the message is sent (no "Conversation could not be started"); the server has Alice\'s answer',async()=>{
     await toMessages();
+    const dmId='dm_'+[aliceUid,bobUid].sort().join('_');
+    await admin(async db=>{const r=doc(db,'conversations',dmId);const x=await getDoc(r);if(x.exists())await updateDoc(r,{members:[bobUid,aliceUid]});});
+    const order=await admin(async db=>(await getDoc(doc(db,'conversations',dmId))).data()?.members?.[0]===bobUid);
     await setDoc(doc(bobDb,'helpSettings',bobUid),{enabled:true,helperUids:[aliceUid],protected:false,updatedAt:serverTimestamp()});
     const ref=await addDoc(collection(bobDb,'helpAlerts'),{senderUid:bobUid,helperUids:[aliceUid],state:'open',test:false,acks:{},createdAt:serverTimestamp()});
     await until(()=>present('#helpComing'),'incoming HELP screen',30000).catch(()=>{});
     const t=await js('document.querySelector(".help-shell")?.innerText||""');const s1=await shot('help-incoming');
     if(!(await present('#helpComing')))return{ok:false,observed:`screen: "${t.replace(/\s+/g,' ').slice(0,100)||'HELP screen did not open'}"`,shots:[s1]};
-    await realTap('#helpComing');await until(()=>present('#messageBox'),'chat with Bob',20000).catch(()=>{});
-    const a=(await getDoc(doc(bobDb,'helpAlerts',ref.id))).data();const chat=await present('#messageBox');const s2=await shot('help-im-coming');
+    const errors=[];await js('window.__probeAlerts=[];window.alert=m=>{window.__probeAlerts.push(String(m))};true');
+    await realTap('#helpComing');await until(()=>present('#helpChatText'),'conversation on the HELP screen',20000).catch(()=>{});
+    await until(async()=>!/Opening the conversation/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'conversation opened',30000).catch(()=>{});
+    if(await present('#helpChatText')){await d.fill('#helpChatText','On my way 5512');await realTap('#helpChatSend');}
+    await until(async()=>/On my way 5512/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'helper message shown',30000).catch(()=>{});
+    const logText=await js('document.querySelector("#helpChatLog")?.innerText||""');errors.push(...JSON.parse(await js('JSON.stringify(window.__probeAlerts||[])')));
+    const page=await js('document.body.innerText');
+    const a=(await getDoc(doc(bobDb,'helpAlerts',ref.id))).data();const s2=await shot('help-im-coming-chat');
     await updateDoc(doc(bobDb,'helpAlerts',ref.id),{state:'safe',closedAt:serverTimestamp()});
-    return{ok:/Bob\s*needs HELP/.test(t)&&!!a?.acks?.[aliceUid]&&chat,observed:`opened: "${t.replace(/\s+/g,' ').slice(0,80)}"; server: ${a?.acks?.[aliceUid]?'Alice is coming':'no answer recorded'}; chat opened: ${chat}`,shots:[s1,s2]};
+    const refused=/could not be started/i.test(page+errors.join(' '));
+    return{ok:/Bob\s*needs HELP/.test(t)&&!!a?.acks?.[aliceUid]&&/On my way 5512/.test(logText)&&!refused&&order,observed:`chat made by Bob first: ${order}; opened: "${t.replace(/\s+/g,' ').slice(0,60)}"; server: ${a?.acks?.[aliceUid]?'Alice is coming':'no answer'}; conversation: ${logText.replace(/\s+/g,' ').slice(-120)}; "could not be started": ${refused}${errors.length?'; alerts: '+errors.join(' / '):''}`,shots:[s1,s2]};
   });
 
   await check('HELP-SIGNOUT','Settings: Sign Out button','no PIN asked for Sign Out (protection removed); not tapped',async()=>{
