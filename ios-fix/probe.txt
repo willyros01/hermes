@@ -1,2 +1,70 @@
 FIDUNIO input probe — ios — fix
-screen:  FIDUNIO could not finish starting Sign-in could not be loaded. Check your connection and retry. Your secure data has not been reset. Retry Startup
+iPhone pre-Join read: {"state":"success"}
+signed in
+
+STARTUP-ONCE: After sign-in, count how many times each start-up step started
+AS EXPECTED STARTUP-ONCE — observed: order: notification upkeep → conversations → blocked users → groups → HELP → activation → publish E2EE key | counts: {"notification upkeep":1,"conversations":1,"blocked users":1,"groups":1,"HELP":1,"activation":1,"publish E2EE key":1}
+
+COPY: Press and hold a message, tap Copy
+AS EXPECTED COPY — observed: Copy button present; clipboard now: "Copy test 4417"
+
+SELECT-TEXT: Press and hold a message, Select Text, press and hold one word, tap Copy, then Done
+AS EXPECTED SELECT-TEXT — observed: marked: "Copy"; copied: "Copy"; after Done: same chat
+
+LINK: Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open
+Open button shown: true; pop-up closed after the tap: true
+AS EXPECTED LINK — observed: asked first: true; Cancel stayed in chat: true; after Open: Safari is running (opened by FIDUNIO)
+
+PASTE: Press and hold the message box, tap the phone's Paste
+DIFFERENT PASTE — observed: simulator clipboard set; NO Paste found by the touch layer; message box now: ""
+
+PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared ( 2:19 PM Sent )
+
+GRACE: Switch to another app for ~15 s, then back
+AS EXPECTED GRACE — observed: unlocked
+Alice account found: yes
+
+HELP-SETTINGS: Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save
+HELP trace: {"help":["14:13:58 start","14:13:58 stop","14:13:59 settings snapshot exists=false cache=false pending=false contacts=-","14:13:59 settings applied (server read) contacts=0","14:19:53 settings card contacts=0","14:19:58 settings card contacts=0","14:20:04 settings snapshot exists=true cache=false pending=true contacts=1","14:20:04 settings applied (this phone's save) contacts=1","14:20:04 settings card contacts=1","14:20:05 saved contacts=1","14:20:05 settings snapshot exists=true cache=false pending=false contacts=1","14:20:06 settings card contacts=1","14:20:08 settings card contacts=1","14:20:08 settings card contacts=1 (Saved.)"],"steps":["notification upkeep","conversations","blocked users","groups","HELP","activation","publish E2EE key"]}
+contacts line 4 s later: HELP contacts: Simulator Bob
+AS EXPECTED HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Simulator Bob"; server: enabled=true, contacts=1
+
+HELP-SAVE-REPEAT: 5 times: untick Bob → Save, then tick Bob → Save; check the contacts line and the HELP bar each time
+round 1 off: right ("HELP contacts: Nobody yet", bar false)
+round 1 on: right ("HELP contacts: Simulator Bob", bar true)
+round 2 off: right ("HELP contacts: Nobody yet", bar false)
+round 2 on: right ("HELP contacts: Simulator Bob", bar true)
+round 3 off: right ("HELP contacts: Nobody yet", bar false)
+round 3 on: right ("HELP contacts: Simulator Bob", bar true)
+round 4 off: right ("HELP contacts: Nobody yet", bar false)
+round 4 on: right ("HELP contacts: Simulator Bob", bar true)
+round 5 off: right ("HELP contacts: Nobody yet", bar false)
+round 5 on: right ("HELP contacts: Simulator Bob", bar true)
+AS EXPECTED HELP-SAVE-REPEAT — observed: all 10 saves right
+
+HELP-BAR: Back to Messages
+AS EXPECTED HELP-BAR — observed: HELP bar shown; banners: none
+
+HELP-QUICK-TAP: HELP screen: a quick tap on the big button (not held)
+AS EXPECTED HELP-QUICK-TAP — observed: nothing sent
+
+HELP-SEND: Press and hold the HELP button for 3 seconds; allow location when the phone asks
+AS EXPECTED HELP-SEND — observed: screen: "HELP is sent Simulator Bob is being called. Stay where you are. You: HELP Open in Maps Send I'm OK now"; location prompts answered: Allow Once, Allow; server: open alert for Bob
+
+HELP-WRITE: On the same HELP screen: type "Help chat 7731" in the big box and tap Send
+AS EXPECTED HELP-WRITE — observed: conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731 
+
+HELP-COMING-SEEN: Alice starts typing "draft 88" (not sent); Bob answers "I'm coming" (from his phone)
+AS EXPECTED HELP-COMING-SEEN — observed: green: true; screen: "Simulator Bob is coming Stay where you are. You: HELP Open in Maps You: Help cha"; unsent text kept: "draft 88"; conversation still shown: true
+
+HELP-OK: Tap "I'm OK now", then open the regular chat with Bob
+AS EXPECTED HELP-OK — observed: server: safe; bar: "HELP"; regular chat has HELP + message + OK: true (ELP contacts. 2:22 PM Sent You are now one of my HELP contacts. 2:23 PM Sent HELP Open in Maps 2:24 PM Sent Help chat 7731 2:24 PM Sent I'm OK now 2:25 PM Sent )
+
+HELP-INCOMING: The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps "I'm coming", types "On my way 5512" and taps Send
+AS EXPECTED HELP-INCOMING — observed: chat made by Bob first: true; opened: "‹ Simulator Bob needs HELP Sent at 2:25 PM Location is on it"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512 ; "could not be started": false
+
+HELP-SIGNOUT: Settings: Sign Out button
+AS EXPECTED HELP-SIGNOUT — observed: Sign Out shown: true; Protect/Test removed: true
+
+RESULT: probe finished
