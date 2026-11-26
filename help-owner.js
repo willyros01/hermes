@@ -156,14 +156,14 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     catch(e){st.sending=false;st.lastError="HELP did not go out. Check the connection and hold again.";render();return;}
     st.sending=false;render();
     const location=await currentLocation();
-    await sendToChat(helpers,encodeHelpCard({alertId:ref.id,kind:"alert",location}));
+    await queueSend(()=>sendToChat(helpers,encodeHelpCard({alertId:ref.id,kind:"alert",location})));void queueSend(deliverPending);
     render({background:true});
   }
   async function imOk(){
     const a=st.mine[0];if(!a)return;const s=fs();
     try{await s.updateDoc(s.doc(db(),"helpAlerts",a.id),{state:"safe",closedAt:s.serverTimestamp()});}
     catch(e){onError("Could not tell them you are OK. Check the connection and try again.");return;}
-    await sendToChat(a.helperUids||[],encodeHelpCard({alertId:a.id,kind:"safe"}));
+    await queueSend(()=>sendToChat(a.helperUids||[],encodeHelpCard({alertId:a.id,kind:"safe"})));
     navigate("messages");
   }
   async function imComing(a){
@@ -171,7 +171,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     try{await s.updateDoc(s.doc(db(),"helpAlerts",a.id),{["acks."+st.uid]:{at:s.serverTimestamp()}});}
     catch(e){onError("Could not tell them you are coming. Check the connection and try again.");return false;}
     const text=encodeHelpCard({alertId:a.id,kind:"coming"});
-    try{await sendToChild(a,text);}catch(e){trace("coming card not sent");}
+    try{await queueSend(()=>sendToChild(a,text));void queueSend(deliverPending);}catch(e){trace("coming card not sent");}
     return true;
   }
   async function saveHelpers(helperUids){
@@ -246,7 +246,9 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       const who=m.mine?"You":esc(nameOf(m.senderUid||(chatView.target?.direct)||""));
       const text=card?helpCardLines(card).map(esc).join(" "):esc(m.text||"");
       const link=card?mapLink(card.location):"";
-      return `<p class="help-msg${m.mine?" help-msg-mine":""}"><b>${who}:</b> ${text}${link?` <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Open in Maps</a>`:""}</p>`;
+      /* Own messages say plainly when they have not reached the server yet (owner, 26 Nov: a failed send must show here). */
+      const status=!m.mine?"":m.state==="failed"?' <button type="button" class="help-retry">Not sent — tap to send again</button>':(m.state==="sending"||m.state==="queued")?' <span class="help-msg-status">Sending…</span>':"";
+      return `<p class="help-msg${m.mine?" help-msg-mine":""}"><b>${who}:</b> ${text}${link?` <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Open in Maps</a>`:""}${status}</p>`;
     }).join("");
   }
   function chatPanel(){
@@ -260,18 +262,32 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     const html=chatLines();if(log.innerHTML!==html){log.innerHTML=html;}
     log.scrollTop=log.scrollHeight;
   }
+  /* HELP messages go out one at a time, in order, and only after the conversation is open (serialization guideline;
+   * owner 26 Nov: the first message typed right after HELP failed while the conversation was still opening). */
+  let sendTail=Promise.resolve();
+  function queueSend(work){const p=sendTail.then(()=>watchQueue).then(work);sendTail=p.catch(()=>{});return p;}
+  function ownUndelivered(){return(chat.messages(chatView.id)||[]).some(m=>m.mine&&(m.state==="failed"||m.state==="queued"));}
+  /* A HELP message that did not reach the server is sent again automatically (3 tries, a few seconds apart). */
+  async function deliverPending(){
+    for(let i=0;i<3&&chatView.id&&ownUndelivered();i++){
+      await new Promise(r=>setTimeout(r,3000));
+      try{await chat.retry();}catch(e){trace("retry failed");}
+      refreshChatLog();
+    }
+  }
   function bindChatPanel(send){
     const box=document.querySelector("#helpChatText"),btn=document.querySelector("#helpChatSend");
     if(!box||!btn)return;
     box.addEventListener("input",()=>{st.draft=box.value;});
     btn.addEventListener("click",async()=>{
       const text=box.value.trim();if(!text)return;
-      btn.disabled=true;
-      try{await send(text);st.draft="";box.value="";}
-      catch(e){onError("Not sent. Check the connection and try again.");}
-      finally{btn.disabled=false;refreshChatLog();}
+      btn.disabled=true;st.draft="";box.value="";
+      try{await queueSend(()=>send(text));}
+      catch(e){onError("Not sent yet. FIDUNIO keeps trying.");}
+      finally{btn.disabled=false;refreshChatLog();void queueSend(deliverPending);}
     });
-    const log=document.querySelector("#helpChatLog");if(log)log.scrollTop=log.scrollHeight;
+    const log=document.querySelector("#helpChatLog");
+    if(log){log.scrollTop=log.scrollHeight;log.addEventListener("click",e=>{if(e.target.closest(".help-retry")){e.target.closest(".help-retry").disabled=true;void queueSend(async()=>{try{await chat.retry();}catch{}refreshChatLog();});}});}
   }
   async function sendToChild(a,text){
     const t=targetForChild(a);

@@ -1439,7 +1439,7 @@ function helpCardsForAlert(senderUid,alertId,helperUids=[]){
   return rooms.flatMap(c=>(state.messages[c.id]||[]).map(m=>!m.mine?parseHelpCard(m.text):null)).filter(card=>card&&card.alertId===alertId);
 }
 const helpOwner=createHelpOwner({app,render,navigate:route=>{state.route=route;render();},shellTop,isUnlocked:()=>state.unlocked,
-  chat:{sendDirect:sendHelpText,sendGroup:sendHelpGroupText,ensureGroup:ensureHelpGroup,findGroup:findHelpGroup,watch:watchHelpConversation,messages:id=>state.messages[String(id)]||[]}});
+  chat:{sendDirect:sendHelpText,sendGroup:sendHelpGroupText,ensureGroup:ensureHelpGroup,findGroup:findHelpGroup,watch:watchHelpConversation,messages:id=>state.messages[String(id)]||[],retry:()=>flushQueuedAfterAuthoritativeReconcile({notifyUser:false})}});
 /*
  * Start-up serialization (owner guideline, 25 Nov 2026): every sign-in / sign-out report from Firebase is
  * handled in ONE place, one report at a time, and each step is started once and waited for before the next.
