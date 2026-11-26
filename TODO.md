@@ -1,5 +1,6 @@
 ## Next FIDUNIO build (batched, owner 26 Nov 11:52)
 
+- [x] **Apple SDK 27** (owner, 26 Nov): iPhone builds move to GitHub's Xcode 27 machine (`runs-on: xcode-27`, macOS 27) for the TestFlight build and the iOS shell check. First run of the next build proves it.
 - [x] **HELP hold screen in dark mode** (Fire 8): title, back arrow and hint were dark text on dark background — fixed in help.css (uses --ink); add a dark-mode check of every HELP screen to the simulator test.
 
 ## 2026-11-26 — FIDUNIO 1.1.84 build (scheduled 08:05)
