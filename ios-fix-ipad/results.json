@@ -26,7 +26,7 @@
       "what": "With the chat open, HELP contacts arrive from the server (Bob chosen on another device); touch nothing",
       "expected": "the red HELP bar appears in the left panel within 20 s, without touching anything",
       "ok": true,
-      "observed": "HELP bar shown; still in chat: true; trace [\"13:31:32 start\",\"13:31:32 stop\",\"13:31:33 settings snapshot exists=false cache=false pending=false contacts=-\",\"13:31:33 settings applied (server read) contacts=0\",\"13:32:37 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:32:37 settings applied (server read) contacts=1\",\"13:32:37 bar redrawn shown\"]",
+      "observed": "HELP bar shown; still in chat: true; trace [\"15:38:15 start\",\"15:38:15 stop\",\"15:38:17 settings snapshot exists=false cache=false pending=false contacts=-\",\"15:38:17 settings applied (server read) contacts=0\",\"15:38:57 settings snapshot exists=true cache=false pending=false contacts=1\",\"15:38:57 settings applied (server read) contacts=1\",\"15:38:57 bar redrawn shown\"]",
       "shots": [
         "03-ipad-bar-live.png"
       ]
@@ -36,7 +36,7 @@
       "what": "Restart FIDUNIO, unlock with the PIN, touch nothing (round 1 of 3)",
       "expected": "the red HELP bar is there within 20 s, without touching anything",
       "ok": true,
-      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"13:33:15 start\",\"13:33:15 stop\",\"13:33:15 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:33:15 settings applied (server read) contacts=1\",\"13:33:15 bar redrawn shown\"]",
+      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"15:39:32 start\",\"15:39:32 stop\",\"15:39:32 settings snapshot exists=true cache=false pending=false contacts=1\",\"15:39:32 settings applied (server read) contacts=1\",\"15:39:32 bar redrawn shown\"]",
       "shots": [
         "04-ipad-bar-restart-1.png"
       ]
@@ -46,7 +46,7 @@
       "what": "Restart FIDUNIO, unlock with the PIN, touch nothing (round 2 of 3)",
       "expected": "the red HELP bar is there within 20 s, without touching anything",
       "ok": true,
-      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"13:34:02 start\",\"13:34:02 stop\",\"13:34:02 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:34:02 settings applied (server read) contacts=1\",\"13:34:02 bar redrawn shown\"]",
+      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"15:40:08 start\",\"15:40:08 stop\",\"15:40:08 settings snapshot exists=true cache=false pending=false contacts=1\",\"15:40:08 settings applied (server read) contacts=1\",\"15:40:08 bar redrawn shown\"]",
       "shots": [
         "05-ipad-bar-restart-2.png"
       ]
@@ -56,9 +56,19 @@
       "what": "Restart FIDUNIO, unlock with the PIN, touch nothing (round 3 of 3)",
       "expected": "the red HELP bar is there within 20 s, without touching anything",
       "ok": true,
-      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"13:34:44 start\",\"13:34:44 stop\",\"13:34:44 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:34:44 settings applied (server read) contacts=1\",\"13:34:44 bar redrawn shown\"]",
+      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"15:40:48 start\",\"15:40:48 stop\",\"15:40:49 settings snapshot exists=true cache=false pending=false contacts=1\",\"15:40:49 settings applied (server read) contacts=1\",\"15:40:49 bar redrawn shown\"]",
       "shots": [
         "06-ipad-bar-restart-3.png"
+      ]
+    },
+    {
+      "id": "IPAD-SETTINGS-FILL",
+      "what": "Restart FIDUNIO, unlock, open Settings at once; touch nothing else",
+      "expected": "every part of Settings filled; the page is never rebuilt while loading",
+      "ok": true,
+      "observed": "filled after 2 s; page rebuilt while open: 0 time(s); still filled 8 s later: true",
+      "shots": [
+        "07-ipad-settings-filled.png"
       ]
     }
   ]
