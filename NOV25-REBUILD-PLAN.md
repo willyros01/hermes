@@ -1,3 +1,7 @@
+# 1.1.85 RELEASED 26 Nov ~13:00 Toronto: TestFlight 1.1.85 (98) VALID (first try failed on a runner network error,
+# rerun passed); APK run 45856699923 success; web main b5249a7 published. Includes 1.1.84 + Settings one-page owner +
+# HELP big-screen sends serialized with auto-retry and "Not sent — tap to send again". Server: owner runs hl3.txt (alarm).
+
 # 1.1.85 (owner GO 26 Nov 10:24: "do this now so I only need 1 test cycle"): SLOW SETTINGS
 # Cause (code-traced 26 Nov): renderSettings() -> mountSettingsLifecycle() rebuilds the whole Settings shell and restarts
 # every panel load on EVERY render; background renders on route "settings" (app.js: E2EE publish finish, chat-list error,
