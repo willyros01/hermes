@@ -1,22 +1,22 @@
-11-26 13:23:25.899 W/Capacitor/Console( 2437): File: https://localhost/account-guard.js - Line 21 - Msg: FIDUNIO account guard could not verify account state FirebaseError: [code=permission-denied]: 
-11-26 13:23:30.336 I/Capacitor/Console( 2437): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: notification upkeep
-11-26 13:23:30.339 I/Capacitor/Console( 2437): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: conversations
-11-26 13:23:30.339 I/Capacitor/Console( 2437): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: blocked users
-11-26 13:23:30.339 I/Capacitor/Console( 2437): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: groups
-11-26 13:23:30.340 I/Capacitor/Console( 2437): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: HELP
-11-26 13:23:30.438 I/Capacitor/Console( 2437): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: activation
-11-26 13:23:30.451 I/Capacitor/Console( 2437): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: publish E2EE key
-11-26 13:34:37.590 I/Capacitor/Console( 6271): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: notification upkeep
-11-26 13:34:37.591 I/Capacitor/Console( 6271): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: conversations
-11-26 13:34:37.634 I/Capacitor/Console( 6271): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: blocked users
-11-26 13:34:37.634 I/Capacitor/Console( 6271): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: groups
-11-26 13:34:37.635 I/Capacitor/Console( 6271): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: HELP
-11-26 13:34:37.680 I/Capacitor/Console( 6271): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: activation
-11-26 13:34:37.761 I/Capacitor/Console( 6271): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: publish E2EE key
-11-26 13:34:51.078 I/Capacitor/Console( 6458): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: notification upkeep
-11-26 13:34:51.079 I/Capacitor/Console( 6458): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: conversations
-11-26 13:34:51.080 I/Capacitor/Console( 6458): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: blocked users
-11-26 13:34:51.080 I/Capacitor/Console( 6458): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: groups
-11-26 13:34:51.081 I/Capacitor/Console( 6458): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: HELP
-11-26 13:34:51.148 I/Capacitor/Console( 6458): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: activation
-11-26 13:34:51.175 I/Capacitor/Console( 6458): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: publish E2EE key
+11-26 13:49:31.301 W/Capacitor/Console( 2392): File: https://localhost/account-guard.js - Line 21 - Msg: FIDUNIO account guard could not verify account state FirebaseError: [code=permission-denied]: 
+11-26 13:49:37.588 I/Capacitor/Console( 2392): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: notification upkeep
+11-26 13:49:37.592 I/Capacitor/Console( 2392): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: conversations
+11-26 13:49:37.592 I/Capacitor/Console( 2392): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: blocked users
+11-26 13:49:37.593 I/Capacitor/Console( 2392): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: groups
+11-26 13:49:37.593 I/Capacitor/Console( 2392): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: HELP
+11-26 13:49:37.803 I/Capacitor/Console( 2392): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: activation
+11-26 13:49:37.819 I/Capacitor/Console( 2392): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: publish E2EE key
+11-26 14:00:20.741 I/Capacitor/Console( 6144): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: notification upkeep
+11-26 14:00:20.746 I/Capacitor/Console( 6144): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: conversations
+11-26 14:00:20.746 I/Capacitor/Console( 6144): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: blocked users
+11-26 14:00:20.747 I/Capacitor/Console( 6144): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: groups
+11-26 14:00:20.747 I/Capacitor/Console( 6144): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: HELP
+11-26 14:00:20.888 I/Capacitor/Console( 6144): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: activation
+11-26 14:00:20.892 I/Capacitor/Console( 6144): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: publish E2EE key
+11-26 14:00:33.368 I/Capacitor/Console( 6329): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: notification upkeep
+11-26 14:00:33.372 I/Capacitor/Console( 6329): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: conversations
+11-26 14:00:33.373 I/Capacitor/Console( 6329): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: blocked users
+11-26 14:00:33.373 I/Capacitor/Console( 6329): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: groups
+11-26 14:00:33.420 I/Capacitor/Console( 6329): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: HELP
+11-26 14:00:33.524 I/Capacitor/Console( 6329): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: activation
+11-26 14:00:33.527 I/Capacitor/Console( 6329): File: https://localhost/app.js - Line 1444 - Msg: FIDUNIO start-up step: publish E2EE key
