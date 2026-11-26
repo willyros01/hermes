@@ -45,6 +45,10 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    OWNER RULE (19:59): the Settings redraw/reload fix must follow the SERIALIZATION guideline — no parallel,
    fire-and-forget loading: each Settings part is loaded, WAITED for, and drawn before the next starts; one redraw owner,
    no overlapping reloads (no race between a background render and a card still loading).
+   OWNER DIAGNOSIS (20:01): the cause is that Settings is treated as MANY PANELS (each card/owner loading and redrawing on
+   its own), not as ONE INTEGRATED PAGE. Direction: Settings = one page built by one owner in one serialized pass
+   (gather each part's data in order, waiting for each, then draw the page once); updates go through that same owner.
+   Verify against the code (settings-lifecycle.js remount of feature owners) and report before changing.
 8. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
 Server state now: hlp.txt rules, hl2.txt functions (30-second ring, no limit, body "HELP — <name>"), hip.txt run.invoker
 permission for fidunio-notification@ on helpalertcreatedv1/helpalertupdatedv1 (proven working: Fire 8 gets the notification).
