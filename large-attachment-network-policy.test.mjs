@@ -44,7 +44,7 @@ assert.match(app,/let pendingLargeAttachmentSend=null;/,"only one in-memory wait
 assert.match(app,/Another attachment is already waiting for Wi-Fi\./,"a second selection must be rejected while one waits");
 assert.match(app,/projectSelectedAttachmentRecord\(record,"waiting-wifi"\)/,"blocked selection must project Waiting for Wi-Fi state");
 assert.match(app,/Waiting for Wi-Fi/,"Waiting for Wi-Fi must be visible to the user");
-assert.match(app,/cannot verify the network type.*explicit Send Anyway.*iPhone.*iPad.*Safari/is,"Data settings must explain Safari verification limitation and explicit override");
+assert.match(app,/Attachments over 5 MB wait for Wi-Fi\. If FIDUNIO cannot tell, it asks before sending\./,"Data settings explain, briefly (owner brevity rule, 26 Nov), that an unverifiable network needs an explicit decision");
 assert.match(app,/resumePendingLargeAttachmentSend\(\)/,"waiting send must have an automatic resume path");
 assert.match(app,/attachmentNetworkConnection\?\.addEventListener\?\.\("change"/,"Network Information API change must trigger resume when available");
 assert.match(app,/if\(key==="wifiAttachments"\)void resumePendingLargeAttachmentSend\(\);/,"preference change must trigger resume");
