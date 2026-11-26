@@ -1,0 +1,65 @@
+{
+  "platform": "ios",
+  "label": "fix",
+  "device": "ipad",
+  "results": [
+    {
+      "id": "STARTUP-ONCE",
+      "what": "After sign-in, count how many times each start-up step started",
+      "expected": "every step exactly once, in order",
+      "ok": true,
+      "observed": "order: notification upkeep → conversations → blocked users → groups → HELP → activation → publish E2EE key | counts: {\"notification upkeep\":1,\"conversations\":1,\"blocked users\":1,\"groups\":1,\"HELP\":1,\"activation\":1,\"publish E2EE key\":1}",
+      "shots": []
+    },
+    {
+      "id": "IPAD-LAYOUT",
+      "what": "iPad simulator, chat with Bob open",
+      "expected": "two-panel layout (list on the left, chat on the right)",
+      "ok": true,
+      "observed": "two-panel with chat open",
+      "shots": [
+        "02-ipad-two-panel.png"
+      ]
+    },
+    {
+      "id": "IPAD-BAR-LIVE",
+      "what": "With the chat open, HELP contacts arrive from the server (Bob chosen on another device); touch nothing",
+      "expected": "the red HELP bar appears in the left panel within 20 s, without touching anything",
+      "ok": true,
+      "observed": "HELP bar shown; still in chat: true; trace [\"13:31:32 start\",\"13:31:32 stop\",\"13:31:33 settings snapshot exists=false cache=false pending=false contacts=-\",\"13:31:33 settings applied (server read) contacts=0\",\"13:32:37 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:32:37 settings applied (server read) contacts=1\",\"13:32:37 bar redrawn shown\"]",
+      "shots": [
+        "03-ipad-bar-live.png"
+      ]
+    },
+    {
+      "id": "IPAD-BAR-RESTART-1",
+      "what": "Restart FIDUNIO, unlock with the PIN, touch nothing (round 1 of 3)",
+      "expected": "the red HELP bar is there within 20 s, without touching anything",
+      "ok": true,
+      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"13:33:15 start\",\"13:33:15 stop\",\"13:33:15 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:33:15 settings applied (server read) contacts=1\",\"13:33:15 bar redrawn shown\"]",
+      "shots": [
+        "04-ipad-bar-restart-1.png"
+      ]
+    },
+    {
+      "id": "IPAD-BAR-RESTART-2",
+      "what": "Restart FIDUNIO, unlock with the PIN, touch nothing (round 2 of 3)",
+      "expected": "the red HELP bar is there within 20 s, without touching anything",
+      "ok": true,
+      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"13:34:02 start\",\"13:34:02 stop\",\"13:34:02 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:34:02 settings applied (server read) contacts=1\",\"13:34:02 bar redrawn shown\"]",
+      "shots": [
+        "05-ipad-bar-restart-2.png"
+      ]
+    },
+    {
+      "id": "IPAD-BAR-RESTART-3",
+      "what": "Restart FIDUNIO, unlock with the PIN, touch nothing (round 3 of 3)",
+      "expected": "the red HELP bar is there within 20 s, without touching anything",
+      "ok": true,
+      "observed": "unlocked: true; HELP bar shown; route: messages; trace [\"13:34:44 start\",\"13:34:44 stop\",\"13:34:44 settings snapshot exists=true cache=false pending=false contacts=1\",\"13:34:44 settings applied (server read) contacts=1\",\"13:34:44 bar redrawn shown\"]",
+      "shots": [
+        "06-ipad-bar-restart-3.png"
+      ]
+    }
+  ]
+}

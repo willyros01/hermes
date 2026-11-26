@@ -1,0 +1,23 @@
+FIDUNIO input probe — ios — fix
+iPhone pre-Join read: {"state":"success"}
+signed in
+
+STARTUP-ONCE: After sign-in, count how many times each start-up step started
+AS EXPECTED STARTUP-ONCE — observed: order: notification upkeep → conversations → blocked users → groups → HELP → activation → publish E2EE key | counts: {"notification upkeep":1,"conversations":1,"blocked users":1,"groups":1,"HELP":1,"activation":1,"publish E2EE key":1}
+
+IPAD-LAYOUT: iPad simulator, chat with Bob open
+AS EXPECTED IPAD-LAYOUT — observed: two-panel with chat open
+
+IPAD-BAR-LIVE: With the chat open, HELP contacts arrive from the server (Bob chosen on another device); touch nothing
+AS EXPECTED IPAD-BAR-LIVE — observed: HELP bar shown; still in chat: true; trace ["13:31:32 start","13:31:32 stop","13:31:33 settings snapshot exists=false cache=false pending=false contacts=-","13:31:33 settings applied (server read) contacts=0","13:32:37 settings snapshot exists=true cache=false pending=false contacts=1","13:32:37 settings applied (server read) contacts=1","13:32:37 bar redrawn shown"]
+
+IPAD-BAR-RESTART-1: Restart FIDUNIO, unlock with the PIN, touch nothing (round 1 of 3)
+AS EXPECTED IPAD-BAR-RESTART-1 — observed: unlocked: true; HELP bar shown; route: messages; trace ["13:33:15 start","13:33:15 stop","13:33:15 settings snapshot exists=true cache=false pending=false contacts=1","13:33:15 settings applied (server read) contacts=1","13:33:15 bar redrawn shown"]
+
+IPAD-BAR-RESTART-2: Restart FIDUNIO, unlock with the PIN, touch nothing (round 2 of 3)
+AS EXPECTED IPAD-BAR-RESTART-2 — observed: unlocked: true; HELP bar shown; route: messages; trace ["13:34:02 start","13:34:02 stop","13:34:02 settings snapshot exists=true cache=false pending=false contacts=1","13:34:02 settings applied (server read) contacts=1","13:34:02 bar redrawn shown"]
+
+IPAD-BAR-RESTART-3: Restart FIDUNIO, unlock with the PIN, touch nothing (round 3 of 3)
+AS EXPECTED IPAD-BAR-RESTART-3 — observed: unlocked: true; HELP bar shown; route: messages; trace ["13:34:44 start","13:34:44 stop","13:34:44 settings snapshot exists=true cache=false pending=false contacts=1","13:34:44 settings applied (server read) contacts=1","13:34:44 bar redrawn shown"]
+
+RESULT: iPad probe finished
