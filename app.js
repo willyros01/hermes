@@ -1813,6 +1813,10 @@ function render({background=false,entry=false}={}){
   /* A background redraw on the iPad two-panel layout patches only the open chat and the list; the HELP bar sits
    * outside both, so it is redrawn here too (proven cause of the missing HELP bar after restart/unlock, 26 Nov). */
   if(background&&patchActiveChatProjection(generation)){helpOwner.refreshBar();return;}
+  /* Settings is one page with one owner (owner rule, 26 Nov): a background job never throws it away and restarts
+   * every part's loading (that made Settings "take forever" right after a restart). Only the HELP card is refreshed,
+   * and not while HELP contacts are being chosen. A tap in Settings still redraws it as before. */
+  if(background&&state.unlocked&&state.route==="settings"&&document.querySelector("#fidunioSettingsShell")){helpOwner.refreshSettingsCard(document.querySelector("#helpSettingsHost"));return;}
   /* On a big HELP screen a background redraw patches only what changed (the conversation), keeping the typing. */
   if(background&&state.unlocked&&(state.route==="help"||state.route==="helpAlert")){document.body.dataset.route=state.route;helpOwner.backgroundRefresh(helpCardsForAlert);return;}
   if(state.route==="chat"){
