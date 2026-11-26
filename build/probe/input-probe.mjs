@@ -448,10 +448,17 @@ if(label==='fix'){
     const onScreen=await present('#helpChatText')&&await present('#helpChatLog');
     if(!onScreen)return{ok:false,observed:'no conversation on the HELP screen',shots:[await shot('help-no-chat')]};
     await until(async()=>!/Opening the conversation/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'conversation opened',30000).catch(()=>{});
+    /* Owner 26 Nov: the first message typed right after HELP showed on the sender's screen but never reached the other side.
+     * So count the messages that really reached the server, not only what the sender's screen shows. */
+    const dmId='dm_'+[aliceUid,bobUid].sort().join('_');
+    const serverCount=()=>admin(async db=>(await getDocs(collection(db,'conversations',dmId,'messages'))).size).catch(()=>-1);
+    const before=await serverCount();
     await d.fill('#helpChatText','Help chat 7731');await hideKeyboard();await sleep(800);await realTap('#helpChatSend');
+    let after=before;const endT=Date.now()+20000;while(Date.now()<endT&&after<=before){await sleep(1000);after=await serverCount();}
+    log(`HELP-WRITE server messages before ${before}, after ${after}`);
     await until(async()=>/Help chat 7731/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'message in HELP conversation',30000).catch(()=>{});
     const t=await js('document.querySelector("#helpChatLog")?.innerText||""');const s=await shot('help-chat-on-screen');
-    return{ok:/Help chat 7731/.test(t)&&!(await present('#messageBox')),observed:`conversation on HELP screen: ${t.replace(/\s+/g,' ').slice(-160)}`,shots:[s]};
+    return{ok:/Help chat 7731/.test(t)&&!(await present('#messageBox'))&&after>before&&!/Not sent/.test(t),observed:`conversation on HELP screen: ${t.replace(/\s+/g,' ').slice(-160)}; reached the server: ${after>before?'yes':'NO'} (${before}→${after})`,shots:[s]};
   });
 
   await check('HELP-COMING-SEEN','Alice starts typing "draft 88" (not sent); Bob answers "I\'m coming" (from his phone)','green "Simulator Bob is coming" on the same screen; the conversation and the unsent "draft 88" are still there',async()=>{
