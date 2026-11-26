@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 2:19 PM Sent )",
+      "observed": "a new message appeared ( 3:42 PM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -148,7 +148,7 @@
       "what": "Tap \"I'm OK now\", then open the regular chat with Bob",
       "expected": "the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, \"Help chat 7731\", \"I'm OK now\"",
       "ok": true,
-      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (ELP contacts. 2:22 PM Sent You are now one of my HELP contacts. 2:23 PM Sent HELP Open in Maps 2:24 PM Sent Help chat 7731 2:24 PM Sent I'm OK now 2:25 PM Sent )",
+      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (ELP contacts. 3:46 PM Sent You are now one of my HELP contacts. 3:46 PM Sent HELP Open in Maps 3:47 PM Sent Help chat 7731 3:48 PM Sent I'm OK now 3:48 PM Sent )",
       "shots": [
         "19-help-ok-regular-chat.png"
       ]
@@ -158,7 +158,7 @@
       "what": "The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps \"I'm coming\", types \"On my way 5512\" and taps Send",
       "expected": "red \"Simulator Bob needs HELP\" opens by itself; after \"I'm coming\" the conversation is on the same screen; the message is sent (no \"Conversation could not be started\"); the server has Alice's answer",
       "ok": true,
-      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 2:25 PM Location is on it\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512 ; \"could not be started\": false",
+      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 3:48 PM Location is on it\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512 ; \"could not be started\": false",
       "shots": [
         "20-help-incoming.png",
         "21-help-im-coming-chat.png"
