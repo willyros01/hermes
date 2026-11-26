@@ -419,14 +419,14 @@ if(label==='fix'){
   });
 
   let alertId='';
-  await check('HELP-SEND','Press and hold the HELP button for 3 seconds; allow location when the phone asks','red "HELP is sent — Simulator Bob is being called", "Write a message", "I\'m OK now"; server has an open alert for Bob',async()=>{
+  await check('HELP-SEND','Press and hold the HELP button for 3 seconds; allow location when the phone asks','red "HELP is sent — Simulator Bob is being called", the conversation on the same screen, "I\'m OK now"; server has an open alert for Bob',async()=>{
     const p=await screenPoint('#helpHold');await longPressAt(p,3000);
     const allowed=await allowLocation(12000);
     await until(()=>present('#helpOk'),'HELP is sent',30000).catch(()=>{});
     const t=await js('document.querySelector(".help-shell")?.innerText||""');const s=await shot('help-sent');
     const mine=(await alertsFor()).filter(a=>a.senderUid===aliceUid&&a.state==='open');
     alertId=mine[0]?.id||'';
-    const ok=/HELP is sent/.test(t)&&/Bob/.test(t)&&/being called/.test(t)&&await present('#helpWrite')&&await present('#helpOk')&&!!alertId&&mine[0].helperUids.join()===bobUid;
+    const ok=/HELP is sent/.test(t)&&/Bob/.test(t)&&/being called/.test(t)&&await present('#helpChatText')&&await present('#helpOk')&&!!alertId&&mine[0].helperUids.join()===bobUid;
     return{ok,observed:`screen: "${t.replace(/\s+/g,' ').slice(0,120)}"; location prompts answered: ${allowed.join(', ')||'none shown'}; server: ${alertId?'open alert for Bob':'NO alert'}`,shots:[s]};
   });
 
@@ -435,7 +435,7 @@ if(label==='fix'){
     const onScreen=await present('#helpChatText')&&await present('#helpChatLog');
     if(!onScreen)return{ok:false,observed:'no conversation on the HELP screen',shots:[await shot('help-no-chat')]};
     await until(async()=>!/Opening the conversation/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'conversation opened',30000).catch(()=>{});
-    await d.fill('#helpChatText','Help chat 7731');await realTap('#helpChatSend');
+    await d.fill('#helpChatText','Help chat 7731');await hideKeyboard();await sleep(800);await realTap('#helpChatSend');
     await until(async()=>/Help chat 7731/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'message in HELP conversation',30000).catch(()=>{});
     const t=await js('document.querySelector("#helpChatLog")?.innerText||""');const s=await shot('help-chat-on-screen');
     return{ok:/Help chat 7731/.test(t)&&!(await present('#messageBox')),observed:`conversation on HELP screen: ${t.replace(/\s+/g,' ').slice(-160)}`,shots:[s]};
@@ -453,7 +453,7 @@ if(label==='fix'){
 
   await check('HELP-OK','Tap "I\'m OK now", then open the regular chat with Bob','the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, "Help chat 7731", "I\'m OK now"',async()=>{
     await d.fill('#helpChatText','');await js('document.querySelector("#helpChatText")?.dispatchEvent(new Event("input"));true');
-    await realTap('#helpOk');await until(()=>present('#newBtn').then(a=>a||present('#tabletNewBtn')),'Messages',20000).catch(()=>{});await sleep(2500);
+    await hideKeyboard();await sleep(800);await realTap('#helpOk');await until(()=>present('#newBtn').then(a=>a||present('#tabletNewBtn')),'Messages',20000).catch(()=>{});await sleep(2500);
     const a=(await alertsFor()).find(x=>x.id===alertId);const bar=await js('document.querySelector("#helpFab")?.textContent||""');
     await openChat();await sleep(3000);
     const chatText=await js('document.querySelector("#chatArea")?.innerText||""');const s=await shot('help-ok-regular-chat');
@@ -474,7 +474,7 @@ if(label==='fix'){
     const errors=[];await js('window.__probeAlerts=[];window.alert=m=>{window.__probeAlerts.push(String(m))};true');
     await realTap('#helpComing');await until(()=>present('#helpChatText'),'conversation on the HELP screen',20000).catch(()=>{});
     await until(async()=>!/Opening the conversation/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'conversation opened',30000).catch(()=>{});
-    if(await present('#helpChatText')){await d.fill('#helpChatText','On my way 5512');await realTap('#helpChatSend');}
+    if(await present('#helpChatText')){await d.fill('#helpChatText','On my way 5512');await hideKeyboard();await sleep(800);await realTap('#helpChatSend');}
     await until(async()=>/On my way 5512/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'helper message shown',30000).catch(()=>{});
     const logText=await js('document.querySelector("#helpChatLog")?.innerText||""');errors.push(...JSON.parse(await js('JSON.stringify(window.__probeAlerts||[])')));
     const page=await js('document.body.innerText');
