@@ -38,6 +38,15 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    sidebar, fabMarkup placement in the tablet sidebar, and whether the bar is drawn before settingsLoaded.
    Design rule to apply: the HELP bar must NEVER depend on a live answer arriving in time — keep the last server-confirmed
    HELP contacts on the device (durable, like a database commit) and show the bar from that at once; live answers only update it.
+   CODE-TRACED CAUSE (25 Nov 20:31, owner now positive: "help button does not show up after a restart"):
+   app.js render({background:true}) first calls patchActiveChatProjection(); on the iPad two-panel layout a chat is
+   usually open (route "chat"), so the background render only patches #chatArea, #chatStatusRegion, the title and the
+   tablet conversation LIST, then RETURNS — the tablet sidebar's HELP bar (helpOwner.fabMarkup(), outside the list) is
+   never redrawn. After a restart the HELP contacts arrive later and ask for exactly such a background render, so the
+   bar stays missing until a FULL render (selecting/highlighting a chat). Same for unlock. Phone layout differs.
+   Fix direction: the single projection owner also redraws the HELP bar slot in the background patch (and keep the last
+   server-confirmed contacts on the device so the bar is right on the first draw). Prove on the iPad simulator:
+   restart -> bar shows without touching; unlock -> bar shows.
 7. OWNER NOTE (19:55): the iPad two-panel REDRAW has been problematic from the start. Also: the first time Settings is
    opened after a restart or a long break, it takes "forever" to fill in User Management, Invitations, etc. He gave up on
    it because much time was spent and it was never fixed. Treat the HELP-bar-after-unlock bug as part of this redraw
