@@ -59,3 +59,6 @@
 .help-chat-send textarea{flex:1 1 auto;min-width:0;width:100%;box-sizing:border-box;min-height:60px;font-size:20px;border-radius:16px;border:0;padding:10px 12px;resize:none;color:#1A1D21}
 .help-send{flex:0 0 auto;min-width:96px;border-radius:16px;border:3px solid #fff;background:rgba(255,255,255,.18);color:#fff;font-size:22px;font-weight:900;cursor:pointer}
 .help-with-chat .help-actions{margin-top:0}
+
+.help-msg-status{font-size:16px;color:#5f6368;font-weight:600}
+.help-retry{margin-left:6px;font-size:17px;font-weight:800;color:#fff;background:#C62828;border:0;border-radius:12px;padding:6px 10px;cursor:pointer}

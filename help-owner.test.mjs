@@ -37,4 +37,7 @@ assert.ok(!/id="helpWrite"/.test(owner),"Option A: no separate Write a message b
 assert.match(app,/messages:id=>state\.messages\[String\(id\)\]\|\|\[\]/,"the big screen shows the regular chat's own messages");
 assert.match(app,/if\(conversationOnScreen\(conversationId\)\)render\(\{background:true\}\)/,"new messages redraw the big HELP screen too");
 assert.match(app,/state\.route==="settings"&&document\.querySelector\("#fidunioSettingsShell"\)\)\{helpOwner\.refreshSettingsCard/,"a background job never rebuilds Settings");
+assert.match(owner,/Not sent — tap to send again/,"a failed HELP message shows on the big screen with a way to send it again");
+assert.match(owner,/function queueSend\(work\)/,"HELP messages are sent one at a time, after the conversation is open");
+assert.match(app,/retry:\(\)=>flushQueuedAfterAuthoritativeReconcile/);
 console.log("HELP app gate passed");
