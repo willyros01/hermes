@@ -1,5 +1,6 @@
 ## 2026-11-26 — FIDUNIO 1.1.84 build (scheduled 08:05)
 
+- [ ] **TOP: HELP bar sometimes does not appear** (owner, 25 Nov; seen since the first HELP build). Find the cause with evidence; the bar must show from the last server-confirmed HELP contacts kept on the device, never wait for a live answer.
 - [ ] **HELP alarm sound** on iPhone, iPad, Android and Fire (today only the ordinary notification sound / "bonk").
 - [ ] **HELP "Write a message"** fix: open the existing chat; never rewrite its members ("Conversation could not be started" on Fire 8).
 - [ ] **Option A**: the HELP conversation on the big HELP screen; the regular conversation is also updated with everything that happens there (same messages, same order).
