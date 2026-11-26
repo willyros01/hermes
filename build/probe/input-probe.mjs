@@ -134,6 +134,19 @@ if(process.env.PROBE_DEVICE==='ipad'){
       return{ok,observed:`unlocked: ${open}; HELP bar ${ok?'shown':'MISSING'}; route: ${await js('document.body.dataset.route').catch(()=>'?')}; trace ${await trace()}`,shots:[s]};
     });
   }
+  /* Slow Settings right after a restart (owner, 26 Nov): open Settings straight after unlocking and time how long until
+   * every part is filled; also check the page is never thrown away and rebuilt while it loads. */
+  await check('IPAD-SETTINGS-FILL','Restart FIDUNIO, unlock, open Settings at once; touch nothing else','every part of Settings filled; the page is never rebuilt while loading',async()=>{
+    await restartAndUnlock();
+    const t0=Date.now();await d.press('#tabletSettingsBtn').catch(()=>{});
+    await until(()=>present('#fidunioSettingsShell'),'Settings page',30000).catch(()=>{});
+    await js('(()=>{const s=document.querySelector("#fidunioSettingsShell");if(s)s.dataset.probeFirst="1";window.__probeRebuilds=0;const o=new MutationObserver(()=>{const x=document.querySelector("#fidunioSettingsShell");if(x&&x.dataset.probeFirst!=="1"){window.__probeRebuilds++;x.dataset.probeFirst="1";}});o.observe(document.body,{childList:true,subtree:true});return true})()');
+    const filled=`(()=>{const t=document.querySelector("#fidunioSettingsShell")?.innerText||"";return !!document.querySelector("#fidunioProfileCard input,#fidunioProfileCard #saveProfileBtn")&&!!document.querySelector("#fidunioDeleteAccountCard")&&!!document.querySelector("#fidunioNotificationsCard")&&!/Loading notification status|Loading profile|Loading access|Loading invitations/.test(t)&&!!document.querySelector("#fidunioSafetyFilterCard")&&!!document.querySelector("#helpChoose,#helpSave")})()`;
+    let secs=-1;const end=Date.now()+120000;while(Date.now()<end){if(await js(filled).catch(()=>false)){secs=Math.round((Date.now()-t0)/100)/10;break;}await sleep(500);}
+    await sleep(8000);
+    const rebuilds=await js('window.__probeRebuilds||0').catch(()=>-1);const still=await js(filled).catch(()=>false);const s=await shot('ipad-settings-filled');
+    return{ok:secs>=0&&secs<=30&&rebuilds===0&&still,observed:`filled after ${secs<0?'MORE THAN 120':secs} s; page rebuilt while open: ${rebuilds} time(s); still filled 8 s later: ${still}`,shots:[s]};
+  });
   await env.cleanup().catch(()=>{});
   const lines=[`# FIDUNIO input probe — ${platform} iPad — ${label}`,'','| Check | What | Expected | Observed | |','|---|---|---|---|---|'];
   for(const r of results)lines.push(`| ${r.id} | ${r.what} | ${r.expected} | ${String(r.observed).replace(/\|/g,'/')} | ${r.ok?'as expected':'**DIFFERENT**'} |`);
