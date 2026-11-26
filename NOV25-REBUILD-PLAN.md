@@ -1,3 +1,11 @@
+# 1.1.85 (owner GO 26 Nov 10:24: "do this now so I only need 1 test cycle"): SLOW SETTINGS
+# Cause (code-traced 26 Nov): renderSettings() -> mountSettingsLifecycle() rebuilds the whole Settings shell and restarts
+# every panel load on EVERY render; background renders on route "settings" (app.js: E2EE publish finish, chat-list error,
+# HELP snapshots via helpOwner render) arrive right after a restart, so loads restart repeatedly.
+# Fix: background render on Settings never rebuilds it (only the HELP card refreshes, and not while choosing); panels load
+# one after another, each awaited (serialization). Prove: iPad sim timing of Settings fill right after restart, 1.1.84 vs fix;
+# one probe run (Android + iPhone + iPad), then release 1.1.85 (TestFlight + APK + web).
+
 # 1.1.84 RELEASED 26 Nov ~11:10 Toronto: TestFlight 1.1.84 (97) VALID; APK run 45839173091 success (Cuberoot publisher);
 # main f1a04e1 all gates green. Simulator: Android 28/28, iPhone 16/17 (Paste = simulator limit), iPad HELP bar 4/4
 # (1.1.83: 0/3). Server alarm sound needs owner's hl3.txt (functions only; keeps hip.txt permission). Not done today:
