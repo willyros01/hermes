@@ -24,6 +24,10 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    Still happens on real devices in 1.1.83 despite the start-once and server-read fixes. Do NOT guess: find the cause with
    evidence (the HELP trace globalThis.FIDUNIO_HELP_TRACE records start/stop/snapshots/applied; consider showing it to the
    owner from a hidden spot, and repeat app-open/resume/unlock/background cycles in the simulator, not only Save).
+   Owner details (19:47): device = iPAD; happens after coming back from another app / background (maybe a restart);
+   to get it back he had to choose the HELP partner/recipient again (re-save the HELP contacts). So the iPad's in-app HELP
+   contacts become empty after a resume/relaunch while the server still has them -> check resume/relaunch paths (stop()/start,
+   listener restart, settings reset to empty, iPad sidebar layout where the bar lives in the left list).
    Design rule to apply: the HELP bar must NEVER depend on a live answer arriving in time — keep the last server-confirmed
    HELP contacts on the device (durable, like a database commit) and show the bar from that at once; live answers only update it.
 7. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
