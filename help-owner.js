@@ -222,9 +222,10 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   }
   /* One watch at a time, in order (serialization guideline); a later screen's watch waits for the earlier one. */
   let watchQueue=Promise.resolve();
-  function watchChat(target){
+  function watchChat(target,alertId=""){
     const key=JSON.stringify(target||null);
     if(chatView.key!==key)chatView={key,id:"",target};
+    chatView.alertId=String(alertId||"");
     if(!target)return;
     watchQueue=watchQueue.then(async()=>{
       if(chatView.key!==key)return;
@@ -234,7 +235,11 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   }
   function chatLines(){
     if(!chatView.id)return'<p class="help-msg help-msg-note">Opening the conversation…</p>';
-    const rows=(chat.messages(chatView.id)||[]).slice(-30);
+    /* KISS: only this HELP — from its HELP card on (older chat and "HELP contact" notes are left out). */
+    const all=chat.messages(chatView.id)||[];
+    const alertId=chatView.alertId||"";
+    let from=-1;for(let i=all.length-1;i>=0;i--){const c=parseHelpCard(all[i].text);if(c&&c.kind==="alert"&&(!alertId||c.alertId===alertId)){from=i;break;}}
+    const rows=(from>=0?all.slice(from):all.slice(-3)).filter(m=>parseHelpCard(m.text)?.kind!=="contact").slice(-30);
     if(!rows.length)return'<p class="help-msg help-msg-note">No messages yet.</p>';
     return rows.map(m=>{
       const card=parseHelpCard(m.text);
@@ -317,7 +322,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
         <div class="help-actions"><button class="help-ok" id="helpOk">I'm OK now</button></div>`);
     }
     bindChatPanel(text=>sendToChat(a.helperUids||[],text));
-    void watchChat(targetForMine(a));
+    void watchChat(targetForMine(a),a.id);
     document.querySelector("#helpOk").onclick=e=>{e.currentTarget.disabled=true;void imOk();};
   }
 
@@ -339,7 +344,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       ${mine?chatPanel():""}
       <div class="help-actions">${mine?'<p class="help-box">You are coming</p>':'<button class="help-ok" id="helpComing">I\'m coming</button>'}</div>`);
     document.querySelector("#backBtn").onclick=()=>navigate("messages");
-    if(mine){bindChatPanel(text=>sendToChild(a,text));void watchChat(targetForChild(a));}
+    if(mine){bindChatPanel(text=>sendToChild(a,text));void watchChat(targetForChild(a),a.id);}
     document.querySelector("#helpComing")?.addEventListener("click",async e=>{e.currentTarget.disabled=true;await imComing(a);render();});
   }
 

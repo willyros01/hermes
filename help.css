@@ -45,16 +45,17 @@
 .help-setup-actions{display:flex;gap:10px;flex-wrap:wrap}
 
 /* Option A: the HELP conversation on the big HELP screen (same conversation as the regular chat). */
-.help-with-chat{gap:12px}
+.help-with-chat{gap:12px;max-width:100vw;overflow-x:hidden}
+.help-with-chat>*{max-width:100%;min-width:0;box-sizing:border-box}
 .help-title-small{font-size:32px;margin-top:4px}
 .help-with-chat .help-lead{font-size:20px}
 .help-chat{align-self:stretch;max-width:620px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:10px;flex:1 1 auto;min-height:0}
-.help-chat-log{flex:1 1 auto;min-height:120px;max-height:38vh;overflow-y:auto;background:#fff;color:#1A1D21;border-radius:18px;padding:12px 14px;text-align:left}
+.help-chat-log{overflow-wrap:anywhere;word-break:break-word;flex:1 1 auto;min-height:120px;max-height:38vh;overflow-y:auto;background:#fff;color:#1A1D21;border-radius:18px;padding:12px 14px;text-align:left}
 .help-msg{margin:0 0 10px;font-size:20px;line-height:1.35}
 .help-msg-mine{text-align:right}
 .help-msg-note{color:#5f6368;text-align:center}
 .help-msg a{font-weight:800}
-.help-chat-send{display:flex;gap:10px;align-items:stretch}
-.help-chat-send textarea{flex:1;min-height:60px;font-size:20px;border-radius:16px;border:0;padding:10px 12px;resize:none;color:#1A1D21}
-.help-send{min-width:96px;border-radius:16px;border:3px solid #fff;background:rgba(255,255,255,.18);color:#fff;font-size:22px;font-weight:900;cursor:pointer}
+.help-chat-send{display:flex;gap:10px;align-items:stretch;min-width:0}
+.help-chat-send textarea{flex:1 1 auto;min-width:0;width:100%;box-sizing:border-box;min-height:60px;font-size:20px;border-radius:16px;border:0;padding:10px 12px;resize:none;color:#1A1D21}
+.help-send{flex:0 0 auto;min-width:96px;border-radius:16px;border:3px solid #fff;background:rgba(255,255,255,.18);color:#fff;font-size:22px;font-weight:900;cursor:pointer}
 .help-with-chat .help-actions{margin-top:0}
