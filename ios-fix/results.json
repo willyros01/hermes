@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 9:31 AM Sent )",
+      "observed": "a new message appeared ( 1:34 PM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -117,51 +117,48 @@
       "id": "HELP-SEND",
       "what": "Press and hold the HELP button for 3 seconds; allow location when the phone asks",
       "expected": "red \"HELP is sent — Simulator Bob is being called\", \"Write a message\", \"I'm OK now\"; server has an open alert for Bob",
-      "ok": true,
-      "observed": "screen: \"HELP is sent Simulator Bob is being called Waiting for an answer… Stay where you are. Write a message I'm OK now\"; location prompts answered: Allow Once, Allow; server: open alert for Bob",
+      "ok": false,
+      "observed": "screen: \"HELP is sent Simulator Bob is being called. Stay where you are. You: Copy test 4417 You: Visit https://example.com today\"; location prompts answered: Allow Once, Allow; server: open alert for Bob",
       "shots": [
         "16-help-sent.png"
       ]
     },
     {
       "id": "HELP-WRITE",
-      "what": "Tap \"Write a message\", type and send \"Where are you?\"",
-      "expected": "the HELP chat with Bob opens, with the HELP card and the map link; the message is sent",
-      "ok": true,
-      "observed": "chat: \"\"; map link shown; text: HELP contacts. 9:36 AM Sent You are now one of my HELP contacts. 9:37 AM Sent HELP Open in Maps 9:38 AM Sent Help chat 7731 9:38 AM Sending ",
+      "what": "On the same HELP screen: type \"Help chat 7731\" in the big box and tap Send",
+      "expected": "the message shows in the conversation on the HELP screen (no separate chat screen)",
+      "ok": false,
+      "observed": "conversation on HELP screen:  contacts. You: You are now one of my HELP contacts. You: You are now one of my HELP contacts. You: You are now one of my HELP contacts. You: HELP Open in Maps ",
       "shots": [
-        "17-help-chat.png"
+        "17-help-chat-on-screen.png"
       ]
     },
     {
       "id": "HELP-COMING-SEEN",
-      "what": "Bob answers \"I'm coming\" (from his phone); Alice opens the HELP bar",
-      "expected": "green \"Simulator Bob is coming\", \"Write a message\", \"I'm OK now\"",
-      "ok": true,
-      "observed": "bar said: \"HELP is on — open\"; screen: \"Simulator Bob is coming Stay where you are. Write a message I'm OK now\"; green: true",
+      "what": "Alice starts typing \"draft 88\" (not sent); Bob answers \"I'm coming\" (from his phone)",
+      "expected": "green \"Simulator Bob is coming\" on the same screen; the conversation and the unsent \"draft 88\" are still there",
+      "ok": false,
+      "observed": "green: true; screen: \"Simulator Bob is coming Stay where you are. You: Copy test 4417 You: Visit https\"; unsent text kept: \"draft 88\"; conversation still shown: false",
       "shots": [
         "18-help-coming.png"
       ]
     },
     {
       "id": "HELP-OK",
-      "what": "Tap \"I'm OK now\"",
-      "expected": "the alert closes (server: safe); back on Messages with the plain HELP bar",
-      "ok": true,
-      "observed": "server: safe; bar: \"HELP\"",
-      "shots": [
-        "19-help-ok.png"
-      ]
+      "what": "Tap \"I'm OK now\", then open the regular chat with Bob",
+      "expected": "the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, \"Help chat 7731\", \"I'm OK now\"",
+      "ok": false,
+      "observed": "TEST ERROR: timed out: chat reopened"
     },
     {
       "id": "HELP-INCOMING",
-      "what": "Bob sends HELP to Alice (from his phone)",
-      "expected": "Alice's FIDUNIO opens the red \"Simulator Bob needs HELP\" by itself; \"I'm coming\" tells the server and opens the chat with Bob",
+      "what": "The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps \"I'm coming\", types \"On my way 5512\" and taps Send",
+      "expected": "red \"Simulator Bob needs HELP\" opens by itself; after \"I'm coming\" the conversation is on the same screen; the message is sent (no \"Conversation could not be started\"); the server has Alice's answer",
       "ok": true,
-      "observed": "opened: \"‹ Simulator Bob needs HELP Sent at 9:39 AM Location is on its way… I'm coming\"; server: Alice is coming; chat opened: true",
+      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 1:42 PM Location is on it\"; server: Alice is coming; conversation:  my HELP contacts. You: You are now one of my HELP contacts. You: HELP Open in Maps You: I'm coming You: On my way 5512 ; \"could not be started\": false",
       "shots": [
         "20-help-incoming.png",
-        "21-help-im-coming.png"
+        "21-help-im-coming-chat.png"
       ]
     },
     {
