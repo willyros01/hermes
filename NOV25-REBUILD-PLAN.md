@@ -42,6 +42,9 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    opened after a restart or a long break, it takes "forever" to fill in User Management, Invitations, etc. He gave up on
    it because much time was spent and it was never fixed. Treat the HELP-bar-after-unlock bug as part of this redraw
    problem; measure (time to fill each Settings card after restart) before changing anything; owner decides scope.
+   OWNER RULE (19:59): the Settings redraw/reload fix must follow the SERIALIZATION guideline — no parallel,
+   fire-and-forget loading: each Settings part is loaded, WAITED for, and drawn before the next starts; one redraw owner,
+   no overlapping reloads (no race between a background render and a card still loading).
 8. ASK Willy (not answered yet): write the Apple "critical alert" entitlement request (sound on silent; Apple approval, weeks)?
 Server state now: hlp.txt rules, hl2.txt functions (30-second ring, no limit, body "HELP — <name>"), hip.txt run.invoker
 permission for fidunio-notification@ on helpalertcreatedv1/helpalertupdatedv1 (proven working: Fire 8 gets the notification).
