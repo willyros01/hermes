@@ -1,3 +1,8 @@
+# 1.1.84 RELEASED 26 Nov ~11:10 Toronto: TestFlight 1.1.84 (97) VALID; APK run 45839173091 success (Cuberoot publisher);
+# main f1a04e1 all gates green. Simulator: Android 28/28, iPhone 16/17 (Paste = simulator limit), iPad HELP bar 4/4
+# (1.1.83: 0/3). Server alarm sound needs owner's hl3.txt (functions only; keeps hip.txt permission). Not done today:
+# Settings slow-fill measurement/integrated-page rework (owner decides), Apple critical-alert request (owner to answer).
+
 # >>> TASK FOR 26 NOV 2026 08:05 (owner scheduled it 25 Nov 10:10 — "remember it for tomorrow's task") <<<
 FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; device code only in same-named adapters):
 1. HELP ALARM SOUND (owner real-device test 25 Nov: Fire 8 notification shows but NO sound; iPhone/iPad only the short
