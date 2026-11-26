@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (1:51 PM Sent)",
+      "observed": "a new message appeared (3:58 PM Sent)",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -206,7 +206,7 @@
       "what": "On the same HELP screen: type \"Help chat 7731\" in the big box and tap Send",
       "expected": "the message shows in the conversation on the HELP screen (no separate chat screen)",
       "ok": true,
-      "observed": "conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731",
+      "observed": "conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731; reached the server: yes (11→12)",
       "shots": [
         "24-help-chat-on-screen.png"
       ]
@@ -226,7 +226,7 @@
       "what": "Tap \"I'm OK now\", then open the regular chat with Bob",
       "expected": "the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, \"Help chat 7731\", \"I'm OK now\"",
       "ok": true,
-      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (HELP contacts. 1:57 PM Sent You are now one of my HELP contacts. 1:58 PM Sent HELP Open in Maps 1:58 PM Sent Help chat 7731 1:59 PM Sent I'm OK now 1:59 PM Sent)",
+      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (HELP contacts. 4:03 PM Sent You are now one of my HELP contacts. 4:04 PM Sent HELP Open in Maps 4:05 PM Sent Help chat 7731 4:05 PM Sent I'm OK now 4:05 PM Sent)",
       "shots": [
         "26-help-ok-regular-chat.png"
       ]
@@ -236,7 +236,7 @@
       "what": "The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps \"I'm coming\", types \"On my way 5512\" and taps Send",
       "expected": "red \"Simulator Bob needs HELP\" opens by itself; after \"I'm coming\" the conversation is on the same screen; the message is sent (no \"Conversation could not be started\"); the server has Alice's answer",
       "ok": true,
-      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 1:59 PM Location is on it\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; \"could not be started\": false",
+      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 4:06 PM Location is on it\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; \"could not be started\": false",
       "shots": [
         "27-help-incoming.png",
         "28-help-im-coming-chat.png"
