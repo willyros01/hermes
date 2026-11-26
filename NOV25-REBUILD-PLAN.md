@@ -25,7 +25,8 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    evidence (the HELP trace globalThis.FIDUNIO_HELP_TRACE records start/stop/snapshots/applied; consider showing it to the
    owner from a hidden spot, and repeat app-open/resume/unlock/background cycles in the simulator, not only Save).
    Owner details (19:47): device = iPAD; happens after coming back from another app / background (maybe a restart);
-   CORRECTED (19:48): to get it back he had to OPEN (tap) the HELP partner's chat — then the HELP bar reappeared.
+   CORRECTED (19:49): to get it back he only had to POINT AT / HIGHLIGHT (select) the HELP partner's chat in the iPad's
+   left list — not open it — then the HELP bar reappeared.
    So the HELP state is probably fine but the screen is not redrawn with the bar after resume: likely the iPad two-panel
    layout (bar lives in the left list / tablet sidebar) is rendered without the HELP bar and only a later full render
    (opening a chat) adds it. Check: resume/relaunch render path on tablet layout, render({background:true}) skipping the
