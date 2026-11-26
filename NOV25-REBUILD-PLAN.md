@@ -25,6 +25,11 @@ FIDUNIO 1.1.84, ONE build, all three versions (shared files byte-identical; devi
    evidence (the HELP trace globalThis.FIDUNIO_HELP_TRACE records start/stop/snapshots/applied; consider showing it to the
    owner from a hidden spot, and repeat app-open/resume/unlock/background cycles in the simulator, not only Save).
    Owner details (19:47): device = iPAD; happens after coming back from another app / background (maybe a restart);
+   EXACT TRIGGER (owner 19:52): no Home button involved — it happens when he comes back into FIDUNIO by UNLOCKING with
+   PIN / Face ID (the in-app lock screen). After the unlock, the iPad shows Messages WITHOUT the HELP bar.
+   -> Check the unlock path first: app.js unlockLocalApp -> render + helpOwner.afterUnlock(); the tablet sidebar is
+   rebuilt after the lock screen replaced the UI; is fabMarkup() included in that render, and is the sidebar redrawn
+   when HELP state arrives? Reproduce on the iPad simulator: lock (grace time) -> unlock with PIN -> bar must be there.
    CORRECTED (19:49): to get it back he only had to POINT AT / HIGHLIGHT (select) the HELP partner's chat in the iPad's
    left list — not open it — then the HELP bar reappeared.
    So the HELP state is probably fine but the screen is not redrawn with the bar after resume: likely the iPad two-panel
