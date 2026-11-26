@@ -1032,7 +1032,7 @@ function beginCloudGroupMessageSubscription(groupId){
       if(c&&last){c.preview=messagePreview(last.text);c.time=last.time;}
       else if(c&&bulkProjection.affected){c.preview="";c.time="";}
       if(meta.partial!==true)groupMessageStreamLifecycle.confirmServerSnapshot(token,meta);
-      if(state.route==="chat"&&String(state.selectedId)===String(groupId))render({background:true});
+      if(conversationOnScreen(groupId))render({background:true});
       if(pendingNotificationRoute&&notificationMessageHasProjected(pendingNotificationRoute))void requestAppActivation("notification-message-projected");
       if(meta.partial===true)return{projectedMessageIds:state.messages[groupId].map(message=>String(message.id))};
       await cacheCloudHistory(groupId,state.messages[groupId]);await persistState();
@@ -1324,7 +1324,7 @@ function beginCloudMessageSubscription(conversationId,{force=false}={}){
       // Visible projection is not subordinate to IndexedDB durability or the
       // server-backed Read-receipt recovery. The central render owner patches
       // the mounted chat while preserving its composer and transient viewport.
-      if(state.route==="chat" && String(state.selectedId)===String(conversationId))render({background:true});
+      if(conversationOnScreen(conversationId))render({background:true});
       if(pendingNotificationRoute&&notificationMessageHasProjected(pendingNotificationRoute))void requestAppActivation("notification-message-projected");
 
       // The Firebase stream owner runs these maintenance steps only after
@@ -1405,18 +1405,28 @@ async function ensureHelpGroup(helperUids,myName){
   for(const uid of now)if(uid!==me&&!helperUids.includes(uid))await removeGroupMemberForApp(gid,uid);
   return gid;
 }
-async function openHelpDirect(uid){
-  const remote=await startDirectConversation(uid);
+/* Option A: the big HELP screen shows the HELP conversation itself. Make it the selected conversation (route
+ * unchanged) and start its message stream, exactly as opening the chat would; returns its id. */
+async function watchHelpConversation({direct,group}={}){
+  if(group){
+    const id=String(group);
+    if(!state.conversations.some(row=>String(row.id)===id))throw new Error("HELP chat is unavailable.");
+    state.selectedId=id;stopCloudMessageSubscription();beginCloudGroupMessageSubscription(id);return id;
+  }
+  const remote=await startDirectConversation(String(direct||""));
   mergeCloudConversation(remote);
-  state.selectedId=String(remote.id);state.route="chat";render();
+  const id=String(remote.id);
+  state.selectedId=id;stopCloudGroupMessageSubscription();beginCloudMessageSubscription(id,{force:true});persistSoon();
+  return id;
 }
-function openHelpConversation(id){state.selectedId=String(id);state.route="chat";render();}
+/* A conversation is on screen in the chat view or on a big HELP screen. */
+function conversationOnScreen(id){return(state.route==="chat"||state.route==="help"||state.route==="helpAlert")&&String(state.selectedId)===String(id);}
 function helpCardsForAlert(senderUid,alertId,helperUids=[]){
   const rooms=state.conversations.filter(row=>(row.cloud&&String(row.peerUid||"")===String(senderUid))||(row.cloudGroup&&String(row.ownerUid||"")===String(senderUid)&&String(row.name||"").startsWith(HELP_GROUP_PREFIX)));
   return rooms.flatMap(c=>(state.messages[c.id]||[]).map(m=>!m.mine?parseHelpCard(m.text):null)).filter(card=>card&&card.alertId===alertId);
 }
 const helpOwner=createHelpOwner({app,render,navigate:route=>{state.route=route;render();},shellTop,isUnlocked:()=>state.unlocked,
-  chat:{sendDirect:sendHelpText,sendGroup:sendHelpGroupText,ensureGroup:ensureHelpGroup,findGroup:findHelpGroup,openDirect:uid=>{void openHelpDirect(uid).catch(err=>alert(err?.message||err));},openConversation:openHelpConversation}});
+  chat:{sendDirect:sendHelpText,sendGroup:sendHelpGroupText,ensureGroup:ensureHelpGroup,findGroup:findHelpGroup,watch:watchHelpConversation,messages:id=>state.messages[String(id)]||[]}});
 /*
  * Start-up serialization (owner guideline, 25 Nov 2026): every sign-in / sign-out report from Firebase is
  * handled in ONE place, one report at a time, and each step is started once and waited for before the next.
@@ -1624,7 +1634,7 @@ function renderConversationSidebar(active="messages"){
       </div>
       ${helpOwner.bannerMarkup()}
       <div class="tablet-conversation-list" id="tabletConversationList"></div>
-      ${helpOwner.fabMarkup()}
+      <div class="help-bar-slot" id="helpBarSlot">${helpOwner.fabMarkup()}</div>
       <nav class="tablet-bottom-nav" aria-label="FIDUNIO sections">
         <button class="tablet-nav-item ${active==="messages"?"active":""}" id="tabletMessagesNav">${icon2d("chats",22)}<span>Messages</span></button>
         <button class="tablet-nav-item ${active==="groups"?"active":""}" id="tabletGroupsNav">${icon2d("groups",22)}<span>Groups</span></button>
@@ -1785,7 +1795,11 @@ function render({background=false,entry=false}={}){
   const generation=++chatRenderGeneration;
   const unlockPinAlreadyMounted=!state.unlocked&&!!document.querySelector("#localUnlockPin .pin-code");
   persistSoon();
-  if(background&&patchActiveChatProjection(generation))return;
+  /* A background redraw on the iPad two-panel layout patches only the open chat and the list; the HELP bar sits
+   * outside both, so it is redrawn here too (proven cause of the missing HELP bar after restart/unlock, 26 Nov). */
+  if(background&&patchActiveChatProjection(generation)){helpOwner.refreshBar();return;}
+  /* On a big HELP screen a background redraw patches only what changed (the conversation), keeping the typing. */
+  if(background&&state.unlocked&&(state.route==="help"||state.route==="helpAlert")){document.body.dataset.route=state.route;helpOwner.backgroundRefresh(helpCardsForAlert);return;}
   if(state.route==="chat"){
     const captured=entry?null:captureChatViewportFromDom();
     pendingChatViewport=captured&&String(captured.conversationId)===String(state.selectedId)
@@ -1940,7 +1954,7 @@ function renderMessages(){
         <button class="conversation-view-toggle" id="archivedViewBtn">${state.archivedView?"Back to Messages":`Archived (${Object.keys(state.archivedConversations).length})`}</button>
         <div class="conversation-list" id="conversationList"></div>
       </section>
-      ${helpOwner.fabMarkup()}
+      <div class="help-bar-slot" id="helpBarSlot">${helpOwner.fabMarkup()}</div>
       <button class="fab icon-2d" id="newBtn" aria-label="New conversation">${icon2d("plus",26)}</button>
     </main>`;
   helpOwner.bindShared();
@@ -3053,7 +3067,7 @@ function renderModal(){
           ${canDelete?'<button class="modal-delete" id="deleteConversationBtn">Delete for Everyone</button>':isCloudGroup?'<p class="small-note">Only the group owner can permanently delete this group.</p>':""}
           <button class="modal-cancel" id="modalCancel">Cancel</button>
         </div>
-        <p class="small-note">Archive changes only this installation’s Messages list and preserves all shared history. Use Archived to restore it.</p>
+        <p class="small-note">Archive hides a chat on this device only. Find it again under Archived.</p>
       </div>`;
     document.body.appendChild(host);
     host.querySelector("#modalCancel").onclick=()=>{state.modal=null;host.remove();render();};
@@ -3121,7 +3135,7 @@ function renderModal(){
       <div class="modal">
         <h2>Conversation Security</h2>
         <p><strong>${esc(c?.name||"FIDUNIO contact")}</strong></p>
-        <p class="small-note">Compare this fingerprint with your contact using a separate trusted channel, such as an in-person comparison or a call you already trust.</p>
+        <p class="small-note">Compare this code with your contact in person or on a call.</p>
         <label class="form-label">Current public-key fingerprint</label>
         <div class="uid-box">${esc(fp?formatFingerprint(fp):"Key unavailable")}</div>
         <div class="permission-box">
@@ -3239,7 +3253,7 @@ function renderSettings(){
             <button class="text-size-btn ${state.settings.textSize==="large"?"active":""}" data-text-size="large">A+</button>
             <button class="text-size-btn ${state.settings.textSize==="xlarge"?"active":""}" data-text-size="xlarge">A++</button>
           </div>
-          <p class="small-note">A is standard, A+ is large, and A++ is extra large. The setting applies throughout Fidunio.</p>
+          <p class="small-note">A standard, A+ large, A++ extra large.</p>
         </div>
 
         <div class="card">
@@ -3255,7 +3269,7 @@ function renderSettings(){
           </div>
         </div>
 
-        <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}<p class="small-note">The large-attachment threshold is 5 MiB. When this is enabled, a large attachment waits if the browser reports cellular/WiMAX or the device is offline. If Wi-Fi/Ethernet is reported, it proceeds. If the browser cannot verify the network type, FIDUNIO does not send silently and asks for an explicit Send Anyway decision. iPhone/iPad Safari generally does not reliably disclose Wi-Fi versus cellular.</p></div>
+        <div class="card"><h2>Data</h2>${settingRow("Large attachments on Wi-Fi only","wifiAttachments")}<p class="small-note">Attachments over 5 MB wait for Wi-Fi. If FIDUNIO cannot tell, it asks before sending.</p></div>
 
         <div class="card">
           <h2>Account</h2>
@@ -3265,7 +3279,6 @@ function renderSettings(){
             <p class="small-note"><strong>Signed in:</strong> ${esc(firebaseUser.email||"Firebase user")}</p>
             <label class="form-label">Your FIDUNIO ID</label>
             <div class="uid-box">${esc(firebaseUser.uid)}</div>
-            <p class="small-note">Copy this ID to the other test device/account. The other account enters it under New Message → FIDUNIO ID.</p>
             <button class="secondary" id="copyUidBtn">Copy FIDUNIO ID</button>
             <button class="danger-btn" id="firebaseSignOutBtn">Sign Out</button>
           ` : `
@@ -3282,12 +3295,6 @@ function renderSettings(){
             </div>
           `}
           ${firebaseError?`<p class="warning-note">${esc(firebaseError)}</p>`:""}
-          <p class="small-note">Your account signs you in securely. Message encryption is managed automatically.</p>
-        </div>
-
-        <div class="card">
-          <h2>Prototype connectivity</h2>
-          <p class="small-note">Use airplane mode to test the persistent Outbox. Local demo chats simulate delivery; cloud chats send through Firestore after Firebase is configured and you are signed in.</p>
         </div>
 
         <div class="card">
@@ -3297,7 +3304,6 @@ function renderSettings(){
             <div class="brand">FIDUNIO</div>
             <div>Private Messaging</div>
             <div class="version">Version ${FIDUNIO_VERSION}</div>
-            <div class="small-note">Functional Prototype</div>
           </div>
         </div>
 
