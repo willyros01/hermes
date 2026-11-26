@@ -1,13 +1,13 @@
 ## 2026-11-26 — FIDUNIO 1.1.84 build (scheduled 08:05)
 
-- [ ] **TOP: HELP bar sometimes does not appear** (owner, 25 Nov; seen since the first HELP build). Find the cause with evidence; the bar must show from the last server-confirmed HELP contacts kept on the device, never wait for a live answer.
+- [x] **TOP: HELP bar sometimes does not appear** — FIXED in 1.1.84 (iPad simulator: missing 3/3 on 1.1.83, shown 3/3 + live on 1.1.84) (owner, 25 Nov; seen since the first HELP build). Find the cause with evidence; the bar must show from the last server-confirmed HELP contacts kept on the device, never wait for a live answer.
 - [ ] **iPad two-panel redraw (long-standing)**: Settings is very slow to fill in User Management, Invitations etc. the first time after a restart or long break; the HELP bar goes missing after unlock. Measure first; owner decides scope.
-- [ ] **HELP alarm sound** on iPhone, iPad, Android and Fire (today only the ordinary notification sound / "bonk").
-- [ ] **HELP "Write a message"** fix: open the existing chat; never rewrite its members ("Conversation could not be started" on Fire 8).
-- [ ] **Option A**: the HELP conversation on the big HELP screen; the regular conversation is also updated with everything that happens there (same messages, same order).
-- [ ] **Abuse reports in Settings**: collapsed by default; highlighted when a report is outstanding.
-- [ ] **Delete the "Install FIDUNIO" section** from Settings.
-- [ ] **Remove "Functional Prototype"** from the logo/app (it is in the App Store); scan the whole app and cut unnecessary wording.
+- [x] **HELP alarm sound** — in 1.1.84 (needs hl3.txt on the server) on iPhone, iPad, Android and Fire (today only the ordinary notification sound / "bonk").
+- [x] **HELP "Write a message"** fix — 1.1.84: open the existing chat; never rewrite its members ("Conversation could not be started" on Fire 8).
+- [x] **Option A** — 1.1.84: the HELP conversation on the big HELP screen; the regular conversation is also updated with everything that happens there (same messages, same order).
+- [x] **Abuse reports in Settings** — 1.1.84: collapsed by default; highlighted when a report is outstanding.
+- [x] **Delete the "Install FIDUNIO" section** — 1.1.84 from Settings.
+- [x] **Remove "Functional Prototype"** — 1.1.84 (main notes and section titles trimmed; legal/deletion texts left as they are) from the logo/app (it is in the App Store); scan the whole app and cut unnecessary wording.
 - [ ] Ask owner: Apple "critical alert" request (sound on silent)?
 
 ## 2026-11-25 — FIDUNIO 1.1.83 (PIN record repair + KISS HELP) — OPEN items
