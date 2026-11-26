@@ -17,6 +17,10 @@ for(const name of ['FidunioAdmPlugin.java','FidunioAdmService.java']){
   need('android-src/native/'+name);
   fs.copyFileSync('android-src/native/'+name,pkg+name);
 }
+/* HELP alarm sound (owner, 25 Nov): res/raw/help_alarm, used by the "fidunio-help-alarm" channel. */
+need('android-src/res/raw/help_alarm.ogg');
+fs.mkdirSync(APP+'/src/main/res/raw',{recursive:true});
+fs.copyFileSync('android-src/res/raw/help_alarm.ogg',APP+'/src/main/res/raw/help_alarm.ogg');
 function patch(path,anchor,replacement){
   const contents=fs.readFileSync(path,'utf8');
   assert.equal(contents.split(anchor).length,2,'Unexpected native anchor: '+path);

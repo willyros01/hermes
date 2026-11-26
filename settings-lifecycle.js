@@ -47,7 +47,6 @@ import {createNotificationLeaseSession,FIDUNIO_NOTIFICATION_LEASE_ROLLOUT} from 
 import {FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY} from "./notification-config.js";
 import {createInvitationForEnrollment,listPendingInvitationsForAdmin,revokeInvitationForAdmin} from "./invitation-owner.js";
 import {createAdminRecoveryAuthorization,listAdminRecoveryAuthorizations,revokeAdminRecoveryAuthorization} from "./admin-recovery-client.js";
-import {mountInstallGuidance} from "./install-guidance.js";
 import {prepareSelfAccountDeletion} from "./account-deletion-service.js";
 import {completeSelfAccountDeletion} from "./account-deletion-finalize-client.js";
 import { getAccountE2EELifecycleState,enrollAccountE2EE,unlockAccountE2EE,recoverAccountE2EE,changeAccountPasswordWithE2EE } from "./e2ee-account-runtime.js";
@@ -89,19 +88,19 @@ function serializeSettingsMutation(label,work){
 }
 
 const GROUPS=[
-  {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, and account information.",cards:["Appearance","Text Size","Account"]},
-  {id:"privacy",label:"Security",icon:"🔒",subtitle:"Your FIDUNIO PIN, Face ID or biometric unlock, and end-to-end encryption.",cards:["Privacy & Access"]},
-  {id:"notifications",label:"Notifications",icon:"●",subtitle:"Control private message-arrival notifications on this installation."},
-  {id:"safety",label:"Safety",icon:"!",subtitle:"HELP for your family, and reports of abusive behavior or objectionable content.",cards:["HELP"]},
-  {id:"profile",label:"Profile",icon:"●",subtitle:"Your personal information and how you appear to other FIDUNIO users."},
-  {id:"users",label:"User Administration",icon:"◉",subtitle:"Manage account status, roles, expiration, and authorized recovery."},
-  {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Create and manage FIDUNIO invitations."},
-  {id:"install",label:"Install",icon:"▣",subtitle:"Optional browser and Home Screen installation guidance."},
-  {id:"data",label:"Data",icon:"▤",subtitle:"Local data and storage controls.",cards:["Data"]},
-  {id:"legal",label:"Legal & Support",icon:"ⓘ",subtitle:"Privacy, terms, support, safety, and account rights."},
-  {id:"about",label:"About",icon:"ⓘ",subtitle:"FIDUNIO information and version details.",cards:["About"]}
+  {id:"general",label:"General",icon:"⚙︎",subtitle:"Appearance, text size, account.",cards:["Appearance","Text Size","Account"]},
+  {id:"privacy",label:"Security",icon:"🔒",subtitle:"PIN, Face ID and encryption.",cards:["Privacy & Access"]},
+  {id:"notifications",label:"Notifications",icon:"●",subtitle:"Message notifications on this device."},
+  {id:"safety",label:"Safety",icon:"!",subtitle:"HELP, blocking and abuse reports.",cards:["HELP"]},
+  {id:"profile",label:"Profile",icon:"●",subtitle:"Your name, photo and contact details."},
+  {id:"users",label:"User Administration",icon:"◉",subtitle:"Users, roles and account recovery."},
+  {id:"invites",label:"Invitations",icon:"✉︎",subtitle:"Invite new users."},
+  {id:"data",label:"Data",icon:"▤",subtitle:"Storage on this device.",cards:["Data"]},
+  {id:"legal",label:"Legal & Support",icon:"ⓘ",subtitle:"Privacy, terms and support."},
+  {id:"about",label:"About",icon:"ⓘ",subtitle:"Version.",cards:["About"]}
 ];
-const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","install","data","legal","about"];
+let abuseReportsExpanded=false;
+const PANEL_ORDER=["profile","general","privacy","notifications","safety","users","invites","data","legal","about"];
 let activeGroup="profile";
 let mountedAccountVaultOwner=null;
 
@@ -207,7 +206,7 @@ function closeAdminModal(){document.querySelector("#fidunioAdminModal")?.remove(
 async function renderAdminModal(modal,info){
   const users=await listUsers();if(!modal.isConnected)return;
   const body=modal.querySelector(".modal");
-  body.innerHTML=`<div class="admin-modal-head"><div><h2>User Administration</h2><p class="small-note">Manage user access, status, expiration, and administrator-authorized account recovery. Invitation management is kept separately under Invitations.</p></div><button class="secondary" id="adminRefreshBtn" style="width:auto">Refresh</button></div><div class="admin-section-label">Users (${users.length})</div><div class="admin-user-table"><div class="admin-user-header"><span>User</span><span>Role</span><span>Status</span><span>Expires</span><span></span></div>${users.map(u=>userRow(u,info)).join("")}</div><p class="small-note" style="margin-top:10px">Recovery authorization never exposes a user's password, PIN, encryption key, messages, or attachments to the administrator.</p><div class="modal-actions"><button class="modal-cancel" id="adminCloseBtn">Close</button></div>`;
+  body.innerHTML=`<div class="admin-modal-head"><div><h2>User Administration</h2><p class="small-note">Manage user access and account recovery.</p></div><button class="secondary" id="adminRefreshBtn" style="width:auto">Refresh</button></div><div class="admin-section-label">Users (${users.length})</div><div class="admin-user-table"><div class="admin-user-header"><span>User</span><span>Role</span><span>Status</span><span>Expires</span><span></span></div>${users.map(u=>userRow(u,info)).join("")}</div><p class="small-note" style="margin-top:10px">Recovery authorization never exposes a user's password, PIN, encryption key, messages, or attachments to the administrator.</p><div class="modal-actions"><button class="modal-cancel" id="adminCloseBtn">Close</button></div>`;
   if(info.role==="owner"){
     const targets=users.filter(u=>u.uid!==info.user.uid&&u.systemRole==="admin"&&u.active!==false&&!["suspended","deactivated"].includes(String(u.status||"active")));
     const box=document.createElement("div");box.className="permission-box";box.id="fidunioOwnershipTransferBox";box.style.marginBottom="14px";
@@ -305,7 +304,7 @@ async function renderAccountDeletion(profileHost,usersHost,info){
 
 async function renderSafety(safetyHost,info){
   const helpCard=safetyHost.querySelector("#helpSettingsHost");/* HELP Alert card stays first in Safety */
-  safetyHost.innerHTML='<div class="card" id="fidunioSafetyFilterCard"><h2>Message Safety Filter</h2><p class="small-note"><strong>On.</strong> FIDUNIO checks outgoing text on this device before encryption for a narrow set of high-confidence abusive or threatening phrases. Message text is not sent to a moderation service. The filter cannot inspect encrypted attachment contents, so Report Abuse and Blocked Users remain available for other cases.</p></div><div class="card" id="fidunioAbuseReportCard"><h2>Report Abuse</h2><p class="small-note">Report harassment, objectionable content, scams, impersonation, or other abusive behavior. FIDUNIO administrators receive the report, not the contents of unrelated conversations.</p><label class="form-label" for="abuseReason">Reason</label><select class="text-input" id="abuseReason"><option value="">Choose a reason</option><option value="harassment">Harassment or bullying</option><option value="objectionable-content">Objectionable content</option><option value="spam-scam">Spam or scam</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select><label class="form-label" for="abuseTarget">Person involved (optional)</label><select class="text-input" id="abuseTarget"><option value="">No specific user</option></select><label class="form-label" for="abuseDetails">Details (optional)</label><textarea class="text-input" id="abuseDetails" maxlength="1000" rows="5" placeholder="Briefly describe what happened. Do not paste passwords, PINs, or private recovery information."></textarea><button class="primary" id="submitAbuseReportBtn" style="margin-top:14px">Send Report</button><div id="abuseReportNote" aria-live="polite"></div></div>';
+  safetyHost.innerHTML='<div class="card" id="fidunioSafetyFilterCard"><h2>Message Safety Filter</h2><p class="small-note"><strong>On.</strong> FIDUNIO checks outgoing text on this device before encryption for a narrow set of high-confidence abusive or threatening phrases. Message text is not sent to a moderation service. The filter cannot inspect encrypted attachment contents, so Report Abuse and Blocked Users remain available for other cases.</p></div><div class="card" id="fidunioAbuseReportCard"><h2>Report Abuse</h2><p class="small-note">Report harassment, scams or other abuse. Administrators see only the report.</p><label class="form-label" for="abuseReason">Reason</label><select class="text-input" id="abuseReason"><option value="">Choose a reason</option><option value="harassment">Harassment or bullying</option><option value="objectionable-content">Objectionable content</option><option value="spam-scam">Spam or scam</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select><label class="form-label" for="abuseTarget">Person involved (optional)</label><select class="text-input" id="abuseTarget"><option value="">No specific user</option></select><label class="form-label" for="abuseDetails">Details (optional)</label><textarea class="text-input" id="abuseDetails" maxlength="1000" rows="5" placeholder="Briefly describe what happened. Do not paste passwords, PINs, or private recovery information."></textarea><button class="primary" id="submitAbuseReportBtn" style="margin-top:14px">Send Report</button><div id="abuseReportNote" aria-live="polite"></div></div>';
   if(helpCard)safetyHost.prepend(helpCard);
   const card=safetyHost.querySelector("#fidunioAbuseReportCard"),target=card.querySelector("#abuseTarget"),note=card.querySelector("#abuseReportNote"),button=card.querySelector("#submitAbuseReportBtn");
   try{
@@ -321,7 +320,7 @@ async function renderSafety(safetyHost,info){
     }catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}
     finally{button.disabled=false;button.textContent="Send Report";}
   };
-  const blockCard=document.createElement("div");blockCard.className="card";blockCard.id="fidunioBlockedUsersCard";blockCard.innerHTML='<h2>Blocked Users</h2><p class="small-note">Blocking stops new direct conversations, direct messages, and direct-message reactions in both directions. Group membership is separate; report abuse or ask a group administrator to remove an abusive member from a group.</p><label class="form-label" for="blockUserSelect">User to block</label><select class="text-input" id="blockUserSelect"><option value="">Choose a user</option></select><button class="secondary" id="blockUserBtn" style="margin-top:12px">Block User</button><div id="blockedUsersList" style="margin-top:14px"><p class="small-note">Loading blocked users…</p></div><div id="blockUserNote" aria-live="polite"></div>';safetyHost.appendChild(blockCard);
+  const blockCard=document.createElement("div");blockCard.className="card";blockCard.id="fidunioBlockedUsersCard";blockCard.innerHTML='<h2>Blocked Users</h2><p class="small-note">Blocking stops direct messages both ways. It does not remove anyone from a group.</p><label class="form-label" for="blockUserSelect">User to block</label><select class="text-input" id="blockUserSelect"><option value="">Choose a user</option></select><button class="secondary" id="blockUserBtn" style="margin-top:12px">Block User</button><div id="blockedUsersList" style="margin-top:14px"><p class="small-note">Loading blocked users…</p></div><div id="blockUserNote" aria-live="polite"></div>';safetyHost.appendChild(blockCard);
   const blockSelect=blockCard.querySelector("#blockUserSelect"),blockedList=blockCard.querySelector("#blockedUsersList"),blockNote=blockCard.querySelector("#blockUserNote"),blockButton=blockCard.querySelector("#blockUserBtn");
   let safetyUsers=[];
   try{safetyUsers=await listCloudUsers();if(blockCard.isConnected)for(const user of safetyUsers){const option=document.createElement("option");option.value=user.uid;option.textContent=user.displayName||user.email||"FIDUNIO user";blockSelect.appendChild(option);}}catch(error){blockNote.innerHTML=`<p class="warning-note">${esc(error?.message||String(error))}</p>`;}
@@ -330,17 +329,26 @@ async function renderSafety(safetyHost,info){
   blockButton.onclick=async()=>{const uid=blockSelect.value;if(!uid){blockNote.innerHTML='<p class="warning-note">Choose a FIDUNIO user to block.</p>';return;}if(!confirm("Block this user? New direct contact will be stopped in both directions until you unblock them."))return;blockButton.disabled=true;try{await serializeSettingsMutation("block user",()=>blockFidunioUser(uid));blockSelect.value="";await renderBlocks();blockNote.innerHTML='<p class="small-note">User blocked.</p>';}catch(err){blockNote.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;}finally{blockButton.disabled=false;}};
 
   if(["owner","admin"].includes(info.role)){
-    const admin=document.createElement("div");admin.className="card";admin.id="fidunioAbuseAdminCard";admin.innerHTML='<h2>Abuse Reports</h2><p class="small-note">Administrator moderation queue.</p><div id="abuseAdminList"><p class="small-note">Loading reports…</p></div>';safetyHost.appendChild(admin);
-    const list=admin.querySelector("#abuseAdminList");
+    /* Abuse Reports (owner, 25 Nov): collapsed like Manage Users; highlighted when a report is waiting. */
+    const admin=document.createElement("div");admin.className="card";admin.id="fidunioAbuseAdminCard";admin.innerHTML='<h2>Abuse Reports</h2><p class="small-note" id="abuseSummary">Checking…</p><button class="secondary" id="abuseToggle" type="button" hidden>Show reports</button><div id="abuseAdminList" hidden></div>';safetyHost.appendChild(admin);
+    const list=admin.querySelector("#abuseAdminList"),summary=admin.querySelector("#abuseSummary"),toggle=admin.querySelector("#abuseToggle");
     try{
       const reports=await listFidunioAbuseReportsForAdmin();
       if(!admin.isConnected)return;
+      const waiting=reports.filter(r=>r.status==="open").length;
+      summary.textContent=waiting?`${waiting} waiting for you`:reports.length?"None waiting":"No reports";
+      admin.classList.toggle("abuse-attention",waiting>0);
+      document.querySelector('.fidunio-settings-nav-btn[data-group="safety"]')?.classList.toggle("abuse-attention",waiting>0);
+      const show=open=>{abuseReportsExpanded=open;list.hidden=!open;toggle.textContent=open?"Hide reports":"Show reports";};
+      toggle.hidden=!reports.length;toggle.onclick=()=>show(!abuseReportsExpanded);show(abuseReportsExpanded&&reports.length>0);
       const participantUids=[...new Set(reports.flatMap(r=>[r.reporterUid,r.targetUid]).map(x=>String(x||"").trim()).filter(Boolean))];
       const participantProfiles=new Map();
-      await Promise.all(participantUids.map(async uid=>{
+      /* One at a time, each waited for (serialization guideline). */
+      for(const uid of participantUids){
         try{const profile=await getCloudUserProfile(uid);participantProfiles.set(uid,profile?.displayName||profile?.email||"FIDUNIO user");}
         catch{participantProfiles.set(uid,"FIDUNIO user");}
-      }));
+      }
+      if(!admin.isConnected)return;
       const displayName=uid=>participantProfiles.get(String(uid||""))||"FIDUNIO user";
       list.innerHTML=reports.length?reports.map(r=>`<div class="admin-invite-row"><div><strong>${esc(prettyAbuseCategory(r.category))}</strong><span>${esc(displayName(r.reporterUid))} ${r.targetUid?`→ ${esc(displayName(r.targetUid))}`:""} • ${esc(dateText(r.createdAt))}</span>${r.details?`<p class="small-note" style="margin:6px 0 0">${esc(r.details)}</p>`:""}</div><div>${r.status==="open"?`<button class="row-action abuseResolveBtn" type="button" data-id="${esc(r.id)}">Resolve</button><button class="row-action abuseDismissBtn" type="button" data-id="${esc(r.id)}">Dismiss</button>`:`<span class="small-note">${esc(r.status)}</span>`}</div></div>`).join(""):'<p class="small-note">No abuse reports.</p>';
       const act=async(btn,status)=>{btn.disabled=true;try{await serializeSettingsMutation("resolve abuse report",()=>resolveFidunioAbuseReport(btn.dataset.id,status,""));await renderSafety(safetyHost,info);}catch(err){alert(err?.message||String(err));btn.disabled=false;}};
@@ -352,7 +360,7 @@ async function renderSafety(safetyHost,info){
 
 function renderUserAdmin(usersHost,info){
   if(!["owner","admin"].includes(info.role)){usersHost.innerHTML='<div class="card" id="fidunioUserAdminCard"><h2>User Administration</h2><p class="small-note">Administrator access is required.</p></div>';return;}
-  usersHost.innerHTML='<div class="card" id="fidunioUserAdminCard"><h2>User Administration</h2><p class="small-note">Compact user list for access, suspension, restoration, expiration, and account recovery.</p><button class="primary" type="button" id="manageUsersBtn">Manage Users & Access</button></div>';
+  usersHost.innerHTML='<div class="card" id="fidunioUserAdminCard"><h2>User Administration</h2><p class="small-note">Users, access and recovery.</p><button class="primary" type="button" id="manageUsersBtn">Manage Users & Access</button></div>';
   usersHost.querySelector("#manageUsersBtn").onclick=e=>{e.preventDefault();e.stopPropagation();openAdmin(info);};
 }
 
@@ -372,7 +380,7 @@ function renderInviteResult(card,invite){
 }
 function closeInviteModal(){document.querySelector("#fidunioInviteModal")?.remove();}
 function openInviteModal(card){
-  closeInviteModal();const modal=document.createElement("div");modal.id="fidunioInviteModal";modal.className="modal-backdrop";modal.innerHTML=`<div class="modal" style="max-width:640px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 style="margin:0">Create Invitation</h2><button class="text-btn" id="inviteModalX" aria-label="Close" style="font-size:28px;line-height:1">×</button></div><p class="small-note">Choose the new user's role and how long the invitation should remain valid.</p><label class="form-label" for="modalInviteRole">New user's role</label><select class="text-input" id="modalInviteRole"><option value="user">User</option><option value="admin">Admin</option></select><label class="form-label" for="modalInviteDays">Expires</label><select class="text-input" id="modalInviteDays"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option></select><div class="permission-box" style="margin-top:14px"><p class="small-note" style="margin:0">ⓘ The recipient gets the Join link plus a public Quick Start Guide link.</p></div><div class="modal-actions"><button class="modal-cancel" id="inviteModalCancel">Cancel</button><button class="modal-confirm" id="inviteModalCreate">Create Invitation</button></div><div id="inviteModalNote"></div></div>`;document.body.appendChild(modal);
+  closeInviteModal();const modal=document.createElement("div");modal.id="fidunioInviteModal";modal.className="modal-backdrop";modal.innerHTML=`<div class="modal" style="max-width:640px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 style="margin:0">Create Invitation</h2><button class="text-btn" id="inviteModalX" aria-label="Close" style="font-size:28px;line-height:1">×</button></div><p class="small-note">Choose the role and how long the invitation is valid.</p><label class="form-label" for="modalInviteRole">New user's role</label><select class="text-input" id="modalInviteRole"><option value="user">User</option><option value="admin">Admin</option></select><label class="form-label" for="modalInviteDays">Expires</label><select class="text-input" id="modalInviteDays"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option></select><div class="permission-box" style="margin-top:14px"><p class="small-note" style="margin:0">ⓘ The recipient gets the Join link plus a public Quick Start Guide link.</p></div><div class="modal-actions"><button class="modal-cancel" id="inviteModalCancel">Cancel</button><button class="modal-confirm" id="inviteModalCreate">Create Invitation</button></div><div id="inviteModalNote"></div></div>`;document.body.appendChild(modal);
   modal.onclick=e=>{if(e.target===modal)closeInviteModal();};modal.querySelector("#inviteModalX").onclick=closeInviteModal;modal.querySelector("#inviteModalCancel").onclick=closeInviteModal;
   modal.querySelector("#inviteModalCreate").onclick=async()=>{const btn=modal.querySelector("#inviteModalCreate"),note=modal.querySelector("#inviteModalNote");btn.disabled=true;btn.textContent="Creating…";try{const invite=await createInvitationForEnrollment(modal.querySelector("#modalInviteRole").value,Number(modal.querySelector("#modalInviteDays").value));renderInviteResult(card,invite);closeInviteModal();}catch(err){note.innerHTML=`<p class="warning-note">${esc(err?.message||String(err))}</p>`;btn.disabled=false;btn.textContent="Create Invitation";}};
 }
@@ -570,6 +578,6 @@ export function mountSettingsLifecycle({accountVaultOwner}={}){
      the permanent named areas exactly once for this render generation. */
   const shell=createShell(settings);
   placeBaseCards(settings,shell);
-  mountInstallGuidance(host(shell,"install"));
+  /* "Install FIDUNIO" removed (owner, 25 Nov): FIDUNIO is in the App Store and on the website. */
   hydrateAccountPanels(g,shell);
 }

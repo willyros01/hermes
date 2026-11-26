@@ -25,7 +25,7 @@ assert.match(app,/data-conversation-id=/,"composer ownership must be bound to th
 assert.match(app,/function captureComposerStateFromDom\(\)/);
 assert.match(app,/function restoreComposerState\(conversationId/);
 assert.match(app,/function patchActiveChatProjection\(generation\)/,"background projections need an owned non-structural chat path");
-assert.match(app,/if\(background&&patchActiveChatProjection\(generation\)\)return/,"background updates must not replace an active composer");
+assert.match(app,/if\(background&&patchActiveChatProjection\(generation\)\)(return|\{helpOwner\.refreshBar\(\);return;\})/,"background updates must not replace an active composer");
 assert.match(app,/draft:box\.value/);
 assert.match(app,/selectionStart/);
 assert.match(app,/selectionEnd/);

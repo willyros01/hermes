@@ -18,6 +18,10 @@ import com.getcapacitor.annotation.PermissionCallback;
   @Permission(alias="notice",strings={Manifest.permission.POST_NOTIFICATIONS})
 })
 public final class FidunioAdmPlugin extends Plugin {
+  /* Every Android build (Google phones and Fire): create the HELP alarm channel once, at app start. */
+  @Override public void load(){
+    try{FidunioAdmService.ensureHelpAlarmChannel(getContext());}catch(Exception ignored){}
+  }
   // Mirror Wire's proven A3L platform detection. Never infer FCM from
   // an absent, failed or unsupported ADM probe.
   private String provider(){

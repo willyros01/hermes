@@ -68,7 +68,25 @@ public final class FidunioAdmService extends A3LMessagingService {
   }
   /* FIDUNIO HELP (2026-11-24): its own urgent channel; the text is only
    * "HELP from <name>" style, checked here as well as on the server. */
-  private static final String HELP_CHANNEL="fidunio_help";
+  /* HELP alarm (owner, 25 Nov): a NEW channel (Android never lets an app change a channel's sound) that plays
+   * res/raw/help_alarm on the ALARM volume, like a clock alarm. Same id as the server's FCM channelId, so Google
+   * phones (FCM) and Fire tablets (ADM) ring the same way. Created at app start by FidunioAdmPlugin.load(). */
+  static final String HELP_CHANNEL="fidunio-help-alarm";
+  static void ensureHelpAlarmChannel(Context context){
+    if(Build.VERSION.SDK_INT<26)return;
+    final NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+    if(manager==null||manager.getNotificationChannel(HELP_CHANNEL)!=null)return;
+    NotificationChannel channel=new NotificationChannel(HELP_CHANNEL,"HELP alarm",NotificationManager.IMPORTANCE_HIGH);
+    channel.setDescription("Urgent HELP from your family");
+    channel.enableVibration(true);channel.setVibrationPattern(new long[]{0,800,400,800,400,800});
+    channel.setBypassDnd(true);
+    channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+    android.net.Uri sound=android.net.Uri.parse("android.resource://"+context.getPackageName()+"/raw/help_alarm");
+    channel.setSound(sound,new android.media.AudioAttributes.Builder()
+      .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+      .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+    manager.createNotificationChannel(channel);
+  }
   private void showHelp(Context context,Map<String,String> data){
     final String alertId=data.get("alertId");
     String body=data.get("notificationBody");
@@ -78,11 +96,7 @@ public final class FidunioAdmService extends A3LMessagingService {
        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return;
     final NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
     if(manager==null)return;
-    if(Build.VERSION.SDK_INT>=26){
-      NotificationChannel channel=new NotificationChannel(HELP_CHANNEL,"HELP alerts",NotificationManager.IMPORTANCE_HIGH);
-      channel.enableVibration(true);channel.setBypassDnd(true);
-      manager.createNotificationChannel(channel);
-    }
+    ensureHelpAlarmChannel(context);
     Intent intent=new Intent(context,MainActivity.class);
     intent.setAction("io.github.willyros01.fidunio.HELP."+alertId);
     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);

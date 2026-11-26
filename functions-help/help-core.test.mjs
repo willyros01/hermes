@@ -61,6 +61,8 @@ const m=helpFcmMessage(["t".repeat(30)],{alertId:"a1",kind:"alert",notificationB
 helpFcmMessage(["t".repeat(30)],{alertId:"a1",kind:"alert",notificationBody:"HELP from Lucas (reminder 2)"});
 helpFcmMessage(["t".repeat(30)],{alertId:"a1",kind:"update",notificationBody:"Lucas is safe now"});
 assert.equal(m.apns.payload.aps["interruption-level"],"time-sensitive");
-assert.equal(m.android.notification.channelId,"fidunio-help");
+assert.equal(m.android.notification.channelId,"fidunio-help-alarm","HELP alert rings on the alarm channel");
+assert.equal(m.android.notification.sound,"help_alarm");
+assert.equal(m.apns.payload.aps.sound,"help_alarm.caf","iPhone/iPad play the HELP alarm sound");
 assert.throws(()=>helpFcmMessage(["t".repeat(30)],{alertId:"a1",kind:"alert",notificationBody:"I am at 12 Main St"}),/Unapproved/);
 console.log("HELP server core gate passed");

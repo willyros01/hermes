@@ -2,8 +2,8 @@
 
 /* Messages: one full-width red bar that covers nothing (the + button keeps its corner). */
 .help-bar{display:block;width:calc(100% - 32px);margin:10px 16px;min-height:64px;border-radius:16px;border:0;background:#C62828;color:#fff;font-size:26px;font-weight:900;letter-spacing:2px;cursor:pointer}
-.app-shell>.help-bar{position:fixed;left:0;bottom:16px;width:calc(100% - 128px);margin:0 0 0 16px;z-index:5;box-shadow:0 6px 16px rgba(0,0,0,.25)}
-.app-shell:has(>.help-bar) .content{padding-bottom:110px}
+.app-shell>.help-bar-slot>.help-bar{position:fixed;left:0;bottom:16px;width:calc(100% - 128px);margin:0 0 0 16px;z-index:5;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.app-shell:has(>.help-bar-slot>.help-bar) .content{padding-bottom:110px}
 .tablet-sidebar .help-bar{width:calc(100% - 32px);margin:8px 16px}
 .help-bar-open{background:#2E7D32;letter-spacing:0;font-size:22px}
 
@@ -43,3 +43,18 @@
 .help-helpers .member-option{grid-template-columns:36px 1fr;min-height:56px;font-size:18px;font-weight:700;cursor:pointer}
 .help-helpers .member-option input{width:28px;height:28px;margin:0}
 .help-setup-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Option A: the HELP conversation on the big HELP screen (same conversation as the regular chat). */
+.help-with-chat{gap:12px}
+.help-title-small{font-size:32px;margin-top:4px}
+.help-with-chat .help-lead{font-size:20px}
+.help-chat{align-self:stretch;max-width:620px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:10px;flex:1 1 auto;min-height:0}
+.help-chat-log{flex:1 1 auto;min-height:120px;max-height:38vh;overflow-y:auto;background:#fff;color:#1A1D21;border-radius:18px;padding:12px 14px;text-align:left}
+.help-msg{margin:0 0 10px;font-size:20px;line-height:1.35}
+.help-msg-mine{text-align:right}
+.help-msg-note{color:#5f6368;text-align:center}
+.help-msg a{font-weight:800}
+.help-chat-send{display:flex;gap:10px;align-items:stretch}
+.help-chat-send textarea{flex:1;min-height:60px;font-size:20px;border-radius:16px;border:0;padding:10px 12px;resize:none;color:#1A1D21}
+.help-send{min-width:96px;border-radius:16px;border:3px solid #fff;background:rgba(255,255,255,.18);color:#fff;font-size:22px;font-weight:900;cursor:pointer}
+.help-with-chat .help-actions{margin-top:0}

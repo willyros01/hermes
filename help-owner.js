@@ -2,10 +2,11 @@
  * FIDUNIO HELP — KISS version (owner storyboard, Nov 24 2026; owner-authorized rebuild Nov 25).
  * The one owner of HELP state and HELP screens. One action per screen, words a child can read.
  *
- * Child:  Messages → red HELP bar → hold 2 s → "HELP is sent" (Write a message / I'm OK now)
- *         → green "<name> is coming" (Write a message / I'm OK now).
- * Helper: notification "HELP — <name>" → red "<name> needs HELP" (map, Open in Maps, I'm coming)
- *         → the HELP chat.
+ * Child:  Messages → red HELP bar → hold 2 s → "HELP is sent" with the conversation on the same screen
+ *         and "I'm OK now" → green "<name> is coming" (conversation + "I'm OK now").
+ * Helper: notification "HELP — <name>" → red "<name> needs HELP" (Open in Maps, I'm coming) → after
+ *         "I'm coming" the conversation appears on the same screen.
+ * Option A (owner, 25 Nov): the big-screen conversation IS the regular chat (same messages, same order).
  * HELP chat: with one HELP contact, the direct chat with them; with two or more, one encrypted
  *         group "HELP — <child's profile name>" kept in step with the chosen contacts.
  * Setup:  Settings → Safety → HELP: who is chosen, "Choose HELP contacts" opens the list, Save.
@@ -58,7 +59,7 @@ export function joinNames(names){
 
 /* ---- the owner ----
  * chat: {sendDirect(uid,text), sendGroup(groupId,text), ensureGroup(helperUids,myName)->groupId|null,
- *        findGroup(ownerUid)->groupId|null, openDirect(uid), openConversation(id)} — app.js owns chats. */
+ *        findGroup(ownerUid)->groupId|null, watch({direct}|{group})->conversationId, messages(id)->rows} — app.js owns chats. */
 export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()=>true,onError=m=>alert(m)}){
   const shown=new Set();
   const st={uid:"",settings:{enabled:false,helperUids:[]},settingsLoaded:false,mine:[],incoming:[],people:[],unsub:[],
@@ -121,7 +122,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       if(!openUnanswered())render({background:true});
     });
   }
-  function stop(){trace("stop");generation++;st.starting=false;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;}
+  function stop(){trace("stop");generation++;st.draft="";chatView={key:"",id:"",target:null};st.starting=false;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;}
   async function people(){if(!st.people.length){try{st.people=(await listCloudUsers())||[];}catch{}}return st.people;}
   const nameOf=uid=>{const p=st.people.find(p=>String(p.uid)===String(uid));return p?.displayName||p?.email||"A FIDUNIO member";};
 
@@ -144,16 +145,6 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     }
     for(const uid of helperUids){try{await chat.sendDirect(uid,text);}catch(e){st.lastError=e?.message||String(e);}}
   }
-  function openMyChat(){
-    const h=st.settings.helperUids;
-    if(h.length===1)return chat.openDirect(h[0]);
-    void chat.ensureGroup(h,nameOf(st.uid)).then(gid=>gid?chat.openConversation(gid):chat.openDirect(h[0])).catch(()=>chat.openDirect(h[0]));
-  }
-  function openChildChat(a){
-    if((a.helperUids||[]).length>=2){const gid=chat.findGroup(a.senderUid);if(gid)return chat.openConversation(gid);}
-    chat.openDirect(a.senderUid);
-  }
-
   /* Send. It counts as sent only when the server has the alert document. */
   async function sendAlert(){
     if(st.sending)return;
@@ -180,10 +171,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     try{await s.updateDoc(s.doc(db(),"helpAlerts",a.id),{["acks."+st.uid]:{at:s.serverTimestamp()}});}
     catch(e){onError("Could not tell them you are coming. Check the connection and try again.");return false;}
     const text=encodeHelpCard({alertId:a.id,kind:"coming"});
-    try{
-      if((a.helperUids||[]).length>=2){const gid=chat.findGroup(a.senderUid);if(gid)await chat.sendGroup(gid,text);else await chat.sendDirect(a.senderUid,text);}
-      else await chat.sendDirect(a.senderUid,text);
-    }catch{}
+    try{await sendToChild(a,text);}catch(e){trace("coming card not sent");}
     return true;
   }
   async function saveHelpers(helperUids){
@@ -207,12 +195,94 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     return `<button class="help-bar${open?" help-bar-open":""}" id="helpFab">${open?"HELP is on — open":"HELP"}</button>`;
   }
   function bannerMarkup(){return"";}
+  /* Redraw only the HELP bar slot (same markup as a full draw). Called by app.js render() on background patches. */
+  function refreshBar(){
+    const slot=document.querySelector("#helpBarSlot");if(!slot)return;
+    const html=fabMarkup();
+    if(slot.innerHTML!==html){slot.innerHTML=html;bindShared();trace("bar redrawn "+(html?"shown":"hidden"));}
+  }
   function bindShared(){
     document.querySelector("#helpFab")?.addEventListener("click",()=>{st.viewAlertId="";navigate("help");});
   }
   function openAlert(alertId){st.viewAlertId=String(alertId||"");navigate(st.mine.some(a=>a.id===alertId)?"help":"helpAlert");}
 
   /* ---- the child's HELP screens ---- */
+  /* ---- Option A (owner, 25 Nov): the HELP conversation lives on the big HELP screen.
+   * It is the SAME conversation as the regular chat (same messages, same order): the big screen is only a
+   * larger view of it, so everything typed or tapped here also shows in the regular chat. ---- */
+  let chatView={key:"",id:"",target:null};
+  function targetForMine(a){
+    const h=a?.helperUids||st.settings.helperUids;
+    if(h.length>=2){const gid=chat.findGroup(st.uid);if(gid)return{group:gid};}
+    return h.length?{direct:h[0]}:null;
+  }
+  function targetForChild(a){
+    if((a.helperUids||[]).length>=2){const gid=chat.findGroup(a.senderUid);if(gid)return{group:gid};}
+    return{direct:a.senderUid};
+  }
+  /* One watch at a time, in order (serialization guideline); a later screen's watch waits for the earlier one. */
+  let watchQueue=Promise.resolve();
+  function watchChat(target){
+    const key=JSON.stringify(target||null);
+    if(chatView.key!==key)chatView={key,id:"",target};
+    if(!target)return;
+    watchQueue=watchQueue.then(async()=>{
+      if(chatView.key!==key)return;
+      try{const id=await chat.watch(target);if(chatView.key===key){chatView.id=String(id||"");refreshChatLog();}}
+      catch(e){trace("help chat watch failed");}
+    });
+  }
+  function chatLines(){
+    if(!chatView.id)return'<p class="help-msg help-msg-note">Opening the conversation…</p>';
+    const rows=(chat.messages(chatView.id)||[]).slice(-30);
+    if(!rows.length)return'<p class="help-msg help-msg-note">No messages yet.</p>';
+    return rows.map(m=>{
+      const card=parseHelpCard(m.text);
+      const who=m.mine?"You":esc(nameOf(m.senderUid||(chatView.target?.direct)||""));
+      const text=card?helpCardLines(card).map(esc).join(" "):esc(m.text||"");
+      const link=card?mapLink(card.location):"";
+      return `<p class="help-msg${m.mine?" help-msg-mine":""}"><b>${who}:</b> ${text}${link?` <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Open in Maps</a>`:""}</p>`;
+    }).join("");
+  }
+  function chatPanel(){
+    return `<section class="help-chat" aria-label="HELP conversation">
+      <div class="help-chat-log" id="helpChatLog">${chatLines()}</div>
+      <div class="help-chat-send"><textarea id="helpChatText" rows="2" placeholder="Type a message" aria-label="Type a message">${esc(st.draft||"")}</textarea>
+      <button class="help-send" id="helpChatSend">Send</button></div></section>`;
+  }
+  function refreshChatLog(){
+    const log=document.querySelector("#helpChatLog");if(!log)return;
+    const html=chatLines();if(log.innerHTML!==html){log.innerHTML=html;}
+    log.scrollTop=log.scrollHeight;
+  }
+  function bindChatPanel(send){
+    const box=document.querySelector("#helpChatText"),btn=document.querySelector("#helpChatSend");
+    if(!box||!btn)return;
+    box.addEventListener("input",()=>{st.draft=box.value;});
+    btn.addEventListener("click",async()=>{
+      const text=box.value.trim();if(!text)return;
+      btn.disabled=true;
+      try{await send(text);st.draft="";box.value="";}
+      catch(e){onError("Not sent. Check the connection and try again.");}
+      finally{btn.disabled=false;refreshChatLog();}
+    });
+    const log=document.querySelector("#helpChatLog");if(log)log.scrollTop=log.scrollHeight;
+  }
+  async function sendToChild(a,text){
+    const t=targetForChild(a);
+    if(t.group)await chat.sendGroup(t.group,text);else await chat.sendDirect(t.direct,text);
+  }
+  /* Background redraw on a HELP screen (new message, someone answered): if the screen itself is the same, only
+   * the conversation is patched, so the text being typed and the keyboard stay put; otherwise redraw it. */
+  let screenKey="";
+  function backgroundRefresh(cardsForAlert){
+    const route=document.body.dataset.route;
+    const next=route==="helpAlert"?alertScreenKey():mineScreenKey();
+    if(next===screenKey&&document.querySelector("#helpChatLog")){refreshChatLog();return;}
+    if(route==="helpAlert")renderHelpAlert(cardsForAlert);else renderHelp();
+  }
+  function mineScreenKey(){const a=st.mine[0];return a?"mine|"+a.id+"|"+Object.keys(a.acks||{}).sort().join(","):"hold";}
+  function alertScreenKey(){const a=st.incoming.find(x=>x.id===st.viewAlertId);return a?"alert|"+a.id+"|"+Object.keys(a.acks||{}).sort().join(","):"over";}
   function screen(cls,body){
     app.innerHTML=`<main class="app-shell help-shell ${cls}">${body}</main>`;
   }
@@ -234,17 +304,20 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     }
     const coming=Object.keys(a.acks||{}).filter(u=>u!==st.uid);
     const names=joinNames((a.helperUids||[]).map(nameOf));
+    screenKey=mineScreenKey();
     if(coming.length){
-      screen("help-green",`<h1 class="help-title">${esc(joinNames(coming.map(nameOf)))}<br>${coming.length>1?"are":"is"} coming</h1>
-        <p class="help-box">Stay where you are.</p>
-        <div class="help-actions"><button class="help-secondary" id="helpWrite">Write a message</button><button class="help-ok" id="helpOk">I'm OK now</button></div>`);
+      screen("help-green help-with-chat",`<h1 class="help-title help-title-small">${esc(joinNames(coming.map(nameOf)))} ${coming.length>1?"are":"is"} coming</h1>
+        <p class="help-lead">Stay where you are.</p>
+        ${chatPanel()}
+        <div class="help-actions"><button class="help-ok" id="helpOk">I'm OK now</button></div>`);
     }else{
-      screen("help-red",`<h1 class="help-title">HELP is sent</h1>
-        <p class="help-lead">${esc(names)}<br>${(a.helperUids||[]).length>1?"are":"is"} being called</p>
-        <p class="help-box">Waiting for an answer…<br>Stay where you are.</p>
-        <div class="help-actions"><button class="help-secondary" id="helpWrite">Write a message</button><button class="help-ok" id="helpOk">I'm OK now</button></div>`);
+      screen("help-red help-with-chat",`<h1 class="help-title help-title-small">HELP is sent</h1>
+        <p class="help-lead">${esc(names)} ${(a.helperUids||[]).length>1?"are":"is"} being called. Stay where you are.</p>
+        ${chatPanel()}
+        <div class="help-actions"><button class="help-ok" id="helpOk">I'm OK now</button></div>`);
     }
-    document.querySelector("#helpWrite").onclick=()=>openMyChat();
+    bindChatPanel(text=>sendToChat(a.helperUids||[],text));
+    void watchChat(targetForMine(a));
     document.querySelector("#helpOk").onclick=e=>{e.currentTarget.disabled=true;void imOk();};
   }
 
@@ -258,15 +331,16 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     const mine=!!(a.acks&&st.uid in a.acks);
     const others=Object.keys(a.acks||{}).filter(u=>u!==st.uid);
     const when=a.createdAt?.toDate?.()?new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit"}).format(a.createdAt.toDate()):"";
-    screen("help-red",`<div class="help-top"><button class="help-back" id="backBtn" aria-label="Back">‹</button></div>
-      <h1 class="help-title">${esc(nameOf(a.senderUid))}<br>needs HELP</h1>
-      ${when?`<p class="help-lead">Sent at ${esc(when)}</p>`:""}
+    screenKey=alertScreenKey();
+    screen(mine?"help-red help-with-chat":"help-red",`<div class="help-top"><button class="help-back" id="backBtn" aria-label="Back">‹</button></div>
+      <h1 class="help-title${mine?" help-title-small":""}">${esc(nameOf(a.senderUid))} needs HELP</h1>
+      ${when?`<p class="help-lead">Sent at ${esc(when)}${others.length?` · ${esc(joinNames(others.map(nameOf)))} ${others.length>1?"are":"is"} coming`:""}</p>`:""}
       ${where?`<a class="help-secondary help-map" href="${esc(where)}" target="_blank" rel="noopener noreferrer">Open in Maps</a>`:'<p class="help-box">Location is on its way…</p>'}
-      ${others.length?`<p class="help-box">${esc(joinNames(others.map(nameOf)))} ${others.length>1?"are":"is"} coming</p>`:""}
-      <div class="help-actions">${mine?'<p class="help-box">You are coming</p><button class="help-ok" id="helpWrite">Write a message</button>':'<button class="help-ok" id="helpComing">I\'m coming</button>'}</div>`);
+      ${mine?chatPanel():""}
+      <div class="help-actions">${mine?'<p class="help-box">You are coming</p>':'<button class="help-ok" id="helpComing">I\'m coming</button>'}</div>`);
     document.querySelector("#backBtn").onclick=()=>navigate("messages");
-    document.querySelector("#helpWrite")?.addEventListener("click",()=>openChildChat(a));
-    document.querySelector("#helpComing")?.addEventListener("click",async e=>{e.currentTarget.disabled=true;if(await imComing(a))openChildChat(a);});
+    if(mine){bindChatPanel(text=>sendToChild(a,text));void watchChat(targetForChild(a));}
+    document.querySelector("#helpComing")?.addEventListener("click",async e=>{e.currentTarget.disabled=true;await imComing(a);render();});
   }
 
   /* ---- Settings → Safety → HELP (contacts list collapsed until needed, like Manage Users) ---- */
@@ -296,6 +370,6 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       }catch(err){btn.disabled=false;msg.textContent="Not saved: "+(err?.message||err)+". Your HELP contacts are unchanged.";}
     });
   }
-  return Object.freeze({start,stop,fabMarkup,bannerMarkup,bindShared,openAlert,afterUnlock,renderHelp,renderHelpAlert,mountSettingsCard,allowSignOut,
+  return Object.freeze({start,stop,fabMarkup,bannerMarkup,refreshBar,backgroundRefresh,bindShared,openAlert,afterUnlock,renderHelp,renderHelpAlert,mountSettingsCard,allowSignOut,
     get enabled(){return st.settings.enabled;},get openCount(){return st.mine.length+st.incoming.length;}});
 }

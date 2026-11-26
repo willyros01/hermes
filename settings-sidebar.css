@@ -76,3 +76,9 @@
   .fidunio-settings-panel-subtitle{display:none}
   .fidunio-settings-panel > .card + .card{margin-top:14px}
 }
+
+/* Abuse Reports waiting (owner, 25 Nov): highlight the card and the Safety menu item. */
+#fidunioAbuseAdminCard.abuse-attention{border:3px solid #C62828;background:#FFF4F2}
+#fidunioAbuseAdminCard.abuse-attention #abuseSummary{color:#C62828;font-weight:800;font-size:18px}
+.fidunio-settings-nav-btn.abuse-attention{color:#C62828;font-weight:800}
+.fidunio-settings-nav-btn.abuse-attention .fidunio-settings-nav-icon{background:#C62828;color:#fff;border-radius:50%}

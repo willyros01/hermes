@@ -30,4 +30,10 @@ assert.ok(!/initFirebase/.test(owner),"HELP never adds its own sign-in listener"
 assert.match(app,/await startupStep\("HELP",\(\)=>helpOwner\.start\(user\.uid\)\)/,"HELP is started once and waited for");
 assert.equal((app.match(/helpOwner\.start\(/g)||[]).length,1,"HELP is started from one place only");
 assert.match(owner,/getDocFromServer/,"a listener answer that disagrees is checked with a server read");
+assert.match(app,/if\(background&&patchActiveChatProjection\(generation\)\)\{helpOwner\.refreshBar\(\);return;\}/,"a background patch (iPad two-panel) also redraws the HELP bar");
+assert.equal((app.match(/id="helpBarSlot">\$\{helpOwner\.fabMarkup\(\)\}<\/div>/g)||[]).length,2,"phone and iPad both draw the HELP bar in its slot");
+assert.match(owner,/id="helpChatLog"/,"Option A: the conversation is on the big HELP screen");
+assert.ok(!/id="helpWrite"/.test(owner),"Option A: no separate Write a message button");
+assert.match(app,/messages:id=>state\.messages\[String\(id\)\]\|\|\[\]/,"the big screen shows the regular chat's own messages");
+assert.match(app,/if\(conversationOnScreen\(conversationId\)\)render\(\{background:true\}\)/,"new messages redraw the big HELP screen too");
 console.log("HELP app gate passed");

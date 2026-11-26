@@ -11,9 +11,10 @@ export function helpFcmMessage(tokens,data){
   return{
     tokens,
     data:{type:"help-alert",alertId:String(data.alertId),kind:String(data.kind),notificationBody:String(data.notificationBody)},
-    android:{priority:"high",notification:{title:"FIDUNIO HELP",body:data.notificationBody,channelId:urgent?"fidunio-help":"fidunio-help-update",sound:"default",tag:"help-"+data.alertId}},
+    /* HELP alarm (owner, 25 Nov): the alert rings with the app's own alarm sound; updates stay ordinary. */
+    android:{priority:"high",notification:{title:"FIDUNIO HELP",body:data.notificationBody,channelId:urgent?"fidunio-help-alarm":"fidunio-help-update",sound:urgent?"help_alarm":"default",tag:"help-"+data.alertId}},
     webpush:{headers:{Urgency:"high"}},
-    apns:{headers:{"apns-priority":"10"},payload:{aps:{alert:{title:"FIDUNIO HELP",body:data.notificationBody},sound:"default",
+    apns:{headers:{"apns-priority":"10"},payload:{aps:{alert:{title:"FIDUNIO HELP",body:data.notificationBody},sound:urgent?"help_alarm.caf":"default",
       "interruption-level":urgent?"time-sensitive":"active","relevance-score":urgent?1:0.5,"thread-id":"help-"+data.alertId}}}
   };
 }
