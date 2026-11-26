@@ -348,6 +348,8 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     document.querySelector("#helpComing")?.addEventListener("click",async e=>{e.currentTarget.disabled=true;await imComing(a);render();});
   }
 
+  /* Background refresh of the HELP card only; never while contacts are being ticked (that would undo the ticks). */
+  function refreshSettingsCard(host){if(!host||st.choosing)return;void mountSettingsCard(host);}
   /* ---- Settings → Safety → HELP (contacts list collapsed until needed, like Manage Users) ---- */
   async function mountSettingsCard(host){
     if(!host)return;await people();
@@ -375,6 +377,6 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       }catch(err){btn.disabled=false;msg.textContent="Not saved: "+(err?.message||err)+". Your HELP contacts are unchanged.";}
     });
   }
-  return Object.freeze({start,stop,fabMarkup,bannerMarkup,refreshBar,backgroundRefresh,bindShared,openAlert,afterUnlock,renderHelp,renderHelpAlert,mountSettingsCard,allowSignOut,
+  return Object.freeze({start,stop,fabMarkup,bannerMarkup,refreshBar,backgroundRefresh,refreshSettingsCard,bindShared,openAlert,afterUnlock,renderHelp,renderHelpAlert,mountSettingsCard,allowSignOut,
     get enabled(){return st.settings.enabled;},get openCount(){return st.mine.length+st.incoming.length;}});
 }
