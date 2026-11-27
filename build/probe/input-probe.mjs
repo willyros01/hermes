@@ -102,7 +102,7 @@ await shot('chat-open');
  * unlocked — the bar must appear each time WITHOUT touching anything. */
 if(process.env.PROBE_DEVICE==='ipad'){
   const {initializeTestEnvironment}=await import('@firebase/rules-unit-testing');
-  const {doc,setDoc,serverTimestamp}=await import('firebase/firestore');
+  const {doc,setDoc,serverTimestamp,addDoc,collection,updateDoc}=await import('firebase/firestore');
   const env=await initializeTestEnvironment({projectId:fixture.project,firestore:{host:'127.0.0.1',port:8080}});
   const bobUid=fixture.peers.find(p=>p.label==='Bob').uid;
   let aliceUid='';
@@ -146,6 +146,21 @@ if(process.env.PROBE_DEVICE==='ipad'){
     await sleep(8000);
     const rebuilds=await js('window.__probeRebuilds||0').catch(()=>-1);const still=await js(filled).catch(()=>false);const s=await shot('ipad-settings-filled');
     return{ok:secs>=0&&secs<=30&&rebuilds===0&&still,observed:`filled after ${secs<0?'MORE THAN 120':secs} s; page rebuilt while open: ${rebuilds} time(s); still filled 8 s later: ${still}`,shots:[s]};
+  });
+  /* Owner 27 Nov (his iPad is a HELP contact): HELP arrived while FIDUNIO was in the background; when he came back
+   * there was no red screen. Same here: HELP while in the background, come back, touch nothing. */
+  await check('IPAD-HELP-RESUME','Bob sends HELP to Alice while FIDUNIO is in the background (Home screen); Alice opens FIDUNIO again and taps nothing','the red "Simulator Bob needs HELP" screen is there by itself',async()=>{
+    const bobDb=env.authenticatedContext(bobUid).firestore();
+    await setDoc(doc(bobDb,'helpSettings',bobUid),{enabled:true,helperUids:[aliceUid],protected:false,updatedAt:serverTimestamp()});
+    try{idb('ui','button','HOME');}catch{run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);}
+    await sleep(4000);
+    const ref=await addDoc(collection(bobDb,'helpAlerts'),{senderUid:bobUid,helperUids:[aliceUid],state:'open',test:false,acks:{},createdAt:serverTimestamp()});
+    await sleep(15000);d.launch(APP);await sleep(5000);
+    const end=Date.now()+30000;let r='';while(Date.now()<end){r=await js('document.body.dataset.route||""').catch(()=>'');if(r==='helpAlert')break;await sleep(1000);}
+    const t=await js('document.querySelector(".help-shell")?.innerText||""').catch(()=>'');const s=await shot('ipad-help-resume');
+    const tr=await trace();
+    await updateDoc(doc(bobDb,'helpAlerts',ref.id),{state:'safe',closedAt:serverTimestamp()});
+    return{ok:r==='helpAlert'&&/Bob\s*needs HELP/.test(t),observed:`screen: ${r||'?'} "${t.replace(/\s+/g,' ').slice(0,60)}"; HELP trace ${tr}`,shots:[s]};
   });
   await env.cleanup().catch(()=>{});
   const lines=[`# FIDUNIO input probe — ${platform} iPad — ${label}`,'','| Check | What | Expected | Observed | |','|---|---|---|---|---|'];
@@ -525,7 +540,9 @@ if(label==='fix'){
    * (simctl push, same content as the server's) and its banner is tapped with a finger. Android: the
    * tap is the same launch the phone makes for a tapped Firebase notification (am start with its data). */
   const dmId='dm_'+[aliceUid,bobUid].sort().join('_');
-  const goBackground=async()=>{if(android)adb('shell','input','keyevent','KEYCODE_HOME');else run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);await sleep(3000);};
+  /* Home screen (like pressing Home), so a notification banner shows on top and can be tapped. */
+  const goBackground=async()=>{if(android)adb('shell','input','keyevent','KEYCODE_HOME');else{try{idb('ui','button','HOME');}catch(e){log('home button: '+e.message);run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);}}await sleep(3000);};
+  const appAnswers=async ms=>{const end=Date.now()+ms;while(Date.now()<end){try{await js('1');return true;}catch{}await sleep(1500);}return false;};
   const comeBack=async()=>{d.launch(APP);await sleep(5000);await unlockIfLocked();};
   const routeNow=()=>js('document.body.dataset.route||""');
   const allowPrompt=async ms=>{const end=Date.now()+ms;const seen=[];while(Date.now()<end){
@@ -544,11 +561,36 @@ if(label==='fix'){
     const title=data.type==='help-alert'?'FIDUNIO HELP':'FIDUNIO';const body=data.type==='help-alert'?'HELP — Simulator Bob':'New message';
     fs.writeFileSync(file,JSON.stringify({aps:{alert:{title,body},sound:'default'},...data}));
     run('xcrun',['simctl','push',UDID,APP,file]);
-    let how='';const end=Date.now()+8000;
-    while(Date.now()<end&&!how){await sleep(700);const b=iosElements().find(e=>/FIDUNIO/.test(iosLabel(e))&&((e.frame||{}).y||0)<260&&((e.frame||{}).height||0)>30);if(b){await iosTap(b);how='banner tapped ('+iosLabel(b).replace(/\s+/g,' ').slice(0,50)+')';}}
-    if(!how){const sz=iosElements().find(e=>e.type==='Application')?.frame||{width:402};idb('ui','tap',String(Math.round((sz.width||402)/2)),'80');await sleep(1500);how='banner not found by name; tapped where banners show';}
-    await sleep(5000);await unlockIfLocked();return how;
+    let how='';const end=Date.now()+8000;const seenLabels=new Set();
+    while(Date.now()<end&&!how){await sleep(700);const all=iosElements();all.forEach(e=>{const l=iosLabel(e);if(l)seenLabels.add(l.replace(/\s+/g,' ').slice(0,40));});
+      const b=all.find(e=>/FIDUNIO|HELP|New message/.test(iosLabel(e))&&((e.frame||{}).y||0)<260&&((e.frame||{}).height||0)>30);if(b){await iosTap(b);how='banner tapped ('+iosLabel(b).replace(/\s+/g,' ').slice(0,50)+')';}}
+    if(!how){const sz=iosElements().find(e=>e.type==='Application')?.frame||{width:402};idb('ui','tap',String(Math.round((sz.width||402)/2)),'105');await sleep(1500);how='banner not found by name (screen showed: '+[...seenLabels].slice(0,8).join(' | ')+'); tapped where banners show';}
+    await sleep(5000);
+    if(!(await appAnswers(15000)))throw new Error('FIDUNIO did not come to the front after the tap — '+how);
+    await unlockIfLocked();return how;
   };
+
+  /* Owner 27 Nov (iPad, a HELP contact): FIDUNIO came back from the background and showed NO red screen,
+   * although the HELP was open and the iPad's account was a helper. Here: HELP arrives while FIDUNIO is in the
+   * background; FIDUNIO is opened again WITHOUT tapping any notification. (1) back within the grace time;
+   * (2) FIDUNIO closed completely and started again (PIN). The red screen must be there both times. */
+  for(const [id,how] of [['HELP-RESUME','back from the background (no PIN)'],['HELP-RESUME-RESTART','FIDUNIO restarted and unlocked with the PIN']]){
+    await check(id,'Bob sends HELP while FIDUNIO is in the background; Alice opens FIDUNIO again — '+how+' — and taps nothing','the red "Simulator Bob needs HELP" screen is there by itself',async()=>{
+      await toMessages();
+      await setDoc(doc(bobDb,'helpSettings',bobUid),{enabled:true,helperUids:[aliceUid],protected:false,updatedAt:serverTimestamp()});
+      await goBackground();
+      const ref=await addDoc(collection(bobDb,'helpAlerts'),{senderUid:bobUid,helperUids:[aliceUid],state:'open',test:false,acks:{},createdAt:serverTimestamp()});
+      await sleep(15000);
+      if(id==='HELP-RESUME-RESTART'){if(android)adb('shell','am','force-stop',APP);else{try{run('xcrun',['simctl','terminate',UDID,APP]);}catch{}}await sleep(3000);}
+      await comeBack();
+      await until(async()=>(await routeNow())==='helpAlert','red screen',30000).catch(()=>{});
+      const r=await routeNow();const t=await js('document.querySelector(".help-shell")?.innerText||""');const s=await shot(id.toLowerCase());
+      const tr=await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-10))').catch(()=>'');
+      await updateDoc(doc(bobDb,'helpAlerts',ref.id),{state:'safe',closedAt:serverTimestamp()});
+      await sleep(3000);await toMessages();
+      return{ok:r==='helpAlert'&&/Bob\s*needs HELP/.test(t),observed:`screen: ${r||'?'} "${t.replace(/\s+/g,' ').slice(0,60)}"; HELP trace ${tr}`,shots:[s]};
+    });
+  }
 
   await check('HELP-REMINDER','Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back','a red reminder on Messages: "Notifications are off on this device. Simulator Bob chose you as a HELP contact…" with "Turn on notifications"',async()=>{
     await toMessages();
