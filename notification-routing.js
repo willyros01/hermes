@@ -34,3 +34,11 @@ export function urlWithoutNotificationRoute(href){
   for(const key of Object.values(FIDUNIO_NOTIFICATION_QUERY_KEYS))url.searchParams.delete(key);
   return `${url.pathname}${url.search}${url.hash}`;
 }
+
+/* HELP alarm taps (1.1.87, owner 27 Nov): a tapped HELP notification opens the big HELP screen. */
+export const FIDUNIO_HELP_ROUTE_MESSAGE="fidunio-help-route";
+export function normalizeHelpRoute(value){
+  if(!value||typeof value!=="object"||value.type!=="help-alert")return null;
+  const alertId=String(value.alertId||"").trim();
+  return /^[A-Za-z0-9_-]{1,128}$/.test(alertId)?Object.freeze({type:"help-alert",alertId}):null;
+}
