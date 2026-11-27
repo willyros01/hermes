@@ -431,6 +431,17 @@ if(label==='fix'){
     return{ok:after===before,observed:after===before?'nothing sent':'an alert WAS sent by a quick tap',shots:[s]};
   });
 
+  /* Dark mode (owner, Fire 8, 26 Nov): the HELP hold screen's words were dark on dark. Measure real contrast. */
+  const contrastJs=sel=>`(()=>{const lum=c=>{const m=c.match(/\\d+(\\.\\d+)?/g).map(Number);const f=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};return .2126*f(m[0])+.7152*f(m[1])+.0722*f(m[2])};const bg=el=>{for(let e=el;e;e=e.parentElement){const b=getComputedStyle(e).backgroundColor;if(b&&!/rgba\\(0, 0, 0, 0\\)|transparent/.test(b))return b}return"rgb(255,255,255)"};return [...document.querySelectorAll(${JSON.stringify(sel)})].map(el=>{const a=lum(getComputedStyle(el).color),b=lum(bg(el));const r=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);return Math.round(r*10)/10})})()`;
+  await check('HELP-DARK','Dark mode on; open the HELP hold screen','the title, hint and back arrow are clearly readable (contrast 4.5 or more)',async()=>{
+    await toMessages();await js('document.documentElement.dataset.theme="dark";document.documentElement.classList.add("dark");true');
+    await realTap('#helpFab');await until(()=>present('#helpHold'),'HELP screen',15000);await sleep(800);
+    const r=await js(contrastJs('.help-shell h1,.help-shell .help-hint,.help-shell .help-back'));const s=await shot('help-dark');
+    await js('document.documentElement.dataset.theme="light";document.documentElement.classList.remove("dark");true');
+    await js('document.querySelector("#backBtn")?.click();true');await sleep(1500);
+    return{ok:Array.isArray(r)&&r.length>=2&&r.every(x=>x>=4.5),observed:`contrast of title / hint / back: ${JSON.stringify(r)}`,shots:[s]};
+  });
+
   let alertId='';
   await check('HELP-SEND','Press and hold the HELP button for 3 seconds; allow location when the phone asks','red "HELP is sent — Simulator Bob is being called", the conversation on the same screen, "I\'m OK now"; server has an open alert for Bob',async()=>{
     const p=await screenPoint('#helpHold');await longPressAt(p,3000);
