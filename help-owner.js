@@ -223,8 +223,26 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     return st.mineLoaded&&st.incomingLoaded;
   }
   function helperView(a){st.viewAlertId=a.id;shown.add(a.id);trace("opened from notification");return"helpAlert";}
+  /* Owner's iPad, 27 Nov (1.1.87): the HELP came in while FIDUNIO was asleep in the background; the chat notification
+   * was tapped before FIDUNIO's live HELP list had caught up, so it did not know about that HELP yet and opened the
+   * regular chat. So a notification tap never relies on the live list alone: it asks the server once, directly,
+   * for this person's open HELP alerts (at most 8 seconds), then decides. */
+  async function freshAlerts(){
+    if(!services||!st.uid)return;
+    const gen=generation,s=fs();
+    const helping=s.query(s.collection(db(),"helpAlerts"),s.where("helperUids","array-contains",st.uid),s.where("state","==","open"));
+    const sending=s.query(s.collection(db(),"helpAlerts"),s.where("senderUid","==",st.uid),s.where("state","==","open"));
+    try{
+      const [a,b]=await Promise.race([Promise.all([s.getDocsFromServer(helping),s.getDocsFromServer(sending)]),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),8000))]);
+      if(gen!==generation)return;
+      st.incoming=a.docs.map(d=>({id:d.id,...d.data()}));st.incomingLoaded=true;
+      st.mine=b.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.test!==true);st.mineLoaded=true;
+      trace(`server HELP check: helping ${st.incoming.length}, sending ${st.mine.length}`);
+    }catch(e){trace("server HELP check failed "+(e?.code||e?.message||"?"));}
+  }
   async function viewForAlert(alertId){
-    await loaded();
+    await loaded();await freshAlerts();
     const id=String(alertId||"");
     if(st.mine.some(a=>a.id===id)){st.viewAlertId=id;return"help";}
     const a=st.incoming.find(x=>x.id===id);
@@ -232,7 +250,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   }
   async function viewForConversation(c){
     if(!c)return null;
-    await loaded();
+    await loaded();await freshAlerts();
     const id=String(c.id||""),peer=String(c.peerUid||""),group=!!(c.cloudGroup||c.type==="group");
     for(const a of st.incoming){
       const t=targetForChild(a);
