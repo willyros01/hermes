@@ -7,7 +7,7 @@
 | SELECT-TEXT | Press and hold a message, Select Text, press and hold one word, tap Copy, then Done | only that word is copied; Done goes back to the same chat | marked: "Copy"; copied: "Copy"; after Done: same chat | as expected |
 | LINK | Send "Visit https://example.com today", tap the link: Cancel, then tap again: Open | "Open this link?" first; Cancel stays in the chat; Open shows the web page outside FIDUNIO | asked first: true; Cancel stayed in chat: true; after Open: org.chromium.webview_shell/.WebViewBrowserActivity | as expected |
 | PASTE | Press and hold the message box, tap the phone's Paste | the copied text appears in the message box | phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286" | as expected |
-| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (10:05 AM Sent) | as expected |
+| PICTURE-PASTE | A paste that carries a picture (what an iPhone sticker sends) | FIDUNIO sends it as a photo | a new message appeared (5:44 PM Sent) | as expected |
 | KEYBOARD-GIF | A GIF handed over by the keyboard (fix branch: native hand-over event) | FIDUNIO sends it as a photo | GIF message appeared | as expected |
 | KEYBOARD-GIF-OFFER | Does the message box tell the keyboard it accepts GIFs? | yes on the fix branch | GIF types offered to the keyboard | as expected |
 | CAMERA | Photo → Take a Picture | the camera opens | in front: com.android.camera2/com.android.camera.CaptureActivity | as expected |
@@ -25,8 +25,14 @@
 | HELP-SEND | Press and hold the HELP button for 3 seconds; allow location when the phone asks | red "HELP is sent — Simulator Bob is being called", the conversation on the same screen, "I'm OK now"; server has an open alert for Bob | screen: "HELP is sent Simulator Bob is being called. Stay where you are. You: HELP Open in Maps Send I'm OK now"; location prompts answered: ONLY THIS TIME; server: open alert for Bob | as expected |
 | HELP-WRITE | On the same HELP screen: type "Help chat 7731" in the big box and tap Send | the message shows in the conversation on the HELP screen (no separate chat screen) | conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731; reached the server: yes (11→12) | as expected |
 | HELP-COMING-SEEN | Alice starts typing "draft 88" (not sent); Bob answers "I'm coming" (from his phone) | green "Simulator Bob is coming" on the same screen; the conversation and the unsent "draft 88" are still there | green: true; screen: "Simulator Bob is coming Stay where you are. You: HELP Open in Maps You: Help cha"; unsent text kept: "draft 88"; conversation still shown: true | as expected |
-| HELP-OK | Tap "I'm OK now", then open the regular chat with Bob | the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, "Help chat 7731", "I'm OK now" | server: safe; bar: "HELP"; regular chat has HELP + message + OK: true (contacts. 10:10 AM Sent You are now one of my HELP contacts. 10:11 AM Sent HELP Open in Maps 10:12 AM Sent Help chat 7731 10:12 AM Sent I'm OK now 10:13 AM Sent) | as expected |
-| HELP-INCOMING | The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps "I'm coming", types "On my way 5512" and taps Send | red "Simulator Bob needs HELP" opens by itself; after "I'm coming" the conversation is on the same screen; the message is sent (no "Conversation could not be started"); the server has Alice's answer | chat made by Bob first: true; opened: "‹ Simulator Bob needs HELP Sent at 10:13 AM Location is on i"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; "could not be started": false | as expected |
+| HELP-OK | Tap "I'm OK now", then open the regular chat with Bob | the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, "Help chat 7731", "I'm OK now" | server: safe; bar: "HELP"; regular chat has HELP + message + OK: true (HELP contacts. 5:50 PM Sent You are now one of my HELP contacts. 5:51 PM Sent HELP Open in Maps 5:52 PM Sent Help chat 7731 5:52 PM Sent I'm OK now 5:52 PM Sent) | as expected |
+| HELP-INCOMING | The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps "I'm coming", types "On my way 5512" and taps Send | red "Simulator Bob needs HELP" opens by itself; after "I'm coming" the conversation is on the same screen; the message is sent (no "Conversation could not be started"); the server has Alice's answer | chat made by Bob first: true; opened: "‹ Simulator Bob needs HELP Sent at 5:52 PM Location is on it"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; "could not be started": false | as expected |
+| HELP-REMINDER | Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back | a red reminder on Messages: "Notifications are off on this device. Simulator Bob chose you as a HELP contact…" with "Turn on notifications" | reminder: "NOT SHOWN"; trace ["17:51:06 settings snapshot exists=true cache=false pending=true contacts=1","17:51:06 settings applied (this phone's save) contacts=1","17:51:06 saved contacts=1","17:51:06 settings snapshot exists=true cache=false pending=false contacts=1","17:51:07 settings card contacts=1 (Saved.)","17:53:08 HELP contact of 1"] | **DIFFERENT** |
+| HELP-TURN-ON | Tap "Turn on notifications" and allow notifications when the phone asks | the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why) | no reminder button | **DIFFERENT** |
+| HELP-TAP-ALARM | Bob sends HELP; Alice sees it and goes back to Messages; FIDUNIO goes to the background; the HELP alarm notification arrives and Alice taps it | FIDUNIO opens on the big red "Simulator Bob needs HELP" screen (not the regular chat) | Android: launch with the notification data; screen: helpAlert "‹ Simulator Bob needs HELP Sent at 5:53 PM Location is on it" | as expected |
+| HELP-TAP-CHAT | Same HELP still on: back to Messages, background; the CHAT notification of a message in the HELP conversation arrives and Alice taps it | the big red HELP screen opens (not the regular chat) | Android: launch with the notification data; screen: helpAlert "‹ Simulator Bob needs HELP Sent at 5:53 PM Location is on it" | as expected |
+| HELP-TAP-CHAT-AFTER | Bob taps "I'm OK now" (HELP over); Alice taps a chat notification from Bob | the regular chat with Bob opens, as usual | Android: launch with the notification data; screen: chat | as expected |
+| HELP-REACH | Alice's Settings → HELP with Bob chosen; Bob's notifications not confirmed, then Bob turns them on (from his phone) | first: "Simulator Bob may not hear your HELP…"; after Bob turns them on and Settings is opened again: no warning | before: "Simulator Bob may not hear your HELP: notifications are off or not confirmed. Ask them to "; after: "no warning" | as expected |
 | HELP-SIGNOUT | Settings: Sign Out button | no PIN asked for Sign Out (protection removed); not tapped | Sign Out shown: true; Protect/Test removed: true | as expected |
 | PIN-MISSING-ASKS | Delete only the lock PIN record, restart FIDUNIO | password + PIN screen ("PIN record is missing"); no PIN-only screen; FIDUNIO not open | record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: "FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass" | as expected |
 | PIN-MISSING-WRONG | Type the password and a WRONG PIN | stays locked, "Nothing was changed" | FIDUNIO open: false; PIN record written: false; message: "Could not unlock with this password and PIN. Nothing was changed." | as expected |
@@ -140,22 +146,46 @@
 
 ![29-help-im-coming-chat.png](29-help-im-coming-chat.png)
 
-### HELP-SIGNOUT — 30-help-settings-kiss.png
+### HELP-REMINDER — 30-help-reminder.png
 
-![30-help-settings-kiss.png](30-help-settings-kiss.png)
+![30-help-reminder.png](30-help-reminder.png)
 
-### PIN-MISSING-ASKS — 31-pin-missing.png
+### HELP-TAP-ALARM — 31-help-tap-alarm.png
 
-![31-pin-missing.png](31-pin-missing.png)
+![31-help-tap-alarm.png](31-help-tap-alarm.png)
 
-### PIN-MISSING-WRONG — 32-pin-wrong.png
+### HELP-TAP-CHAT — 32-help-tap-chat.png
 
-![32-pin-wrong.png](32-pin-wrong.png)
+![32-help-tap-chat.png](32-help-tap-chat.png)
 
-### PIN-MISSING-RIGHT — 33-pin-restored.png
+### HELP-TAP-CHAT-AFTER — 33-help-tap-chat-after.png
 
-![33-pin-restored.png](33-pin-restored.png)
+![33-help-tap-chat-after.png](33-help-tap-chat-after.png)
 
-### PIN-MISSING-RIGHT — 34-pin-normal-again.png
+### HELP-REACH — 34-help-reach-warning.png
 
-![34-pin-normal-again.png](34-pin-normal-again.png)
+![34-help-reach-warning.png](34-help-reach-warning.png)
+
+### HELP-REACH — 35-help-reach-ok.png
+
+![35-help-reach-ok.png](35-help-reach-ok.png)
+
+### HELP-SIGNOUT — 36-help-settings-kiss.png
+
+![36-help-settings-kiss.png](36-help-settings-kiss.png)
+
+### PIN-MISSING-ASKS — 37-pin-missing.png
+
+![37-pin-missing.png](37-pin-missing.png)
+
+### PIN-MISSING-WRONG — 38-pin-wrong.png
+
+![38-pin-wrong.png](38-pin-wrong.png)
+
+### PIN-MISSING-RIGHT — 39-pin-restored.png
+
+![39-pin-restored.png](39-pin-restored.png)
+
+### PIN-MISSING-RIGHT — 40-pin-normal-again.png
+
+![40-pin-normal-again.png](40-pin-normal-again.png)
