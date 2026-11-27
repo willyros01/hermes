@@ -31,5 +31,16 @@ await tryOrReport("sender says I'm safe",updateDoc(doc(kid,"helpAlerts/a1"),{sta
 await tryOrReport("reopen a closed alert",updateDoc(doc(kid,"helpAlerts/a1"),{state:"open"}),false);
 await tryOrReport("delete an alert",deleteDoc(doc(kid,"helpAlerts/a1")),false);
 await tryOrReport("HELP off: no alert",(async()=>{await setDoc(doc(kid,"helpSettings/kid"),{...settings,enabled:false});await setDoc(doc(kid,"helpAlerts/a4"),alert);})(),false);
+/* 1.1.87: a HELP contact can find who chose them; reachability per device. */
+await tryOrReport("own settings again",setDoc(doc(kid,"helpSettings/kid"),settings),true);
+await tryOrReport("helper finds who chose them",getDocs(query(collection(mom,"helpSettings"),where("helperUids","array-contains","mom"))),true);
+await tryOrReport("stranger lists settings",getDocs(query(collection(eve,"helpSettings"),where("helperUids","array-contains","mom"))),false);
+await tryOrReport("list all settings",getDocs(collection(mom,"helpSettings")),false);
+await tryOrReport("own reach",setDoc(doc(mom,"helpReach/mom"),{devices:{"ipad-1":false},updatedAt:serverTimestamp()},{merge:true}),true);
+await tryOrReport("own reach second device",setDoc(doc(mom,"helpReach/mom"),{devices:{"phone-2":true},updatedAt:serverTimestamp()},{merge:true}),true);
+await tryOrReport("someone else's reach",setDoc(doc(eve,"helpReach/mom"),{devices:{"x":true},updatedAt:serverTimestamp()},{merge:true}),false);
+await tryOrReport("reach with extra field",setDoc(doc(mom,"helpReach/mom"),{devices:{},updatedAt:serverTimestamp(),note:"x"},{merge:true}),false);
+await tryOrReport("member reads reach",getDoc(doc(kid,"helpReach/mom")),true);
+await tryOrReport("list reach",getDocs(collection(kid,"helpReach")),false);
 await env.cleanup();
 console.log("HELP rules gate passed");

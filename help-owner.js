@@ -60,10 +60,12 @@ export function joinNames(names){
 /* ---- the owner ----
  * chat: {sendDirect(uid,text), sendGroup(groupId,text), ensureGroup(helperUids,myName)->groupId|null,
  *        findGroup(ownerUid)->groupId|null, watch({direct}|{group})->conversationId, messages(id)->rows} — app.js owns chats. */
-export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()=>true,onError=m=>alert(m)}){
+export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()=>true,onError=m=>alert(m),
+  notify={status:async()=>({on:true,denied:false,installationId:""}),turnOn:async()=>false,openSettings:()=>{}}}){
   const shown=new Set();
   const st={uid:"",settings:{enabled:false,helperUids:[]},settingsLoaded:false,mine:[],incoming:[],people:[],unsub:[],
-    viewAlertId:"",holdTimer:null,sending:false,lastError:"",settingsMsg:"",choosing:false};
+    viewAlertId:"",holdTimer:null,sending:false,lastError:"",settingsMsg:"",choosing:false,
+    mineLoaded:false,incomingLoaded:false,notifyOn:null,notifyDenied:false,helperOf:[],reachSent:"",reachOf:{}};
   let services=null,generation=0;
   const fs=()=>services.fsSdk,db=()=>services.db;
   /* Diagnostic trace (event names and counts only — no names, ids or message text), last 60 events. */
@@ -115,14 +117,15 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       void confirmFromServer(d);
     });
     watch(gen,s=>s.query(s.collection(db(),"helpAlerts"),s.where("senderUid","==",st.uid),s.where("state","==","open")),snap=>{
-      st.mine=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.test!==true);render({background:true});
+      st.mine=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.test!==true);st.mineLoaded=true;render({background:true});
     });
     watch(gen,s=>s.query(s.collection(db(),"helpAlerts"),s.where("helperUids","array-contains",st.uid),s.where("state","==","open")),snap=>{
-      st.incoming=snap.docs.map(d=>({id:d.id,...d.data()}));
+      st.incoming=snap.docs.map(d=>({id:d.id,...d.data()}));st.incomingLoaded=true;
       if(!openUnanswered())render({background:true});
     });
   }
-  function stop(){trace("stop");generation++;st.draft="";chatView={key:"",id:"",target:null};st.starting=false;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;}
+  function stop(){trace("stop");generation++;st.draft="";chatView={key:"",id:"",target:null};st.starting=false;st.unsub.splice(0).forEach(u=>{try{u();}catch{}});st.mine=[];st.incoming=[];st.settings={enabled:false,helperUids:[]};st.settingsLoaded=false;st.choosing=false;
+    st.mineLoaded=false;st.incomingLoaded=false;st.notifyOn=null;st.notifyDenied=false;st.helperOf=[];st.reachSent="";st.reachOf={};}
   async function people(){if(!st.people.length){try{st.people=(await listCloudUsers())||[];}catch{}}return st.people;}
   const nameOf=uid=>{const p=st.people.find(p=>String(p.uid)===String(uid));return p?.displayName||p?.email||"A FIDUNIO member";};
 
@@ -194,17 +197,118 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     const open=st.mine.length>0;
     return `<button class="help-bar${open?" help-bar-open":""}" id="helpFab">${open?"HELP is on — open":"HELP"}</button>`;
   }
-  function bannerMarkup(){return"";}
+  function bannerMarkup(){return`<div class="help-notice-slot" id="helpNoticeSlot">${noticeMarkup()}</div>`;}
   /* Redraw only the HELP bar slot (same markup as a full draw). Called by app.js render() on background patches. */
   function refreshBar(){
     const slot=document.querySelector("#helpBarSlot");if(!slot)return;
     const html=fabMarkup();
     if(slot.innerHTML!==html){slot.innerHTML=html;bindShared();trace("bar redrawn "+(html?"shown":"hidden"));}
+    const notice=document.querySelector("#helpNoticeSlot");
+    if(notice){const n=noticeMarkup();if(notice.innerHTML!==n){notice.innerHTML=n;bindNotice();trace("notice "+(n?"shown":"hidden"));}}
   }
+  function bindNotice(){document.querySelector("#helpNotifyOn")?.addEventListener("click",e=>{void turnOnNotifications(e.currentTarget);});}
   function bindShared(){
     document.querySelector("#helpFab")?.addEventListener("click",()=>{st.viewAlertId="";navigate("help");});
+    bindNotice();
   }
   function openAlert(alertId){st.viewAlertId=String(alertId||"");navigate(st.mine.some(a=>a.id===alertId)?"help":"helpAlert");}
+
+  /* ---- opening HELP from a notification (1.1.87, owner 27 Nov) ----
+   * Every notification that belongs to a HELP still going on opens the big HELP screen: the HELP alarm itself and
+   * the chat notifications of its conversation. Right after a cold start the open HELP alerts may not be loaded
+   * yet, so this waits for the first server answer (at most 10 seconds) before deciding. */
+  async function loaded(ms=10000){
+    const end=Date.now()+ms;
+    while(Date.now()<end&&st.uid&&!(st.mineLoaded&&st.incomingLoaded))await new Promise(r=>setTimeout(r,200));
+    return st.mineLoaded&&st.incomingLoaded;
+  }
+  function helperView(a){st.viewAlertId=a.id;shown.add(a.id);trace("opened from notification");return"helpAlert";}
+  async function viewForAlert(alertId){
+    await loaded();
+    const id=String(alertId||"");
+    if(st.mine.some(a=>a.id===id)){st.viewAlertId=id;return"help";}
+    const a=st.incoming.find(x=>x.id===id);
+    return a?helperView(a):null;
+  }
+  async function viewForConversation(c){
+    if(!c)return null;
+    await loaded();
+    const id=String(c.id||""),peer=String(c.peerUid||""),group=!!(c.cloudGroup||c.type==="group");
+    for(const a of st.incoming){
+      const t=targetForChild(a);
+      if(t.group?group&&String(t.group)===id:!group&&peer===String(a.senderUid))return helperView(a);
+    }
+    const mine=st.mine[0];
+    if(mine){
+      const gid=chat.findGroup(st.uid);
+      if((group&&gid&&String(gid)===id)||(!group&&(mine.helperUids||[]).map(String).includes(peer))){st.viewAlertId=mine.id;return"help";}
+    }
+    return null;
+  }
+
+  /* ---- notifications off (1.1.87, owner 27 Nov) ----
+   * A HELP contact whose notifications are off never hears HELP. So: (1) each device reports, for its account, whether
+   * notifications are on there (helpReach/{uid}.devices.{installation} = true/false); (2) anyone who is someone's
+   * HELP contact, or has HELP turned on, sees a red reminder on Messages while notifications are off on this device,
+   * with a button that turns them on (or opens the phone's Settings when the phone refuses); no "don't show again";
+   * (3) Settings → HELP shows which chosen contacts cannot be reached. */
+  let reachRun=null;
+  function refreshReach(){
+    if(reachRun)return reachRun;
+    const gen=generation;
+    reachRun=(async()=>{
+      if(!st.uid||!services)return;
+      let status=null;
+      try{status=await notify.status();}catch(e){trace("notify status failed");}
+      if(gen!==generation)return;
+      if(status){
+        st.notifyOn=status.on===true;st.notifyDenied=status.denied===true;
+        const id=String(status.installationId||"");
+        const key=id+"|"+st.notifyOn;
+        if(id&&/^[A-Za-z0-9_-]{1,128}$/.test(id)&&st.reachSent!==key){
+          const s=fs();
+          try{await s.setDoc(s.doc(db(),"helpReach",st.uid),{devices:{[id]:st.notifyOn},updatedAt:s.serverTimestamp()},{merge:true});st.reachSent=key;trace("reach saved "+st.notifyOn);}
+          catch(e){trace("reach not saved "+(e?.code||"?"));}
+        }
+      }
+      if(gen!==generation)return;
+      try{
+        const s=fs();
+        const snap=await s.getDocs(s.query(s.collection(db(),"helpSettings"),s.where("helperUids","array-contains",st.uid)));
+        if(gen!==generation)return;
+        st.helperOf=snap.docs.filter(d=>d.data()?.enabled===true).map(d=>d.id);trace("HELP contact of "+st.helperOf.length);
+        if(st.helperOf.length)await people();
+      }catch(e){trace("HELP contact check failed "+(e?.code||"?"));}
+      if(gen!==generation)return;
+      refreshBar();
+    })().finally(()=>{reachRun=null;});
+    return reachRun;
+  }
+  /* Sign Out: this device no longer counts as a way to reach this account. Best effort, never blocks Sign Out. */
+  async function leaveReach(){
+    try{
+      const id=String(st.reachSent.split("|")[0]||"");if(!id||!st.uid||!services)return;
+      const s=fs();
+      await Promise.race([s.setDoc(s.doc(db(),"helpReach",st.uid),{devices:{[id]:s.deleteField()},updatedAt:s.serverTimestamp()},{merge:true}),new Promise(r=>setTimeout(r,5000))]);
+    }catch(e){trace("reach leave failed");}
+  }
+  function noticeMarkup(){
+    if(st.notifyOn!==false||!(st.settings.enabled||st.helperOf.length))return"";
+    const who=joinNames(st.helperOf.map(nameOf));
+    const why=st.helperOf.length?`${esc(who)} chose you as a HELP contact. You will not hear their HELP.`:"You will not hear when your HELP contacts answer.";
+    return `<div class="help-notice" role="alert"><p><b>Notifications are off on this device.</b> ${why}</p>
+      <button class="help-notice-btn" id="helpNotifyOn">${st.notifyDenied?"Open Settings":"Turn on notifications"}</button></div>`;
+  }
+  async function turnOnNotifications(btn){
+    if(st.notifyDenied){notify.openSettings();return;}
+    if(btn){btn.disabled=true;btn.textContent="Turning on…";}
+    let ok=false,why="";try{ok=await notify.turnOn();}catch(e){trace("turn on failed");why=e?.message||String(e);}
+    await refreshReach();
+    if(st.notifyOn===true)return;
+    if(st.notifyDenied)return;   /* refused just now: the reminder now offers "Open Settings" */
+    if(btn&&btn.isConnected){btn.disabled=false;btn.textContent="Turn on notifications";}
+    onError("Notifications could not be turned on"+(why?": "+why:"")+". Check the connection and try again.");
+  }
 
   /* ---- the child's HELP screens ---- */
   /* ---- Option A (owner, 25 Nov): the HELP conversation lives on the big HELP screen.
@@ -375,12 +479,14 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     host.innerHTML=`<h2>HELP</h2>
       <p class="small-note">The red HELP button calls the people you choose here, with your location. Nobody chosen: no HELP button.</p>
       <p class="help-chosen"><strong>HELP contacts:</strong> ${summary}</p>
+      <p class="help-unreachable" id="helpReachNote">${reachNote(chosen)}</p>
       ${st.choosing?`<div class="help-helpers">${list.length?list.map(p=>`<label class="member-option"><input type="checkbox" class="help-helper" value="${esc(p.uid)}" ${chosen.includes(String(p.uid))?"checked":""}> ${esc(p.displayName||p.email||"FIDUNIO member")}</label>`).join(""):'<p class="small-note">No FIDUNIO contacts found.</p>'}</div>
       <p class="small-note">Up to 5 people.</p>
       <div class="help-setup-actions"><button class="primary" id="helpSave">Save</button><button class="secondary" id="helpChooseCancel">Cancel</button></div>`
       :`<button class="secondary" id="helpChoose">Choose HELP contacts</button>`}
       <p class="small-note" id="helpSettingsMsg" role="status">${esc(st.settingsMsg)}</p>`;
     const msg=host.querySelector("#helpSettingsMsg");
+    if(!st.choosing)void loadReach(chosen,host);
     host.querySelector("#helpChoose")?.addEventListener("click",()=>{st.choosing=true;st.settingsMsg="";void mountSettingsCard(host);});
     host.querySelector("#helpChooseCancel")?.addEventListener("click",()=>{st.choosing=false;void mountSettingsCard(host);});
     host.querySelectorAll(".help-helper").forEach(b=>b.onchange=()=>{if(host.querySelectorAll(".help-helper:checked").length>MAX_HELPERS){b.checked=false;msg.textContent="Up to 5 HELP contacts.";}});
@@ -393,6 +499,20 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
       }catch(err){btn.disabled=false;msg.textContent="Not saved: "+(err?.message||err)+". Your HELP contacts are unchanged.";}
     });
   }
-  return Object.freeze({start,stop,fabMarkup,bannerMarkup,refreshBar,backgroundRefresh,refreshSettingsCard,bindShared,openAlert,afterUnlock,renderHelp,renderHelpAlert,mountSettingsCard,allowSignOut,
+  /* Contacts whose notifications are off on every device they use (or who have not opened a FIDUNIO that reports it). */
+  function reachNote(chosen){
+    const off=chosen.filter(u=>st.reachOf[u]===false);
+    if(!off.length)return"";
+    return `${esc(joinNames(off.map(nameOf)))} may not hear your HELP: notifications are off or not confirmed. Ask ${off.length>1?"them":"them"} to open FIDUNIO and turn notifications on.`;
+  }
+  async function loadReach(chosen,host){
+    const s=fs();
+    for(const uid of chosen){
+      try{const d=await s.getDoc(s.doc(db(),"helpReach",uid));const v=d.exists()?d.data()?.devices:null;st.reachOf[uid]=!!(v&&Object.values(v).some(x=>x===true));}
+      catch(e){trace("reach read failed "+(e?.code||"?"));delete st.reachOf[uid];}
+    }
+    const note=host.querySelector("#helpReachNote");if(note&&note.isConnected)note.innerHTML=reachNote(chosen);
+  }
+  return Object.freeze({start,stop,fabMarkup,bannerMarkup,refreshBar,backgroundRefresh,refreshSettingsCard,bindShared,openAlert,viewForAlert,viewForConversation,refreshReach,leaveReach,afterUnlock,renderHelp,renderHelpAlert,mountSettingsCard,allowSignOut,
     get enabled(){return st.settings.enabled;},get openCount(){return st.mine.length+st.incoming.length;}});
 }

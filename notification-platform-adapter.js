@@ -6,7 +6,7 @@
  * Capacitor Firebase Messaging plugin and never fakes navigator.serviceWorker.
  */
 import {isNativeMobileRuntime,isNativeAndroidRuntime} from "./platform-runtime.js";
-import {FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,normalizeNotificationRoute} from "./notification-routing.js";
+import {FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,normalizeNotificationRoute,FIDUNIO_HELP_ROUTE_MESSAGE,normalizeHelpRoute} from "./notification-routing.js";
 
 function nativeMessagingPlugin(){
   if(!isNativeMobileRuntime())return null;
@@ -139,12 +139,13 @@ export async function deleteNativeMessagingToken(){
   return true;
 }
 
-function routeFromNativeEvent(event){
-  const data=event?.notification?.data&&typeof event.notification.data==="object"
+function nativeEventData(event){
+  return event?.notification?.data&&typeof event.notification.data==="object"
     ?event.notification.data
     :event?.data&&typeof event.data==="object"?event.data:null;
-  return normalizeNotificationRoute(data);
 }
+function routeFromNativeEvent(event){return normalizeNotificationRoute(nativeEventData(event));}
+function helpRouteFromNativeEvent(event){return normalizeHelpRoute(nativeEventData(event));}
 
 export function subscribeNativeMessagingTokens(handler){
   if(typeof handler!=="function")throw new Error("Native notification token handler is required.");
@@ -168,6 +169,8 @@ export function subscribeNativeNotificationRoutes(handler){
   const add=(plugin)=>{if(!plugin?.addListener)return;
     Promise.resolve(plugin.addListener("notificationActionPerformed",event=>{
       if(!active)return;
+      const help=helpRouteFromNativeEvent(event);
+      if(help){handler({type:FIDUNIO_HELP_ROUTE_MESSAGE,alertId:help.alertId},event);return;}
       const route=routeFromNativeEvent(event);
       if(route)handler({type:FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,route},event);
     })).then(handle=>{if(active)handles.push(handle);else handle?.remove?.();})
@@ -180,6 +183,8 @@ export function subscribeNativeNotificationRoutes(handler){
   if(adm?.takeRoute){
     Promise.resolve(adm.takeRoute()).then(routeData=>{
       if(!active)return;
+      const help=normalizeHelpRoute(routeData);
+      if(help){handler({type:FIDUNIO_HELP_ROUTE_MESSAGE,alertId:help.alertId},routeData);return;}
       const route=normalizeNotificationRoute(routeData);
       if(route)handler({type:FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,route},routeData);
     }).catch(error=>console.warn("FIDUNIO ADM pending route failed",error));

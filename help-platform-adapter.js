@@ -32,3 +32,15 @@ export function currentLocation(){
     }catch{resolve(null);}
   });
 }
+
+/* openNotificationSettings() (1.1.87): opens this app's notification page in the phone's own Settings, for a HELP
+ * contact whose phone refuses FIDUNIO notifications. iPhone/iPad: the iOS Settings page of FIDUNIO; Android/Fire:
+ * FIDUNIO's notification settings; web: not possible (false). */
+export function openNotificationSettings(){
+  try{
+    const p=platform();
+    if(p==="ios"){globalThis.location.href="app-settings:";return true;}
+    if(p==="android"){const adm=globalThis.Capacitor?.Plugins?.FidunioAdm;if(adm?.openNotificationSettings){void adm.openNotificationSettings().catch(()=>{});return true;}}
+  }catch{}
+  return false;
+}

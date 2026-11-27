@@ -100,6 +100,9 @@ public final class FidunioAdmService extends A3LMessagingService {
     Intent intent=new Intent(context,MainActivity.class);
     intent.setAction("io.github.willyros01.fidunio.HELP."+alertId);
     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    /* 1.1.87 (owner 27 Nov): tapping the HELP alarm opens the big HELP screen. */
+    intent.putExtra("fidunioType","help-alert");
+    intent.putExtra("fidunioAlertId",alertId);
     final int requestId=("help|"+alertId).hashCode();
     PendingIntent pending=PendingIntent.getActivity(context,requestId,intent,
       PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);

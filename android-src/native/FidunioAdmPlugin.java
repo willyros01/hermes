@@ -74,15 +74,29 @@ public final class FidunioAdmPlugin extends Plugin {
     }
     issueToken(call);
   }
-  private JSObject routeFromIntent(Intent intent){
+  private JSObject routeFromIntent(Intent intent){return routeFromIntent(intent,false);}
+  /* coldStartFcm (1.1.87): on Google phones, a notification tapped while FIDUNIO was closed starts it with the
+   * Firebase data as extras ("google.message_id", "type", ...); the Firebase plugin only reads taps that arrive
+   * while FIDUNIO is running, so the first launch intent is read here (once) as well. */
+  private JSObject routeFromIntent(Intent intent,boolean coldStartFcm){
     JSObject result=new JSObject();
     if(intent==null)return result;
-    final String type=intent.getStringExtra("fidunioType");
-    final String conversation=intent.getStringExtra("fidunioConversationId");
-    final String message=intent.getStringExtra("fidunioMessageId");
+    final boolean fcm=coldStartFcm&&intent.getStringExtra("fidunioType")==null&&intent.hasExtra("google.message_id");
+    final String type=fcm?intent.getStringExtra("type"):intent.getStringExtra("fidunioType");
+    final String conversation=fcm?intent.getStringExtra("conversationId"):intent.getStringExtra("fidunioConversationId");
+    final String message=fcm?intent.getStringExtra("messageId"):intent.getStringExtra("fidunioMessageId");
+    final String alert=fcm?intent.getStringExtra("alertId"):intent.getStringExtra("fidunioAlertId");
+    if(fcm)intent.removeExtra("google.message_id");
     intent.removeExtra("fidunioType");
     intent.removeExtra("fidunioConversationId");
     intent.removeExtra("fidunioMessageId");
+    intent.removeExtra("fidunioAlertId");
+    /* A tapped HELP alarm (1.1.87): JavaScript opens the big HELP screen. */
+    if("help-alert".equals(type)&&valid(alert)&&alert.matches("[A-Za-z0-9_-]{1,128}")){
+      result.put("type","help-alert");
+      result.put("alertId",alert);
+      return result;
+    }
     if(("direct-message".equals(type)||"group-message".equals(type))
        &&valid(conversation)&&valid(message)){
       result.put("type",type);
@@ -95,8 +109,26 @@ public final class FidunioAdmPlugin extends Plugin {
     return text!=null&&text.length()>0&&text.length()<=256
       &&text.matches("[A-Za-z0-9_.-]+");
   }
+  /* 1.1.87: the HELP reminder's "Open Settings" — FIDUNIO's notification page in Android Settings. */
+  @PluginMethod public void openNotificationSettings(PluginCall call){
+    try{
+      Intent intent=new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+      intent.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getContext().getPackageName());
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      getContext().startActivity(intent);
+      call.resolve();
+    }catch(Exception error){
+      try{
+        Intent details=new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+          android.net.Uri.parse("package:"+getContext().getPackageName()));
+        details.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(details);
+        call.resolve();
+      }catch(Exception second){call.reject("Settings could not be opened.");}
+    }
+  }
   @PluginMethod public void takeRoute(PluginCall call){
-    call.resolve(routeFromIntent(getActivity().getIntent()));
+    call.resolve(routeFromIntent(getActivity().getIntent(),true));
   }
   @Override protected void handleOnNewIntent(Intent intent){
     super.handleOnNewIntent(intent);

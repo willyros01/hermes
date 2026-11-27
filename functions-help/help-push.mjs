@@ -14,7 +14,9 @@ export function helpFcmMessage(tokens,data){
     /* HELP alarm (owner, 25 Nov): the alert rings with the app's own alarm sound; updates stay ordinary. */
     android:{priority:"high",notification:{title:"FIDUNIO HELP",body:data.notificationBody,channelId:urgent?"fidunio-help-alarm":"fidunio-help-update",sound:urgent?"help_alarm":"default",tag:"help-"+data.alertId}},
     webpush:{headers:{Urgency:"high"}},
-    apns:{headers:{"apns-priority":"10"},payload:{aps:{alert:{title:"FIDUNIO HELP",body:data.notificationBody},sound:urgent?"help_alarm.caf":"default",
+    /* 1.1.87 (owner 27 Nov): each new ring replaces the previous HELP notification on iPhone/iPad (one notification
+     * that keeps ringing, not a pile); Android already does this with the tag above. */
+    apns:{headers:{"apns-priority":"10","apns-collapse-id":("help-"+data.alertId).slice(0,64)},payload:{aps:{alert:{title:"FIDUNIO HELP",body:data.notificationBody},sound:urgent?"help_alarm.caf":"default",
       "interruption-level":urgent?"time-sensitive":"active","relevance-score":urgent?1:0.5,"thread-id":"help-"+data.alertId}}}
   };
 }

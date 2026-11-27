@@ -3,7 +3,7 @@ name: FIDUNIO HELP backend tests
 on:
   push:
     branches: [fix/nov24-android]
-    paths: ['functions-help/**','firestore-help.rules','firestore-help.rules.test.mjs','build/merge-help-rules.mjs','.github/workflows/help-backend-tests.yml','functions-help/package-lock.json']
+    paths: ['functions-help/**','firestore.rules','firestore-help.rules','firestore-help.rules.test.mjs','build/merge-help-rules.mjs','.github/workflows/help-backend-tests.yml','functions-help/package-lock.json']
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,5 +30,6 @@ jobs:
         run: |
           set -Eeuo pipefail
           npm ci --no-audit --no-fund
-          node build/merge-help-rules.mjs firestore.rules firestore-help.rules /tmp/merged.rules
-          HELP_RULES=/tmp/merged.rules ./node_modules/.bin/firebase emulators:exec --only firestore --project demo-fidunio-help-rules "node firestore-help.rules.test.mjs"
+          # Since 25 Nov the full rules file already carries the HELP block: it must equal firestore-help.rules.
+          node -e "const fs=require('fs');const r=fs.readFileSync('firestore.rules','utf8'),h=fs.readFileSync('firestore-help.rules','utf8');if(!r.includes(h))throw new Error('firestore.rules HELP block differs from firestore-help.rules');console.log('PASS: HELP block in firestore.rules matches')"
+          HELP_RULES=firestore.rules ./node_modules/.bin/firebase emulators:exec --only firestore --project demo-fidunio-help-rules "node firestore-help.rules.test.mjs"

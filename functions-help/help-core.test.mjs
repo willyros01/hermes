@@ -64,5 +64,6 @@ assert.equal(m.apns.payload.aps["interruption-level"],"time-sensitive");
 assert.equal(m.android.notification.channelId,"fidunio-help-alarm","HELP alert rings on the alarm channel");
 assert.equal(m.android.notification.sound,"help_alarm");
 assert.equal(m.apns.payload.aps.sound,"help_alarm.caf","iPhone/iPad play the HELP alarm sound");
+assert.equal(m.apns.headers["apns-collapse-id"],"help-"+m.data.alertId,"iPhone/iPad: a new ring replaces the previous HELP notification");
 assert.throws(()=>helpFcmMessage(["t".repeat(30)],{alertId:"a1",kind:"alert",notificationBody:"I am at 12 Main St"}),/Unapproved/);
 console.log("HELP server core gate passed");
