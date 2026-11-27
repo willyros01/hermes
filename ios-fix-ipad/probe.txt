@@ -1,2 +1,29 @@
 FIDUNIO input probe — ios — fix
-screen:  FIDUNIO could not finish starting Sign-in could not be loaded. Check your connection and retry. Your secure data has not been reset. Retry Startup
+iPhone pre-Join read: {"state":"success"}
+signed in
+
+STARTUP-ONCE: After sign-in, count how many times each start-up step started
+AS EXPECTED STARTUP-ONCE — observed: order: notification upkeep → conversations → blocked users → groups → HELP → activation → publish E2EE key | counts: {"notification upkeep":1,"conversations":1,"blocked users":1,"groups":1,"HELP":1,"activation":1,"publish E2EE key":1}
+
+IPAD-LAYOUT: iPad simulator, chat with Bob open
+AS EXPECTED IPAD-LAYOUT — observed: two-panel with chat open
+
+IPAD-BAR-LIVE: With the chat open, HELP contacts arrive from the server (Bob chosen on another device); touch nothing
+AS EXPECTED IPAD-BAR-LIVE — observed: HELP bar shown; still in chat: true; trace ["22:40:02 settings snapshot exists=false cache=false pending=false contacts=-","22:40:02 settings applied (server read) contacts=0","22:40:02 reach saved false","22:40:02 HELP contact of 0","22:40:39 settings snapshot exists=true cache=false pending=false contacts=1","22:40:39 settings applied (server read) contacts=1","22:40:39 bar redrawn shown","22:40:39 notice shown"]
+
+IPAD-BAR-RESTART-1: Restart FIDUNIO, unlock with the PIN, touch nothing (round 1 of 3)
+AS EXPECTED IPAD-BAR-RESTART-1 — observed: unlocked: true; HELP bar shown; route: messages; trace ["22:41:11 start","22:41:11 stop","22:41:12 settings snapshot exists=true cache=false pending=false contacts=1","22:41:12 settings applied (server read) contacts=1","22:41:12 bar redrawn shown","22:41:12 notice shown","22:41:12 reach saved false","22:41:12 HELP contact of 0"]
+
+IPAD-BAR-RESTART-2: Restart FIDUNIO, unlock with the PIN, touch nothing (round 2 of 3)
+AS EXPECTED IPAD-BAR-RESTART-2 — observed: unlocked: true; HELP bar shown; route: messages; trace ["22:41:55 start","22:41:55 stop","22:41:56 settings snapshot exists=true cache=false pending=false contacts=1","22:41:56 settings applied (server read) contacts=1","22:41:56 bar redrawn shown","22:41:56 notice shown","22:41:56 reach saved false","22:41:56 HELP contact of 0"]
+
+IPAD-BAR-RESTART-3: Restart FIDUNIO, unlock with the PIN, touch nothing (round 3 of 3)
+AS EXPECTED IPAD-BAR-RESTART-3 — observed: unlocked: true; HELP bar shown; route: messages; trace ["22:42:38 start","22:42:38 stop","22:42:39 settings snapshot exists=true cache=false pending=false contacts=1","22:42:39 settings applied (server read) contacts=1","22:42:39 bar redrawn shown","22:42:40 reach saved false","22:42:40 HELP contact of 0","22:42:40 notice shown"]
+
+IPAD-SETTINGS-FILL: Restart FIDUNIO, unlock, open Settings at once; touch nothing else
+AS EXPECTED IPAD-SETTINGS-FILL — observed: filled after 1.7 s; page rebuilt while open: 0 time(s); still filled 8 s later: true
+
+IPAD-HELP-RESUME: Bob sends HELP to Alice while FIDUNIO is in the background (Home screen); Alice opens FIDUNIO again and taps nothing
+AS EXPECTED IPAD-HELP-RESUME — observed: screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:43 PM Location is on i"; HELP trace ["22:43:16 settings applied (server read) contacts=1","22:43:16 bar redrawn shown","22:43:16 notice shown","22:43:16 reach saved false","22:43:16 HELP contact of 0","22:43:20 settings card contacts=1","22:43:20 settings card contacts=1","22:44:00 HELP contact of 1"]
+
+RESULT: iPad probe finished
