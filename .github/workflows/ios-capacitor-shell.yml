@@ -16,7 +16,9 @@ concurrency:
 
 jobs:
   shell:
-    runs-on: xcode-27
+    # Stays on the Xcode 26 machine for now: its screen-reading check (Apple Vision text recognition) crashes on the
+    # Xcode 27 / macOS 27 machine (27 Nov 2026). The TestFlight build itself uses Xcode 27 (iOS 27 SDK).
+    runs-on: macos-26
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4

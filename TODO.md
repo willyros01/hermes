@@ -1,5 +1,6 @@
 ## Next FIDUNIO build (batched, owner 26 Nov 11:52)
 
+- [ ] **iOS shell check on Xcode 27**: its screen-reading helper (Vision text recognition, build/ios-startup-smoke.sh) crashes on the Xcode 27 machine (nilError), so that check stays on macos-26 for now; TestFlight builds on Xcode 27.
 - [x] **Apple SDK 27** (owner, 26 Nov): iPhone builds move to GitHub's Xcode 27 machine (`runs-on: xcode-27`, macOS 27) for the TestFlight build and the iOS shell check. First run of the next build proves it.
 - [x] **HELP hold screen in dark mode** (Fire 8) — 1.1.86, plus the HELP typing box and the Abuse Reports highlight: title, back arrow and hint were dark text on dark background — fixed in help.css (uses --ink); add a dark-mode check of every HELP screen to the simulator test.
 
