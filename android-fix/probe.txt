@@ -19,7 +19,7 @@ PASTE: Press and hold the message box, tap the phone's Paste
 AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286"
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared (10:12 PM Sent)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared (10:37 PM Sent)
 
 KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
 AS EXPECTED KEYBOARD-GIF — observed: GIF message appeared
@@ -50,7 +50,7 @@ AS EXPECTED BACK-KEY — observed: Messages list shown
 Alice account found: yes
 
 HELP-SETTINGS: Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save
-HELP trace: {"help":["22:10:33 start","22:10:33 stop","22:10:34 settings snapshot exists=false cache=false pending=false contacts=-","22:10:34 settings applied (server read) contacts=0","22:10:35 HELP contact of 0","22:12:24 HELP contact of 0","22:13:09 HELP contact of 0","22:13:30 HELP contact of 0","22:13:52 HELP contact of 0","22:14:02 settings card contacts=0","22:14:08 settings card contacts=0","22:14:16 settings snapshot exists=true cache=false pending=true contacts=1","22:14:16 settings applied (this phone's save) contacts=1","22:14:18 saved contacts=1","22:14:18 settings snapshot exists=true cache=false pending=false contacts=1","22:14:18 settings card contacts=1 (Saved.)"],"steps":["notification upkeep","conversations","blocked users","groups","HELP","activation","publish E2EE key"]}
+HELP trace: {"help":["22:35:30 start","22:35:30 stop","22:35:31 settings snapshot exists=false cache=false pending=false contacts=-","22:35:31 settings applied (server read) contacts=0","22:35:31 HELP contact of 0","22:37:21 HELP contact of 0","22:38:07 HELP contact of 0","22:38:29 HELP contact of 0","22:38:50 HELP contact of 0","22:39:01 settings card contacts=0","22:39:06 settings card contacts=0","22:39:16 settings snapshot exists=true cache=false pending=true contacts=1","22:39:16 settings applied (this phone's save) contacts=1","22:39:17 saved contacts=1","22:39:17 settings snapshot exists=true cache=false pending=false contacts=1","22:39:17 settings card contacts=1 (Saved.)"],"steps":["notification upkeep","conversations","blocked users","groups","HELP","activation","publish E2EE key"]}
 contacts line 4 s later: HELP contacts: Simulator Bob
 AS EXPECTED HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Simulator Bob"; server: enabled=true, contacts=1
 
@@ -87,28 +87,28 @@ HELP-COMING-SEEN: Alice starts typing "draft 88" (not sent); Bob answers "I'm co
 AS EXPECTED HELP-COMING-SEEN — observed: green: true; screen: "Simulator Bob is coming Stay where you are. You: HELP Open in Maps You: Help cha"; unsent text kept: "draft 88"; conversation still shown: true
 
 HELP-OK: Tap "I'm OK now", then open the regular chat with Bob
-AS EXPECTED HELP-OK — observed: server: safe; bar: "HELP"; regular chat has HELP + message + OK: true (contacts. 10:17 PM Sent You are now one of my HELP contacts. 10:18 PM Sent HELP Open in Maps 10:19 PM Sent Help chat 7731 10:20 PM Sent I'm OK now 10:20 PM Sent)
+AS EXPECTED HELP-OK — observed: server: safe; bar: "HELP"; regular chat has HELP + message + OK: true (contacts. 10:43 PM Sent You are now one of my HELP contacts. 10:43 PM Sent HELP Open in Maps 10:44 PM Sent Help chat 7731 10:45 PM Sent I'm OK now 10:45 PM Sent)
 
 HELP-INCOMING: The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps "I'm coming", types "On my way 5512" and taps Send
-AS EXPECTED HELP-INCOMING — observed: chat made by Bob first: true; opened: "‹ Simulator Bob needs HELP Sent at 10:20 PM Location is on i"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; "could not be started": false
+AS EXPECTED HELP-INCOMING — observed: chat made by Bob first: true; opened: "‹ Simulator Bob needs HELP Sent at 10:45 PM Location is on i"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; "could not be started": false
 
 HELP-RESUME: Bob sends HELP while FIDUNIO is in the background; Alice opens FIDUNIO again — back from the background (no PIN) — and taps nothing
-AS EXPECTED HELP-RESUME — observed: screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:20 PM Location is on i"; HELP trace ["22:18:26 settings card contacts=0 (Saved.)","22:18:26 settings snapshot exists=true cache=false pending=false contacts=0","22:18:40 settings card contacts=0","22:18:44 settings card contacts=0","22:18:53 settings snapshot exists=true cache=false pending=true contacts=1","22:18:53 settings applied (this phone's save) contacts=1","22:18:53 saved contacts=1","22:18:53 settings snapshot exists=true cache=false pending=false contacts=1","22:18:54 settings card contacts=1 (Saved.)","22:21:08 HELP contact of 1"]
+AS EXPECTED HELP-RESUME — observed: screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:46 PM Location is on i"; HELP trace ["22:43:31 settings card contacts=0 (Saved.)","22:43:31 settings snapshot exists=true cache=false pending=false contacts=0","22:43:45 settings card contacts=0","22:43:49 settings card contacts=0","22:43:59 settings snapshot exists=true cache=false pending=true contacts=1","22:43:59 settings applied (this phone's save) contacts=1","22:43:59 saved contacts=1","22:43:59 settings snapshot exists=true cache=false pending=false contacts=1","22:44:00 settings card contacts=1 (Saved.)","22:46:15 HELP contact of 1"]
 
 HELP-RESUME-RESTART: Bob sends HELP while FIDUNIO is in the background; Alice opens FIDUNIO again — FIDUNIO restarted and unlocked with the PIN — and taps nothing
-AS EXPECTED HELP-RESUME-RESTART — observed: screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:21 PM Location is on i"; HELP trace ["22:21:51 start","22:21:51 stop","22:21:51 settings snapshot exists=true cache=false pending=false contacts=1","22:21:51 settings applied (server read) contacts=1","22:21:52 HELP contact of 1"]
+AS EXPECTED HELP-RESUME-RESTART — observed: screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:46 PM Location is on i"; HELP trace ["22:46:58 start","22:46:58 stop","22:46:59 settings snapshot exists=true cache=false pending=false contacts=1","22:46:59 settings applied (server read) contacts=1","22:47:00 HELP contact of 1"]
 
 HELP-TAP-ALARM: Bob sends HELP; Alice sees it and goes back to Messages; FIDUNIO goes to the background; the HELP alarm notification arrives and Alice taps it
-AS EXPECTED HELP-TAP-ALARM — observed: Android: launch with the notification data; screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:22 PM Location is on i"
+AS EXPECTED HELP-TAP-ALARM — observed: Android: launch with the notification data; screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:47 PM Location is on i"
 
 HELP-TAP-CHAT: Same HELP still on: back to Messages, background; the CHAT notification of a message in the HELP conversation arrives and Alice taps it
-AS EXPECTED HELP-TAP-CHAT — observed: Android: launch with the notification data; screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:22 PM Location is on i"
+AS EXPECTED HELP-TAP-CHAT — observed: Android: launch with the notification data; screen: helpAlert "‹ Simulator Bob needs HELP Sent at 10:47 PM Location is on i"
 
 HELP-TAP-CHAT-AFTER: Bob taps "I'm OK now" (HELP over); Alice taps a chat notification from Bob
 AS EXPECTED HELP-TAP-CHAT-AFTER — observed: Android: launch with the notification data; screen: chat
 
 HELP-TAP-CHAT-FIRST: FIDUNIO asleep in the background; Bob sends HELP; Alice taps the CHAT notification first (FIDUNIO has not seen the HELP yet)
-AS EXPECTED HELP-TAP-CHAT-FIRST — observed: Android: launch with the notification data; screen: red HELP screen; ["22:22:51 server HELP check: helping 0, sending 0","22:23:21 server HELP check: helping 1, sending 0","22:23:21 opened from notification"]
+AS EXPECTED HELP-TAP-CHAT-FIRST — observed: Android: launch with the notification data; screen: red HELP screen; ["22:47:53 server HELP check: helping 0, sending 0","22:48:24 server HELP check: helping 1, sending 0","22:48:24 opened from notification"]
 
 HELP-REACH: Alice's Settings → HELP with Bob chosen; Bob's notifications not confirmed, then Bob turns them on (from his phone)
 AS EXPECTED HELP-REACH — observed: before: "Simulator Bob can't hear HELP yet."; after: "no warning"
