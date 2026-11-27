@@ -1,3 +1,11 @@
+## 1.1.87 (owner 27 Nov) — done
+
+- [x] Every HELP notification tap opens the big HELP screen (alarm + chat of an open HELP).
+- [x] Reminder when notifications are off (HELP contacts and senders), Settings warning; server hl4.txt run by owner.
+- [ ] Apple Critical Alerts (owner submitted the request 27 Nov): when approved, entitlement + ask once + reminder
+      with "Open Settings" and "Don't show this again" (stops for good); server marks HELP alarms critical. Next build.
+- [ ] Owner to record the HELP part of the App Review video on 1.1.87; Claude adds it to FIDUNIO.review.v1.mp4.
+
 ## Next FIDUNIO build (batched, owner 26 Nov 11:52)
 
 - [ ] **iOS shell check on Xcode 27**: its screen-reading helper (Vision text recognition, build/ios-startup-smoke.sh) crashes on the Xcode 27 machine (nilError), so that check stays on macos-26 for now; TestFlight builds on Xcode 27.
