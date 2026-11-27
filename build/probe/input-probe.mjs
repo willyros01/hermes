@@ -486,7 +486,7 @@ if(label==='fix'){
     log(`HELP-WRITE server messages before ${before}, after ${after}`);
     await until(async()=>/Help chat 7731/.test(await js('document.querySelector("#helpChatLog")?.innerText||""')),'message in HELP conversation',30000).catch(()=>{});
     const t=await js('document.querySelector("#helpChatLog")?.innerText||""');const s=await shot('help-chat-on-screen');
-    return{ok:/Help chat 7731/.test(t)&&!(await present('#messageBox'))&&after>before&&!/Not sent/.test(t),observed:`conversation on HELP screen: ${t.replace(/\s+/g,' ').slice(-160)}; reached the server: ${after>before?'yes':'NO'} (${before}→${after})`,shots:[s]};
+    return{ok:/Help chat 7731/.test(t)&&!(await present('#messageBox'))&&after>before&&!/Help chat 7731[^\n]*Not sent/.test(t)&&!/fidunioAttachment/.test(t),observed:`conversation on HELP screen: ${t.replace(/\s+/g,' ').slice(-160)}; reached the server: ${after>before?'yes':'NO'} (${before}→${after})`,shots:[s]};
   });
 
   await check('HELP-COMING-SEEN','Alice starts typing "draft 88" (not sent); Bob answers "I\'m coming" (from his phone)','green "Simulator Bob is coming" on the same screen; the conversation and the unsent "draft 88" are still there',async()=>{
