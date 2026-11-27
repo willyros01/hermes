@@ -560,11 +560,26 @@ if(label==='fix'){
     const file=path.join(out,'push-'+(++pushN)+'.json');
     const title=data.type==='help-alert'?'FIDUNIO HELP':'FIDUNIO';const body=data.type==='help-alert'?'HELP — Simulator Bob':'New message';
     fs.writeFileSync(file,JSON.stringify({aps:{alert:{title,body},sound:'default'},...data}));
+    /* Settings app in front first: no FIDUNIO icon on screen that could be tapped by mistake (27 Nov: the old test
+     * tapped FIDUNIO's Home-screen icon, which opens FIDUNIO without any notification). */
+    run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);await sleep(3000);
     run('xcrun',['simctl','push',UDID,APP,file]);
-    let how='';const end=Date.now()+8000;const seenLabels=new Set();
-    while(Date.now()<end&&!how){await sleep(700);const all=iosElements();all.forEach(e=>{const l=iosLabel(e);if(l)seenLabels.add(l.replace(/\s+/g,' ').slice(0,40));});
-      const b=all.find(e=>/FIDUNIO|HELP|New message/.test(iosLabel(e))&&((e.frame||{}).y||0)<260&&((e.frame||{}).height||0)>30);if(b){await iosTap(b);how='banner tapped ('+iosLabel(b).replace(/\s+/g,' ').slice(0,50)+')';}}
-    if(!how){const sz=iosElements().find(e=>e.type==='Application')?.frame||{width:402};idb('ui','tap',String(Math.round((sz.width||402)/2)),'105');await sleep(1500);how='banner not found by name (screen showed: '+[...seenLabels].slice(0,8).join(' | ')+'); tapped where banners show';}
+    /* Only a real notification counts: its name carries the notification's text, and it is (almost) screen-wide. */
+    const fullName=e=>[e.AXLabel,e.AXValue,e.title].filter(Boolean).map(String).join(' ');
+    const isBanner=e=>{const l=fullName(e),f=e.frame||{};return l.includes(body)&&l.trim()!=='FIDUNIO'&&(f.width||0)>250&&(f.height||0)>40;};
+    const describe=e=>{const f=e.frame||{};return `"${fullName(e).replace(/\s+/g,' ').slice(0,70)}" at ${Math.round(f.x||0)},${Math.round(f.y||0)}, size ${Math.round(f.width||0)}x${Math.round(f.height||0)}`;};
+    const seen=new Set();
+    const findBanner=async ms=>{const end=Date.now()+ms;while(Date.now()<end){const all=iosElements();all.forEach(e=>{const l=fullName(e);if(l)seen.add(l.replace(/\s+/g,' ').slice(0,40));});const b=all.find(isBanner);if(b)return b;await sleep(500);}return null;};
+    let banner=await findBanner(10000),how='';
+    if(banner){how='tapped the notification banner '+describe(banner);await iosTap(banner);}
+    else{
+      /* Missed the banner: open the list of notifications (swipe down from the top) and tap it there. */
+      idb('ui','swipe','30','4','30','520','--duration','0.4');await sleep(2000);
+      banner=await findBanner(6000);
+      if(!banner)throw new Error('the notification never appeared on screen; the screen showed: '+[...seen].slice(0,10).join(' | '));
+      how='tapped the notification in the notification list '+describe(banner);await iosTap(banner);
+    }
+    log('NOTIFICATION TAP: '+how);
     await sleep(5000);
     if(!(await appAnswers(15000)))throw new Error('FIDUNIO did not come to the front after the tap — '+how);
     await unlockIfLocked();return how;
