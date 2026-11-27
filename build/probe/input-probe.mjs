@@ -438,7 +438,9 @@ if(label==='fix'){
     await realTap('#helpFab');await until(()=>present('#helpHold'),'HELP screen',15000);await sleep(800);
     const r=await js(contrastJs('.help-shell h1,.help-shell .help-hint,.help-shell .help-back'));const s=await shot('help-dark');
     await js('document.documentElement.dataset.theme="light";document.documentElement.classList.remove("dark");true');
+    /* Leave it as the next check expects: on the HELP hold screen, in light mode (re-drawn). */
     await js('document.querySelector("#backBtn")?.click();true');await sleep(1500);
+    await realTap('#helpFab');await until(()=>present('#helpHold'),'HELP screen again',15000);await sleep(800);
     return{ok:Array.isArray(r)&&r.length>=2&&r.every(x=>x>=4.5),observed:`contrast of title / hint / back: ${JSON.stringify(r)}`,shots:[s]};
   });
 
