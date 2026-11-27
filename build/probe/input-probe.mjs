@@ -592,16 +592,16 @@ if(label==='fix'){
     });
   }
 
-  await check('HELP-REMINDER','Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back','a red reminder on Messages: "Notifications are off on this device. Simulator Bob chose you as a HELP contact…" with "Turn on notifications"',async()=>{
+  await check('HELP-REMINDER','Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back','a red reminder on Messages: "Turn on notifications to hear HELP." with one button "Turn on"',async()=>{
     await toMessages();
     await setDoc(doc(bobDb,'helpSettings',bobUid),{enabled:true,helperUids:[aliceUid],protected:false,updatedAt:serverTimestamp()});
     await goBackground();await comeBack();await toMessages();
     await until(()=>present('#helpNotifyOn'),'reminder',30000).catch(()=>{});
     const t=await js('document.querySelector(".help-notice")?.innerText||""');const s=await shot('help-reminder');
-    return{ok:/Notifications are off/.test(t)&&/Bob chose you/.test(t)&&await present('#helpNotifyOn'),observed:`reminder: "${t.replace(/\s+/g,' ').slice(0,160)||'NOT SHOWN'}"; trace ${JSON.stringify(JSON.parse(await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-6))')||'[]'))}`,shots:[s]};
+    return{ok:/Turn on notifications to hear HELP/.test(t)&&await present('#helpNotifyOn'),observed:`reminder: "${t.replace(/\s+/g,' ').slice(0,160)||'NOT SHOWN'}"; trace ${JSON.stringify(JSON.parse(await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-6))')||'[]'))}`,shots:[s]};
   });
 
-  await check('HELP-TURN-ON','Tap "Turn on notifications" and allow notifications when the phone asks','the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why)',async()=>{
+  await check('HELP-TURN-ON','Tap "Turn on" and allow notifications when the phone asks','the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why)',async()=>{
     await js('window.__probeAlerts=[];window.alert=m=>{window.__probeAlerts.push(String(m))};true');
     const p=await screenPoint('#helpNotifyOn');if(!p)return{ok:false,observed:'no reminder button',shots:[]};
     await tapAt(p);const seen=await allowPrompt(15000);await sleep(8000);
@@ -643,14 +643,14 @@ if(label==='fix'){
     return{ok:r==='chat'&&await present('#messageBox'),observed:`${how}; screen: ${r||'?'}`,shots:[s]};
   });
 
-  await check('HELP-REACH','Alice\'s Settings → HELP with Bob chosen; Bob\'s notifications not confirmed, then Bob turns them on (from his phone)','first: "Simulator Bob may not hear your HELP…"; after Bob turns them on and Settings is opened again: no warning',async()=>{
+  await check('HELP-REACH','Alice\'s Settings → HELP with Bob chosen; Bob\'s notifications not confirmed, then Bob turns them on (from his phone)','first: "Simulator Bob can\'t hear HELP yet."; after Bob turns them on and Settings is opened again: no warning',async()=>{
     await toSettings();
-    await until(async()=>/may not hear/.test(await js('document.querySelector("#helpReachNote")?.innerText||""')),'warning',15000).catch(()=>{});
+    await until(async()=>/can't hear HELP/.test(await js('document.querySelector("#helpReachNote")?.innerText||""')),'warning',15000).catch(()=>{});
     const before=await js('document.querySelector("#helpReachNote")?.innerText||""');const s1=await shot('help-reach-warning');
     await setDoc(doc(bobDb,'helpReach',bobUid),{devices:{'bob-phone':true},updatedAt:serverTimestamp()},{merge:true});
     await toSettings();await sleep(5000);
     const after=await js('document.querySelector("#helpReachNote")?.innerText||""');const s2=await shot('help-reach-ok');
-    return{ok:/Bob may not hear your HELP/.test(before)&&!after.trim(),observed:`before: "${before.replace(/\s+/g,' ').slice(0,90)}"; after: "${after.replace(/\s+/g,' ').slice(0,60)||'no warning'}"`,shots:[s1,s2]};
+    return{ok:/Bob can't hear HELP yet/.test(before)&&!after.trim(),observed:`before: "${before.replace(/\s+/g,' ').slice(0,90)}"; after: "${after.replace(/\s+/g,' ').slice(0,60)||'no warning'}"`,shots:[s1,s2]};
   });
 
   await check('HELP-SIGNOUT','Settings: Sign Out button','no PIN asked for Sign Out (protection removed); not tapped',async()=>{
