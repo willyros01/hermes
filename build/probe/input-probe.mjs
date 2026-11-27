@@ -668,6 +668,25 @@ if(label==='fix'){
     return{ok:r==='chat'&&await present('#messageBox'),observed:`${how}; screen: ${r||'?'}`,shots:[s]};
   });
 
+  /* Owner's iPad, 27 Nov, on 1.1.87: HELP arrived while FIDUNIO was asleep in the background; the CHAT notification
+   * came too and was tapped first -> the regular chat opened. Here exactly that: FIDUNIO in the background, Bob sends
+   * HELP, and the chat notification is tapped before FIDUNIO has seen the HELP. */
+  await check('HELP-TAP-CHAT-FIRST','FIDUNIO asleep in the background; Bob sends HELP; Alice taps the CHAT notification first (FIDUNIO has not seen the HELP yet)','the big red "Simulator Bob needs HELP" screen opens, not the regular chat',async()=>{
+    await toMessages();
+    if(android)adb('shell','input','keyevent','KEYCODE_HOME');else run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);
+    await sleep(15000);
+    const ref=await addDoc(collection(bobDb,'helpAlerts'),{senderUid:bobUid,helperUids:[aliceUid],state:'open',test:false,acks:{},createdAt:serverTimestamp()});
+    const mid=await admin(async db=>(await getDocs(collection(db,'conversations',dmId,'messages'))).docs.map(x=>x.id).pop()||'');
+    let how='';
+    try{how=await tapNotification({type:'direct-message',conversationId:dmId,messageId:mid});}
+    finally{}
+    await until(async()=>(await routeNow())==='helpAlert','HELP screen',20000).catch(()=>{});
+    const r=await routeNow();const t=await js('document.querySelector(".help-shell")?.innerText||""');const s=await shot('help-tap-chat-first');
+    const tr=await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).filter(x=>/server HELP check|opened from notification/.test(x)).slice(-3))').catch(()=>'');
+    await updateDoc(doc(bobDb,'helpAlerts',ref.id),{state:'safe',closedAt:serverTimestamp()});await sleep(3000);await toMessages();
+    return{ok:r==='helpAlert'&&/Bob\s*needs HELP/.test(t),observed:`${how}; screen: ${r==='helpAlert'?'red HELP screen':r||'?'}; ${tr}`,shots:[s]};
+  });
+
   await check('HELP-REACH','Alice\'s Settings → HELP with Bob chosen; Bob\'s notifications not confirmed, then Bob turns them on (from his phone)','first: "Simulator Bob can\'t hear HELP yet."; after Bob turns them on and Settings is opened again: no warning',async()=>{
     await toSettings();
     await until(async()=>/can't hear HELP/.test(await js('document.querySelector("#helpReachNote")?.innerText||""')),'warning',15000).catch(()=>{});
