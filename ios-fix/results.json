@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 10:16 PM Sent )",
+      "observed": "a new message appeared ( 10:45 PM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -128,7 +128,7 @@
       "what": "Press and hold the HELP button for 3 seconds; allow location when the phone asks",
       "expected": "red \"HELP is sent — Simulator Bob is being called\", the conversation on the same screen, \"I'm OK now\"; server has an open alert for Bob",
       "ok": true,
-      "observed": "screen: \"HELP is sent Simulator Bob is being called. Stay where you are. You: HELP Open in Maps Send I'm OK now\"; location prompts answered: Allow Once, Allow; server: open alert for Bob",
+      "observed": "screen: \"HELP is sent Simulator Bob is being called. Stay where you are. You: HELP Open in Maps Sending… Send I'm OK now\"; location prompts answered: Allow Once, Allow; server: open alert for Bob",
       "shots": [
         "17-help-sent.png"
       ]
@@ -138,7 +138,7 @@
       "what": "On the same HELP screen: type \"Help chat 7731\" in the big box and tap Send",
       "expected": "the message shows in the conversation on the HELP screen (no separate chat screen)",
       "ok": true,
-      "observed": "conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731 ; reached the server: yes (10→11)",
+      "observed": "conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731 ; reached the server: yes (9→11)",
       "shots": [
         "18-help-chat-on-screen.png"
       ]
@@ -158,7 +158,7 @@
       "what": "Tap \"I'm OK now\", then open the regular chat with Bob",
       "expected": "the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, \"Help chat 7731\", \"I'm OK now\"",
       "ok": true,
-      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (ontacts. 10:19 PM Sent You are now one of my HELP contacts. 10:20 PM Sent HELP Open in Maps 10:21 PM Sent Help chat 7731 10:21 PM Sent I'm OK now 10:21 PM Sent )",
+      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (ontacts. 10:48 PM Sent You are now one of my HELP contacts. 10:49 PM Sent HELP Open in Maps 10:50 PM Sent Help chat 7731 10:50 PM Sent I'm OK now 10:51 PM Sent )",
       "shots": [
         "20-help-ok-regular-chat.png"
       ]
@@ -168,7 +168,7 @@
       "what": "The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps \"I'm coming\", types \"On my way 5512\" and taps Send",
       "expected": "red \"Simulator Bob needs HELP\" opens by itself; after \"I'm coming\" the conversation is on the same screen; the message is sent (no \"Conversation could not be started\"); the server has Alice's answer",
       "ok": true,
-      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 10:22 PM Location is on i\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512 ; \"could not be started\": false",
+      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 10:51 PM Location is on i\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512 ; \"could not be started\": false",
       "shots": [
         "21-help-incoming.png",
         "22-help-im-coming-chat.png"
@@ -179,7 +179,7 @@
       "what": "Bob sends HELP while FIDUNIO is in the background; Alice opens FIDUNIO again — back from the background (no PIN) — and taps nothing",
       "expected": "the red \"Simulator Bob needs HELP\" screen is there by itself",
       "ok": true,
-      "observed": "screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 10:22 PM Location is on i\"; HELP trace [\"22:20:05 settings card contacts=0 (Saved.)\",\"22:20:05 settings snapshot exists=true cache=false pending=false contacts=0\",\"22:20:15 settings card contacts=0\",\"22:20:18 settings card contacts=0\",\"22:20:23 settings snapshot exists=true cache=false pending=true contacts=1\",\"22:20:23 settings applied (this phone's save) contacts=1\",\"22:20:23 saved contacts=1\",\"22:20:23 settings snapshot exists=true cache=false pending=false contacts=1\",\"22:20:23 settings card contacts=1 (Saved.)\",\"22:22:57 HELP contact of 1\"]",
+      "observed": "screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 10:51 PM Location is on i\"; HELP trace [\"22:49:16 settings card contacts=0 (Saved.)\",\"22:49:16 settings snapshot exists=true cache=false pending=false contacts=0\",\"22:49:26 settings card contacts=0\",\"22:49:28 settings card contacts=0\",\"22:49:34 settings snapshot exists=true cache=false pending=true contacts=1\",\"22:49:34 settings applied (this phone's save) contacts=1\",\"22:49:34 saved contacts=1\",\"22:49:34 settings snapshot exists=true cache=false pending=false contacts=1\",\"22:49:43 settings card contacts=1 (Saved.)\",\"22:51:54 HELP contact of 1\"]",
       "shots": [
         "23-help-resume.png"
       ]
@@ -189,7 +189,7 @@
       "what": "Bob sends HELP while FIDUNIO is in the background; Alice opens FIDUNIO again — FIDUNIO restarted and unlocked with the PIN — and taps nothing",
       "expected": "the red \"Simulator Bob needs HELP\" screen is there by itself",
       "ok": true,
-      "observed": "screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 10:23 PM Location is on i\"; HELP trace [\"22:23:59 start\",\"22:23:59 stop\",\"22:24:00 settings snapshot exists=true cache=false pending=false contacts=1\",\"22:24:00 settings applied (server read) contacts=1\",\"22:24:00 reach saved false\",\"22:24:00 HELP contact of 1\"]",
+      "observed": "screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 10:52 PM Location is on i\"; HELP trace [\"22:53:04 start\",\"22:53:04 stop\",\"22:53:05 settings snapshot exists=true cache=false pending=false contacts=1\",\"22:53:05 settings applied (server read) contacts=1\",\"22:53:05 reach saved false\",\"22:53:05 HELP contact of 1\"]",
       "shots": [
         "24-help-resume-restart.png"
       ]
@@ -199,7 +199,7 @@
       "what": "Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back",
       "expected": "a red reminder on Messages: \"Turn on notifications to hear HELP.\" with one button \"Turn on\"",
       "ok": true,
-      "observed": "reminder: \"Turn on notifications to hear HELP. Turn on \"; trace [\"22:23:59 stop\",\"22:24:00 settings snapshot exists=true cache=false pending=false contacts=1\",\"22:24:00 settings applied (server read) contacts=1\",\"22:24:00 reach saved false\",\"22:24:00 HELP contact of 1\",\"22:24:17 HELP contact of 1\"]",
+      "observed": "reminder: \"Turn on notifications to hear HELP. Turn on \"; trace [\"22:53:04 stop\",\"22:53:05 settings snapshot exists=true cache=false pending=false contacts=1\",\"22:53:05 settings applied (server read) contacts=1\",\"22:53:05 reach saved false\",\"22:53:05 HELP contact of 1\",\"22:53:23 HELP contact of 1\"]",
       "shots": [
         "25-help-reminder.png"
       ]
@@ -209,7 +209,7 @@
       "what": "Tap \"Turn on\" and allow notifications when the phone asks",
       "expected": "the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why)",
       "ok": true,
-      "observed": "phone asked: Allow; reminder still shown: \"Turn on notifications to hear HELP. Turn on \"; message: Notifications could not be turned on: The operation couldn’t be completed. No APNS token specified before fetching FCM Token. Check the connection and try again.; server reach: {\"1e320e80-49d3-4f44-ae1b-4a6b7aabd4d6\":false}",
+      "observed": "phone asked: Allow; reminder still shown: \"Turn on notifications to hear HELP. Turn on \"; message: Notifications could not be turned on: The operation couldn’t be completed. No APNS token specified before fetching FCM Token. Check the connection and try again.; server reach: {\"b3b58772-564d-4fa8-b566-c8a179c5ee8f\":false}",
       "shots": [
         "26-help-turn-on.png"
       ]
@@ -219,42 +219,48 @@
       "what": "Bob sends HELP; Alice sees it and goes back to Messages; FIDUNIO goes to the background; the HELP alarm notification arrives and Alice taps it",
       "expected": "FIDUNIO opens on the big red \"Simulator Bob needs HELP\" screen (not the regular chat)",
       "ok": false,
-      "observed": "TEST ERROR: the notification never appeared on screen; the screen showed: Settings | Apple Account, Sign in to access your iC | Ready for Apple Intelligence | General | Accessibility | Action Button | Apple Intelligence & Siri | Camera | Home Screen & App Library | Search"
+      "observed": "TEST ERROR: the notification tap did not bring FIDUNIO to the front (in front: Settings) — tapped where the banner shows (201,95) with the Settings app in front; in front before: [\"Settings\",\"Settings\",\"\"]"
     },
     {
       "id": "HELP-TAP-CHAT",
       "what": "Same HELP still on: back to Messages, background; the CHAT notification of a message in the HELP conversation arrives and Alice taps it",
       "expected": "the big red HELP screen opens (not the regular chat)",
       "ok": false,
-      "observed": "TEST ERROR: the app did not answer"
+      "observed": "TEST ERROR: the notification tap did not bring FIDUNIO to the front (in front: Settings) — tapped where the banner shows (201,95) with the Settings app in front; in front before: [\"Settings\",\"Settings\",\"\"]"
     },
     {
       "id": "HELP-TAP-CHAT-AFTER",
       "what": "Bob taps \"I'm OK now\" (HELP over); Alice taps a chat notification from Bob",
       "expected": "the regular chat with Bob opens, as usual",
       "ok": false,
-      "observed": "TEST ERROR: the app did not answer"
+      "observed": "TEST ERROR: the notification tap did not bring FIDUNIO to the front (in front: Settings) — tapped where the banner shows (201,95) with the Settings app in front; in front before: [\"Settings\",\"Settings\",\"\"]"
     },
     {
       "id": "HELP-TAP-CHAT-FIRST",
       "what": "FIDUNIO asleep in the background; Bob sends HELP; Alice taps the CHAT notification first (FIDUNIO has not seen the HELP yet)",
       "expected": "the big red \"Simulator Bob needs HELP\" screen opens, not the regular chat",
-      "ok": false,
-      "observed": "TEST ERROR: the app did not answer"
+      "ok": true,
+      "observed": "tapped where the banner shows (201,95) with the Settings app in front; in front before: [\"Settings\",\"Settings\",\"\"]; screen: red HELP screen; [\"22:56:08 server HELP check: helping 0, sending 0\"]",
+      "shots": [
+        "30-help-tap-chat-first.png"
+      ]
     },
     {
       "id": "HELP-REACH",
       "what": "Alice's Settings → HELP with Bob chosen; Bob's notifications not confirmed, then Bob turns them on (from his phone)",
       "expected": "first: \"Simulator Bob can't hear HELP yet.\"; after Bob turns them on and Settings is opened again: no warning",
       "ok": false,
-      "observed": "TEST ERROR: the app did not answer"
+      "observed": "TEST ERROR: timed out: HELP card in Settings"
     },
     {
       "id": "HELP-SIGNOUT",
       "what": "Settings: Sign Out button",
       "expected": "no PIN asked for Sign Out (protection removed); not tapped",
-      "ok": false,
-      "observed": "TEST ERROR: the app did not answer"
+      "ok": true,
+      "observed": "Sign Out shown: true; Protect/Test removed: true",
+      "shots": [
+        "32-help-settings-kiss.png"
+      ]
     }
   ]
 }
