@@ -1,3 +1,7 @@
+# 1.1.86 RELEASED 27 Nov ~06:15 Toronto (owner-scheduled 04:30): TestFlight 1.1.86 (100) VALID, built on Xcode 27 machine;
+# APK + web success. Dark mode: HELP hold screen (--ink), HELP typing box, Abuse highlight. iOS shell check stays on
+# macos-26 (Vision OCR helper crashes on Xcode 27). Simulator: Android 29/29, iPhone 17/18 (Paste = simulator limit).
+
 # 1.1.85 RELEASED 26 Nov ~13:00 Toronto: TestFlight 1.1.85 (98) VALID (first try failed on a runner network error,
 # rerun passed); APK run 45856699923 success; web main b5249a7 published. Includes 1.1.84 + Settings one-page owner +
 # HELP big-screen sends serialized with auto-retry and "Not sent — tap to send again". Server: owner runs hl3.txt (alarm).
