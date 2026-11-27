@@ -581,8 +581,16 @@ if(label==='fix'){
       await goBackground();
       const ref=await addDoc(collection(bobDb,'helpAlerts'),{senderUid:bobUid,helperUids:[aliceUid],state:'open',test:false,acks:{},createdAt:serverTimestamp()});
       await sleep(15000);
-      if(id==='HELP-RESUME-RESTART'){if(android)adb('shell','am','force-stop',APP);else{try{run('xcrun',['simctl','terminate',UDID,APP]);}catch{}}await sleep(3000);}
-      await comeBack();
+      if(id==='HELP-RESUME-RESTART'){
+        /* Full restart, then unlock like a person (the iPhone simulator may ask for the password as well as the PIN). */
+        if(android)adb('shell','am','force-stop',APP);else d.terminate(APP);
+        await sleep(3000);d.launch(APP);await sleep(6000);
+        await until(async()=>await present('#sessionPinHost')||await present('#localUnlockPin')||await present('#newBtn')||await present('#helpComing'),'unlock screen',90000).catch(()=>{});
+        if(await present('#sessionPassword'))await d.fill('#sessionPassword',fixture.alice.password);
+        const host=(await present('#sessionPinHost'))?'#sessionPinHost':(await present('#localUnlockPin'))?'#localUnlockPin':'';
+        if(host){for(let i=0;i<6;i++)await d.fill(`${host} .pin-code-slot:nth-child(${i+1})`,fixture.alice.pin[i]);await sleep(4000);
+          if(await present('#sessionUnlockBtn')&&!(await present('#newBtn'))&&!(await present('#helpComing')))await d.press('#sessionUnlockBtn').catch(()=>{});}
+      }else await comeBack();
       await until(async()=>(await routeNow())==='helpAlert','red screen',30000).catch(()=>{});
       const r=await routeNow();const t=await js('document.querySelector(".help-shell")?.innerText||""');const s=await shot(id.toLowerCase());
       const tr=await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-10))').catch(()=>'');
