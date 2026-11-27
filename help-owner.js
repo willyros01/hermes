@@ -347,12 +347,20 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     return rows.map(m=>{
       const card=parseHelpCard(m.text);
       const who=m.mine?"You":esc(nameOf(m.senderUid||(chatView.target?.direct)||""));
-      const text=card?helpCardLines(card).map(esc).join(" "):esc(m.text||"");
+      const text=card?helpCardLines(card).map(esc).join(" "):attachmentLabel(m.text)||esc(m.text||"");
       const link=card?mapLink(card.location):"";
       /* Own messages say plainly when they have not reached the server yet (owner, 26 Nov: a failed send must show here). */
       const status=!m.mine?"":m.state==="failed"?' <button type="button" class="help-retry">Not sent — tap to send again</button>':(m.state==="sending"||m.state==="queued")?' <span class="help-msg-status">Sending…</span>':"";
       return `<p class="help-msg${m.mine?" help-msg-mine":""}"><b>${who}:</b> ${text}${link?` <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Open in Maps</a>`:""}${status}</p>`;
     }).join("");
+  }
+  /* A photo, video or file in the HELP conversation shows as one word here (simulator, 27 Nov: its raw data showed);
+   * it can be opened in the regular chat. */
+  function attachmentLabel(text){
+    let d=null;try{d=JSON.parse(String(text||""));}catch{return"";}
+    if(!d||d.fidunioAttachment!==1)return"";
+    const k=String(d.kind||d.type||"");
+    return /image|photo|gif/i.test(k)?"Photo":/video/i.test(k)?"Video":/audio|voice/i.test(k)?"Voice message":"File";
   }
   function chatPanel(){
     return `<section class="help-chat" aria-label="HELP conversation">
