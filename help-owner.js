@@ -302,7 +302,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   async function turnOnNotifications(btn){
     if(st.notifyDenied){notify.openSettings();return;}
     if(btn){btn.disabled=true;btn.textContent="Turning on…";}
-    let ok=false,why="";try{ok=await notify.turnOn();}catch(e){trace("turn on failed");why=e?.message||String(e);}
+    let ok=false,why="";try{ok=await notify.turnOn();}catch(e){trace("turn on failed");why=String(e?.message||e).replace(/[.\s]+$/,"");}
     await refreshReach();
     if(st.notifyOn===true)return;
     if(st.notifyDenied)return;   /* refused just now: the reminder now offers "Open Settings" */
