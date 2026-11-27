@@ -19,7 +19,7 @@ PASTE: Press and hold the message box, tap the phone's Paste
 AS EXPECTED PASTE — observed: phone Copy (keyboard shortcut) used; phone Paste (keyboard shortcut) used; message box now: "Paste test 2286"
 
 PICTURE-PASTE: A paste that carries a picture (what an iPhone sticker sends)
-AS EXPECTED PICTURE-PASTE — observed: a new message appeared (9:39 AM Sent)
+AS EXPECTED PICTURE-PASTE — observed: a new message appeared (10:05 AM Sent)
 
 KEYBOARD-GIF: A GIF handed over by the keyboard (fix branch: native hand-over event)
 AS EXPECTED KEYBOARD-GIF — observed: GIF message appeared
@@ -50,7 +50,7 @@ AS EXPECTED BACK-KEY — observed: Messages list shown
 Alice account found: yes
 
 HELP-SETTINGS: Settings → HELP: the contacts list is closed; tap "Choose HELP contacts", tick Simulator Bob, Save
-HELP trace: {"help":["09:36:48 start","09:36:48 stop","09:36:49 settings snapshot exists=false cache=false pending=false contacts=-","09:36:49 settings applied (server read) contacts=0","09:40:23 settings card contacts=0","09:40:28 settings card contacts=0","09:40:37 settings snapshot exists=true cache=false pending=true contacts=1","09:40:37 settings applied (this phone's save) contacts=1","09:40:38 saved contacts=1","09:40:38 settings snapshot exists=true cache=false pending=false contacts=1","09:40:39 settings card contacts=1 (Saved.)"],"steps":["notification upkeep","conversations","blocked users","groups","HELP","activation","publish E2EE key"]}
+HELP trace: {"help":["10:03:12 start","10:03:12 stop","10:03:12 settings snapshot exists=false cache=false pending=false contacts=-","10:03:12 settings applied (server read) contacts=0","10:06:45 settings card contacts=0","10:06:50 settings card contacts=0","10:06:59 settings snapshot exists=true cache=false pending=true contacts=1","10:06:59 settings applied (this phone's save) contacts=1","10:07:00 saved contacts=1","10:07:00 settings snapshot exists=true cache=false pending=false contacts=1","10:07:01 settings card contacts=1 (Saved.)"],"steps":["notification upkeep","conversations","blocked users","groups","HELP","activation","publish E2EE key"]}
 contacts line 4 s later: HELP contacts: Simulator Bob
 AS EXPECTED HELP-SETTINGS — observed: list closed at first: true; screen: "Saved.", "HELP contacts: Simulator Bob"; server: enabled=true, contacts=1
 
@@ -77,19 +77,20 @@ HELP-DARK: Dark mode on; open the HELP hold screen
 AS EXPECTED HELP-DARK — observed: contrast of title / hint / back: [15.2,15.2,15.2]
 
 HELP-SEND: Press and hold the HELP button for 3 seconds; allow location when the phone asks
-TEST ERROR HELP-SEND: Cannot read properties of null (reading 'x')
+AS EXPECTED HELP-SEND — observed: screen: "HELP is sent Simulator Bob is being called. Stay where you are. You: HELP Open in Maps Send I'm OK now"; location prompts answered: ONLY THIS TIME; server: open alert for Bob
 
 HELP-WRITE: On the same HELP screen: type "Help chat 7731" in the big box and tap Send
-DIFFERENT HELP-WRITE — observed: no conversation on the HELP screen
+HELP-WRITE server messages before 11, after 12
+AS EXPECTED HELP-WRITE — observed: conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731; reached the server: yes (11→12)
 
 HELP-COMING-SEEN: Alice starts typing "draft 88" (not sent); Bob answers "I'm coming" (from his phone)
-DIFFERENT HELP-COMING-SEEN — observed: no alert to answer
+AS EXPECTED HELP-COMING-SEEN — observed: green: true; screen: "Simulator Bob is coming Stay where you are. You: HELP Open in Maps You: Help cha"; unsent text kept: "draft 88"; conversation still shown: true
 
 HELP-OK: Tap "I'm OK now", then open the regular chat with Bob
-TEST ERROR HELP-OK: no field #helpChatText; the app shows: Messages Sign Out Archived (0) SB Simulator Bob Cloud conversation 9:45 AM ••• HELP
+AS EXPECTED HELP-OK — observed: server: safe; bar: "HELP"; regular chat has HELP + message + OK: true (contacts. 10:10 AM Sent You are now one of my HELP contacts. 10:11 AM Sent HELP Open in Maps 10:12 AM Sent Help chat 7731 10:12 AM Sent I'm OK now 10:13 AM Sent)
 
 HELP-INCOMING: The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps "I'm coming", types "On my way 5512" and taps Send
-AS EXPECTED HELP-INCOMING — observed: chat made by Bob first: true; opened: "‹ Simulator Bob needs HELP Sent at 9:46 AM Location is on it"; server: Alice is coming; conversation: You: I'm coming You: On my way 5512; "could not be started": false
+AS EXPECTED HELP-INCOMING — observed: chat made by Bob first: true; opened: "‹ Simulator Bob needs HELP Sent at 10:13 AM Location is on i"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; "could not be started": false
 
 HELP-SIGNOUT: Settings: Sign Out button
 AS EXPECTED HELP-SIGNOUT — observed: Sign Out shown: true; Protect/Test removed: true

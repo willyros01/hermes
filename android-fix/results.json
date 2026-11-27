@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (9:39 AM Sent)",
+      "observed": "a new message appeared (10:05 AM Sent)",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -205,43 +205,51 @@
       "id": "HELP-SEND",
       "what": "Press and hold the HELP button for 3 seconds; allow location when the phone asks",
       "expected": "red \"HELP is sent — Simulator Bob is being called\", the conversation on the same screen, \"I'm OK now\"; server has an open alert for Bob",
-      "ok": false,
-      "observed": "TEST ERROR: Cannot read properties of null (reading 'x')"
+      "ok": true,
+      "observed": "screen: \"HELP is sent Simulator Bob is being called. Stay where you are. You: HELP Open in Maps Send I'm OK now\"; location prompts answered: ONLY THIS TIME; server: open alert for Bob",
+      "shots": [
+        "24-help-sent.png"
+      ]
     },
     {
       "id": "HELP-WRITE",
       "what": "On the same HELP screen: type \"Help chat 7731\" in the big box and tap Send",
       "expected": "the message shows in the conversation on the HELP screen (no separate chat screen)",
-      "ok": false,
-      "observed": "no conversation on the HELP screen",
+      "ok": true,
+      "observed": "conversation on HELP screen: You: HELP Open in Maps You: Help chat 7731; reached the server: yes (11→12)",
       "shots": [
-        "25-help-no-chat.png"
+        "25-help-chat-on-screen.png"
       ]
     },
     {
       "id": "HELP-COMING-SEEN",
       "what": "Alice starts typing \"draft 88\" (not sent); Bob answers \"I'm coming\" (from his phone)",
       "expected": "green \"Simulator Bob is coming\" on the same screen; the conversation and the unsent \"draft 88\" are still there",
-      "ok": false,
-      "observed": "no alert to answer",
-      "shots": []
+      "ok": true,
+      "observed": "green: true; screen: \"Simulator Bob is coming Stay where you are. You: HELP Open in Maps You: Help cha\"; unsent text kept: \"draft 88\"; conversation still shown: true",
+      "shots": [
+        "26-help-coming.png"
+      ]
     },
     {
       "id": "HELP-OK",
       "what": "Tap \"I'm OK now\", then open the regular chat with Bob",
       "expected": "the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, \"Help chat 7731\", \"I'm OK now\"",
-      "ok": false,
-      "observed": "TEST ERROR: no field #helpChatText; the app shows: Messages Sign Out Archived (0) SB Simulator Bob Cloud conversation 9:45 AM ••• HELP"
+      "ok": true,
+      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (contacts. 10:10 AM Sent You are now one of my HELP contacts. 10:11 AM Sent HELP Open in Maps 10:12 AM Sent Help chat 7731 10:12 AM Sent I'm OK now 10:13 AM Sent)",
+      "shots": [
+        "27-help-ok-regular-chat.png"
+      ]
     },
     {
       "id": "HELP-INCOMING",
       "what": "The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps \"I'm coming\", types \"On my way 5512\" and taps Send",
       "expected": "red \"Simulator Bob needs HELP\" opens by itself; after \"I'm coming\" the conversation is on the same screen; the message is sent (no \"Conversation could not be started\"); the server has Alice's answer",
       "ok": true,
-      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 9:46 AM Location is on it\"; server: Alice is coming; conversation: You: I'm coming You: On my way 5512; \"could not be started\": false",
+      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 10:13 AM Location is on i\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; \"could not be started\": false",
       "shots": [
-        "27-help-incoming.png",
-        "28-help-im-coming-chat.png"
+        "28-help-incoming.png",
+        "29-help-im-coming-chat.png"
       ]
     },
     {
@@ -251,7 +259,7 @@
       "ok": true,
       "observed": "Sign Out shown: true; Protect/Test removed: true",
       "shots": [
-        "29-help-settings-kiss.png"
+        "30-help-settings-kiss.png"
       ]
     },
     {
@@ -261,7 +269,7 @@
       "ok": true,
       "observed": "record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: \"FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass\"",
       "shots": [
-        "30-pin-missing.png"
+        "31-pin-missing.png"
       ]
     },
     {
@@ -271,7 +279,7 @@
       "ok": true,
       "observed": "FIDUNIO open: false; PIN record written: false; message: \"Could not unlock with this password and PIN. Nothing was changed.\"",
       "shots": [
-        "31-pin-wrong.png"
+        "32-pin-wrong.png"
       ]
     },
     {
@@ -281,8 +289,8 @@
       "ok": true,
       "observed": "opened: true; PIN record saved back: true; next start PIN-only: true; same PIN unlocks: true",
       "shots": [
-        "32-pin-restored.png",
-        "33-pin-normal-again.png"
+        "33-pin-restored.png",
+        "34-pin-normal-again.png"
       ]
     }
   ]
