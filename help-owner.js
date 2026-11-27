@@ -294,10 +294,9 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   }
   function noticeMarkup(){
     if(st.notifyOn!==false||!(st.settings.enabled||st.helperOf.length))return"";
-    const who=joinNames(st.helperOf.map(nameOf));
-    const why=st.helperOf.length?`${esc(who)} chose you as a HELP contact. You will not hear their HELP.`:"You will not hear when your HELP contacts answer.";
-    return `<div class="help-notice" role="alert"><p><b>Notifications are off on this device.</b> ${why}</p>
-      <button class="help-notice-btn" id="helpNotifyOn">${st.notifyDenied?"Open Settings":"Turn on notifications"}</button></div>`;
+    /* KISS (owner 27 Nov): few words, one button. */
+    return `<div class="help-notice" role="alert"><p><b>Turn on notifications to hear HELP.</b></p>
+      <button class="help-notice-btn" id="helpNotifyOn">${st.notifyDenied?"Open Settings":"Turn on"}</button></div>`;
   }
   async function turnOnNotifications(btn){
     if(st.notifyDenied){notify.openSettings();return;}
@@ -306,7 +305,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
     await refreshReach();
     if(st.notifyOn===true)return;
     if(st.notifyDenied)return;   /* refused just now: the reminder now offers "Open Settings" */
-    if(btn&&btn.isConnected){btn.disabled=false;btn.textContent="Turn on notifications";}
+    if(btn&&btn.isConnected){btn.disabled=false;btn.textContent="Turn on";}
     onError("Notifications could not be turned on"+(why?": "+why:"")+". Check the connection and try again.");
   }
 
@@ -503,7 +502,7 @@ export function createHelpOwner({app,render,navigate,chat,shellTop,isUnlocked=()
   function reachNote(chosen){
     const off=chosen.filter(u=>st.reachOf[u]===false);
     if(!off.length)return"";
-    return `${esc(joinNames(off.map(nameOf)))} may not hear your HELP: notifications are off or not confirmed. Ask ${off.length>1?"them":"them"} to open FIDUNIO and turn notifications on.`;
+    return `${esc(joinNames(off.map(nameOf)))} can't hear HELP yet.`;
   }
   async function loadReach(chosen,host){
     const s=fs();
