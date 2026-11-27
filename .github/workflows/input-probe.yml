@@ -180,19 +180,8 @@ jobs:
       - name: Probe on iPhone simulator
         run: |
           APP="$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name App.app | head -1)"
-          # 1.1.87: a DEMO Firebase config inside the test app (no real project, no keys), so the iPhone's
-          # notification plugin starts and a tapped notification reaches FIDUNIO like on a real phone.
-          [ -f "$APP/GoogleService-Info.plist" ] || plutil -create xml1 "$APP/GoogleService-Info.plist"
-          for kv in "API_KEY:AIzaSyDemoDemoDemoDemoDemoDemoDemoDemo00" "GCM_SENDER_ID:123456789012" "PLIST_VERSION:1" \
-                    "BUNDLE_ID:io.github.willyros01.fidunio" "PROJECT_ID:demo-fidunio-simulator-tests" \
-                    "STORAGE_BUCKET:demo-fidunio-simulator-tests.appspot.com" "GOOGLE_APP_ID:1:123456789012:ios:0123456789abcdef"; do
-            plutil -replace "${kv%%:*}" -string "${kv#*:}" "$APP/GoogleService-Info.plist"
-          done
-          for k in IS_ADS_ENABLED IS_ANALYTICS_ENABLED IS_APPINVITE_ENABLED IS_GCM_ENABLED IS_SIGNIN_ENABLED; do plutil -replace "$k" -bool NO "$APP/GoogleService-Info.plist"; done
-          plutil -replace IS_GCM_ENABLED -bool YES "$APP/GoogleService-Info.plist"
-          # Adding a file changes the app bundle: sign it again (simulator-only ad-hoc signature) so it still opens.
-          codesign --force --deep --sign - --timestamp=none "$APP"
-          codesign --verify --deep "$APP" && echo "PASS: test app re-signed with the demo Firebase config"
+          # Note (27 Nov): a demo Firebase config in the test app stops it from opening (tried twice, also re-signed),
+          # so the iPhone simulator cannot test a TAPPED notification; Android tests it; iPhone/iPad = real-device test.
           PROBE_DEVICE="${{ matrix.device || 'iphone' }}" bash build/probe/run.sh ios out-probe "$APP" ${{ matrix.label }}
       - name: Publish evidence to the probe-evidence branch
         if: always()
