@@ -36,7 +36,7 @@
       "what": "Send \"Visit https://example.com today\", tap the link: Cancel, then tap again: Open",
       "expected": "\"Open this link?\" first; Cancel stays in the chat; Open shows the web page outside FIDUNIO",
       "ok": true,
-      "observed": "asked first: true; Cancel stayed in chat: true; after Open: Safari is running (opened by FIDUNIO)",
+      "observed": "asked first: true; Cancel stayed in chat: true; after Open: Safari: Safari | dismiss popup | Close | View Bookmarks, Share Menu, and Open Tabs | You",
       "shots": [
         "05-link-ask.png",
         "06-link-opened.png"
@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared ( 10:11 AM Sent )",
+      "observed": "a new message appeared ( 5:52 PM Sent )",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -158,7 +158,7 @@
       "what": "Tap \"I'm OK now\", then open the regular chat with Bob",
       "expected": "the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, \"Help chat 7731\", \"I'm OK now\"",
       "ok": true,
-      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (ontacts. 10:15 AM Sent You are now one of my HELP contacts. 10:15 AM Sent HELP Open in Maps 10:16 AM Sent Help chat 7731 10:17 AM Sent I'm OK now 10:17 AM Sent )",
+      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (ELP contacts. 5:56 PM Sent You are now one of my HELP contacts. 5:57 PM Sent HELP Open in Maps 5:58 PM Sent Help chat 7731 5:59 PM Sent I'm OK now 5:59 PM Sent )",
       "shots": [
         "20-help-ok-regular-chat.png"
       ]
@@ -168,21 +168,66 @@
       "what": "The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps \"I'm coming\", types \"On my way 5512\" and taps Send",
       "expected": "red \"Simulator Bob needs HELP\" opens by itself; after \"I'm coming\" the conversation is on the same screen; the message is sent (no \"Conversation could not be started\"); the server has Alice's answer",
       "ok": true,
-      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 10:17 AM Location is on i\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512 ; \"could not be started\": false",
+      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 5:59 PM Location is on it\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512 ; \"could not be started\": false",
       "shots": [
         "21-help-incoming.png",
         "22-help-im-coming-chat.png"
       ]
     },
     {
+      "id": "HELP-REMINDER",
+      "what": "Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back",
+      "expected": "a red reminder on Messages: \"Notifications are off on this device. Simulator Bob chose you as a HELP contact…\" with \"Turn on notifications\"",
+      "ok": true,
+      "observed": "reminder: \"Notifications are off on this device. Simulator Bob chose you as a HELP contact. You will not hear their HELP. Turn on notifications \"; trace [\"17:57:29 settings applied (this phone's save) contacts=1\",\"17:57:29 saved contacts=1\",\"17:57:29 settings snapshot exists=true cache=false pending=false contacts=1\",\"17:57:31 settings card contacts=1 (Saved.)\",\"18:00:06 HELP contact of 1\",\"18:00:06 notice shown\"]",
+      "shots": [
+        "23-help-reminder.png"
+      ]
+    },
+    {
+      "id": "HELP-TURN-ON",
+      "what": "Tap \"Turn on notifications\" and allow notifications when the phone asks",
+      "expected": "the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why)",
+      "ok": true,
+      "observed": "phone asked: Allow; reminder still shown: \"Notifications are off on this device. Simulator Bob chose you as a HELP contact.\"; message: Notifications could not be turned on: Firebase is not configured: GoogleService-Info.plist is missing from the app bundle.. Check the connection and try again.; server reach: {\"80f171e9-bb00-4afa-bc79-708078655a63\":false}",
+      "shots": [
+        "24-help-turn-on.png"
+      ]
+    },
+    {
+      "id": "HELP-TAP-ALARM",
+      "what": "Bob sends HELP; Alice sees it and goes back to Messages; FIDUNIO goes to the background; the HELP alarm notification arrives and Alice taps it",
+      "expected": "FIDUNIO opens on the big red \"Simulator Bob needs HELP\" screen (not the regular chat)",
+      "ok": false,
+      "observed": "TEST ERROR: the app did not answer"
+    },
+    {
+      "id": "HELP-TAP-CHAT",
+      "what": "Same HELP still on: back to Messages, background; the CHAT notification of a message in the HELP conversation arrives and Alice taps it",
+      "expected": "the big red HELP screen opens (not the regular chat)",
+      "ok": false,
+      "observed": "TEST ERROR: the app did not answer"
+    },
+    {
+      "id": "HELP-TAP-CHAT-AFTER",
+      "what": "Bob taps \"I'm OK now\" (HELP over); Alice taps a chat notification from Bob",
+      "expected": "the regular chat with Bob opens, as usual",
+      "ok": false,
+      "observed": "TEST ERROR: the app did not answer"
+    },
+    {
+      "id": "HELP-REACH",
+      "what": "Alice's Settings → HELP with Bob chosen; Bob's notifications not confirmed, then Bob turns them on (from his phone)",
+      "expected": "first: \"Simulator Bob may not hear your HELP…\"; after Bob turns them on and Settings is opened again: no warning",
+      "ok": false,
+      "observed": "TEST ERROR: the app did not answer"
+    },
+    {
       "id": "HELP-SIGNOUT",
       "what": "Settings: Sign Out button",
       "expected": "no PIN asked for Sign Out (protection removed); not tapped",
-      "ok": true,
-      "observed": "Sign Out shown: true; Protect/Test removed: true",
-      "shots": [
-        "23-help-settings-kiss.png"
-      ]
+      "ok": false,
+      "observed": "TEST ERROR: the app did not answer"
     }
   ]
 }
