@@ -21,6 +21,7 @@ concurrency:
 jobs:
   # build/probe/PLATFORMS lists which platforms a push re-runs (avoids repeating passed runs).
   plan:
+    name: Choose devices
     runs-on: ubuntu-latest
     outputs:
       android: ${{ steps.p.outputs.android }}
@@ -41,6 +42,7 @@ jobs:
           echo "ios=$IOS" >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
   android:
+    name: Android
     needs: plan
     if: needs.plan.outputs.android != '[]'
     strategy:
@@ -67,11 +69,11 @@ jobs:
       - name: Build the Android test app
         run: |
           set -Eeuo pipefail
-          npm ci --no-audit --no-fund
+          npm ci --no-audit --no-fund --loglevel=error
           cd app-src
           echo "Source ${{ matrix.ref }}: $(git rev-parse HEAD)"
-          npm ci --no-audit --no-fund
-          npm install --no-save --no-package-lock --no-audit --no-fund @capacitor/android@8.5.2
+          npm ci --no-audit --no-fund --loglevel=error
+          npm install --no-save --no-package-lock --no-audit --no-fund --loglevel=error @capacitor/android@8.5.2
           npm run ios:prepare
           node ../build/simulator/patch-sandbox.mjs . android
           npx cap add android
@@ -123,6 +125,7 @@ jobs:
           retention-days: 90
 
   ios:
+    name: ${{ matrix.device == 'ipad' && 'iPad' || 'iPhone' }}
     needs: plan
     if: needs.plan.outputs.ios != '[]'
     strategy:
@@ -148,15 +151,15 @@ jobs:
       - name: Build the iPhone test app
         run: |
           set -Eeuo pipefail
-          brew install ios-webkit-debug-proxy
+          brew install --quiet ios-webkit-debug-proxy
           brew tap facebook/fb
           brew trust --formula facebook/fb/idb-companion
-          brew install facebook/fb/idb-companion
-          python3 -m pip install --break-system-packages --quiet fb-idb
-          npm ci --no-audit --no-fund
+          brew install --quiet facebook/fb/idb-companion
+          python3 -m pip install --break-system-packages --quiet --disable-pip-version-check fb-idb
+          npm ci --no-audit --no-fund --loglevel=error
           cd ios-src
           echo "Source ${{ matrix.ref }}: $(git rev-parse HEAD)"
-          npm ci --no-audit --no-fund
+          npm ci --no-audit --no-fund --loglevel=error
           npm run ios:prepare
           node ../build/simulator/patch-sandbox.mjs . ios
           npx cap add ios
