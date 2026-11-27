@@ -517,6 +517,100 @@ if(label==='fix'){
     return{ok:/Bob\s*needs HELP/.test(t)&&!!a?.acks?.[aliceUid]&&/On my way 5512/.test(logText)&&!refused&&order,observed:`chat made by Bob first: ${order}; opened: "${t.replace(/\s+/g,' ').slice(0,60)}"; server: ${a?.acks?.[aliceUid]?'Alice is coming':'no answer'}; conversation: ${logText.replace(/\s+/g,' ').slice(-120)}; "could not be started": ${refused}${errors.length?'; alerts: '+errors.join(' / '):''}`,shots:[s1,s2]};
   });
 
+  /* ================= 1.1.87 (owner 27 Nov): notifications and HELP =================
+   * Real device test: the iPad (a HELP contact) had notifications off and heard nothing; a tapped HELP
+   * notification opened the regular chat instead of the big HELP screen. Here: the reminder, turning
+   * notifications on, and TAPPING each kind of notification (HELP alarm; chat message of an open HELP;
+   * chat message after the HELP is over). iPhone: a real notification is posted to the simulator
+   * (simctl push, same content as the server's) and its banner is tapped with a finger. Android: the
+   * tap is the same launch the phone makes for a tapped Firebase notification (am start with its data). */
+  const dmId='dm_'+[aliceUid,bobUid].sort().join('_');
+  const goBackground=async()=>{if(android)adb('shell','input','keyevent','KEYCODE_HOME');else run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);await sleep(3000);};
+  const comeBack=async()=>{d.launch(APP);await sleep(5000);await unlockIfLocked();};
+  const routeNow=()=>js('document.body.dataset.route||""');
+  const allowPrompt=async ms=>{const end=Date.now()+ms;const seen=[];while(Date.now()<end){
+      if(android){const b=androidNode(x=>/^(Allow)$/i.test(x.text||''));if(b){seen.push(b.text);adb('shell','input','tap',String(b.x),String(b.y));await sleep(1500);continue;}}
+      else{const b=iosFind(e=>/^Allow$/.test(iosLabel(e)));if(b){seen.push(iosLabel(b));await iosTap(b);continue;}}
+      await sleep(1000);}return seen;};
+  /* Post the notification and tap it, like a person. */
+  let pushN=0;
+  const tapNotification=async data=>{
+    await goBackground();
+    if(android){
+      const extras=['--es','google.message_id','probe-'+(++pushN)];for(const [k,v] of Object.entries(data))extras.push('--es',k,String(v));
+      adb('shell','am','start','-n',APP+'/.MainActivity',...extras);await sleep(6000);await unlockIfLocked();return 'Android: launch with the notification data';
+    }
+    const file=path.join(out,'push-'+(++pushN)+'.json');
+    const title=data.type==='help-alert'?'FIDUNIO HELP':'FIDUNIO';const body=data.type==='help-alert'?'HELP — Simulator Bob':'New message';
+    fs.writeFileSync(file,JSON.stringify({aps:{alert:{title,body},sound:'default'},...data}));
+    run('xcrun',['simctl','push',UDID,APP,file]);
+    let how='';const end=Date.now()+8000;
+    while(Date.now()<end&&!how){await sleep(700);const b=iosElements().find(e=>/FIDUNIO/.test(iosLabel(e))&&((e.frame||{}).y||0)<260&&((e.frame||{}).height||0)>30);if(b){await iosTap(b);how='banner tapped ('+iosLabel(b).replace(/\s+/g,' ').slice(0,50)+')';}}
+    if(!how){const sz=iosElements().find(e=>e.type==='Application')?.frame||{width:402};idb('ui','tap',String(Math.round((sz.width||402)/2)),'80');await sleep(1500);how='banner not found by name; tapped where banners show';}
+    await sleep(5000);await unlockIfLocked();return how;
+  };
+
+  await check('HELP-REMINDER','Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back','a red reminder on Messages: "Notifications are off on this device. Simulator Bob chose you as a HELP contact…" with "Turn on notifications"',async()=>{
+    await toMessages();
+    await setDoc(doc(bobDb,'helpSettings',bobUid),{enabled:true,helperUids:[aliceUid],protected:false,updatedAt:serverTimestamp()});
+    await goBackground();await comeBack();await toMessages();
+    await until(()=>present('#helpNotifyOn'),'reminder',30000).catch(()=>{});
+    const t=await js('document.querySelector(".help-notice")?.innerText||""');const s=await shot('help-reminder');
+    return{ok:/Notifications are off/.test(t)&&/Bob chose you/.test(t)&&await present('#helpNotifyOn'),observed:`reminder: "${t.replace(/\s+/g,' ').slice(0,160)||'NOT SHOWN'}"; trace ${JSON.stringify(JSON.parse(await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-6))')||'[]'))}`,shots:[s]};
+  });
+
+  await check('HELP-TURN-ON','Tap "Turn on notifications" and allow notifications when the phone asks','the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why)',async()=>{
+    await js('window.__probeAlerts=[];window.alert=m=>{window.__probeAlerts.push(String(m))};true');
+    const p=await screenPoint('#helpNotifyOn');if(!p)return{ok:false,observed:'no reminder button',shots:[]};
+    await tapAt(p);const seen=await allowPrompt(15000);await sleep(8000);
+    const gone=!(await present('#helpNotifyOn'));const alerts=JSON.parse(await js('JSON.stringify(window.__probeAlerts||[])'));
+    const reach=await admin(async db=>(await getDoc(doc(db,'helpReach',aliceUid))).data()||null);const s=await shot('help-turn-on');
+    const text=await js('document.querySelector(".help-notice")?.innerText||""');
+    return{ok:seen.length>=1&&(gone||alerts.length>0),observed:`phone asked: ${seen.join(', ')||'NO'}; reminder ${gone?'gone':'still shown: "'+text.replace(/\s+/g,' ').slice(0,80)+'"'}; message: ${alerts.join(' / ')||'none'}; server reach: ${JSON.stringify(reach?.devices||null)}`,shots:[s]};
+  });
+
+  let tapAlertId='';
+  await check('HELP-TAP-ALARM','Bob sends HELP; Alice sees it and goes back to Messages; FIDUNIO goes to the background; the HELP alarm notification arrives and Alice taps it','FIDUNIO opens on the big red "Simulator Bob needs HELP" screen (not the regular chat)',async()=>{
+    await toMessages();
+    const ref=await addDoc(collection(bobDb,'helpAlerts'),{senderUid:bobUid,helperUids:[aliceUid],state:'open',test:false,acks:{},createdAt:serverTimestamp()});tapAlertId=ref.id;
+    await until(()=>present('#helpComing'),'red screen opens by itself',30000).catch(()=>{});
+    await toMessages();
+    const how=await tapNotification({type:'help-alert',alertId:ref.id,kind:'alert',notificationBody:'HELP — Simulator Bob'});
+    await until(async()=>(await routeNow())==='helpAlert','HELP screen',20000).catch(()=>{});
+    const r=await routeNow();const t=await js('document.querySelector(".help-shell")?.innerText||""');const s=await shot('help-tap-alarm');
+    return{ok:r==='helpAlert'&&/Bob\s*needs HELP/.test(t),observed:`${how}; screen: ${r||'?'} "${t.replace(/\s+/g,' ').slice(0,60)}"`,shots:[s]};
+  });
+
+  await check('HELP-TAP-CHAT','Same HELP still on: back to Messages, background; the CHAT notification of a message in the HELP conversation arrives and Alice taps it','the big red HELP screen opens (not the regular chat)',async()=>{
+    await toMessages();
+    const mid=await admin(async db=>(await getDocs(collection(db,'conversations',dmId,'messages'))).docs.map(x=>x.id).pop()||'');
+    if(!mid)return{ok:false,observed:'no message in the chat with Bob to point at',shots:[]};
+    const how=await tapNotification({type:'direct-message',conversationId:dmId,messageId:mid});
+    await until(async()=>(await routeNow())==='helpAlert','HELP screen',20000).catch(()=>{});
+    const r=await routeNow();const t=await js('document.querySelector(".help-shell")?.innerText||""');const s=await shot('help-tap-chat');
+    return{ok:r==='helpAlert'&&/needs HELP/.test(t),observed:`${how}; screen: ${r||'?'} "${t.replace(/\s+/g,' ').slice(0,60)}"`,shots:[s]};
+  });
+
+  await check('HELP-TAP-CHAT-AFTER','Bob taps "I\'m OK now" (HELP over); Alice taps a chat notification from Bob','the regular chat with Bob opens, as usual',async()=>{
+    if(tapAlertId)await updateDoc(doc(bobDb,'helpAlerts',tapAlertId),{state:'safe',closedAt:serverTimestamp()});
+    await sleep(4000);await toMessages();
+    const mid=await admin(async db=>(await getDocs(collection(db,'conversations',dmId,'messages'))).docs.map(x=>x.id).pop()||'');
+    const how=await tapNotification({type:'direct-message',conversationId:dmId,messageId:mid});
+    await until(async()=>(await routeNow())==='chat','chat',25000).catch(()=>{});
+    const r=await routeNow();const s=await shot('help-tap-chat-after');
+    return{ok:r==='chat'&&await present('#messageBox'),observed:`${how}; screen: ${r||'?'}`,shots:[s]};
+  });
+
+  await check('HELP-REACH','Alice\'s Settings → HELP with Bob chosen; Bob\'s notifications not confirmed, then Bob turns them on (from his phone)','first: "Simulator Bob may not hear your HELP…"; after Bob turns them on and Settings is opened again: no warning',async()=>{
+    await toSettings();
+    await until(async()=>/may not hear/.test(await js('document.querySelector("#helpReachNote")?.innerText||""')),'warning',15000).catch(()=>{});
+    const before=await js('document.querySelector("#helpReachNote")?.innerText||""');const s1=await shot('help-reach-warning');
+    await setDoc(doc(bobDb,'helpReach',bobUid),{devices:{'bob-phone':true},updatedAt:serverTimestamp()},{merge:true});
+    await toSettings();await sleep(5000);
+    const after=await js('document.querySelector("#helpReachNote")?.innerText||""');const s2=await shot('help-reach-ok');
+    return{ok:/Bob may not hear your HELP/.test(before)&&!after.trim(),observed:`before: "${before.replace(/\s+/g,' ').slice(0,90)}"; after: "${after.replace(/\s+/g,' ').slice(0,60)||'no warning'}"`,shots:[s1,s2]};
+  });
+
   await check('HELP-SIGNOUT','Settings: Sign Out button','no PIN asked for Sign Out (protection removed); not tapped',async()=>{
     await toSettings();const out=(await present('#firebaseSignOutBtn'))||(await present('#fidunioMainSignOutBtn'));
     const gone=!(await present('#helpProtected'))&&!(await present('#helpTest'));const s=await shot('help-settings-kiss');
