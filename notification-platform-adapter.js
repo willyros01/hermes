@@ -6,7 +6,7 @@
  * Capacitor Firebase Messaging plugin and never fakes navigator.serviceWorker.
  */
 import {isNativeIOSRuntime} from "./platform-runtime.js";
-import {FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,normalizeNotificationRoute} from "./notification-routing.js";
+import {FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,normalizeNotificationRoute,FIDUNIO_HELP_ROUTE_MESSAGE,normalizeHelpRoute} from "./notification-routing.js";
 
 function nativeMessagingPlugin(){
   if(!isNativeIOSRuntime())return null;
@@ -68,6 +68,12 @@ export async function deleteNativeMessagingToken(){
   return true;
 }
 
+function nativeEventData(event){
+  return event?.notification?.data&&typeof event.notification.data==="object"
+    ?event.notification.data
+    :event?.data&&typeof event.data==="object"?event.data:null;
+}
+function helpRouteFromNativeEvent(event){return normalizeHelpRoute(nativeEventData(event));}
 function routeFromNativeEvent(event){
   const data=event?.notification?.data&&typeof event.notification.data==="object"
     ?event.notification.data
@@ -95,6 +101,8 @@ export function subscribeNativeNotificationRoutes(handler){
   let active=true,handle=null;
   Promise.resolve(plugin.addListener("notificationActionPerformed",event=>{
     if(!active)return;
+    const help=helpRouteFromNativeEvent(event);
+    if(help){handler({type:FIDUNIO_HELP_ROUTE_MESSAGE,alertId:help.alertId},event);return;}
     const route=routeFromNativeEvent(event);
     if(route)handler({type:FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,route},event);
   })).then(value=>{handle=value;if(!active)handle?.remove?.();}).catch(error=>console.warn("FIDUNIO native notification listener failed",error));

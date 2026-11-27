@@ -41,6 +41,11 @@
 
 /* Settings → Safety → HELP. */
 .help-chosen{font-size:18px;margin:10px 0}
+.help-unreachable{font-size:17px;font-weight:700;color:#B71C1C;margin:6px 0}.help-unreachable:empty{display:none}
+.help-notice{margin:8px 16px;padding:12px 14px;border-radius:14px;background:#FDECEA;border:2px solid #C62828;color:#1A1D21}
+.help-notice p{margin:0 0 10px;font-size:17px;line-height:1.35}
+.help-notice-btn{display:block;width:100%;min-height:48px;border:0;border-radius:12px;background:#C62828;color:#fff;font-size:18px;font-weight:800;cursor:pointer}
+html[data-theme="dark"] .help-unreachable{color:#FF8A80}
 .help-helpers{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .help-helpers .member-option{grid-template-columns:36px 1fr;min-height:56px;font-size:18px;font-weight:700;cursor:pointer}
 .help-helpers .member-option input{width:28px;height:28px;margin:0}
