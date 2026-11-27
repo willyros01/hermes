@@ -1,3 +1,16 @@
+# 27 NOV 17:30 STATUS — 1.1.88 in progress (owner: needs it for family; keep replies SHORT; report problems at once)
+# 1.1.87 RELEASED 27 Nov ~15:00 (TestFlight 101 VALID, APK, web): HELP alarm tap -> red page; chat tap of open HELP -> red page;
+# "Turn on notifications to hear HELP." reminder; Settings "<name> can't hear HELP yet."; owner ran hl4.txt (rules helpReach +
+# helpSettings list for helpers; apns-collapse-id). Owner real-device test on 1.1.87: HELP came while iPad FIDUNIO asleep, CHAT
+# notification tapped first -> regular chat (live HELP list not caught up). FIX (commit c17c726 ios / 08090f1 android / b718f19 web):
+# help-owner freshAlerts() asks the server for open HELP alerts before deciding (max 8 s). Simulator run 46074296830 (started 17:04)
+# tests it incl. new HELP-TAP-CHAT-FIRST; iPhone tap test fixed (old one tapped the FIDUNIO Home-screen ICON, not the banner;
+# demo GoogleService-Info.plist with 39-char key + re-sign lets iPhone taps reach FIDUNIO). If ALL pass: release 1.1.88 (version.js,
+# README, TODO, ios-testflight-release.json revision 15; merge origin/X first; newest commit WITHOUT [skip ci]).
+# Owner rules today: never build while a fix is untested; every simulator run is a FULL run; plain words on the run page.
+# Open: HELP part of App Review video (owner records on 1.1.88); Apple Critical Alerts request submitted (await answer);
+# simulator-coverage list (what simulators cannot test) promised to owner.
+
 # 1.1.86 RELEASED 27 Nov ~06:15 Toronto (owner-scheduled 04:30): TestFlight 1.1.86 (100) VALID, built on Xcode 27 machine;
 # APK + web success. Dark mode: HELP hold screen (--ink), HELP typing box, Abuse highlight. iOS shell check stays on
 # macos-26 (Vision OCR helper crashes on Xcode 27). Simulator: Android 29/29, iPhone 17/18 (Paste = simulator limit).
