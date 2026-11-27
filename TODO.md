@@ -1,6 +1,6 @@
 ## Next FIDUNIO build (batched, owner 26 Nov 11:52)
 
-- [x] **HELP hold screen in dark mode** (Fire 8): title, back arrow and hint were dark text on dark background — fixed in help.css (uses --ink); add a dark-mode check of every HELP screen to the simulator test.
+- [x] **HELP hold screen in dark mode** (Fire 8) — 1.1.86, plus the HELP typing box and the Abuse Reports highlight: title, back arrow and hint were dark text on dark background — fixed in help.css (uses --ink); add a dark-mode check of every HELP screen to the simulator test.
 
 ## 2026-11-26 — FIDUNIO 1.1.84 build (scheduled 08:05)
 

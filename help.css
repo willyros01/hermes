@@ -58,7 +58,8 @@
 .help-msg-note{color:#5f6368;text-align:center}
 .help-msg a{font-weight:800}
 .help-chat-send{display:flex;gap:10px;align-items:stretch;min-width:0}
-.help-chat-send textarea{flex:1 1 auto;min-width:0;width:100%;box-sizing:border-box;min-height:60px;font-size:20px;border-radius:16px;border:0;padding:10px 12px;resize:none;color:#1A1D21}
+.help-chat-send textarea::placeholder{color:#5f6368}
+.help-chat-send textarea{background:#fff;flex:1 1 auto;min-width:0;width:100%;box-sizing:border-box;min-height:60px;font-size:20px;border-radius:16px;border:0;padding:10px 12px;resize:none;color:#1A1D21}
 .help-send{flex:0 0 auto;min-width:96px;border-radius:16px;border:3px solid #fff;background:rgba(255,255,255,.18);color:#fff;font-size:22px;font-weight:900;cursor:pointer}
 .help-with-chat .help-actions{margin-top:0}
 

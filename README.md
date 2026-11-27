@@ -1,3 +1,14 @@
+## FIDUNIO 1.1.86 — dark mode fixes, built with Apple's iOS 27 SDK — 2026-11-27
+
+1.1.85 -> 1.1.86 (owner-scheduled build, 27 Nov 04:30).
+
+- HELP hold screen in dark mode (owner, Fire 8): title, hint and back arrow were dark text on a dark background because
+  help.css asked for a non-existent `--text` colour (fallback dark). Now uses the app's `--ink`.
+- HELP big-screen typing box: white background with dark text in every theme (it was dark-on-dark in dark mode).
+- Settings → Abuse Reports highlight: readable in dark mode (dark text on its light highlight).
+- iPhone/iPad builds: GitHub's Xcode 27 machine (`runs-on: xcode-27`, iOS 27 SDK), as Apple asks.
+- Simulator test: new dark-mode contrast check of the HELP screen.
+
 ## FIDUNIO 1.1.85 — Settings opens fast after a restart — 2026-11-26
 
 1.1.84 -> 1.1.85 (owner go 26 Nov 10:24, same test cycle as 1.1.84).
