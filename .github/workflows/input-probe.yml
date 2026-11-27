@@ -190,6 +190,9 @@ jobs:
           done
           for k in IS_ADS_ENABLED IS_ANALYTICS_ENABLED IS_APPINVITE_ENABLED IS_GCM_ENABLED IS_SIGNIN_ENABLED; do plutil -replace "$k" -bool NO "$APP/GoogleService-Info.plist"; done
           plutil -replace IS_GCM_ENABLED -bool YES "$APP/GoogleService-Info.plist"
+          # Adding a file changes the app bundle: sign it again (simulator-only ad-hoc signature) so it still opens.
+          codesign --force --deep --sign - --timestamp=none "$APP"
+          codesign --verify --deep "$APP" && echo "PASS: test app re-signed with the demo Firebase config"
           PROBE_DEVICE="${{ matrix.device || 'iphone' }}" bash build/probe/run.sh ios out-probe "$APP" ${{ matrix.label }}
       - name: Publish evidence to the probe-evidence branch
         if: always()
