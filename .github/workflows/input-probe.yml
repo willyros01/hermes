@@ -180,9 +180,25 @@ jobs:
       - name: Probe on iPhone simulator
         run: |
           APP="$(find "$RUNNER_TEMP/dd/Build/Products" -maxdepth 2 -name App.app | head -1)"
-          # Note (27 Nov): a demo Firebase config in the test app stops it from opening (tried twice, also re-signed),
-          # so the iPhone simulator cannot test a TAPPED notification; Android tests it; iPhone/iPad = real-device test.
+          # 27 Nov: a DEMO Firebase config (no real project) so the iPhone notification plugin starts and a tapped
+          # notification reaches FIDUNIO. The first two tries did not open the app: this run saves WHY (crash report + log).
+          [ -f "$APP/GoogleService-Info.plist" ] || plutil -create xml1 "$APP/GoogleService-Info.plist"
+          for kv in "API_KEY:AIzaSyDemoDemoDemoDemoDemoDemoDemoDemo00" "GCM_SENDER_ID:123456789012" "PLIST_VERSION:1" \
+                    "BUNDLE_ID:io.github.willyros01.fidunio" "PROJECT_ID:demo-fidunio-simulator-tests" \
+                    "STORAGE_BUCKET:demo-fidunio-simulator-tests.appspot.com" "GOOGLE_APP_ID:1:123456789012:ios:0123456789abcdef"; do
+            plutil -replace "${kv%%:*}" -string "${kv#*:}" "$APP/GoogleService-Info.plist"
+          done
+          codesign --force --deep --sign - --timestamp=none "$APP"
+          echo "$(date -u +%FT%TZ)" > "$RUNNER_TEMP/probe-start"
           PROBE_DEVICE="${{ matrix.device || 'iphone' }}" bash build/probe/run.sh ios out-probe "$APP" ${{ matrix.label }}
+      - name: iPhone app crash report and log (diagnosis)
+        if: always()
+        run: |
+          mkdir -p out-probe
+          ls -t ~/Library/Logs/DiagnosticReports/ 2>/dev/null | head -20 > out-probe/crash-list.txt || true
+          for f in $(ls -t ~/Library/Logs/DiagnosticReports/App* ~/Library/Logs/DiagnosticReports/*/App* 2>/dev/null | head -3); do cp "$f" out-probe/ || true; done
+          xcrun simctl spawn "$UDID" log show --last 20m --style compact --predicate 'process == "App"' 2>/dev/null | grep -iE "firebase|fatal|crash|error|exception|terminat|assert|App Check|messaging" | head -300 > out-probe/app-log.txt || true
+          wc -l out-probe/app-log.txt out-probe/crash-list.txt || true
       - name: Publish evidence to the probe-evidence branch
         if: always()
         run: |
