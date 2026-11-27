@@ -1,3 +1,19 @@
+## FIDUNIO 1.1.87 — HELP notifications open the HELP screen; reminder when notifications are off — 2026-11-27
+
+1.1.86 -> 1.1.87 (owner real-device test 27 Nov: iPad as HELP contact heard nothing; a tapped HELP notification
+opened the regular chat).
+
+- Tapping the HELP alarm opens the big red HELP screen (iPhone/iPad, Android, Fire). Tapping a chat notification of a
+  HELP that is still going on also opens it; once the HELP is over, chat notifications open the chat as before.
+- Google Android: a notification tapped while FIDUNIO was closed is now read at start-up.
+- "Turn on notifications to hear HELP." [Turn on] on Messages, for HELP contacts and people with HELP on, while
+  notifications are off on that device (no "don't show again"; "Open Settings" when the phone refuses).
+- Settings → HELP: "<name> can't hear HELP yet." for a chosen contact whose notifications are off or not confirmed.
+- Server (owner ran hl4.txt 27 Nov): rules for the HELP contact look-up and helpReach; on iPhone/iPad each new ring
+  replaces the previous HELP notification (apns-collapse-id).
+- Simulator tests: notification reminder, Turn on, tapping each kind of notification, HELP arriving while FIDUNIO is in
+  the background (iPhone, iPad, Android) and after a restart.
+
 ## FIDUNIO 1.1.86 — dark mode fixes, built with Apple's iOS 27 SDK — 2026-11-27
 
 1.1.85 -> 1.1.86 (owner-scheduled build, 27 Nov 04:30).

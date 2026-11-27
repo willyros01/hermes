@@ -1,3 +1,11 @@
+## 1.1.87 (owner 27 Nov) — done
+
+- [x] Every HELP notification tap opens the big HELP screen (alarm + chat of an open HELP).
+- [x] Reminder when notifications are off (HELP contacts and senders), Settings warning; server hl4.txt run by owner.
+- [ ] Apple Critical Alerts (owner submitted the request 27 Nov): when approved, entitlement + ask once + reminder
+      with "Open Settings" and "Don't show this again" (stops for good); server marks HELP alarms critical. Next build.
+- [ ] Owner to record the HELP part of the App Review video on 1.1.87; Claude adds it to FIDUNIO.review.v1.mp4.
+
 ## Next FIDUNIO build (batched, owner 26 Nov 11:52)
 
 - [x] **HELP hold screen in dark mode** (Fire 8) — 1.1.86, plus the HELP typing box and the Abuse Reports highlight: title, back arrow and hint were dark text on dark background — fixed in help.css (uses --ink); add a dark-mode check of every HELP screen to the simulator test.
