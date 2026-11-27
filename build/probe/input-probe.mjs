@@ -564,24 +564,24 @@ if(label==='fix'){
      * tapped FIDUNIO's Home-screen icon, which opens FIDUNIO without any notification). */
     run('xcrun',['simctl','launch',UDID,'com.apple.Preferences']);await sleep(3000);
     run('xcrun',['simctl','push',UDID,APP,file]);
-    /* Only a real notification counts: its name carries the notification's text, and it is (almost) screen-wide. */
-    const fullName=e=>[e.AXLabel,e.AXValue,e.title].filter(Boolean).map(String).join(' ');
-    const isBanner=e=>{const l=fullName(e),f=e.frame||{};return l.includes(body)&&l.trim()!=='FIDUNIO'&&(f.width||0)>250&&(f.height||0)>40;};
-    const describe=e=>{const f=e.frame||{};return `"${fullName(e).replace(/\s+/g,' ').slice(0,70)}" at ${Math.round(f.x||0)},${Math.round(f.y||0)}, size ${Math.round(f.width||0)}x${Math.round(f.height||0)}`;};
-    const seen=new Set();
-    const findBanner=async ms=>{const end=Date.now()+ms;while(Date.now()<end){const all=iosElements();all.forEach(e=>{const l=fullName(e);if(l)seen.add(l.replace(/\s+/g,' ').slice(0,40));});const b=all.find(isBanner);if(b)return b;await sleep(500);}return null;};
-    let banner=await findBanner(10000),how='';
-    if(banner){how='tapped the notification banner '+describe(banner);await iosTap(banner);}
-    else{
-      /* Missed the banner: open the list of notifications (swipe down from the top) and tap it there. */
-      idb('ui','swipe','30','4','30','520','--duration','0.4');await sleep(2000);
-      banner=await findBanner(6000);
-      if(!banner)throw new Error('the notification never appeared on screen; the screen showed: '+[...seen].slice(0,10).join(' | '));
-      how='tapped the notification in the notification list '+describe(banner);await iosTap(banner);
-    }
+    /* The test's screen reader only sees the app in front, not iOS's own banners (27 Nov run: "the notification never
+     * appeared on screen" while it was showing). So: with the Settings app in front (no FIDUNIO icon or link anywhere),
+     * tap where iOS shows a banner, 1.5 s after it is sent. If FIDUNIO then comes to the front, the tap can only have been
+     * on FIDUNIO's notification; if not, the check fails and says so. */
+    await sleep(1500);
+    const front=()=>{try{return JSON.stringify(iosElements().slice(0,3).map(e=>iosLabel(e))).slice(0,120);}catch{return'?';}};
+    const before=front();
+    const sz=iosElements().find(e=>e.type==='Application')?.frame||{width:402};
+    const x=Math.round((sz.width||402)/2);
+    idb('ui','tap',String(x),'95');
+    const how=`tapped where the banner shows (${x},95) with the Settings app in front; in front before: ${before}`;
     log('NOTIFICATION TAP: '+how);
     await sleep(5000);
-    if(!(await appAnswers(15000)))throw new Error('FIDUNIO did not come to the front after the tap — '+how);
+    /* Proof the tap was on FIDUNIO's notification: FIDUNIO (not Settings) is now the app in front. */
+    const inFront=(()=>{try{return iosLabel(iosElements().find(e=>e.type==='Application')||{});}catch{return'';}})();
+    log('APP IN FRONT AFTER THE TAP: '+inFront);
+    if(!/FIDUNIO/i.test(inFront)){d.launch(APP);await sleep(5000);await unlockIfLocked().catch(()=>{});throw new Error('the notification tap did not bring FIDUNIO to the front (in front: '+(inFront||'?')+') — '+how);}
+    if(!(await appAnswers(15000))){d.launch(APP);await sleep(5000);await unlockIfLocked().catch(()=>{});throw new Error('FIDUNIO did not come to the front after tapping the notification — '+how);}
     await unlockIfLocked();return how;
   };
 
