@@ -43,7 +43,8 @@ import {
   installInactivityMonitor
 } from "./local-security.js";
 import { mountNewMessageRecipientPicker } from "./new-message-owner.js";
-import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance,removeNotificationRegistrationForSignOut,renewWebNotificationLease } from "./settings-lifecycle.js";
+import { mountSettingsLifecycle,startNotificationRegistrationMaintenance,stopNotificationRegistrationMaintenance,removeNotificationRegistrationForSignOut,renewWebNotificationLease,thisDeviceNotificationState,turnOnThisDeviceNotifications } from "./settings-lifecycle.js";
+import { openNotificationSettings } from "./help-platform-adapter.js";
 import {assertMessageSafety} from "./message-safety-policy.js";
 import { bindAuthenticatedAccountE2EE, getAccountE2EELifecycleState, resetAccountE2EEForSignOut } from "./e2ee-account-runtime.js";
 import { prepareAccountDirectMessage,decryptAccountDirectMessage } from "./e2ee-account-message-runtime.js";
@@ -68,7 +69,7 @@ import { ATTACHMENT_LIMITS_V1, validateAttachmentSelection } from "./attachment-
 import { evaluateLargeAttachmentNetworkPolicy, readBrowserAttachmentNetworkState } from "./large-attachment-network-policy.js";
 import { awaitBoundedOutboxReconciliation,isOutboxReconciliationTimeout,planTimedOutOutboxRequeue,scheduleAttachmentOutboxRetryIfPending,timeoutRequiresFailedState } from "./outbox-reconciliation-boundary.js";
 import {awaitBoundedGroupMemberDirectory,cloudGroupIdsMissingFromAuthoritativeSnapshot} from "./group-membership-lifecycle.js";
-import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE } from "./notification-routing.js";
+import { normalizeNotificationRoute,notificationRouteFromUrl,urlWithoutNotificationRoute,FIDUNIO_NOTIFICATION_ROUTE_MESSAGE,FIDUNIO_HELP_ROUTE_MESSAGE,normalizeHelpRoute } from "./notification-routing.js";
 import {listPendingNotificationRoutes,consumePendingNotificationRoutes,groupPendingNotificationRoutes} from "./notification-pending-inbox.js";
 import {createOptimisticOutgoingProjectionOwner} from "./optimistic-outgoing-projection.js";
 import {createBulkMessageDeleteProjectionOwner} from "./bulk-message-delete-projection.js";
@@ -123,6 +124,8 @@ let firebaseError = "";
 let cloudGroupSubscriptionError = "";
 let firebaseUser = null;
 let pendingNotificationRoute=notificationRouteFromUrl(globalThis.location?.href||"");
+/* A tapped HELP alarm (1.1.87): opened once FIDUNIO is unlocked and signed in. */
+let pendingHelpAlertId="";
 let notificationRouteRunning=false;
 let pendingNotificationInboxMessageIds=[];
 let notificationInboxLoadPromise=null;
@@ -749,6 +752,19 @@ async function loadPendingNotificationInbox(){
   })().catch(error=>console.warn("Pending notification inbox could not be read",error)).finally(()=>{notificationInboxLoadPromise=null;});
   return notificationInboxLoadPromise;
 }
+async function applyPendingHelpRoute(){
+  if(!pendingHelpAlertId||!hydrated||!state.unlocked||!firebaseUser)return false;
+  const alertId=pendingHelpAlertId;pendingHelpAlertId="";
+  /* The chat notification of the same HELP must not pull the screen back to the regular chat afterwards. */
+  const view=await helpOwner.viewForAlert(alertId);
+  if(!view)return false;
+  if(pendingNotificationRoute){
+    const c=state.conversations.find(x=>String(x.id)===String(pendingNotificationRoute.conversationId));
+    if(c&&await helpOwner.viewForConversation(c)){await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,pendingNotificationRoute.messageId]).catch(()=>{});pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;}
+  }
+  state.route=view;state.modal=null;state.toolsOpen=false;
+  return{help:true};
+}
 async function applyPendingNotificationRoute(){
   if(notificationRouteRunning||!hydrated||!state.unlocked||!firebaseUser)return false;
   if(!pendingNotificationRoute)await loadPendingNotificationInbox();
@@ -779,6 +795,16 @@ async function applyPendingNotificationRoute(){
       }
       if(!c?.cloud||c?.cloudGroup||c?.type==="group")return false;
       stopCloudGroupMessageSubscription();beginCloudMessageSubscription(c.id,{force:true});
+    }
+    /* Owner 27 Nov: a chat notification that belongs to a HELP still going on opens the big HELP screen,
+     * never the regular chat (the helper cannot know which of the notifications to tap). */
+    const helpView=await helpOwner.viewForConversation(c);
+    if(helpView){
+      await consumePendingNotificationRoutes([...pendingNotificationInboxMessageIds,route.messageId]);
+      pendingNotificationInboxMessageIds=[];pendingNotificationRoute=null;
+      history.replaceState(history.state,"",urlWithoutNotificationRoute(location.href));
+      state.route=helpView;state.modal=null;state.toolsOpen=false;
+      return{help:true};
     }
     let messageReady=notificationMessageHasProjected(route);
     if(!messageReady){
@@ -833,8 +859,9 @@ function startAppActivationOwner(){
     while(appActivationReasons.size){
       appActivationReasons.clear();
       state.online=navigator.onLine;
-      const routed=await applyPendingNotificationRoute();
+      const routed=(await applyPendingHelpRoute())||(await applyPendingNotificationRoute());
       ensureActiveCloudMessageSubscription(false);
+      if(state.unlocked&&firebaseUser)void helpOwner.refreshReach();
       if(state.online&&firebaseUser)scheduleReconnectRecovery();
       render({background:!routed,entry:!!routed});
       if(routed?.messageReady&&notificationRouteHasRendered(routed.route))await finalizePendingNotificationRoute(routed);
@@ -1439,6 +1466,8 @@ function helpCardsForAlert(senderUid,alertId,helperUids=[]){
   return rooms.flatMap(c=>(state.messages[c.id]||[]).map(m=>!m.mine?parseHelpCard(m.text):null)).filter(card=>card&&card.alertId===alertId);
 }
 const helpOwner=createHelpOwner({app,render,navigate:route=>{state.route=route;render();},shellTop,isUnlocked:()=>state.unlocked,
+  notify:{status:()=>firebaseUser?.uid?thisDeviceNotificationState(firebaseUser.uid):Promise.resolve(null),
+    turnOn:()=>firebaseUser?.uid?turnOnThisDeviceNotifications(firebaseUser.uid):Promise.resolve(false),openSettings:openNotificationSettings},
   chat:{sendDirect:sendHelpText,sendGroup:sendHelpGroupText,ensureGroup:ensureHelpGroup,findGroup:findHelpGroup,watch:watchHelpConversation,messages:id=>state.messages[String(id)]||[],retry:()=>flushQueuedAfterAuthoritativeReconcile({notifyUser:false})}});
 /*
  * Start-up serialization (owner guideline, 25 Nov 2026): every sign-in / sign-out report from Firebase is
@@ -1601,7 +1630,7 @@ function mainSignOutMarkup(){
 }
 /* Cancel on the protected-account PIN box just closes it: no extra pop-up. */
 function signOutWasCancelled(err){return err?.message==="Sign Out needs this account's PIN.";}
-async function signOutWithNotificationCleanup(){if(!(await helpOwner.allowSignOut()))throw new Error("Sign Out needs this account's PIN.");const user=getFirebaseUser();if(user?.uid)await removeNotificationRegistrationForSignOut(user.uid);await signOutFidunio();}
+async function signOutWithNotificationCleanup(){if(!(await helpOwner.allowSignOut()))throw new Error("Sign Out needs this account's PIN.");const user=getFirebaseUser();if(user?.uid)await removeNotificationRegistrationForSignOut(user.uid);await helpOwner.leaveReach();await signOutFidunio();}
 function bindMainSignOut(){
   const btn=document.querySelector("#fidunioMainSignOutBtn");
   if(!btn)return;
@@ -3470,6 +3499,11 @@ if(appearanceMedia){
   else appearanceMedia.addListener?.(followSystemAppearance);
 }
 subscribePlatformBackgroundMessages(data=>{
+  if(data?.type===FIDUNIO_HELP_ROUTE_MESSAGE){
+    const help=normalizeHelpRoute({type:"help-alert",alertId:data.alertId});
+    if(help){pendingHelpAlertId=help.alertId;void requestAppActivation("help-notification");}
+    return;
+  }
   if(data?.type!==FIDUNIO_NOTIFICATION_ROUTE_MESSAGE)return;
   const route=normalizeNotificationRoute(data?.route);if(!route)return;
   pendingNotificationRoute=route;void requestAppActivation("background-message");

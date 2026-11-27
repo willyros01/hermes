@@ -452,6 +452,26 @@ export function renewWebNotificationLease(uid){
 }
 let notificationTokenMaintenanceStop=()=>{};
 let notificationTokenMaintenanceGeneration=0;
+/* HELP needs notifications on (1.1.87, owner 27 Nov): the HELP reminder on Messages reads this device's state and
+ * turns notifications on with the same steps as Settings → Notifications → Enable (same commit/rollback rules). */
+export async function thisDeviceNotificationState(uid){
+  const status=await notificationRegistrationOwner.getStatus(uid);
+  if(!status?.supported||!status?.configured)return null;
+  return{on:status.enabled===true&&status.permission==="granted",denied:status.permission==="denied",installationId:status.installationId};
+}
+export async function turnOnThisDeviceNotifications(uid){
+  let registered=false;
+  try{
+    await notificationRegistrationOwner.enableFromUserGesture({uid,vapidKey:FIDUNIO_WEB_PUSH_PUBLIC_VAPID_KEY});registered=true;
+    webLeaseSession.setPreference(uid,true);
+    await webLeaseSession.activate(uid);registered=false;
+    return true;
+  }catch(error){
+    if(registered){webLeaseSession.setPreference(uid,false);await notificationRegistrationOwner.disable({uid}).catch(()=>{});}
+    if(globalThis.Notification?.permission==="denied")return false;
+    throw error;
+  }
+}
 export function stopNotificationRegistrationMaintenance(){
   notificationTokenMaintenanceGeneration++;
   try{notificationTokenMaintenanceStop();}catch{}
