@@ -1,3 +1,13 @@
+## FIDUNIO 1.1.88 — a tapped notification always checks the server for an open HELP — 2026-11-27
+
+1.1.87 -> 1.1.88 (owner real-device test on 1.1.87: HELP arrived while the iPad's FIDUNIO was asleep; the chat
+notification, tapped first, opened the regular chat because FIDUNIO's live HELP list had not caught up).
+
+- Any tapped notification first asks the server for open HELP alerts (at most 8 s), then opens the red HELP screen or
+  the chat. HELP screen: a photo/video/file in the HELP conversation shows as one word, not raw data.
+- Simulator: the owner's case (FIDUNIO asleep, HELP sent, chat notification tapped first -> red screen) passes on
+  Android and on the iPhone (real banner tap, FIDUNIO brought to the front from the Settings app).
+
 ## FIDUNIO 1.1.87 — HELP notifications open the HELP screen; reminder when notifications are off — 2026-11-27
 
 1.1.86 -> 1.1.87 (owner real-device test 27 Nov: iPad as HELP contact heard nothing; a tapped HELP notification

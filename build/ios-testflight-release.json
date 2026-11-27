@@ -1,1 +1,1 @@
-{"purpose": "FIDUNIO 1.1.87: HELP notification taps open the HELP screen; reminder when notifications are off", "sourceVersion": "1.1.87", "revision": 14}
+{"purpose": "FIDUNIO 1.1.88: a tapped notification checks the server for an open HELP first", "sourceVersion": "1.1.88", "revision": 15}

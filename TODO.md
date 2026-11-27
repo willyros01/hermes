@@ -1,3 +1,7 @@
+## 1.1.88 (owner 27 Nov)
+
+- [x] Chat notification tapped first while FIDUNIO was asleep -> now the red HELP screen (server check before deciding).
+
 ## 1.1.87 (owner 27 Nov) — done
 
 - [x] Every HELP notification tap opens the big HELP screen (alarm + chat of an open HELP).
