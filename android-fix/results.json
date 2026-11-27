@@ -57,7 +57,7 @@
       "what": "A paste that carries a picture (what an iPhone sticker sends)",
       "expected": "FIDUNIO sends it as a photo",
       "ok": true,
-      "observed": "a new message appeared (5:44 PM Sent)",
+      "observed": "a new message appeared (6:13 PM Sent)",
       "shots": [
         "09-picture-paste.png"
       ]
@@ -236,7 +236,7 @@
       "what": "Tap \"I'm OK now\", then open the regular chat with Bob",
       "expected": "the alert closes (server: safe); the regular chat has everything from the HELP screen: HELP, \"Help chat 7731\", \"I'm OK now\"",
       "ok": true,
-      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (HELP contacts. 5:50 PM Sent You are now one of my HELP contacts. 5:51 PM Sent HELP Open in Maps 5:52 PM Sent Help chat 7731 5:52 PM Sent I'm OK now 5:52 PM Sent)",
+      "observed": "server: safe; bar: \"HELP\"; regular chat has HELP + message + OK: true (HELP contacts. 6:18 PM Sent You are now one of my HELP contacts. 6:19 PM Sent HELP Open in Maps 6:20 PM Sent Help chat 7731 6:20 PM Sent I'm OK now 6:20 PM Sent)",
       "shots": [
         "27-help-ok-regular-chat.png"
       ]
@@ -246,10 +246,30 @@
       "what": "The chat with Bob is made as if BOB started it (member order Bob, Alice). Bob sends HELP to Alice; Alice taps \"I'm coming\", types \"On my way 5512\" and taps Send",
       "expected": "red \"Simulator Bob needs HELP\" opens by itself; after \"I'm coming\" the conversation is on the same screen; the message is sent (no \"Conversation could not be started\"); the server has Alice's answer",
       "ok": true,
-      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 5:52 PM Location is on it\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; \"could not be started\": false",
+      "observed": "chat made by Bob first: true; opened: \"‹ Simulator Bob needs HELP Sent at 6:20 PM Location is on it\"; server: Alice is coming; conversation: You: I'm OK now You: I'm coming You: On my way 5512; \"could not be started\": false",
       "shots": [
         "28-help-incoming.png",
         "29-help-im-coming-chat.png"
+      ]
+    },
+    {
+      "id": "HELP-RESUME",
+      "what": "Bob sends HELP while FIDUNIO is in the background; Alice opens FIDUNIO again — back from the background (no PIN) — and taps nothing",
+      "expected": "the red \"Simulator Bob needs HELP\" screen is there by itself",
+      "ok": true,
+      "observed": "screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 6:21 PM Location is on it\"; HELP trace [\"18:18:50 settings card contacts=0 (Saved.)\",\"18:18:50 settings snapshot exists=true cache=false pending=false contacts=0\",\"18:19:04 settings card contacts=0\",\"18:19:08 settings card contacts=0\",\"18:19:17 settings snapshot exists=true cache=false pending=true contacts=1\",\"18:19:17 settings applied (this phone's save) contacts=1\",\"18:19:18 saved contacts=1\",\"18:19:18 settings snapshot exists=true cache=false pending=false contacts=1\",\"18:19:18 settings card contacts=1 (Saved.)\",\"18:21:33 HELP contact of 1\"]",
+      "shots": [
+        "30-help-resume.png"
+      ]
+    },
+    {
+      "id": "HELP-RESUME-RESTART",
+      "what": "Bob sends HELP while FIDUNIO is in the background; Alice opens FIDUNIO again — FIDUNIO restarted and unlocked with the PIN — and taps nothing",
+      "expected": "the red \"Simulator Bob needs HELP\" screen is there by itself",
+      "ok": true,
+      "observed": "screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 6:21 PM Location is on it\"; HELP trace [\"18:22:14 start\",\"18:22:14 stop\",\"18:22:15 settings snapshot exists=true cache=false pending=false contacts=1\",\"18:22:15 settings applied (server read) contacts=1\",\"18:22:15 HELP contact of 1\"]",
+      "shots": [
+        "31-help-resume-restart.png"
       ]
     },
     {
@@ -257,9 +277,9 @@
       "what": "Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back",
       "expected": "a red reminder on Messages: \"Notifications are off on this device. Simulator Bob chose you as a HELP contact…\" with \"Turn on notifications\"",
       "ok": false,
-      "observed": "reminder: \"NOT SHOWN\"; trace [\"17:51:06 settings snapshot exists=true cache=false pending=true contacts=1\",\"17:51:06 settings applied (this phone's save) contacts=1\",\"17:51:06 saved contacts=1\",\"17:51:06 settings snapshot exists=true cache=false pending=false contacts=1\",\"17:51:07 settings card contacts=1 (Saved.)\",\"17:53:08 HELP contact of 1\"]",
+      "observed": "reminder: \"NOT SHOWN\"; trace [\"18:22:14 start\",\"18:22:14 stop\",\"18:22:15 settings snapshot exists=true cache=false pending=false contacts=1\",\"18:22:15 settings applied (server read) contacts=1\",\"18:22:15 HELP contact of 1\",\"18:22:34 HELP contact of 1\"]",
       "shots": [
-        "30-help-reminder.png"
+        "32-help-reminder.png"
       ]
     },
     {
@@ -275,9 +295,9 @@
       "what": "Bob sends HELP; Alice sees it and goes back to Messages; FIDUNIO goes to the background; the HELP alarm notification arrives and Alice taps it",
       "expected": "FIDUNIO opens on the big red \"Simulator Bob needs HELP\" screen (not the regular chat)",
       "ok": true,
-      "observed": "Android: launch with the notification data; screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 5:53 PM Location is on it\"",
+      "observed": "Android: launch with the notification data; screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 6:23 PM Location is on it\"",
       "shots": [
-        "31-help-tap-alarm.png"
+        "33-help-tap-alarm.png"
       ]
     },
     {
@@ -285,9 +305,9 @@
       "what": "Same HELP still on: back to Messages, background; the CHAT notification of a message in the HELP conversation arrives and Alice taps it",
       "expected": "the big red HELP screen opens (not the regular chat)",
       "ok": true,
-      "observed": "Android: launch with the notification data; screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 5:53 PM Location is on it\"",
+      "observed": "Android: launch with the notification data; screen: helpAlert \"‹ Simulator Bob needs HELP Sent at 6:23 PM Location is on it\"",
       "shots": [
-        "32-help-tap-chat.png"
+        "34-help-tap-chat.png"
       ]
     },
     {
@@ -297,7 +317,7 @@
       "ok": true,
       "observed": "Android: launch with the notification data; screen: chat",
       "shots": [
-        "33-help-tap-chat-after.png"
+        "35-help-tap-chat-after.png"
       ]
     },
     {
@@ -307,8 +327,8 @@
       "ok": true,
       "observed": "before: \"Simulator Bob may not hear your HELP: notifications are off or not confirmed. Ask them to \"; after: \"no warning\"",
       "shots": [
-        "34-help-reach-warning.png",
-        "35-help-reach-ok.png"
+        "36-help-reach-warning.png",
+        "37-help-reach-ok.png"
       ]
     },
     {
@@ -318,7 +338,7 @@
       "ok": true,
       "observed": "Sign Out shown: true; Protect/Test removed: true",
       "shots": [
-        "36-help-settings-kiss.png"
+        "38-help-settings-kiss.png"
       ]
     },
     {
@@ -328,7 +348,7 @@
       "ok": true,
       "observed": "record before: true; deleted: true; password box: true; FIDUNIO open: false; screen: \"FIDUNIO Private Messaging This device's PIN record is missing. Enter your password and PIN to unlock. Password Show pass\"",
       "shots": [
-        "37-pin-missing.png"
+        "39-pin-missing.png"
       ]
     },
     {
@@ -338,7 +358,7 @@
       "ok": true,
       "observed": "FIDUNIO open: false; PIN record written: false; message: \"Could not unlock with this password and PIN. Nothing was changed.\"",
       "shots": [
-        "38-pin-wrong.png"
+        "40-pin-wrong.png"
       ]
     },
     {
@@ -348,8 +368,8 @@
       "ok": true,
       "observed": "opened: true; PIN record saved back: true; next start PIN-only: true; same PIN unlocks: true",
       "shots": [
-        "39-pin-restored.png",
-        "40-pin-normal-again.png"
+        "41-pin-restored.png",
+        "42-pin-normal-again.png"
       ]
     }
   ]
