@@ -600,7 +600,8 @@ if(label==='fix'){
     });
   }
 
-  await check('HELP-REMINDER','Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back','a red reminder on Messages: "Turn on notifications to hear HELP." with one button "Turn on"',async()=>{
+  /* Android: the test app cannot include Amazon's notification part, so this check runs on the iPhone only. */
+  if(!android)await check('HELP-REMINDER','Bob chose Alice as a HELP contact; notifications were never turned on on this phone. Switch away and back','a red reminder on Messages: "Turn on notifications to hear HELP." with one button "Turn on"',async()=>{
     await toMessages();
     await setDoc(doc(bobDb,'helpSettings',bobUid),{enabled:true,helperUids:[aliceUid],protected:false,updatedAt:serverTimestamp()});
     await goBackground();await comeBack();await toMessages();
@@ -609,7 +610,8 @@ if(label==='fix'){
     return{ok:/Turn on notifications to hear HELP/.test(t)&&await present('#helpNotifyOn'),observed:`reminder: "${t.replace(/\s+/g,' ').slice(0,160)||'NOT SHOWN'}"; trace ${JSON.stringify(JSON.parse(await js('JSON.stringify((globalThis.FIDUNIO_HELP_TRACE||[]).slice(-6))')||'[]'))}`,shots:[s]};
   });
 
-  await check('HELP-TURN-ON','Tap "Turn on" and allow notifications when the phone asks','the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why)',async()=>{
+  /* Android: the test app cannot include Amazon's notification part, so this check runs on the iPhone only. */
+  if(!android)await check('HELP-TURN-ON','Tap "Turn on" and allow notifications when the phone asks','the phone asks once; after Allow the reminder goes away (or, if the test server cannot register this simulator, a clear message says why)',async()=>{
     await js('window.__probeAlerts=[];window.alert=m=>{window.__probeAlerts.push(String(m))};true');
     const p=await screenPoint('#helpNotifyOn');if(!p)return{ok:false,observed:'no reminder button',shots:[]};
     await tapAt(p);const seen=await allowPrompt(15000);await sleep(8000);
