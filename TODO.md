@@ -1,3 +1,15 @@
+## 2026-11-28 — Current status reconciliation (documentation only)
+
+Current source version is **1.1.88**. The historical NOT STARTED entries below for Copy/Select Text, keyboard-rich input, Android camera, Back, grace and tappable links were implemented in the 1.1.82 series; they are not authorization to build them again. Link previews and encrypted voice calls remain deferred. Physical keyboard/sticker and final cross-device acceptance must be recorded separately from implementation.
+
+The 1.1.88 server-check route fix supersedes the 1.1.87 cached-list-only notification decision. Final owner iPad/iPhone/Fire HELP tap acceptance remains open. Current iPhone probe records plain Paste unavailable to the touch layer, banner-tap foreground errors and a reachability-card timeout; retain these limits.
+
+The rebuild plan records hl2.txt run on 25 November and hl4.txt on 27 November; do not rerun a live script due to an older unchecked entry. TestFlight already uses Xcode 27; its separate shell inspection stays on Xcode 26. Critical Alerts entitlement approval, HELP review video completion and precise-location disclosure confirmation remain tracked until evidenced.
+
+Illustrated 1.1.88 [user guide](https://www.cuberoot-systems.com/fidunio/guide/), [HELP guide](https://www.cuberoot-systems.com/fidunio/help/), and [program reference](docs/HELP-PROGRAM-DOCUMENTATION.md) now describe the current implementation. This update changed documentation only.
+
+---
+
 ## 1.1.88 (owner 27 Nov)
 
 - [x] Chat notification tapped first while FIDUNIO was asleep -> now the red HELP screen (server check before deciding).

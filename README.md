@@ -1,3 +1,16 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+HELP setup is Settings → Safety → HELP → Choose HELP contacts → Save (up to five). Messages → HELP → hold two seconds creates the alert. A helper chooses I'm coming; the sender chooses I'm OK now to close it. The big HELP view and ordinary chat use the same encrypted conversation. HELP does not place a telephone call or contact emergency services. Notification availability, sound/Focus, network and location permissions affect behavior; Apple Critical Alerts approval remains pending.
+
+1.1.88 release evidence: web Pages 46079882799 and security 46079884194; iOS TestFlight 46079874858; signed Android APK 46079879409. Cuberoot manifest confirms the Android artifact published on 27 November 2026 at 23:04:06 UTC. Distinguish successful CI/build publication from owner physical-device acceptance; the iPhone probe still records Paste/banner-tap/reachability limitations.
+
+
+---
+
 ## FIDUNIO 1.1.88 — a tapped notification always checks the server for an open HELP — 2026-11-27
 
 1.1.87 -> 1.1.88 (owner real-device test on 1.1.87: HELP arrived while the iPad's FIDUNIO was asleep; the chat

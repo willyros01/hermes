@@ -1,3 +1,21 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+HELP ownership addition (observed implementation; no runtime ownership change in this task):
+- Operational HELP settings/alerts/reachability and their designated UI hosts: help-owner.js.
+- Routes and application render, ordinary message subscription/E2EE/Outbox/receipt authority: existing app.js / established messaging services.
+- Firebase initialization/auth/service construction: firebase.js. HELP consumes getFirebaseServices, no additional auth listener.
+- Device-only location/notification settings/channel behavior: help-platform-adapter.js and native platform bridge/build files.
+- Settings shell/child host lifecycle: settings-lifecycle.js, serialized server sections.
+- HELP backend: capital-Android/functions-help, separate codebase.
+HELP location and typed text use existing encrypted chat. Alert metadata and OS-visible short status are separate resources. Direct HELP SDK operations and polling/restart timers remain documented audit concerns, not approved new architecture.
+
+
+---
+
 FIDUNIO 1.1.59 IOS PLATFORM OWNERSHIP ADDENDUM — 2026-10-04
 firebase.js = sole Firebase service owner; platform bootstrap policy delegated only to firebase-platform-adapter.js.
 background-platform-adapter.js = background registration/message capability boundary; web uses real Service Worker; iOS does not emulate one.

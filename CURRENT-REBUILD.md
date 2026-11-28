@@ -1,3 +1,16 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+HELP is implemented through 1.1.88; the first 1.1.82 design was superseded by KISS HELP in 1.1.83. Later fixes cover stale saved-contact projection, iPad sidebar/background redraw, shared HELP/normal chat, Settings serialization, dark mode and notification routing against freshly queried open alerts.
+
+The iPad final notification-tap device acceptance remains unrecorded. The lost local PIN record root cause remains unproven. Existing issues #2 and #3 are not closed by this documentation checkpoint. Do not label the full product certified from the release gates.
+
+
+---
+
 ## FIDUNIO 1.1.59 iOS auth/recovery root-cause checkpoint — 2026-10-04
 
 Exact 1.1.57 TestFlight release commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` contains invalid JavaScript in `settings-lifecycle.js`: the native Notifications placeholder used literal escaped quote delimiters (`\'...\'`) in executable source. `app.js` at that same commit imports `./settings-lifecycle.js`, and 1.1.57 recovery called `startApp() -> import("./app.js")` inside the recovery UI catch. This is source-confirmed evidence for IOS-AUTH-002: successful PIN/E2EE recovery could be followed by a JavaScriptCore/WebKit parser failure during post-recovery application startup, then be displayed as though recovery itself failed. The shared recovery protocol and cryptographic owners remain unchanged.

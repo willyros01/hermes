@@ -1,3 +1,18 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+### HELP final acceptance still required
+
+Use 1.1.88 on both endpoints. Save contacts; enable notifications on each helper installation; sender leaves/returns and verifies the bar; send HELP; helper backgrounds then taps alarm and chat-first notification; unlock if required; correct red HELP screen; exchange text; helper I'm coming; sender green acknowledgement; sender I'm OK now; ordinary chat routing after closure. Repeat with one direct contact and multiple-helper group; verify iPad two-pane, dark mode, and ordinary message notification routing.
+
+Record device/version/notification type/state, result and any failure. Do not mark final iPad acceptance from simulator or upload success. Current evidence includes iPhone simulator banner-tap and reachability timeouts, plus unavailable native Paste; preserve them separately. Do not delete/reset the failing installation before saving diagnostic evidence and Recovery File.
+
+
+---
+
 ## IOS-AUTH-002 / IOS-AUTH-003 — 1.1.59 source-confirmed repair candidate — 2026-10-04
 
 **IOS-AUTH-002: OPEN — DEVICE ACCEPTANCE REQUIRED.** Exact 1.1.57 commit `b51b3f757a4d13fa7a609a2b11dd21f87220c9ff` contains invalid executable `\'...\'` quote escapes in `settings-lifecycle.js`. The same commit's `app.js` imports that module, and the recovery UI awaited `startApp() -> import("./app.js")` inside the recovery catch. This directly explains the observed JavaScriptCore/WebKit parser error after PIN recovery without requiring a failure in `recoverAccountE2EE()`.
