@@ -1,3 +1,22 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+### HELP notification extension (current 1.1.88)
+
+Ordinary direct/group push remains notification transport only. HELP has a separate metadata-triggered server codebase under capital-`Android/functions-help`. Its bounded data contains `type:help-alert`, opaque `alertId`, status `kind` and short `notificationBody` (profile name / HELP / coming / OK status). It contains no message text, location coordinates, attachment contents, keys, PIN or recovery material.
+
+The client consumes native HELP intent through shared route resolution. 1.1.88 checks current outgoing/incoming open HELP with a server request bounded to eight seconds after initial list readiness; an active matching HELP chooses the big HELP screen, and a closed/nonmatching alert follows ordinary conversation routing. These are source behavior descriptions, not proof of every physical-device tap.
+
+APNs alert kind requests bundled `help_alarm.caf` and time-sensitive delivery; collapse ID is per alert. Android/Fire alert kind uses `fidunio-help-alarm` and alarm audio. Critical Alerts entitlement remains pending: do not promise silent/Focus bypass. Per-device `helpReach` availability is not a delivery receipt. The helper's acknowledgement stops repeated unanswered alarms; sender safe/cancelled closes the alert.
+
+`helpAlerts` stores operational account IDs/state/timestamps/acknowledgements. Location cards and chat text remain E2EE in the existing message authority. Service worker must not decrypt HELP, manufacture message rows or write receipts. Current client polling/restart timers require separate guideline review; documentation does not approve timer-based repair.
+
+
+---
+
 ## 2026-10-09 DOCUMENTATION RECONCILIATION — main-3 / ios (documentation only)
 
 - The active reconciliation branches are `main-3` (web candidate) and `ios` (Capacitor candidate); `main` is protected and must not be modified by this work. `main2` is a distinct historical branch, not an alias for `main-3`.

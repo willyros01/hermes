@@ -1353,3 +1353,15 @@ Local legal wiring, platform boundaries, auth transitions, native bootstrap and 
 - Never advise deleting or resetting the app on a misbehaving device before the evidence (and the recovery file) is saved.
 - No live Firebase change by Claude: prepare a 3-letter .txt Cloud Shell script that sets and checks the project first, writes a rollback first, and changes only what it says.
 
+
+
+## 2026-11-28 — Illustrated HELP documentation checkpoint, 1.1.88
+
+- Current source version is 1.1.88. The new Cuberoot full/quick/HELP user guides replace 1.1.54a as the current instructions; historical PDFs remain archived. The illustrations are actual simulator screens with fictional accounts, not live-device acceptance proof.
+- Program reference is docs/HELP-PROGRAM-DOCUMENTATION.md with functions, resource owners, lifecycle, data and flow diagrams, server codebase and remaining test limits. Runtime/architecture/notification/Settings/defect/checklist documents now link this current checkpoint.
+- HELP chooses up to five trusted FIDUNIO contacts. A two-second hold creates an alert; existing direct/group E2EE chat carries location/cards/text; helper I'm coming acknowledges; sender I'm OK now closes it. Operational alert/reachability metadata and OS-visible short status are distinct from encrypted message contents.
+- 1.1.88 requests current open HELP before resolving a notification after resume; the server request is bounded to eight seconds after initial list readiness. Do not claim final iPad physical acceptance until it is recorded.
+- The actual HELP implementation consumes Firebase SDK services directly and includes initial-list polling and listener-restart timers. Documentation describes these honestly as separate guideline audit items, without authorizing runtime changes or declaring blanket conformance.
+- Apple Critical Alerts approval remains pending; do not promise silent/Focus bypass. Reachability is not a delivery receipt. Location is a point inside E2EE chat, not continuous tracking.
+- Current probe evidence preserves iPhone Paste unavailability, three banner-tap foreground errors and reachability-card timeout; Android and targeted iPad cases pass separately. Do not combine partial runs into full certification.
+- This task is documentation only: no version/SW bump, application-code edit, Firebase/rules/function/IAM change, signing change, TestFlight/APK rebuild or unrelated g.txt/config edit.

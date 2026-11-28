@@ -1,3 +1,24 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+### Current documentation and acceptance checklist
+
+- [x] Full/quick/HELP guides refreshed for 1.1.88 with real simulator screenshots, fictional account labels, and large print.
+- [x] HELP program function/resource reference and data/flow diagrams added.
+- [x] Documentation identifies successful 1.1.88 release workflows and preserves incomplete simulator cases.
+- [ ] Owner physical-device final 1.1.88 HELP alarm/chat-first tap, PIN/background, messages, acknowledgement and closure acceptance on iPhone/iPad/Fire.
+- [ ] Resolve iPhone probe Paste, banner-tap foreground and reachability-card limits with evidence; do not relabel them PASS.
+- [ ] Apple Critical Alerts entitlement approval and subsequent implementation/acceptance, if approved.
+- [ ] Confirm current App Store precise-location disclosure and completed HELP review video using App Store evidence.
+
+Older unchecked hl2/Xcode-migration entries are historical: the rebuild plan records hl2 run on 25 November, and current TestFlight uses Xcode 27. Separate shell inspection remains on Xcode 26 after its screen-reading helper crashed on Xcode 27. Do not rerun live scripts because an old checklist is unchecked.
+
+
+---
+
 ## 2026-11-25 — 1.1.83 build checklist additions
 
 - [x] Missing lock PIN record → password + PIN, same PIN saved back; wrong PIN stays locked (unit test + Android emulator probe).
