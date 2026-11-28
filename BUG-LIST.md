@@ -1,3 +1,24 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+### HELP defect status (source fixes versus acceptance)
+
+| Finding | Current evidence / status |
+|---|---|
+| 1.1.87 iPad chat notification tapped before HELP list caught up | 1.1.88 adds fresh server alert lookup; final owner device retest remains open. |
+| Missing iPad HELP bar after unlock/restart | 1.1.84 includes bar-slot refresh on background two-pane patch; iPad probe passed live arrival and three restart checks. |
+| Slow Settings after restart | 1.1.85 prevents whole-page background rebuilds and serializes loading; iPad probe measured 1.7 s and zero rebuilds. |
+| HELP existing direct chat member-order rewrite | 1.1.84 reuses the existing conversation; probe sends/acknowledges in the opposite member-order case. |
+| First HELP text fails silently / raw attachment descriptor | 1.1.85 send queue and explicit failure/retry; 1.1.87/88 attachment labels on big screen. Device regression remains distinct. |
+| Lost iPad local PIN record | Cause unproven. 1.1.83 safely restores the same record after password + existing encryption PIN verification. Never reset before preserving evidence. |
+| iPhone probe plain Paste, three banner tap foreground cases, reachability Settings timeout | Still recorded as DIFFERENT/test error in current evidence snapshot; no blanket matrix PASS. |
+
+
+---
+
 ## 2026-10-26 — iOS 1.1.80 group emoji attribution owner PASS; web now released
 
 Owner confirmed actual iOS TestFlight 1.1.80 emoji reaction author list **works perfectly** and emojis appear immediately. Treat this as user acceptance of the observed iOS feature, not 88-scenario whole-product release certification. iOS release pipeline #40412535254 PASS and exact iOS source remain unchanged by subsequent web-only fixes.

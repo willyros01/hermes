@@ -1,3 +1,22 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+### HELP resources — observed implementation and contract
+
+- `help-owner.js:createHelpOwner`: account-scoped HELP settings/alerts, named HELP bar and reminder slots, HELP screens, Settings HELP host, reachability, chat watch/send queues. It obtains services from sole initializer `firebase.js:getFirebaseServices`; it does not install a second auth listener.
+- `app.js`: central route/activation/render and existing direct/group encrypted-message, Outbox and receipt owners; injects bounded chat capabilities into HELP. The HELP screen is a projection of the same chat, not another message stream authority.
+- `settings-lifecycle.js`: integrated Settings lifecycle and predefined HELP host; background work must not rebuild the whole page or undo an active contact chooser.
+- `help-platform-adapter.js`: bounded device location, notification settings, platform channel preparation. Native notification bridge/build details stay in their platform branch.
+- `Android/functions-help/`: separate HELP server codebase for metadata-triggered delivery, acknowledgement/closure updates, reminder scheduler, token-lease validation and metadata cleanup.
+
+Before any change identify owner, resource, allowed lifecycle, serialized mutation path and dependents. Actual HELP code currently performs HELP Firestore operations on SDK services supplied by firebase.js and includes polling/listener retry timers. This is an observed implementation boundary, not a declaration that it conforms to every older sole-writer/no-timer rule. Audit separately before changing it; this task changed no runtime authority.
+
+
+---
+
 ## iOS platform bootstrap/notification authority addendum — 2026-10-04
 
 - `firebase.js`: sole Firebase app/service acquisition owner; delegates only platform bootstrap policy.

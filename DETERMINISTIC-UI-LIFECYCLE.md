@@ -1,3 +1,20 @@
+## 2026-11-28 — HELP documentation and 1.1.88 current-source checkpoint
+
+Current application version is **1.1.88** on production web `main`, native `ios`, and capital-`Android`. `main2` and `main-3` remain retired notices. This documentation update changes no application source, visible version, service-worker shell revision, Firebase deployment, signing or release artifact.
+
+Current user instructions: [illustrated full guide](https://www.cuberoot-systems.com/fidunio/guide/), [quick start](https://www.cuberoot-systems.com/fidunio/quick-start/), and [HELP guide](https://www.cuberoot-systems.com/fidunio/help/). Program reference: [docs/HELP-PROGRAM-DOCUMENTATION.md](docs/HELP-PROGRAM-DOCUMENTATION.md), including function/resource ownership, diagrams, server data boundaries and remaining validation limits. Older records below are chronological history.
+
+### HELP projection and Settings integration
+
+`app.js` retains route/render authority. Structural Messages layout owns `#helpBarSlot` and `#helpNoticeSlot`; HELP projects only into these named hosts. The iPad two-pane background patch must refresh the bar slot as well as the active chat/list. Do not create an iPad-specific message stream.
+
+Settings stays one integrated page: fast sections first, server-backed child lifecycle in awaited order, no full rebuild from background E2EE/HELP/chat-list updates. Refresh the HELP card only in its designated host, and skip it while contact selection is active.
+
+The HELP conversation is the same direct/group conversation shown in ordinary chat. HELP delegates message transport and subscription to the existing owners; serialized watch/send queues preserve order. Preserve the textarea and draft during same-screen background updates. Current polling/restart timers are documented as implementation audit items, not a waiver of the deterministic guideline.
+
+
+---
+
 # FIDUNIO Deterministic UI Lifecycle
 
 **STATUS: BINDING UI ARCHITECTURE DIRECTION — SEPTEMBER 5, 2026**
