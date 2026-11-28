@@ -46,7 +46,7 @@ Before removing or resetting a misbehaving installation, save its error details 
 
 4. Press and hold a message for available actions such as Copy, Select Text, reactions, Reply and deletion. Copy takes message text; Select Text lets you copy a portion.
 
-The 1.1.82 series added pasted images and keyboard rich-content handling. Actual sticker/GIF behavior depends on the keyboard and platform. Android offers camera capture and library selection; preserve the working iPhone/iPad camera path. If the keyboard supplies no attachment, use the regular attachment control.
+The 1.1.82 series added pasted images and keyboard rich-content handling. Actual sticker/GIF behavior depends on the keyboard and platform. Android offers camera capture and library selection. iPhone and iPad use their own camera/library controls. If the keyboard supplies no attachment, use the regular attachment control.
 
 Tappable HTTP/HTTPS addresses ask Open this link? before leaving FIDUNIO. Cancel keeps you in the chat. Link previews are deferred. HELP location links use Open in Maps directly.
 
