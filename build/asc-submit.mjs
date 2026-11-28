@@ -115,8 +115,26 @@ async function reference() {
 const LISTING = {
   locale: "en-US",
   subtitle: "Private family messaging",
-  keywords: "private,secure,encrypted,family,messaging,chat,invitation,groups,photos",
-  description: "FIDUNIO is a private, invitation-only messenger for families. Every message, photo and group chat is end-to-end encrypted, so only the people in the conversation can read it. Messages can be set to disappear. No ads, no tracking. An invitation from an existing member is required to join.",
+  keywords: "private,secure,encrypted,family,messaging,chat,help,safety,alert,invitation,groups,photos",
+  /* 28 Nov 2026 (Willy): the update highlights the new HELP function in detail. */
+  description: [
+    "FIDUNIO is a private, invitation-only messenger for families. Every message, photo and group chat is end-to-end encrypted, so only the people in the conversation can read it. Messages can be set to disappear. No ads, no tracking. An invitation from an existing member is required to join.",
+    "",
+    "NEW: HELP, a personal-safety alert for your family",
+    "• Choose up to 5 trusted HELP contacts in Settings > Safety > HELP.",
+    "• In trouble? Press and hold the big HELP button until the ring fills. Your HELP contacts are alerted at once, with a link to your location if you allow it.",
+    "• The alarm rings again every 30 seconds until a contact taps \"I'm coming\". Nobody has to keep checking their phone.",
+    "• Talk on the big HELP screen: large messages, a large typing box and one action at a time, simple enough for children.",
+    "• You see who is coming. When you are safe, tap \"I'm OK now\" and the alarm stops for everyone.",
+    "• FIDUNIO reminds your HELP contacts to turn on notifications, and Settings shows you anyone who cannot hear HELP yet.",
+    "",
+    "HELP does not replace emergency services. In an emergency, call your local emergency number.",
+  ].join("\n"),
+  whatsNew: [
+    "NEW: HELP. Press and hold HELP to alert the family members you chose. The alarm repeats every 30 seconds until someone taps \"I'm coming\", and you can talk on the big HELP screen until you tap \"I'm OK now\".",
+    "Also: a reminder when notifications are off, faster Settings, dark mode fixes and smaller improvements.",
+  ].join("\n\n"),
+  promotionalText: "New: HELP. Hold one button to alert your family. The alarm repeats until someone answers.",
   copyright: "2026 Wilfredo Rosales",
   privacyPolicyUrl: "https://www.cuberoot-systems.com/fidunio/privacy/",
   supportUrl: "https://www.cuberoot-systems.com/fidunio/support",
@@ -127,6 +145,11 @@ const reviewNotes = (pin) => [
   "Sign in with the demo account above. When FIDUNIO asks for the six-digit PIN, enter " + pin + ".",
   "The demo account is already a member, so no invitation is needed.",
   "Tap + to start a conversation or create a group. Messages can be set to disappear in each chat. Users can be blocked and messages reported in Settings > Safety.",
+  "",
+  "NEW IN THIS VERSION: HELP (personal safety). The attached video shows it on two devices: an iPhone that sends HELP and an iPad that is the chosen HELP contact. Part 1 of the video is the app as already approved; Part 2 is the new HELP function.",
+  "To try HELP: Settings > Safety > HELP, choose a contact, Save. Then tap the red HELP button and hold until the ring fills. Receiving HELP needs a second account on a second device, which is why the video is attached.",
+  "HELP alarms repeat every 30 seconds until a contact taps \"I'm coming\" or the sender taps \"I'm OK now\". HELP is not a replacement for emergency services.",
+  "",
   "Contact: willyros01@gmail.com",
 ].join("\n");
 
@@ -176,8 +199,12 @@ async function setListing(app, version) {
   await api("PATCH", `/v1/appStoreVersions/${version.id}`, { data: { type: "appStoreVersions", id: version.id, attributes: { copyright: LISTING.copyright } } });
   const vl = ((await api("GET", `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations`)).data || []).find((l) => l.attributes.locale === LISTING.locale);
   if (!vl) throw new Error(`no ${LISTING.locale} version localization`);
-  await api("PATCH", `/v1/appStoreVersionLocalizations/${vl.id}`, { data: { type: "appStoreVersionLocalizations", id: vl.id, attributes: { description: LISTING.description, keywords: LISTING.keywords, supportUrl: LISTING.supportUrl } } });
-  say("OK    description, keywords, support address, copyright");
+  await api("PATCH", `/v1/appStoreVersionLocalizations/${vl.id}`, { data: { type: "appStoreVersionLocalizations", id: vl.id, attributes: { description: LISTING.description, keywords: LISTING.keywords, supportUrl: LISTING.supportUrl, promotionalText: LISTING.promotionalText } } });
+  say("OK    description (with HELP), keywords, promotional text, support address, copyright");
+  // "What's New" exists only for an update (not for the very first version).
+  const wn = await call("PATCH", `/v1/appStoreVersionLocalizations/${vl.id}`, { data: { type: "appStoreVersionLocalizations", id: vl.id, attributes: { whatsNew: LISTING.whatsNew } } });
+  if (!wn.ok) throw new Error("What's New not accepted — " + why(wn));
+  say("OK    What's New (HELP)");
 
   const mv = (await api("GET", `/v1/apps/${mk.id}/appStoreVersions?filter[platform]=IOS&limit=1`)).data[0];
   const mr = (await api("GET", `/v1/appStoreVersions/${mv.id}/appStoreReviewDetail`)).data.attributes;
@@ -190,6 +217,10 @@ async function uploadScreens(vl) {
   const groups = { APP_IPHONE_67: files.filter((f) => f.startsWith("iphone-")), APP_IPAD_PRO_3GEN_129: files.filter((f) => f.startsWith("ipad-")) };
   if (!groups.APP_IPHONE_67.length || !groups.APP_IPAD_PRO_3GEN_129.length) throw new Error(`screenshots missing in ${dir}`);
   const sets = (await api("GET", `/v1/appStoreVersionLocalizations/${vl.id}/appScreenshotSets`)).data || [];
+  // An update carries over the approved version's screenshots: keep them when both sets are already there.
+  let have = 0;
+  for (const set of sets) if (Object.keys(groups).includes(set.attributes.screenshotDisplayType) && ((await api("GET", `/v1/appScreenshotSets/${set.id}/appScreenshots`)).data || []).length) have++;
+  if (have === Object.keys(groups).length) { say("OK    screenshots kept from the approved version"); return; }
   for (const [type, list] of Object.entries(groups)) {
     let set = sets.find((x) => x.attributes.screenshotDisplayType === type);
     if (set) for (const old of (await api("GET", `/v1/appScreenshotSets/${set.id}/appScreenshots`)).data || []) await api("DELETE", `/v1/appScreenshots/${old.id}`);
@@ -219,12 +250,45 @@ async function uploadScreens(vl) {
   throw new Error("screenshots still processing after 150 s");
 }
 
+/* App Review attachment: the review video (assets branch, fidunio-review/*.mp4), replacing any older one. */
+async function uploadReviewVideo(reviewDetailId) {
+  const dir = (process.env.ASSETS || "assets/fidunio-shots").replace(/fidunio-shots$/, "fidunio-review");
+  const file = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".mp4")).sort().pop() : null;
+  if (!file) throw new Error(`review video missing in ${dir}`);
+  for (const old of (await api("GET", `/v1/appStoreReviewDetails/${reviewDetailId}/appStoreReviewAttachments`)).data || []) await api("DELETE", `/v1/appStoreReviewAttachments/${old.id}`);
+  const buf = fs.readFileSync(`${dir}/${file}`);
+  const att = (await api("POST", "/v1/appStoreReviewAttachments", { data: { type: "appStoreReviewAttachments", attributes: { fileName: file, fileSize: buf.length }, relationships: { appStoreReviewDetail: { data: { type: "appStoreReviewDetails", id: reviewDetailId } } } } })).data;
+  for (const op of att.attributes.uploadOperations) {
+    const r = await fetch(op.url, { method: op.method, headers: Object.fromEntries(op.requestHeaders.map((h) => [h.name, h.value])), body: buf.subarray(op.offset, op.offset + op.length) });
+    if (!r.ok) throw new Error(`upload ${file} HTTP ${r.status}`);
+  }
+  await api("PATCH", `/v1/appStoreReviewAttachments/${att.id}`, { data: { type: "appStoreReviewAttachments", id: att.id, attributes: { uploaded: true, sourceFileChecksum: crypto.createHash("md5").update(buf).digest("hex") } } });
+  for (let i = 0; i < 36; i++) {
+    const st = (await api("GET", `/v1/appStoreReviewAttachments/${att.id}`)).data.attributes.assetDeliveryState?.state;
+    if (st === "COMPLETE") { say(`OK    review video attached: ${file} (${(buf.length / 1048576).toFixed(1)} MB)`); return; }
+    if (st === "FAILED") throw new Error("Apple rejected the review video");
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+  throw new Error("review video still processing after 3 minutes");
+}
+
+/* App Review sign-in: the inputs if given, otherwise the same demo account as the approved version (its PIN is in its notes). */
+async function demoAccount(versions) {
+  if (process.env.DEMO_USER && process.env.DEMO_PASS && process.env.DEMO_PIN) return { user: required("DEMO_USER"), pass: required("DEMO_PASS"), pin: required("DEMO_PIN") };
+  for (const v of versions) {
+    const rd = (await peek(`/v1/appStoreVersions/${v.id}/appStoreReviewDetail`)).data?.attributes;
+    const pin = String(rd?.notes || "").match(/PIN, enter (\d{6})/)?.[1];
+    if (rd?.demoAccountName && rd?.demoAccountPassword && pin) { say(`OK    App Review sign-in taken from version ${v.attributes.versionString}`); return { user: rd.demoAccountName, pass: rd.demoAccountPassword, pin }; }
+  }
+  throw new Error("no App Review sign-in found on an earlier version, and none given");
+}
+
 async function newestBuild(app) {
   const builds = (await api("GET", `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=10&include=preReleaseVersion`)).data || [];
   return builds.find((b) => b.attributes.processingState === "VALID" && !b.attributes.expired);
 }
 
-async function prepare(app, version) {
+async function prepare(app, version, versions) {
   const build = await newestBuild(app);
   if (!build) throw new Error("no valid, unexpired build in App Store Connect");
   const pre = await api("GET", `/v1/builds/${build.id}/preReleaseVersion`);
@@ -240,12 +304,13 @@ async function prepare(app, version) {
 
   const { vl, contact } = await setListing(app, version);
   await uploadScreens(vl);
+  const demo = await demoAccount(versions);
   const attrs = {
     ...contact,
-    notes: reviewNotes(required("DEMO_PIN")),
+    notes: reviewNotes(demo.pin),
     demoAccountRequired: true,
-    demoAccountName: required("DEMO_USER"),
-    demoAccountPassword: required("DEMO_PASS"),
+    demoAccountName: demo.user,
+    demoAccountPassword: demo.pass,
   };
   const rd = (await peek(`/v1/appStoreVersions/${version.id}/appStoreReviewDetail`)).data;
   if (rd) {
@@ -254,6 +319,8 @@ async function prepare(app, version) {
     await api("POST", "/v1/appStoreReviewDetails", { data: { type: "appStoreReviewDetails", attributes: attrs, relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: version.id } } } } });
   }
   say(`OK    App Review sign-in ${attrs.demoAccountName}, PIN and notes, contact ${contact.contactFirstName} ${contact.contactLastName}`);
+  const rdNow = (await api("GET", `/v1/appStoreVersions/${version.id}/appStoreReviewDetail`)).data;
+  await uploadReviewVideo(rdNow.id);
   return build;
 }
 
@@ -287,7 +354,15 @@ async function main() {
     }
     say(`RESULT: release requested for FIDUNIO ${ready.attributes.versionString} — Apple is still processing it`); return;
   }
-  const version = versions.find((v) => EDITABLE.includes(stateOf(v)));
+  let version = versions.find((v) => EDITABLE.includes(stateOf(v)));
+  // An update (28 Nov 2026): no editable version yet -> create one named after the newest valid build.
+  if (!version && (STAGE === "prepare" || STAGE === "submit")) {
+    const nb = await newestBuild(app);
+    if (!nb) throw new Error("no valid, unexpired build in App Store Connect");
+    const vs = (await api("GET", `/v1/builds/${nb.id}/preReleaseVersion`)).data.attributes.version;
+    version = (await api("POST", "/v1/appStoreVersions", { data: { type: "appStoreVersions", attributes: { platform: "IOS", versionString: vs, releaseType: "MANUAL" }, relationships: { app: { data: { type: "apps", id: app.id } } } } })).data;
+    say(`OK    new App Store version ${vs} created`);
+  }
   const builds = (await peek(`/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`)).data || [];
   say(`newest builds: ${builds.map((b) => `${b.attributes.version}=${b.attributes.processingState}${b.attributes.expired ? "(expired)" : ""}`).join(", ") || "none"}`);
 
@@ -302,7 +377,7 @@ async function main() {
     else for (const e of r.json?.errors || []) for (const [k, list] of Object.entries(e.meta?.associatedErrors || {})) for (const a of list) say(`BLOCK ${k.split("/").slice(-2).join("/")}: ${a.code} — ${a.detail || a.title}`);
     say("RESULT: diagnose only — not submitted"); return;
   }
-  const build = await prepare(app, version);
+  const build = await prepare(app, version, versions);
   if (STAGE === "prepare") { await inspect(app, version); say("RESULT: prepared — not submitted"); return; }
   const state = await submit(app, version);
   say(`RESULT: FIDUNIO submitted for review — build ${build.attributes.version}, state ${state}, release MANUAL`);
